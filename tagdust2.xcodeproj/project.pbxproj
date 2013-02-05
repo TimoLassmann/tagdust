@@ -58,17 +58,17 @@
 		A10B992416C09ED500AF1A1E = {
 			isa = PBXGroup;
 			children = (
-				A10B993916C09F2900AF1A1E /* interface.c */,
-				A10B993A16C09F2900AF1A1E /* interface.h */,
-				A10B993B16C09F2900AF1A1E /* io.c */,
-				A10B993C16C09F2900AF1A1E /* io.h */,
+				A10B994216C09F2900AF1A1E /* tagdust2.h */,
 				A10B993D16C09F2900AF1A1E /* main.c */,
-				A10B993E16C09F2900AF1A1E /* misc.c */,
+				A10B993A16C09F2900AF1A1E /* interface.h */,
+				A10B993916C09F2900AF1A1E /* interface.c */,
+				A10B993C16C09F2900AF1A1E /* io.h */,
+				A10B993B16C09F2900AF1A1E /* io.c */,
 				A10B993F16C09F2900AF1A1E /* misc.h */,
+				A10B993E16C09F2900AF1A1E /* misc.c */,
+				A10B994116C09F2900AF1A1E /* nuc_code.h */,
 				A10B994016C09F2900AF1A1E /* nuc_code.c */,
 				A10B994816C0A11200AF1A1E /* Makefile */,
-				A10B994116C09F2900AF1A1E /* nuc_code.h */,
-				A10B994216C09F2900AF1A1E /* tagdust2.h */,
 				A10B992F16C09ED500AF1A1E /* tagdust2 */,
 				A10B992E16C09ED500AF1A1E /* Products */,
 			);
@@ -166,7 +166,7 @@
 				CLANG_WARN_INT_CONVERSION = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -200,7 +200,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
@@ -214,6 +214,7 @@
 		A10B993716C09ED500AF1A1E /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -221,6 +222,7 @@
 		A10B993816C09ED500AF1A1E /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;

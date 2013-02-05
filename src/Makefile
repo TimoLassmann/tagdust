@@ -7,8 +7,8 @@ DEBUGFLAGS		= -ggdb -Wall -m64 -std=gnu99
 
 SOURCES			= main.c interface.c nuc_code.c misc.c io.c
 
-PROGS				= samstat
-DEBUGPROGS	= samstat_debug
+PROGS				= tagdust
+DEBUGPROGS	= tagdust_debug
 OBJECTS			= $(SOURCES:.c=.o)
 DEBUGOBJECTS	= $(SOURCES:.c=_debug.o)
 
