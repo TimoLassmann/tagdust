@@ -25,8 +25,28 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "math.h"
+
+#define LOGSUM_SIZE 16000
+#define SCALE 1000.0f
+
+#define HMMER3_MIN(a,b)          (((a)<(b))?(a):(b))
+#define HMMER3_MAX(a,b)          (((a)>(b))?(a):(b))
+#ifdef HUGE_VAL
+#define SCALEINFTY HUGE_VAL
+#endif
 
 #endif
 
 int byg_end(const char* pattern,const char*text);
 
+
+
+void init_logsum();
+float logsum(float a,float b);
+
+float logsum_print(float a,float b);
+
+
+float prob2scaledprob(float p);
+float scaledprob2prob(float p);

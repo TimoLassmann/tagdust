@@ -36,7 +36,6 @@
 
 #define MAX_SEQ_LEN 5000
 #define MAX_LINE 50000
-#define LIST_STORE_SIZE 1
 
 #define MAXERROR 100
 #define VERSION 1.08

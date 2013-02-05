@@ -19,7 +19,7 @@
  
  */
 
-
+#define LIST_STORE_SIZE 1
 
 struct read_info{
 	unsigned char* name;
@@ -33,6 +33,8 @@ struct read_info{
 	float mapq;
 	float* priors;
 	float* identity;
+	int read_start;
+	int read_end;
 	int len;
 	int errors;
 };

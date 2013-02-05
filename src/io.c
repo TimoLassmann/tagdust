@@ -228,6 +228,9 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file)
 		ri[i]->cigar = 0;
 		ri[i]->md = 0;
 		ri[i]->xp = 0;
+		ri[i]->read_start = -1;
+		ri[i]->read_end = -1;
+		
 	}
 	
 	while(fgets(line, MAX_LINE, file)){
@@ -456,6 +459,8 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
 		ri[i]->xp = 0;
 		ri[i]->cigar = 0;
 		ri[i]->errors = 0;
+		ri[i]->read_start = -1;
+		ri[i]->read_end = -1;
 		//ri[i]->strand = 0;
 	}
 	
