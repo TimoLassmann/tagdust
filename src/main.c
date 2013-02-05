@@ -167,8 +167,10 @@ int main (int argc,char * argv[]) {
 				}
 			}
 			free_seq_stats(seq_stats);*/
-		}	
+		}
 	}
+	
+	
 	if(param->summary){
 		fclose(outfile);
 	}
