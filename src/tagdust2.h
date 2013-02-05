@@ -33,13 +33,26 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <time.h>
-
+#include <assert.h>
 #define MAX_SEQ_LEN 5000
 #define MAX_LINE 50000
 
 #define MAXERROR 100
 #define VERSION 1.08
 #define KMERLEN 10
+
+
+
+#ifndef _MM_ALIGN16
+#ifdef __GNUC__
+#define _MM_ALIGN16 __attribute__((aligned (16)))
+#endif
+#ifdef __MSVC__
+#define _MM_ALIGN16 __declspec(align(16))
+#endif
+#endif
+
+
 
 
 #endif

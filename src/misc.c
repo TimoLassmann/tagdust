@@ -112,3 +112,42 @@ int byg_end(const char* pattern,const char*text)
 
 
 
+
+double binomial_distribution(double p , int n, int k)
+{
+	double fac = gammln((double)n + 1.0);
+	if(k < 0){
+		//fprintf(stderr,"Bad k in binomialdist\n");
+	}
+	if(k > n){
+		return 0;
+	}
+	return exp(k*log(p) +(n-k)*log(1.0 - p) + fac -gammln(k + 1.0) - gammln(n-k+1.0));
+	
+}
+
+
+
+double gammln(const double xx)
+{
+	int j;
+	double x,tmp,y,ser;
+	static const double cof[14] = {57.1562356658629235,-59.5979603554754912,14.1360979747417471, -0.491913816097620199,0.339946499848118887e-4,0.465236289270485756e-4, -0.983744753048795646e-4, 0.0158088703224912494e-3,-0.210264441724104883e-3, 0.217439618115212643e-3, -0.164318106536763890e-3,0.888182239838527433e-4, -0.261908384015814087e-4, 0.368991826595316234e-5};
+	if(xx <= 0.0){
+		//fprintf(stderr,"bar arg in gammln");
+	}
+	y = xx;
+	x = xx;
+	tmp = x+5.24218750000000000;
+	tmp = (x + 0.5) * log(tmp) - tmp;
+	ser = 0.999999999999997092;
+	for(j = 0; j < 14;j++){
+		ser += cof[j] / ++y;
+	}
+	return tmp + log(2.5066282746310005*ser/x);
+}
+
+
+
+
+

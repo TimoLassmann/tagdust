@@ -23,7 +23,9 @@
 #include "interface.h"
 #include "nuc_code.h"
 #include "io.h"
+#include "misc.h"
 #include "tagdust2.h"
+#include "barcode_hmm.h"
 #include <math.h>
 
 
@@ -31,11 +33,36 @@ int main (int argc,char * argv[]) {
 	struct parameters* param = 0;
 	//struct seq_stats* seq_stats = 0;
 	FILE* outfile =0;
-	int i;
+	int i,j;
 	
 	init_nuc_code();
 	
+	
+	double max = -1;
+	
+	int len = 10;
+	int c =0;
+	
+	for(j= 20;j < 36;j++){
+		len = j;
+		max = -1;
+		for(i = 0; i< 1000;i++){
+			if(binomial_distribution((double)i / 1000.0 ,len ,16)  > max){
+				max = binomial_distribution((double)i / 1000.0 ,len,16 );
+				c = i;
+			}
+		}
+		max = (double)c / 1000.0;
+		fprintf(stderr,"%d\t%f\n",j,max );
+	}
+	
+	
+	
 	param = interface(param,argc,argv);
+	
+	hmm_controller(param,&read_sam_chunk,0);
+	exit(0);
+	
 	if(param->summary){
 		if ((outfile = fopen(param->summary, "w")) == NULL){
 			fprintf(stderr,"can't open output\n");

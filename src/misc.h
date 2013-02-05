@@ -50,3 +50,7 @@ float logsum_print(float a,float b);
 
 float prob2scaledprob(float p);
 float scaledprob2prob(float p);
+
+double binomial_distribution(double p , int n, int k);
+double gammln(const double xx);
+
