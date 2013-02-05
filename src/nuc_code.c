@@ -77,9 +77,6 @@ void init_nuc_code()
 	 rev_nuc_code5[15] = 15;//N	Any base (A, C, G, T, or U)*/
 	
 	
-	
-	asmdbaskmfbamn
-	
 	nuc_code5[65+32] = 0;//A Adenine
 	nuc_code5[67+32] = 1;//C	Cytosine
 	nuc_code5[71+32] = 2;//G	Guanine

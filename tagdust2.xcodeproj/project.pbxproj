@@ -41,6 +41,7 @@
 		A10B994016C09F2900AF1A1E /* nuc_code.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = nuc_code.c; path = src/nuc_code.c; sourceTree = "<group>"; };
 		A10B994116C09F2900AF1A1E /* nuc_code.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = nuc_code.h; path = src/nuc_code.h; sourceTree = "<group>"; };
 		A10B994216C09F2900AF1A1E /* tagdust2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tagdust2.h; path = src/tagdust2.h; sourceTree = "<group>"; };
+		A10B994816C0A11200AF1A1E /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; name = Makefile; path = src/Makefile; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -65,6 +66,7 @@
 				A10B993E16C09F2900AF1A1E /* misc.c */,
 				A10B993F16C09F2900AF1A1E /* misc.h */,
 				A10B994016C09F2900AF1A1E /* nuc_code.c */,
+				A10B994816C0A11200AF1A1E /* Makefile */,
 				A10B994116C09F2900AF1A1E /* nuc_code.h */,
 				A10B994216C09F2900AF1A1E /* tagdust2.h */,
 				A10B992F16C09ED500AF1A1E /* tagdust2 */,
@@ -242,6 +244,7 @@
 				A10B993816C09ED500AF1A1E /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
