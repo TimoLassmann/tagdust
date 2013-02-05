@@ -78,7 +78,7 @@ void init_nuc_code()
 	
 	
 	
-	
+	asmdbaskmfbamn
 	
 	nuc_code5[65+32] = 0;//A Adenine
 	nuc_code5[67+32] = 1;//C	Cytosine
