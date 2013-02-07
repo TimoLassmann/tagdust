@@ -19,10 +19,11 @@
 void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ),int file_num)
 {
 	struct read_info** ri = 0;
-	int i;
+	int i,j;
 	int numseq;
+	int total_read = 0;
 	
-	
+	float sum = 0.0;
 	init_logsum();
 	
 	
@@ -35,7 +36,7 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	
 	struct model* model =  malloc_model(16, 10, 64);
 		
-	model = init_model(model , back,24);
+	/*model = init_model(model , back,24);
 	
 	struct model* model2 = copy_and_malloc_model(model);
 	
@@ -45,7 +46,8 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	
 	free_param(param);
 	exit(0);
-	//char command[1000];
+	*/
+	 //char command[1000];
 	//char  tmp[1000];
 	FILE* file = 0;
 	FILE* unmapped = 0;
@@ -77,12 +79,99 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		}
 	}
 	
+	/*
+	 
+	 get backgorund nucleotide distribution - from all reads?
+	 
+	 */
+	
+	
+	model->average_length = 0;
+	for(i = 0; i < 5;i++){
+		model->background_nuc_frequency[i] = 0.0;
+	}
+	total_read = 0;
+	
 	while ((numseq = fp(ri, param,file)) != 0){
 		//fprintf(stderr,"rread: %d\n",numseq);
 		for(i = 0; i < numseq;i++){
-			
+			model->average_length += ri[i]->len;
+			for(j = 0;j < ri[i]->len;j++){
+				model->background_nuc_frequency[ri[i]->seq[j]] += 1;
+			}
+		}
+		total_read+= numseq;
+		if(total_read > 10000000){
+			break;
 		}
 	}
+	
+	model->average_length = model->average_length / total_read;
+	
+	for(i = 0; i < 5;i++){
+		sum += model->background_nuc_frequency[i];
+	}
+	
+	for(i = 0; i < 5;i++){
+		model->background_nuc_frequency[i] = prob2scaledprob(model->background_nuc_frequency[i]  / sum);
+	}
+	
+	rewind(file);
+	
+	
+	/*
+	 
+	 got backgorund nucleotide distribution - from all reads?
+	 
+	 */
+	
+	/*
+	 
+	 init model; 
+	 
+	 */
+	
+	
+	model = init_model(model);
+	/*
+	 
+	 done init model;
+	 
+	 */
+	
+	
+	/*
+	 
+	run Baum Welch  X times using threads
+	 
+	 */
+	
+	for(i = 0; i < 10;i++){
+		
+		while ((numseq = fp(ri, param,file)) != 0){
+			//fprintf(stderr,"rread: %d\n",numseq);
+			for(i = 0; i < numseq;i++){
+				model->average_length += ri[i]->len;
+				for(j = 0;j < ri[i]->len;j++){
+					model->background_nuc_frequency[ri[i]->seq[j]] += 1;
+				}
+			}
+			total_read+= numseq;
+			
+		}
+		
+		
+		//re-restimate...
+		
+		
+	}
+	
+	/*
+	 
+	done...  run Baum Welch  X times using threads
+	 
+	 */
+	
 	
 	if(param->print_unmapped){
 		fclose(unmapped);
@@ -427,7 +516,7 @@ struct model* add_estimates_to_model(struct model* target, struct model* source)
 
 
 
-struct model* init_model(struct model* model ,float* background,int average_length)
+struct model* init_model(struct model* model)
 {
 	
 	int i,j,c;
@@ -437,18 +526,25 @@ struct model* init_model(struct model* model ,float* background,int average_leng
 	int kmer_len = log(model->num_hmms-1) / log(4);
 	int x;
 	
+	float start_prob = 1.0;
+	
 	struct hmm_column* col =0;
 	assert(model != 0);
 	len = model->hmms[0]->num_columns;
 	c = 0;
 	max = -1;
 	for(i = 0; i< 1000;i++){
-		if(binomial_distribution((double)i / 1000.0 ,average_length ,len)  > max){
-			max = binomial_distribution((double)i / 1000.0 ,average_length,len );
+		if(binomial_distribution((double)i / 1000.0 , model->average_length  ,len)  > max){
+			max = binomial_distribution((double)i / 1000.0 ,model->average_length ,len );
 			c = i;
 		}
 	}
 	max = (double)c / 1000.0;
+	
+	
+	model->random_next =  prob2scaledprob( max);
+	model->random_self = prob2scaledprob(1.0-max);
+	
 /*
  
  Init main model....
@@ -461,24 +557,22 @@ struct model* init_model(struct model* model ,float* background,int average_leng
 		
 		col->identifier = -1;
 		for(j = 0; j < 5;j++){
-			col->i_emit[j] = background[j];
-			col->m_emit[j] = background[j];
+			col->i_emit[j] = model->background_nuc_frequency[j];
+			col->m_emit[j] = model->background_nuc_frequency[j];
 			col->i_emit_e[j] =  prob2scaledprob(0.0f);
 			col->m_emit_e[j] =  prob2scaledprob(0.0f);
 		}
 		col->short_transition[NEXT] = prob2scaledprob( max);
-		col->short_transition[SELF] = prob2scaledprob(1.0 - max) +  prob2scaledprob(0.5);
+		col->short_transition[SELF] = prob2scaledprob((1.0 - max) * 0.5);
 		
-		col->short_transition_e[NEXT] = prob2scaledprob( max);
-		col->short_transition_e[SELF] = prob2scaledprob(1.0 - max) +  prob2scaledprob(0.5);
+		col->short_transition_e[NEXT] = prob2scaledprob( 0.0);
+		col->short_transition_e[SELF] = prob2scaledprob(0.0);
 		
 		
 		for(j = 0; j< model->num_hmms-1;j++){
-			col->long_transition[j] = prob2scaledprob(1.0 - max) +  prob2scaledprob(0.5  /  (float) (model->num_hmms-1));
-			col->long_transition_e[j] = prob2scaledprob(1.0 - max) +  prob2scaledprob(0.5  /  (float) (model->num_hmms-1));
+			col->long_transition[j] = prob2scaledprob(((1.0 - max) * 0.5)  /  (float) (model->num_hmms-1));
+			col->long_transition_e[j] = prob2scaledprob(0.0);
 		}
-		
-		
 	}
 	
 	/*
@@ -492,7 +586,7 @@ struct model* init_model(struct model* model ,float* background,int average_leng
 			col = model->hmms[i]->hmm_column[j];
 			col->identifier = -1;
 			for(c = 0; c < 5;c++){
-				col->i_emit[c] = background[c];
+				col->i_emit[c] = model->background_nuc_frequency[c];
 				
 				col->i_emit_e[c] =  prob2scaledprob(0.0f);
 				col->m_emit_e[c] =  prob2scaledprob(0.0f);
@@ -512,7 +606,7 @@ struct model* init_model(struct model* model ,float* background,int average_leng
 				col->m_emit[  ((i-1) >> x) & 0x3] = prob2scaledprob(1.0 - (0.0001*4.0) );
 			}else{
 				for(c = 0; c < 5;c++){
-					col->m_emit[c] = background[c];
+					col->m_emit[c] = model->background_nuc_frequency[c];
 				}
 			}
 			
@@ -521,15 +615,33 @@ struct model* init_model(struct model* model ,float* background,int average_leng
 			//}
 			
 			
-			col->short_transition[MM] = prob2scaledprob( 0.999);
-			col->short_transition[MI] = prob2scaledprob(1.0 - 0.999) +  prob2scaledprob(0.5);
-			col->short_transition[MD] = prob2scaledprob(1.0 - 0.999) +  prob2scaledprob(0.5);
+			if(j < kmer_len){
+				start_prob = 1.0;
+				for(c = 0;c <  (model->num_hmms-1);c++){
+					col->long_transition[c] = prob2scaledprob(0.0);
+					col->long_transition_e[c] = prob2scaledprob(0.0);
+				}
+				
+				
+				
+			}else{
+				start_prob = 0.9;
+				for(c = 0;c <  (model->num_hmms-1);c++){
+					col->long_transition[c] = prob2scaledprob(0.1);
+					col->long_transition_e[c] = prob2scaledprob(0.0);
+				}
+
+			}
 			
-			col->short_transition[II] = prob2scaledprob(1.0 - 0.999);
-			col->short_transition[IM] = prob2scaledprob(0.999);
+			col->short_transition[MM] = prob2scaledprob( start_prob * 0.99);
+			col->short_transition[MI] = prob2scaledprob(1.0 - start_prob * 0.99) +  prob2scaledprob(0.5);
+			col->short_transition[MD] = prob2scaledprob(1.0 - start_prob * 0.99) +  prob2scaledprob(0.5);
 			
-			col->short_transition[DD] = prob2scaledprob(1.0 - 0.999);
-			col->short_transition[DM] = prob2scaledprob(0.999);
+			col->short_transition[II] = prob2scaledprob(1.0 - 0.99);
+			col->short_transition[IM] = prob2scaledprob(0.99);
+			
+			col->short_transition[DD] = prob2scaledprob(1.0 - 0.99);
+			col->short_transition[DM] = prob2scaledprob(0.99);
 			
 			
 			col->short_transition_e[MM] =  prob2scaledprob(0.0);
@@ -544,11 +656,6 @@ struct model* init_model(struct model* model ,float* background,int average_leng
 
 			
 			
-			
-			for(c = 0;c <  (model->num_hmms-1);c++){
-				col->long_transition[c] = prob2scaledprob(0.0);
-				col->long_transition_e[c] = prob2scaledprob(0.0);
-			}
 			
 			
 			

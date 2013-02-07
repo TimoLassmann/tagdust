@@ -73,6 +73,12 @@ struct hmm{
 
 struct model{
 	struct hmm** hmms;
+	float background_nuc_frequency[5];
+	
+	float random_next;
+	float random_self; 
+	
+	int average_length;
 	int num_hmms;
 }_MM_ALIGN16;
 
@@ -81,7 +87,7 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 
 struct model* malloc_model(int main_length, int sub_length, int number_sub_models);
 
-struct model* init_model(struct model* model ,float* background,int average_length);
+struct model* init_model(struct model* model);
 struct model* copy_and_malloc_model(struct model* org);
 struct model* add_estimates_to_model(struct model* target, struct model* source);
 void free_model(struct model* model);

@@ -14,6 +14,7 @@
 		A10B994616C09F2900AF1A1E /* misc.c in Sources */ = {isa = PBXBuildFile; fileRef = A10B993E16C09F2900AF1A1E /* misc.c */; };
 		A10B994716C09F2900AF1A1E /* nuc_code.c in Sources */ = {isa = PBXBuildFile; fileRef = A10B994016C09F2900AF1A1E /* nuc_code.c */; };
 		A10B994D16C0C7FF00AF1A1E /* barcode_hmm.c in Sources */ = {isa = PBXBuildFile; fileRef = A10B994C16C0C7FF00AF1A1E /* barcode_hmm.c */; };
+		A1E919D616C38FBE00739ACC /* pst.c in Sources */ = {isa = PBXBuildFile; fileRef = A1E919D516C38FBE00739ACC /* pst.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -45,6 +46,8 @@
 		A10B994816C0A11200AF1A1E /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; name = Makefile; path = src/Makefile; sourceTree = "<group>"; };
 		A10B994C16C0C7FF00AF1A1E /* barcode_hmm.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = barcode_hmm.c; path = src/barcode_hmm.c; sourceTree = "<group>"; };
 		A10B994F16C0E65B00AF1A1E /* barcode_hmm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = barcode_hmm.h; path = src/barcode_hmm.h; sourceTree = "<group>"; };
+		A1E919D516C38FBE00739ACC /* pst.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pst.c; path = src/pst.c; sourceTree = "<group>"; };
+		A1E919D716C38FD200739ACC /* pst.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = pst.h; path = src/pst.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -69,6 +72,8 @@
 				A10B993B16C09F2900AF1A1E /* io.c */,
 				A10B994F16C0E65B00AF1A1E /* barcode_hmm.h */,
 				A10B994C16C0C7FF00AF1A1E /* barcode_hmm.c */,
+				A1E919D716C38FD200739ACC /* pst.h */,
+				A1E919D516C38FBE00739ACC /* pst.c */,
 				A10B993F16C09F2900AF1A1E /* misc.h */,
 				A10B993E16C09F2900AF1A1E /* misc.c */,
 				A10B994116C09F2900AF1A1E /* nuc_code.h */,
@@ -152,6 +157,7 @@
 				A10B994616C09F2900AF1A1E /* misc.c in Sources */,
 				A10B994716C09F2900AF1A1E /* nuc_code.c in Sources */,
 				A10B994D16C0C7FF00AF1A1E /* barcode_hmm.c in Sources */,
+				A1E919D616C38FBE00739ACC /* pst.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
