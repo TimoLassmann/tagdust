@@ -169,6 +169,25 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 }
 
 
+void print_just_seq(struct read_info* ri,FILE* out)
+{
+	char alphabet[] = "ACGTN";
+	int i;
+	fprintf(out,"@%s\n",ri->name);
+	for(i =0;i < ri->len;i++){
+		fprintf(out,"%c",alphabet[ri->seq[i]]);
+	}
+	fprintf(out,"\n+\n");
+	if(ri->qual){
+		fprintf(out,"%s",ri->qual);
+	}else{
+		for(i =0;i < ri->len;i++){
+			fprintf(out,".");
+		}
+	}
+	fprintf(out,"\n");
+}
+
 
 void print_seq(struct read_info* ri,FILE* out)
 {

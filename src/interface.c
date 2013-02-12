@@ -42,7 +42,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->outfile = 0;
 
 	param->quiet_flag = 0;
-	param->num_query = 1000000;
+	param->num_query = 5000000;
 	param->kmer_size = 2;
 	param->print_unmapped = 0;
 	param->solexa = 0;

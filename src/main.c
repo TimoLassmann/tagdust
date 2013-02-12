@@ -26,6 +26,7 @@
 #include "misc.h"
 #include "tagdust2.h"
 #include "barcode_hmm.h"
+#include "pst.h"
 #include <math.h>
 
 
@@ -38,30 +39,10 @@ int main (int argc,char * argv[]) {
 	init_nuc_code();
 	
 	
-	double max = -1;
-	
-	int len = 10;
-	int c =0;
-	
-	for(j= 20;j < 36;j++){
-		len = j;
-		max = -1;
-		for(i = 0; i< 1000;i++){
-			if(binomial_distribution((double)i / 1000.0 ,len ,16)  > max){
-				max = binomial_distribution((double)i / 1000.0 ,len,16 );
-				c = i;
-			}
-		}
-		max = (double)c / 1000.0;
-		fprintf(stderr,"%d\t%f\n",j,max );
-	}
-	
-	
 	
 	param = interface(param,argc,argv);
 	
-	hmm_controller(param,&read_sam_chunk,0);
-	exit(0);
+	
 	
 	if(param->summary){
 		if ((outfile = fopen(param->summary, "w")) == NULL){
@@ -176,25 +157,13 @@ int main (int argc,char * argv[]) {
 		}
 		//fprintf(stdout,"Loking at on:%s	%d\n",param->infile[i],sam);
 		if(param->sam != -1){
-		/*	fprintf(stdout,"Working on:%s\n",param->infile[i]);
-			seq_stats = init_seq_stats(param->kmer_size);
-			seq_stats->sam = param->sam;
+			fprintf(stdout,"Working on:%s\n",param->infile[i]);
 			if(param->sam == 0){
-				seq_stats = collect_data(seq_stats,param,&read_fasta_fastq,i);
-			}else if(param->sam == 2){
-				seq_stats = collect_data(seq_stats,param,&read_sam_chunk,i);
+				pst_controller(param,&read_fasta_fastq,i);
 			}else{
-				seq_stats = collect_data(seq_stats,param,&read_sam_chunk,i);
+				pst_controller(param,&read_sam_chunk,i);
 			}
-			
-			if(sanity_check(seq_stats)){
-				if(param->summary){
-					print_summary(seq_stats,param,i,outfile);
-				}else{
-					print_html_page(seq_stats,param,i);
-				}
-			}
-			free_seq_stats(seq_stats);*/
+		
 		}
 	}
 	

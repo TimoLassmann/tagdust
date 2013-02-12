@@ -13,17 +13,35 @@
 #define SHIFT 5
 #define MASK 0x1F
 
+#define MAX_PST_LEN 64
 
 
 struct pst_node{
+	struct pst_node* next[5];
 	float nuc_probability[5];
-	char letter;
+	char* label;
 };
 
 
 struct pst {
 	struct pst_node* root;
-	float* frequencies;
+	char** suffix_array;
+	
+	float p_min;
+	float alpha;
+	float lamba;
+	float r;
+	int L;
+	
+	float numseq;
+	
+	int suffix_len;
+	int current_suffix_size;
 };
 
+void pst_controller(struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ),int file_num);
+
+struct pst_node* alloc_node(struct pst_node* n,char* string,int len);
+struct pst_node* build_pst(struct pst* pst,struct pst_node* n );
+void print_pst(struct pst* pst,struct pst_node* n);
 #endif

@@ -5,7 +5,7 @@ CFLAGS			= -O9 -Wall -m64 -std=gnu99
 LD					= -lpthread -lm
 DEBUGFLAGS		= -ggdb -Wall -m64 -std=gnu99
 
-SOURCES			= main.c interface.c nuc_code.c misc.c io.c barcode_hmm.c
+SOURCES			= main.c interface.c nuc_code.c misc.c io.c barcode_hmm.c pst.c
 
 PROGS				= tagdust
 DEBUGPROGS	= tagdust_debug

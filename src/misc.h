@@ -54,3 +54,12 @@ float scaledprob2prob(float p);
 double binomial_distribution(double p , int n, int k);
 double gammln(const double xx);
 
+int qsort_string_cmp(const void *a, const void *b);
+
+
+
+
+int binsearch_down(const char*p,const char** suffix,int h,int len);
+int binsearch_up(const char*p,const char** suffix,int h,int len);
+
+int count_string(const char*p,const char** suffix,int h,int len);

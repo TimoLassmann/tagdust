@@ -22,14 +22,14 @@
 #define LIST_STORE_SIZE 1
 
 struct read_info{
-	unsigned char* name;
-	unsigned char* qual;
-	unsigned char* seq; 
+	char* name;
+	char* qual;
+	char* seq;
 	unsigned int* strand;
 	unsigned int* hits;
-	unsigned char* cigar;
-	unsigned char* md;
-	unsigned char* xp;
+	char* cigar;
+	char* md;
+	char* xp;
 	float mapq;
 	float* priors;
 	float* identity;

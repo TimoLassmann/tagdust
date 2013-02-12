@@ -148,6 +148,77 @@ double gammln(const double xx)
 }
 
 
+int count_string(const char*p,const char** suffix,int h,int len)
+{
+	int a,b;
+	//for(i = 0; i < 1000000;i++){
+	a = binsearch_down(p,suffix,h,len);
+	b = binsearch_up(p,suffix,h,len);
+	return b-a;
+}
+
+
+int binsearch_down(const char*p,const char** suffix,int h,int len)
+{
+	int m = 0;
+	int l = 0;
+	/*if (t_long_strncmp(p,text+suffix[l],len)<= 0){
+	 l = l;
+	 }else */
+	if(strncmp(p,suffix[h],len) >  0){
+		return h;
+	}else{
+		while(h-l > 1){
+			//m = (l+h)/2;
+			m = (l + h) >> 1;
+			if(strncmp(p,suffix[m],len) <= 0){
+				h = m;
+			}else{
+				l = m;
+			}
+		}
+	}
+	return l+1;
+}
+
+int binsearch_up(const char*p,const char** suffix,int h,int len)
+{
+	int m = 0;
+	int l = 0;
+	/*if (t_long_strncmp(p,text+suffix[l],len)<= 0){
+	 l = l;
+	 }else*/
+	if(strncmp(p,suffix[h],len) >  0){
+		return h;
+	}else{
+		while(h-l > 1){
+			//m = (l+h)/2;
+			m = (l + h) >> 1;
+			if(strncmp(p,suffix[m],len) < 0){
+				h = m;
+			}else{
+				l = m;
+			}
+		}
+	}
+	return l+1;
+}
+
+
+
+int qsort_string_cmp(const void *a, const void *b)
+{
+	const char **one = (const char **)a;
+	const char **two = (const char **)b;
+	return strcmp(*one, *two);
+}
+
+
+
+
+
+
+
 
 
 
