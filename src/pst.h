@@ -20,12 +20,14 @@ struct pst_node{
 	struct pst_node* next[5];
 	float nuc_probability[5];
 	char* label;
+	int in_T;
 };
 
 
 struct pst {
 	struct pst_node* root;
 	char** suffix_array;
+	int total_len;
 	
 	float p_min;
 	float alpha;
