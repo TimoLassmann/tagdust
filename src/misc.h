@@ -24,8 +24,14 @@
 #define tagdust2_misc_h
 
 #include <stdio.h>
+
+#include <stdlib.h>
 #include <string.h>
 #include "math.h"
+
+
+#define ALPHABET_LEN 255
+#define max(a, b) ((a < b) ? b : a)
 
 #define LOGSUM_SIZE 16000
 #define SCALE 1000.0f
@@ -35,6 +41,14 @@
 #ifdef HUGE_VAL
 #define SCALEINFTY HUGE_VAL
 #endif
+
+
+#define PI 3.14159265
+#define MAXIT 1000
+#define EPS 3.0e-7
+#define FPMIN 1.0e-30
+#define ITMAX 100
+
 
 #endif
 
@@ -63,3 +77,12 @@ int binsearch_down(const char*p,const char** suffix,int h,int len);
 int binsearch_up(const char*p,const char** suffix,int h,int len);
 
 int count_string(const char*p,const char** suffix,int h,int len);
+
+double cdf(double x, double mean,double stdev);
+double gammp(double a, double x);
+double gammq(double a, double x);
+double erffc(double x);
+
+void gser(double *gamser, double a, double x, double *gln);
+void gcf(double *gammcf, double a, double x, double *gln);
+

@@ -215,10 +215,122 @@ int qsort_string_cmp(const void *a, const void *b)
 
 
 
+double cdf(double x, double mean,double stdev)
+{
+	double out;
+	
+	out = 0.5 * erffc(-(x-mean)/(stdev*sqrtl(2.0)));
+	
+	return out;
+}
 
 
+double gammp(double a, double x)
+{
+	//void gcf(float *gammcf, float a, float x, float *gln);
+	//void gser(float *gamser, float a, float x, float *gln);
+	//void nrerror(char error_text[]);
+	double gamser,gammcf,gln;
+	if (x < 0.0 || a <= 0.0){
+		fprintf(stderr,"Invalid arguments in routine gammp");
+	}
+	if(x < (a+1.0)){
+		gser(&gamser,a,x,&gln);
+		return gamser;
+	} else {
+		gcf(&gammcf,a,x,&gln);
+		return 1.0-gammcf;
+	}
+	
+	
+}
+
+double gammq(double a, double x)
+{
+	//void gcf(float *gammcf, float a, float x, float *gln);
+	//void gser(float *gamser, float a, float x, float *gln);
+	//void nrerror(char error_text[]);
+	double gamser,gammcf,gln;
+	if (x < 0.0 || a <= 0.0){
+		fprintf(stderr,"Invalid arguments in routine gammq");
+	}
+	if (x < (a+1.0)) {
+		gser(&gamser,a,x,&gln);
+		return 1.0-gamser;
+	} else {
+		gcf(&gammcf,a,x,&gln);
+		return gammcf;
+	}
+}
+
+void gser(double *gamser, double a, double x, double *gln)
+{
+	int n;
+	double sum,del,ap;
+	*gln=gammln(a);
+	if (x <= 0.0) {
+		if (x < 0.0){
+			fprintf(stderr,"x less than 0 in routine gser");
+		}
+		*gamser=0.0;
+		return;
+	} else {
+		ap=a;
+		del=sum=1.0/a;
+		for (n=1;n<=ITMAX;n++) {
+			++ap;
+			del *= x/ap;
+			sum += del;
+			if (fabs(del) < fabs(sum)*EPS) {
+				*gamser=sum*exp(-x+a*log(x)-(*gln));
+				return;
+			}
+		}
+		fprintf(stderr,"a too large, ITMAX too small in routine gser");
+		return;
+	}
+}
+
+void gcf(double *gammcf, double a, double x, double *gln)
+{
+	int i;
+	double an,b,c,d,del,h;
+	*gln=gammln(a);
+	b=x+1.0-a;
+	c=1.0/FPMIN;
+	d=1.0/b;
+	h=d;
+	for(i = 1; i <=ITMAX;i++){
+		an = -i*(i-a);
+		b += 2.0;
+		d = an*d+b;
+		if(fabs(d) < FPMIN){
+			d = FPMIN;
+		}
+		c=b+an/c;
+		if(fabs(c) < FPMIN){
+			c = FPMIN;
+		}
+		d = 1.0/d;
+		del = d*c;
+		h *= del;
+		if(fabs(del-1.0) < EPS){
+			break;
+		}
+	}
+	if (i > ITMAX){
+		fprintf(stderr,"a too large, ITMAX too small in gcf");
+	}
+	*gammcf=exp(-x+a*log(x)-(*gln))*h;
+	
+}
 
 
-
+double erffc(double x)
+{
+	//float gammp(float a, float x);
+	//float gammq(float a, float x);
+	return x < 0.0 ? 1.0+gammp(0.5,x*x) : gammq(0.5,x*x);
+}
 
 
