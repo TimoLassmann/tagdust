@@ -333,4 +333,43 @@ double erffc(double x)
 	return x < 0.0 ? 1.0+gammp(0.5,x*x) : gammq(0.5,x*x);
 }
 
+double log_pdf(double x, double mean,double stdev)
+{
+	double out;
+	
+	//out = 1.0 / sqrt (2 * M_PI * pow( stdev,2) ) * exp(-1.0 *( (pow(x - mean,2)) / ( 2* pow( stdev,2)   )));
+	
+	
+	out = log(1.0 / (stdev * SQRT2M_PI)) +  (-1.0 *( (x - mean) * (x - mean) / ( 2.0 * stdev * stdev)   ));
+	//if(out < FLT_MIN){
+	//	return FLT_MIN;
+	//}
+	
+	
+	if(isnan(out)){
+		fprintf(stderr,"logpdf problem.... \n");
+	}
+	
+	return out;
+}
+
+double log_truncated_pdf(double x, double mean,double stdev,double a, double b)
+{
+	double out;
+	if(a <= x &&  x <= b){
+		//fprintf(stderr,"%f	%f	%f	mean:%f	stdev:%f\n",x, a,b,mean,stdev);
+		out  =log_pdf( x,  mean, stdev) ;
+		//if(out){
+		//	fprintf(stderr,"%e	%e	%e	%f	%f\n",pdf( x,  mean, stdev) , cdf(b, mean, stdev), cdf(a, mean, stdev),a,b);
+		out  = out - log(cdf(b, mean, stdev)- cdf(a, mean, stdev));
+		//	fprintf(stderr,"%f	%f	%f\n",x,out,out);
+		//}
+		return out;
+	}else{
+		fprintf(stderr,"Something is wrong... \n");
+		return log(0.0);
+	}
+}
+
+\
 

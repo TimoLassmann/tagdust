@@ -20,7 +20,7 @@ struct pst_node{
 	struct pst_node* next[5];
 	float nuc_probability[5];
 	char* label;
-	int* bit_occ;
+	//int* bit_occ;
 	int occ;
 	int last_seen;
 	int in_T;
@@ -36,6 +36,7 @@ struct pst {
 	struct pst_node* ppt_root;
 	struct ranks** rank_array;
 	char** suffix_array;
+
 	int total_len;
 	
 	float p_min;
@@ -64,8 +65,8 @@ struct pst_node*  count_pst_lables(struct pst_node* n, char* string,int target, 
 struct pst_node*  count_ppt_lables(struct pst_node* n, char* string,int target, int pos,int seq_id);
 
 
-float get_pst_prob(struct pst_node* n, char* string,int target, int pos,int seq_id,char* qual);
-float get_ppt_prob(struct pst_node* n, char* string,int target, int pos,int seq_id,char* qual);
+float get_pst_prob(struct pst_node* n, char* string,int target, int pos,int seq_id);
+float get_ppt_prob(struct pst_node* n, char* string,int target, int pos,int seq_id);
 int get_occ(struct pst_node* n, char* string,int target, int pos,int seq_id);
 
 void print_pst(struct pst* pst,struct pst_node* n, struct read_info** ri );

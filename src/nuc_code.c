@@ -26,22 +26,10 @@ void init_nuc_code()
 {
 	int i;
 	for(i = 0;i < 256;i++){
-		nuc_code[i] = 0;
 		nuc_code5[i] = 4;
 		//	rev_nuc_code16[i] = 15;
 	}
-	nuc_code[65] = 0;//A Adenine
-	nuc_code[67] = 1;//C	Cytosine
-	nuc_code[71] = 2;//G	Guanine
-	nuc_code[84] = 3;//T	Thymine
-	nuc_code[85] = 3;//U	Uracil
-	
-	
-	nuc_code[65+32] = 0;//A Adenine
-	nuc_code[67+32] = 1;//C	Cytosine
-	nuc_code[71+32] = 2;//G	Guanine
-	nuc_code[84+32] = 3;//T	Thymine
-	nuc_code[85+32] = 3;//U	Uracil
+
 	
 	nuc_code5[65] = 0;//A Adenine
 	nuc_code5[67] = 1;//C	Cytosine
@@ -59,25 +47,7 @@ void init_nuc_code()
 	 nuc_code5[72] = 13;//H	A, T, U, or C (not G)
 	 nuc_code5[86] = 14;//V	A, C, or G (not T, not U)
 	 nuc_code5[78] = 15;//N	Any base (A, C, G, T, or U)*/
-	
-	rev_nuc_code5[0] = 3;//A Adenine
-	rev_nuc_code5[1] = 2;//C	Cytosine
-	rev_nuc_code5[2] = 1;//G	Guanine
-	rev_nuc_code5[3] = 0;//T	Thymine
-	rev_nuc_code5[4] = 0;//U	Uracil
-	/*rev_nuc_code5[5] = 6;//R	Purine (A or G)
-	 rev_nuc_code5[6] = 5;//Y	Pyrimidine (C, T, or U)
-	 rev_nuc_code5[7] = 8;//M	C or A
-	 rev_nuc_code5[8] = 7;//K	T, U, or G
-	 rev_nuc_code5[9] = 9;//W	T, U, or A
-	 rev_nuc_code5[10] = 10;//S	C or G
-	 rev_nuc_code5[11] = 14;//B	C, T, U, or G (not A)
-	 rev_nuc_code5[12] = 13;//D	A, T, U, or G (not C)
-	 rev_nuc_code5[13] = 12;//H	A, T, U, or C (not G)
-	 rev_nuc_code5[14] = 11;//V	A, C, or G (not T, not U)
-	 rev_nuc_code5[15] = 15;//N	Any base (A, C, G, T, or U)*/
-	
-	
+		
 	nuc_code5[65+32] = 0;//A Adenine
 	nuc_code5[67+32] = 1;//C	Cytosine
 	nuc_code5[71+32] = 2;//G	Guanine

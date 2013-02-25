@@ -50,6 +50,10 @@
 #define ITMAX 100
 
 
+#define SQRT2M_PI 2.506628274631
+#define MIN_STDEV 0.3989422804014
+
+
 #endif
 
 int byg_end(const char* pattern,const char*text);
@@ -85,4 +89,11 @@ double erffc(double x);
 
 void gser(double *gamser, double a, double x, double *gln);
 void gcf(double *gammcf, double a, double x, double *gln);
+
+double log_pdf(double x, double mean,double stdev);
+double log_truncated_pdf(double x, double mean,double stdev,double a, double b);
+
+
+
+
 

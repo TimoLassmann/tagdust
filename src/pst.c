@@ -15,6 +15,8 @@
 #include <time.h>
 #include "pst.h"
 
+#include "gmm.h"
+
 
 
 void pst_controller(struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ),int file_num)
@@ -76,7 +78,6 @@ void pst_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		for(i = 0; i < numseq;i++){
 			for(j = 0; j < ri[i]->len;j++){
 				ri[i]->seq[j] = alphabet[(int)ri[i]->seq[j]];
-				
 			}
 			//fprintf(stderr,"%d ",ri[i]->len);
 			pst->total_len += ri[i]->len;
@@ -116,6 +117,11 @@ void pst_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		///exit(0);
 		qsort(pst->suffix_array, pst->suffix_len, sizeof(char *), qsort_string_cmp);
 		fprintf(stderr,"built SA in %4.2f seconds\n",(double)( clock() - cStartClock) / (double)CLOCKS_PER_SEC);
+		
+		
+		
+		
+		
 		cStartClock = clock();
 
 		
@@ -144,10 +150,14 @@ void pst_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		
 		
 		cStartClock = clock();
-		pst->pst_root  = alloc_bit_occ_pst(pst->pst_root , numseq);
-		pst->ppt_root = alloc_bit_occ_pst(pst->ppt_root, numseq);
+		//pst->pst_root  = alloc_bit_occ_pst(pst->pst_root , numseq);
+		//pst->ppt_root = alloc_bit_occ_pst(pst->ppt_root, numseq);
 		ri =  scan_read_with_pst( ri, pst);
 		fprintf(stderr,"scanned  in %4.2f seconds\n",(double)( clock() - cStartClock) / (double)CLOCKS_PER_SEC);
+		
+		
+		run_gmm_on_sequences(ri,numseq);
+		
 		
 		exit(0);
 		print_pst(pst,pst->pst_root,ri);
@@ -431,7 +441,7 @@ struct pst_node* alloc_node(struct pst_node* n,char* string,int len)
 	n->in_T = 0;
 	n->occ = 0;
 	n->last_seen = -1;
-	n->bit_occ = 0;
+	//n->bit_occ = 0;
 	for(i =0; i < 5;i++){
 		n->next[i] = 0;
 		n->nuc_probability[i] = 0.2f;
@@ -450,7 +460,7 @@ struct read_info**  scan_read_with_pst(struct read_info** ri,struct pst* pst)
 	
 	float* base_p = pst->pst_root->nuc_probability;
 	char* seq;
-	char* qual;
+	//char* qual;
 	
 	
 	float total_T = prob2scaledprob(1.0);
@@ -484,13 +494,13 @@ struct read_info**  scan_read_with_pst(struct read_info** ri,struct pst* pst)
 	
 	
 	for(i = 0; i < pst->numseq;i++){
-		if(!ri[i]->qual){
+		/*if(!ri[i]->qual){
 			ri[i]->qual = malloc(sizeof(char)* (ri[i]->len+1));
 		}
 		for(j = 0; j < ri[i]->len; j++ ){
 			ri[i]->qual[j] = 48;
 		}
-		qual = ri[i]->qual;
+		qual = ri[i]->qual;*/
 		seq = ri[i]->seq;
 		
 		//if(!i){
@@ -507,8 +517,8 @@ struct read_info**  scan_read_with_pst(struct read_info** ri,struct pst* pst)
 			
 			
 			//get_occ
-			A = get_pst_prob(pst->pst_root, seq,  nuc_code5[(int)seq[j]], j, i,qual);
-			B = get_ppt_prob(pst->ppt_root, seq,  nuc_code5[(int)seq[j]], j, i,qual);
+			A = get_pst_prob(pst->pst_root, seq,  nuc_code5[(int)seq[j]], j, i);
+			B = get_ppt_prob(pst->ppt_root, seq,  nuc_code5[(int)seq[j]], j, i);
 			
 			
 			P_T = P_T + prob2scaledprob(max(A,B));
@@ -529,23 +539,23 @@ struct read_info**  scan_read_with_pst(struct read_info** ri,struct pst* pst)
 		//ri[i]->qual[ri[i]->len] = 0;
 		//P_T-P_R;
 		//if(!i){
-		fprintf(stdout,"%s	",seq );
-		fprintf(stdout,"%f	%f\n",P_T-P_R, exp(P_T-P_R) / (1+exp(P_T - P_R)));
+		//fprintf(stdout,"%s	",seq );
+		//fprintf(stdout,"%f	%f\n",P_T-P_R, exp(P_T-P_R) / (1+exp(P_T - P_R)));
 		//ri[i]->qual[ri[i]->len] = 0;
 		//}
-		ri[i]->mapq = exp(P_T-P_R) / (1.0+exp(P_T - P_R));
+		ri[i]->mapq = prob2scaledprob(exp(P_T-P_R) / (1.0+exp(P_T - P_R)));
 		//fprintf(stdout,"%s\n",ri[i]->qual);
 		//break;
 	}
-	fprintf(stderr,"Total: %f	%f	%f\n", total_T, total_R,exp(total_T-total_R) / (1.0+exp(total_T - total_R)));
+	//fprintf(stderr,"Total: %f	%f	%f\n", total_T, total_R,exp(total_T-total_R) / (1.0+exp(total_T - total_R)));
 	
 	
 	return ri;
 }
 
-float get_pst_prob(struct pst_node* n, char* string,int target, int pos,int seq_id,char* qual)
+float get_pst_prob(struct pst_node* n, char* string,int target, int pos,int seq_id)
 {
-	int i,c;
+	int c;
 	//if(!seq_id){
 	//fprintf(stderr,"%d	%s	%f	(%d)	- OCC:%d\n", target,n->label,n->nuc_probability[target],n->in_T, n->occ);
 	//}
@@ -554,35 +564,23 @@ float get_pst_prob(struct pst_node* n, char* string,int target, int pos,int seq_
 		n->last_seen = seq_id;
 	}*/
 	if(pos == 0){
-		c = (int) strlen(n->label) +1;
 		
-		for(i = 0; i <= c;i++){
-			if(qual[pos+i] < c+48){
-				qual[pos+i] = c+48;
-			}
-		}
 		return n->nuc_probability[target];
 	}
 	pos = pos -1;
 	c = nuc_code5[(int)string[pos]];
 	if(n->next[c]){
-		return get_pst_prob(n->next[c], string, target,pos,seq_id,qual);
+		return get_pst_prob(n->next[c], string, target,pos,seq_id);
 	}else{
-		c = (int) strlen(n->label) +1;
 		
-		for(i = 0; i <= c;i++){
-			if(qual[pos+i] < c+48){
-				qual[pos+i] = c+48;
-			}
-		}
 		return n->nuc_probability[target];
 	}
 }
 
 
-float get_ppt_prob(struct pst_node* n, char* string,int target, int pos,int seq_id,char* qual)
+float get_ppt_prob(struct pst_node* n, char* string,int target, int pos,int seq_id)
 {
-	int i,c;
+	int c;
 	//if(!seq_id){
 	//fprintf(stderr,"%d	%s	%f	(%d)	- OCC:%d\n", target,n->label,n->nuc_probability[target],n->in_T, n->occ);
 	//}
@@ -592,27 +590,14 @@ float get_ppt_prob(struct pst_node* n, char* string,int target, int pos,int seq_
 	 }*/
 	if(string[pos+1] == 0){
 		
-		c = (int) strlen(n->label) +1;
-		
-		for(i = 0; i <= c;i++){
-			if(qual[pos-c+i] < c+48){
-				qual[pos-c+i] = c+48;
-			}
-		}
 		return n->nuc_probability[target];
 	}
 	pos = pos +1;
 	c = nuc_code5[(int)string[pos]];
 	if(n->next[c]){
-		return get_ppt_prob(n->next[c], string, target,pos,seq_id,qual);
+		return get_ppt_prob(n->next[c], string, target,pos,seq_id);
 	}else{
-		c = (int) strlen(n->label) +1;
 		
-		for(i = 0; i <= c;i++){
-			if(qual[pos-c+i] < c+48){
-				qual[pos-c+i] = c+48;
-			}
-		}
 		return n->nuc_probability[target];
 	}
 }
@@ -646,7 +631,7 @@ struct pst_node*  count_pst_lables(struct pst_node* n, char* string,int target, 
 	//}
 	if(n->last_seen != seq_id){
 		n->occ++;
-		n->bit_occ = bit_set(n->bit_occ, seq_id);
+		//n->bit_occ = bit_set(n->bit_occ, seq_id);
 		n->last_seen = seq_id;
 	}
 	if(pos == 0){
@@ -670,7 +655,7 @@ struct pst_node*  count_ppt_lables(struct pst_node* n, char* string,int target, 
 	//}
 	if(n->last_seen != seq_id){
 		n->occ++;
-		n->bit_occ = bit_set(n->bit_occ, seq_id);
+	//	n->bit_occ = bit_set(n->bit_occ, seq_id);
 		n->last_seen = seq_id;
 	}
 	if(string[pos+1] == 0){
@@ -695,11 +680,11 @@ void print_pst(struct pst* pst,struct pst_node* n, struct read_info** ri )
 {
 	int i;
 	int internal;
-	int len = (int)strlen(n->label);
+//	int len = (int)strlen(n->label);
 	
-	double N1,N2,U1,U2,R1,R2,Z;
-	int c;
-	struct ranks** rank_array  = pst->rank_array;
+//	double N1,N2,U1,U2,R1,R2,Z;
+//	int c;
+//	struct ranks** rank_array  = pst->rank_array;
 	//struct ranks** rank_array = malloc(sizeof(struct ranks*) * (int)(pst->numseq));
 	//for(i = 0; i  <pst->numseq;i++){
 	//	rank_array[i] = malloc(sizeof(struct ranks));
@@ -713,7 +698,7 @@ void print_pst(struct pst* pst,struct pst_node* n, struct read_info** ri )
 			}
 		}
 		//if(!internal){
-			
+			/*
 			//fprintf(stderr,"%p\n",n);
 			//fprintf(stderr,"%s	%d	%d\n", n->label,n->in_T, count_string(n->label,(const char**)pst->suffix_array,pst->suffix_len-1,len));
 			c = 0;
@@ -771,9 +756,9 @@ void print_pst(struct pst* pst,struct pst_node* n, struct read_info** ri )
 				N1 += prob2scaledprob(pst->pst_root->nuc_probability[nuc_code5[ (int)n->label[i]]] );
 			}
 			N1 = N1 + prob2scaledprob( pst->mean_length - strlen(n->label)) + prob2scaledprob(pst->numseq) ;
+			*/
 			
-			
-			fprintf(stderr,"%s	%d	%d	%f	%e	%d	(%f)	%f	", n->label,n->in_T, count_string(n->label,(const char**)pst->suffix_array,pst->suffix_len-1,len),Z,cdf(Z, 0,1) ,n->occ,    scaledprob2prob(N1), (double)n->occ /  scaledprob2prob(N1) );
+			fprintf(stderr,"%s	%d	%d\n", n->label,n->in_T,n->occ);
 			//for(i = 0;i < 5;i++){
 				//if(n->next[i]){
 			//	fprintf(stderr,"%f ",n->nuc_probability[i]);
@@ -799,7 +784,7 @@ void print_pst(struct pst* pst,struct pst_node* n, struct read_info** ri )
 
 struct pst_node* alloc_bit_occ_pst(struct pst_node* n, int num)
 {
-	int i;
+/*	int i;
 	n->bit_occ = malloc(sizeof(int)* (1+ num / BITSPERWORD));
 	
 	assert(n->bit_occ != 0);
@@ -812,7 +797,7 @@ struct pst_node* alloc_bit_occ_pst(struct pst_node* n, int num)
 		if(n->next[i]){
 			n->next[i] = alloc_bit_occ_pst(n->next[i],num);
 		}
-	}
+	}*/
 	return n;
 }
 

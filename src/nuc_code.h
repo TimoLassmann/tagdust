@@ -20,9 +20,7 @@
  */
 
 
-int nuc_code[255];
 unsigned int nuc_code5[255];
-unsigned int rev_nuc_code5[16];
 
 void init_nuc_code(void);
 
