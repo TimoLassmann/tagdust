@@ -44,8 +44,8 @@ struct pst {
 	float r;
 	int L;
 	
-	float numseq;
-	
+	double numseq;
+	double mean_length;
 	int suffix_len;
 	int current_suffix_size;
 };
@@ -64,8 +64,8 @@ struct pst_node*  count_pst_lables(struct pst_node* n, char* string,int target, 
 struct pst_node*  count_ppt_lables(struct pst_node* n, char* string,int target, int pos,int seq_id);
 
 
-float get_pst_prob(struct pst_node* n, char* string,int target, int pos,int seq_id);
-float get_ppt_prob(struct pst_node* n, char* string,int target, int pos,int seq_id);
+float get_pst_prob(struct pst_node* n, char* string,int target, int pos,int seq_id,char* qual);
+float get_ppt_prob(struct pst_node* n, char* string,int target, int pos,int seq_id,char* qual);
 int get_occ(struct pst_node* n, char* string,int target, int pos,int seq_id);
 
 void print_pst(struct pst* pst,struct pst_node* n, struct read_info** ri );

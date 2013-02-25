@@ -38,7 +38,7 @@ void pst_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	pst->alpha = 0.0f;
 	pst->p_min = 0.0001f;
 	pst->lamba = 0.001f;
-	pst->r = 1.05f;
+	pst->r = 1.2f;
 	pst->total_len = 0;
 	pst->pst_root = alloc_node(pst->pst_root,"",0);
 	pst->ppt_root = alloc_node(pst->ppt_root,"",0);
@@ -91,14 +91,17 @@ void pst_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 			pst->current_suffix_size =  (pst->total_len+64);
 		}
 		c = 0;
+		pst->mean_length = 0.0;
 		for(i = 0; i < numseq;i++){
-			for(j = 0; j < ri[i]->len;j++){
+			for(j = 0; j <ri[i]->len;j++){//ri[i]->len;j++){
 				pst->suffix_array[c] = ri[i]->seq +j;
 				c++;
 			}
+			pst->mean_length +=  ri[i]->len;
 			
 		}
 		
+		pst->mean_length /= (float)numseq;
 		
 		
 		pst->suffix_len = c;
@@ -109,8 +112,8 @@ void pst_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		}
 		
 		
-		//fprintf(stderr,"%d\t%d\n",c,pst->total_len);
-		//exit(0);
+		fprintf(stderr,"%d\t%d\t%d	%f\n",c,pst->total_len, pst->suffix_len*(4 + 4*5),pst->mean_length);
+		///exit(0);
 		qsort(pst->suffix_array, pst->suffix_len, sizeof(char *), qsort_string_cmp);
 		fprintf(stderr,"built SA in %4.2f seconds\n",(double)( clock() - cStartClock) / (double)CLOCKS_PER_SEC);
 		cStartClock = clock();
@@ -146,7 +149,7 @@ void pst_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		ri =  scan_read_with_pst( ri, pst);
 		fprintf(stderr,"scanned  in %4.2f seconds\n",(double)( clock() - cStartClock) / (double)CLOCKS_PER_SEC);
 		
-		
+		exit(0);
 		print_pst(pst,pst->pst_root,ri);
 		fprintf(stderr,"happily got here...\n");
 		print_pst(pst,pst->ppt_root,ri);
@@ -297,6 +300,15 @@ struct pst_node* build_pst(struct pst* pst,struct pst_node* n )
 			}
 		}
 	}
+	c= 0;
+	for(i = 0; i < 5;i++){
+		if(n->next[i]){
+			c+= n->next[i]->in_T;
+		}
+	}
+	if(c){
+		n->in_T = 1;
+	}
 	return n;
 }
 
@@ -388,6 +400,16 @@ struct pst_node* build_ppt(struct pst* pst,struct pst_node* n )
 			}
 		}
 	}
+	c= 0;
+	for(i = 0; i < 5;i++){
+		if(n->next[i]){
+			c+= n->next[i]->in_T;
+		}
+	}
+	if(c){
+		n->in_T = 1;
+	}
+	
 	return n;
 }
 
@@ -428,6 +450,7 @@ struct read_info**  scan_read_with_pst(struct read_info** ri,struct pst* pst)
 	
 	float* base_p = pst->pst_root->nuc_probability;
 	char* seq;
+	char* qual;
 	
 	
 	float total_T = prob2scaledprob(1.0);
@@ -435,12 +458,13 @@ struct read_info**  scan_read_with_pst(struct read_info** ri,struct pst* pst)
 	
 	float A,B;
 	
-	int good_hits[11];
+	//int good_hits[11];
 	
 	//scan to cpount occurances... 
 	for(i = 0; i < pst->numseq;i++){
 		
 		seq = ri[i]->seq;
+		
 		
 		//if(!i){
 		
@@ -460,11 +484,15 @@ struct read_info**  scan_read_with_pst(struct read_info** ri,struct pst* pst)
 	
 	
 	for(i = 0; i < pst->numseq;i++){
-		
+		if(!ri[i]->qual){
+			ri[i]->qual = malloc(sizeof(char)* (ri[i]->len+1));
+		}
+		for(j = 0; j < ri[i]->len; j++ ){
+			ri[i]->qual[j] = 48;
+		}
+		qual = ri[i]->qual;
 		seq = ri[i]->seq;
-		//if(!ri[i]->qual){
-		//	ri[i]->qual = malloc(sizeof(char)* (ri[i]->len+1));
-		//}
+		
 		//if(!i){
 		
 		//}
@@ -473,21 +501,20 @@ struct read_info**  scan_read_with_pst(struct read_info** ri,struct pst* pst)
 		P_R = prob2scaledprob(1.0);
 		//P_PT =  prob2scaledprob(1.0);
 		
-		for(j = 0; j < 10;j++){
-			good_hits[j] = 0;
-		}
-		
+				
 		for(j = 0; j < ri[i]->len; j++ ){
 			P_R = P_R + prob2scaledprob(base_p[nuc_code5[(int)seq[j]]]);
 			
-			//ri[i]->qual[j] = 48 + (int) (10.0* ((float)get_occ(pst->pst_root, seq,  nuc_code5[(int)seq[j]], j, i) / (float)pst->numseq));
-			//get_occ
-			A = get_pst_prob(pst->pst_root, seq,  nuc_code5[(int)seq[j]], j, i);
-			B = get_ppt_prob(pst->ppt_root, seq,  nuc_code5[(int)seq[j]], j, i);
 			
-			good_hits[ (int)round(max(A,B)*10.0) ]++;
+			//get_occ
+			A = get_pst_prob(pst->pst_root, seq,  nuc_code5[(int)seq[j]], j, i,qual);
+			B = get_ppt_prob(pst->ppt_root, seq,  nuc_code5[(int)seq[j]], j, i,qual);
+			
 			
 			P_T = P_T + prob2scaledprob(max(A,B));
+			
+			//ri[i]->qual[j] = 48 + (int) (10.0* (max(A,B)));
+			
 			//P_PT = P_PT + prob2scaledprob(get_ppt_prob(pst->ppt_root, seq,  nuc_code5[(int)seq[j]], j, i));
 			
 			//A =  get_pst_prob(pst->pst_root, seq,  nuc_code5[(int)seq[j]], j, i);
@@ -502,8 +529,8 @@ struct read_info**  scan_read_with_pst(struct read_info** ri,struct pst* pst)
 		//ri[i]->qual[ri[i]->len] = 0;
 		//P_T-P_R;
 		//if(!i){
-		//fprintf(stdout,"%s	",seq );
-		//fprintf(stdout,"%f	%f	%d	%d\n",P_T-P_R, exp(P_T-P_R) / (1+exp(P_T - P_R)),good_hits[9],good_hits[8] );
+		fprintf(stdout,"%s	",seq );
+		fprintf(stdout,"%f	%f\n",P_T-P_R, exp(P_T-P_R) / (1+exp(P_T - P_R)));
 		//ri[i]->qual[ri[i]->len] = 0;
 		//}
 		ri[i]->mapq = exp(P_T-P_R) / (1.0+exp(P_T - P_R));
@@ -516,8 +543,9 @@ struct read_info**  scan_read_with_pst(struct read_info** ri,struct pst* pst)
 	return ri;
 }
 
-float get_pst_prob(struct pst_node* n, char* string,int target, int pos,int seq_id)
+float get_pst_prob(struct pst_node* n, char* string,int target, int pos,int seq_id,char* qual)
 {
+	int i,c;
 	//if(!seq_id){
 	//fprintf(stderr,"%d	%s	%f	(%d)	- OCC:%d\n", target,n->label,n->nuc_probability[target],n->in_T, n->occ);
 	//}
@@ -526,20 +554,35 @@ float get_pst_prob(struct pst_node* n, char* string,int target, int pos,int seq_
 		n->last_seen = seq_id;
 	}*/
 	if(pos == 0){
+		c = (int) strlen(n->label) +1;
+		
+		for(i = 0; i <= c;i++){
+			if(qual[pos+i] < c+48){
+				qual[pos+i] = c+48;
+			}
+		}
 		return n->nuc_probability[target];
 	}
 	pos = pos -1;
-	int c = nuc_code5[(int)string[pos]];
+	c = nuc_code5[(int)string[pos]];
 	if(n->next[c]){
-		return get_pst_prob(n->next[c], string, target,pos,seq_id);
+		return get_pst_prob(n->next[c], string, target,pos,seq_id,qual);
 	}else{
+		c = (int) strlen(n->label) +1;
+		
+		for(i = 0; i <= c;i++){
+			if(qual[pos+i] < c+48){
+				qual[pos+i] = c+48;
+			}
+		}
 		return n->nuc_probability[target];
 	}
 }
 
 
-float get_ppt_prob(struct pst_node* n, char* string,int target, int pos,int seq_id)
+float get_ppt_prob(struct pst_node* n, char* string,int target, int pos,int seq_id,char* qual)
 {
+	int i,c;
 	//if(!seq_id){
 	//fprintf(stderr,"%d	%s	%f	(%d)	- OCC:%d\n", target,n->label,n->nuc_probability[target],n->in_T, n->occ);
 	//}
@@ -548,13 +591,28 @@ float get_ppt_prob(struct pst_node* n, char* string,int target, int pos,int seq_
 	 n->last_seen = seq_id;
 	 }*/
 	if(string[pos+1] == 0){
+		
+		c = (int) strlen(n->label) +1;
+		
+		for(i = 0; i <= c;i++){
+			if(qual[pos-c+i] < c+48){
+				qual[pos-c+i] = c+48;
+			}
+		}
 		return n->nuc_probability[target];
 	}
 	pos = pos +1;
-	int c = nuc_code5[(int)string[pos]];
+	c = nuc_code5[(int)string[pos]];
 	if(n->next[c]){
-		return get_ppt_prob(n->next[c], string, target,pos,seq_id);
+		return get_ppt_prob(n->next[c], string, target,pos,seq_id,qual);
 	}else{
+		c = (int) strlen(n->label) +1;
+		
+		for(i = 0; i <= c;i++){
+			if(qual[pos-c+i] < c+48){
+				qual[pos-c+i] = c+48;
+			}
+		}
 		return n->nuc_probability[target];
 	}
 }
@@ -654,74 +712,79 @@ void print_pst(struct pst* pst,struct pst_node* n, struct read_info** ri )
 				internal++;
 			}
 		}
-		if(!internal){
-
-		//fprintf(stderr,"%p\n",n);
-		//fprintf(stderr,"%s	%d	%d\n", n->label,n->in_T, count_string(n->label,(const char**)pst->suffix_array,pst->suffix_len-1,len));
-		c = 0;
-		N1 = 0;
-		N2 = 0;
-		//fprintf(stderr,"NUMSEQ:::::%f\n",pst->numseq );
-		for(i = 0 ;i  < pst->numseq;i++){
-			//fprintf(stderr,"%d ",i);
-			if(bit_test(n->bit_occ, i)){
-				rank_array[c]->sample = 0;
-				rank_array[c]->value = ri[i]->mapq;
-				N1++;
-			}else{
-				rank_array[c]->sample = 1;
-				rank_array[c]->value = ri[i]->mapq;
-				N2++;
-			}
-			c++;
-		
-		}
-		
-		
-		qsort((void *)  rank_array, N1+N2, sizeof(struct ranks* ),(compfn) establish_rank);
-		
-		U1 = 0.0;
-		R1 = 0.0;
-		
-		U2 = 0.0;
-		R2 = 0.0;
-		for(i = 0;i < N1+N2;i++){
+		//if(!internal){
 			
-			if(!rank_array[i]->sample){
-				R1 += (i+1);
-			}else{
-				R2 += (i+1);
+			//fprintf(stderr,"%p\n",n);
+			//fprintf(stderr,"%s	%d	%d\n", n->label,n->in_T, count_string(n->label,(const char**)pst->suffix_array,pst->suffix_len-1,len));
+			c = 0;
+			N1 = 0;
+			N2 = 0;
+			//fprintf(stderr,"NUMSEQ:::::%f\n",pst->numseq );
+			for(i = 0 ;i  < pst->numseq;i++){
+				//fprintf(stderr,"%d ",i);
+				if(bit_test(n->bit_occ, i)){
+					rank_array[c]->sample = 0;
+					rank_array[c]->value = ri[i]->mapq;
+					N1++;
+				}else{
+					rank_array[c]->sample = 1;
+					rank_array[c]->value = ri[i]->mapq;
+					N2++;
+				}
+				c++;
+				
 			}
-			//if(i < 10){
-			//	fprintf(stderr,"%d\t%d\t%f\n",i, rank_array[i]->sample,rank_array[i]->value);
-			//}
-		}
-		
-		U1 = R1 - (N1*(N1 + 1.0))/2.0;
-		U2 = R2 - (N2*(N2 + 1.0))/2.0;
-		
-		if(U2 < U1){
-			U1 = U2;
-		}
-		
-		
-		Z = (U1- (N1*N2 /2.0) )/  sqrt((N1 * N2 *(N1 + N2 +1) )/  12.0 );
-		//	fprintf(stderr,"%f	%f	%f	%f	\n",N1,N2,U1,U2);
-		//Z = 1;
-		
-		
-				fprintf(stderr,"%s	%d	%d	%f	%e	%d	", n->label,n->in_T, count_string(n->label,(const char**)pst->suffix_array,pst->suffix_len-1,len),Z,cdf(Z, 0,1) ,n->occ);
-			for(i = 0;i < 5;i++){
+			
+			
+			qsort((void *)  rank_array, N1+N2, sizeof(struct ranks* ),(compfn) establish_rank);
+			
+			U1 = 0.0;
+			R1 = 0.0;
+			
+			U2 = 0.0;
+			R2 = 0.0;
+			for(i = 0;i < N1+N2;i++){
+				
+				if(!rank_array[i]->sample){
+					R1 += (i+1);
+				}else{
+					R2 += (i+1);
+				}
+				//if(i < 10){
+				//	fprintf(stderr,"%d\t%d\t%f\n",i, rank_array[i]->sample,rank_array[i]->value);
+				//}
+			}
+			
+			U1 = R1 - (N1*(N1 + 1.0))/2.0;
+			U2 = R2 - (N2*(N2 + 1.0))/2.0;
+			
+			if(U2 < U1){
+				U1 = U2;
+			}
+			
+			
+			Z = (U1- (N1*N2 /2.0) )/  sqrt((N1 * N2 *(N1 + N2 +1) )/  12.0 );
+			//	fprintf(stderr,"%f	%f	%f	%f	\n",N1,N2,U1,U2);
+			//Z = 1;
+			N1 = prob2scaledprob(1.0);
+			for(i = 0 ;i < strlen(n->label);i++){
+				N1 += prob2scaledprob(pst->pst_root->nuc_probability[nuc_code5[ (int)n->label[i]]] );
+			}
+			N1 = N1 + prob2scaledprob( pst->mean_length - strlen(n->label)) + prob2scaledprob(pst->numseq) ;
+			
+			
+			fprintf(stderr,"%s	%d	%d	%f	%e	%d	(%f)	%f	", n->label,n->in_T, count_string(n->label,(const char**)pst->suffix_array,pst->suffix_len-1,len),Z,cdf(Z, 0,1) ,n->occ,    scaledprob2prob(N1), (double)n->occ /  scaledprob2prob(N1) );
+			//for(i = 0;i < 5;i++){
 				//if(n->next[i]){
-					fprintf(stderr,"%f ",n->nuc_probability[i]);
+			//	fprintf(stderr,"%f ",n->nuc_probability[i]);
 				//}else{
 				//	fprintf(stderr,"%f S\t",n->nuc_probability[i]);
 				//}
-			}
-		
-		
+			//}
+			
+			
 			fprintf(stderr,"\n");
-		}
+		//}
 	}
 	
 	

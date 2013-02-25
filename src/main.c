@@ -27,6 +27,7 @@
 #include "tagdust2.h"
 #include "barcode_hmm.h"
 #include "pst.h"
+#include "suffix_drittel.h"
 #include <math.h>
 
 
@@ -37,6 +38,24 @@ int main (int argc,char * argv[]) {
 	int i,j;
 	
 	init_nuc_code();
+	
+	int s1[] = {(int)'M',(int)'I',(int)'S',(int)'S',(int)'I',(int)'S',(int)'S',(int)'I',(int)'P',(int)'P',(int)'I',0,0,0};
+	int s2[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	
+	suffixArray(s1, s2, 13, 255);
+	
+	for(i = 0; i < 13;i++){
+		fprintf(stderr,"%d:	%d	", i,s2[i]);
+		for(j = 0; j < 100000;j++){
+			if(s1[s2[i]+j] == 0){
+				fprintf(stderr,"\n");
+				break;
+			}
+			fprintf(stderr,"%c",(char)s1[s2[i]+j] );
+		}
+	}
+	
+	exit(0);
 	
 	
 	
