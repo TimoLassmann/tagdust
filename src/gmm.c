@@ -39,9 +39,9 @@ void run_gmm_on_sequences(struct read_info** ri, int numseq)
 	model->p = malloc(sizeof(double) * MAX_NUM_MIXTURES);
 	
 	
-	for(i = 0; i < 4;i++){
+	for(i = 0; i < MAX_NUM_MIXTURES;i++){
 		model = run_miniEM( x, model , i+1 , numseq);
-		fprintf(stderr,"\n\n");
+		//fprintf(stderr,"\n\n");
 		//exit(0);
 
 	}	
@@ -136,7 +136,7 @@ struct gmm_model* run_miniEM(float* x, struct gmm_model*  model, int k, int n)
 			g = -1;
 			for(j = 0; j < k;j++){
 				if(fabs((float)x[i] -e_mean[j]) < tmp){
-					tmp = fabs((float)x[i] -e_mean[j]) ;
+					tmp = ((float)x[i] -e_mean[j]) ;
 					g = j;
 				}
 			}
@@ -154,7 +154,7 @@ struct gmm_model* run_miniEM(float* x, struct gmm_model*  model, int k, int n)
 				g = -1;
 				for(j = 0; j < k;j++){
 					if(fabs((float)x[i] -e_mean[j]) < tmp){
-						tmp = fabs((float)x[i] -e_mean[j]) ;
+						tmp =fabs((float)x[i] -e_mean[j]);
 						g = j;
 					}
 				}
@@ -180,7 +180,7 @@ struct gmm_model* run_miniEM(float* x, struct gmm_model*  model, int k, int n)
 				}else{
 					e_mean[i] = e_mean[i] / sum[i];
 				}
-			//	fprintf(stderr,"Mean:%f\n",e_mean[i]);
+		//		fprintf(stderr,"Mean:%f\n",e_mean[i]);
 			}
 			
 			//fprintf(stderr,"changed:%d\n",changed);
@@ -198,42 +198,24 @@ struct gmm_model* run_miniEM(float* x, struct gmm_model*  model, int k, int n)
 		}
 		
 	}
-	fprintf(stderr,"Model:\n");
 	for(i = 0 ; i < k;i++){
 		//mean[i]  = e_mean[i];
-			fprintf(stderr,"%d	%f\n",i,mean[i]);
+	//	fprintf(stderr,"%d	%f\n",i,mean[i]);
+	}
+	fprintf(stderr,"%d	%f	%f\n",k, likelihood,likelihood + (double)k* log((double)n));
+	return model;
+	//fprintf(stderr,"Model:\n");
+	for(i = 0 ; i < k;i++){
+		//mean[i]  = e_mean[i];
+	//		fprintf(stderr,"%d	%f\n",i,mean[i]);
+		
+		sigma[i] = stdev;
 	}
 	//fprintf(stderr,"\n");
 
 	//return model;
 	
-	
-	for(i = 0 ; i < k;i++){
-		tmp = -FLT_MAX;
-		for(j = 0; j < n;j++){
-			sigma[i] = (x[j] - mean[i])* (x[j] - mean[i]);
-			sum[i] += 1.0;
-		}
-	}
-	for(i = 0; i < k;i++){
-		if(sum[i]){
-			sigma[i] = sqrtf( sigma[i] / sum[i]);
-			fprintf(stderr,"SIGMA:%f\n", sigma[i]);
-		}else{
-			sigma[i] = MIN_STDEV;
-		}
-		//if(sigma[i] < MIN_STDEV){
-		//	sigma[i] = MIN_STDEV;//FLT_MIN;
-		//}
-	}
-	j = 0;
-	
-	for(i  = 0;i < k;i++){
-		if(mean[i] !=  -FLT_MAX){
-			j++;
-		}
-	}
-	//for(i = 0; i < n;i++){
+		//for(i = 0; i < n;i++){
 	
 	//	fprintf(stderr,"%f ",x[i]);
 	//}
@@ -241,24 +223,24 @@ struct gmm_model* run_miniEM(float* x, struct gmm_model*  model, int k, int n)
 	
 	for(i  = 0;i < k;i++){
 		if(mean[i] ==  -FLT_MAX){
-			p[i] = prob2scaledprob(0.0);// fprintf(stderr,"GAGA\n");
+			p[i] = (0.0);// fprintf(stderr,"GAGA\n");
 			mean[i] = 0;
 			sigma[i] = 0;
 		}else{
-			p[i] = prob2scaledprob( 1.0 / (float)j);
+			p[i] = ( 1.0 / (float)k);
 		}
-		fprintf(stderr,"INIT:	%d	%f	%f	%f	%d\n",i,p[i],mean[i],sigma[i],j);
+	///	fprintf(stderr,"INIT:	%d	%f	%f	%f	%d\n",i,p[i],mean[i],sigma[i],i);
 	}
 	old_likelihood = 1e-10f;
 	
 	//return model;
-	
+	int good = 0;
 	for(g = 0; g < 100;g++){
-		likelihood = prob2scaledprob(1.0);
+		likelihood = prob2scaledprob (1.0);
 		for(j = 0; j < k;j++){
-			sum[j] =prob2scaledprob( 0.0);
-			e_mean[j] = prob2scaledprob(0.0);
-			e_p[j] = prob2scaledprob(0.0);
+			sum[j] =( 0.0);
+			e_mean[j] = (0.0);
+			e_p[j] = (0.0);
 			e_sigma[j] = 0.0;
 		}
 		
@@ -266,62 +248,50 @@ struct gmm_model* run_miniEM(float* x, struct gmm_model*  model, int k, int n)
 		
 		for(i = 0; i < n;i++){
 			//t = (double)i / (double)n - (double) n / 2.0;
- 			tmp = prob2scaledprob(0.0);
+ 			tmp = 0.0;
 			for(j = 0; j < k;j++){
 				//raw[j]  = p[j] * pdf((float)i, mean[j],sigma[j]);
-				if(p[j] != prob2scaledprob(0.0)){
-					tmp_p_matrix[i][j]  = p[j] + log_pdf(x[i], mean[j],sigma[j]);
+				//if(p[j] != prob2scaledprob(0.0)){
+					tmp_p_matrix[i][j]  = p[j] * gaussian_pdf(x[i], mean[j],sigma[j]);//log_pdf(x[i], mean[j],sigma[j]);
+			//		fprintf(stderr,"%d	%f	%f	%f	%f	%f\n",i,gaussian_pdf(x[i], mean[j],sigma[j]),  log_pdf(x[i], mean[j],sigma[j]),x[i], mean[j],sigma[j]);
 					
 					//tmp_p_matrix[i][j]  = p[j] + log_truncated_pdf(i, mean[j],sigma[j],0,n);
 					
 					//fprintf(stderr,"%d	%d	%f\n",i,j,p[j] + log_pdf(i, mean[j],sigma[j]));
-					tmp = logsum(tmp  ,tmp_p_matrix[i][j]) ;// raw[j];
-				}
+					tmp =tmp  +tmp_p_matrix[i][j] ;// raw[j];
+				//}
 				//fprintf(stderr,"%f	\n",raw[j]);
 			}
-			if(tmp == prob2scaledprob(0.0)){
-				fprintf(stderr,"GAGA:%d\n",i);
+			//fprintf(stderr,"%f	%f	%f\n",x[i],tmp, prob2scaledprob(tmp) );
+			
+			if(tmp){
+				good++;
 				for(j = 0; j < k;j++){
-					//raw[j]  = p[j] * pdf((float)i, mean[j],sigma[j]);
-					if(p[j] != prob2scaledprob(0.0)){
-						//tmp_p_matrix[i][j]  = p[j] + log_pdf(i, mean[j],sigma[j]);
-						fprintf(stderr,"%f	%f	%f\n",p[j] ,log_truncated_pdf(x[i], mean[j],sigma[j],0,n), log_pdf(x[i], mean[j],sigma[j]));
-						
-					}
-					//fprintf(stderr,"%f	\n",raw[j]);
-				}
+				tmp_p_matrix[i][j]  = tmp_p_matrix[i][j]  / tmp;
+				//raw[j]  = raw[j] / tmp;
+				e_p[j]  = e_p[j] +  tmp_p_matrix[i][j];// + prob2scaledprob( 1.0x[i]));//raw[j] *x[i];
 				
-				
-				tmp = 10e-7;
-			}
-			likelihood = likelihood + tmp;// prob2scaledprob(tmp);
-			
-			//fprintf(stderr,"len:%d	%f	%f	%f\n",i,x[i],likelihood, tmp );
-			
-			for(j = 0; j < k;j++){
-				if(p[j] != prob2scaledprob(0.0)){
-					tmp_p_matrix[i][j]  = tmp_p_matrix[i][j]  - tmp;
-					//raw[j]  = raw[j] / tmp;
-					e_p[j]  = logsum(e_p[j], tmp_p_matrix[i][j]);// + prob2scaledprob( 1.0x[i]));//raw[j] *x[i];
-					
-					sum[j] = logsum(sum[j], prob2scaledprob(1.0));// + prob2scaledprob(  x[i]));//raw[j]*x[i];
-					e_mean[j] = logsum(e_mean[j],  tmp_p_matrix[i][j]+ prob2scaledprob(x[i]));
+				sum[j] = sum[j] +   tmp_p_matrix[i][j];// prob2scaledprob(1.0));// + prob2scaledprob(  x[i]));//raw[j]*x[i];
+				e_mean[j] +=  tmp_p_matrix[i][j] * x[i];
 				}
+
 			}
-			//for(j = 0; j < k;j++){
 			
+			//if(i < 1000){
+			likelihood = likelihood + prob2scaledprob( tmp);
 			//}
+			
 		}
-		tmp = prob2scaledprob(0.0);
+		tmp = (0.0);
 		for(j = 0; j < k;j++){
-			e_mean[j] = scaledprob2prob( e_mean[j] - sum[j]);
-			fprintf(stderr,"NEW mean:%d	%d	%f\n",g,j, e_mean[j]);
-			tmp = logsum(tmp, e_p[j]);
+			e_mean[j] = e_mean[j] / sum[j];
+			//fprintf(stderr,"NEW mean:%d	%d	%f	%d\n",g,j, e_mean[j],good);
+			tmp +=  e_p[j];
 			//e_p[j] =  e_p[j]/ sum[j];//1.0/(float)n_observations * e_p[j];
 			//fprintf(stderr,"%f	%f\n", 1.0/(float)n_observations * e_p[j], e_p[j]/ sum[j]);
 		}
 		for(j = 0; j < k;j++){
-			e_p[j] =  e_p[j] -  tmp;//1.0/(float)n_observations * e_p[j];
+			e_p[j] =  e_p[j] /  tmp;//1.0/(float)n_observations * e_p[j];
 			//fprintf(stderr,"%f	%f\n", 1.0/(float)n_observations * e_p[j], e_p[j]);
 		}
 		
@@ -330,13 +300,13 @@ struct gmm_model* run_miniEM(float* x, struct gmm_model*  model, int k, int n)
 		for(i = 0; i < n;i++){
 			for(j = 0; j < k;j++){
 				if(p[j] != prob2scaledprob(0.0)){
-					e_sigma[j] +=  scaledprob2prob( tmp_p_matrix[i][j] )* ( x[i] - e_mean[j]  )  * (x[i] - e_mean[j]  );
+					e_sigma[j] +=  tmp_p_matrix[i][j] * ( x[i] - e_mean[j]  )  * (x[i] - e_mean[j]  );
 				}
 			}
 		}
 		
 		for(j = 0; j < k;j++){
-			e_sigma[j]  =  sqrtf(    e_sigma[j] / scaledprob2prob(sum[j]));
+			e_sigma[j]  =  sqrtf(    e_sigma[j] / sum[j]);
 			//if(e_sigma[j] < MIN_STDEV  ){
 			//	e_sigma[j] = MIN_STDEV  ;//FLT_MIN;
 			//}
@@ -360,11 +330,11 @@ struct gmm_model* run_miniEM(float* x, struct gmm_model*  model, int k, int n)
 		model->p[j] = p[j];
 		model->mean[j] = mean[j];
 		model->sigma[j] = sigma[j];
-		fprintf(stderr,"%d	%f	%f	%f\n",j,p[j],mean[j],sigma[j]);
+		//printf(stderr,"MODEL:%d	%f	%f	%f	%f	%f\n",j,p[j],mean[j],sigma[j],likelihood,     2.0 * likelihood + (((double)k*3.0) -1.0 )* log((double)n) );
 	}
 	model->likelihood = (double) likelihood ;
 	
-	
+	fprintf(stderr,"BIC:%d	%f	%f,\n", k, -2.0 * likelihood + (((double)k*3.0) -1.0 )* log((double)n),likelihood);
 	for(i = 0; i < n;i++){
 		free(tmp_p_matrix[i]);// = malloc(sizeof(float)*k);
 	}

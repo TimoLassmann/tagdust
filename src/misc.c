@@ -333,6 +333,12 @@ double erffc(double x)
 	return x < 0.0 ? 1.0+gammp(0.5,x*x) : gammq(0.5,x*x);
 }
 
+double gaussian_pdf(double x, double m,double s)
+{
+	double a = (x-m) / s;
+	return INV_SQRT_2PI / s *exp(-0.5 * a * a);
+}
+
 double log_pdf(double x, double mean,double stdev)
 {
 	double out;
@@ -371,5 +377,13 @@ double log_truncated_pdf(double x, double mean,double stdev,double a, double b)
 	}
 }
 
-\
+unsigned int pop(int x)
+{
+	unsigned int n = 0;
+	while(x != 0){
+		n = n +1;
+		x = x &(x-1);
+	}
+	return n;
+}
 

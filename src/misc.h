@@ -53,6 +53,8 @@
 #define SQRT2M_PI 2.506628274631
 #define MIN_STDEV 0.3989422804014
 
+#define INV_SQRT_2PI 0.3989422804014327
+
 
 #endif
 
@@ -65,7 +67,7 @@ float logsum(float a,float b);
 
 float logsum_print(float a,float b);
 
-
+unsigned int pop(int x);
 float prob2scaledprob(float p);
 float scaledprob2prob(float p);
 
@@ -92,6 +94,7 @@ void gcf(double *gammcf, double a, double x, double *gln);
 
 double log_pdf(double x, double mean,double stdev);
 double log_truncated_pdf(double x, double mean,double stdev,double a, double b);
+double gaussian_pdf(double x, double m,double s);
 
 
 

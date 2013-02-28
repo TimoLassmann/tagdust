@@ -20,6 +20,6 @@ struct gmm_model* run_miniEM( float* x, struct gmm_model*  model, int k, int n);
 void run_gmm_on_sequences(struct read_info** ri, int numseq);
 
 
-#define MAX_NUM_MIXTURES 10
+#define MAX_NUM_MIXTURES 50
 
 #endif

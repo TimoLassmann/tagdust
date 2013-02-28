@@ -14,8 +14,9 @@
 #include "nuc_code.h"
 #include <time.h>
 #include "pst.h"
-
+#include <xmmintrin.h>
 #include "gmm.h"
+#include "dbscan.h"
 
 
 
@@ -29,7 +30,7 @@ void pst_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	clock_t cStartClock;
 	FILE* file = 0;
 	double sum;
-	
+	int num_patterns = 0;
 	struct pst* pst = 0;
 	
 	pst = malloc(sizeof(struct pst));
@@ -66,7 +67,7 @@ void pst_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	}
 	file =  io_handler(file, file_num,param);
 	
-	
+	struct pst_node** all_patterns = 0;
 	
 
 	while ((numseq = fp(ri, param,file)) != 0){
@@ -79,6 +80,7 @@ void pst_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 			for(j = 0; j < ri[i]->len;j++){
 				ri[i]->seq[j] = alphabet[(int)ri[i]->seq[j]];
 			}
+			ri[i]->seq[10] = 0;
 			//fprintf(stderr,"%d ",ri[i]->len);
 			pst->total_len += ri[i]->len;
 		}
@@ -94,7 +96,7 @@ void pst_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		c = 0;
 		pst->mean_length = 0.0;
 		for(i = 0; i < numseq;i++){
-			for(j = 0; j <ri[i]->len;j++){//ri[i]->len;j++){
+			for(j = 0; j < 10;j++){//ri[i]->len;j++){//ri[i]->len;j++){
 				pst->suffix_array[c] = ri[i]->seq +j;
 				c++;
 			}
@@ -117,10 +119,6 @@ void pst_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		///exit(0);
 		qsort(pst->suffix_array, pst->suffix_len, sizeof(char *), qsort_string_cmp);
 		fprintf(stderr,"built SA in %4.2f seconds\n",(double)( clock() - cStartClock) / (double)CLOCKS_PER_SEC);
-		
-		
-		
-		
 		
 		cStartClock = clock();
 
@@ -150,19 +148,52 @@ void pst_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		
 		
 		cStartClock = clock();
-		//pst->pst_root  = alloc_bit_occ_pst(pst->pst_root , numseq);
-		//pst->ppt_root = alloc_bit_occ_pst(pst->ppt_root, numseq);
+		pst->pst_root  = alloc_bit_occ_pst(pst->pst_root , numseq);
+		pst->ppt_root = alloc_bit_occ_pst(pst->ppt_root, numseq);
 		ri =  scan_read_with_pst( ri, pst);
 		fprintf(stderr,"scanned  in %4.2f seconds\n",(double)( clock() - cStartClock) / (double)CLOCKS_PER_SEC);
 		
 		
+		num_patterns = 0;
+		num_patterns = count_patterns(pst->pst_root, num_patterns);
+		num_patterns = count_patterns(pst->ppt_root,num_patterns);
+		
+		all_patterns = malloc(sizeof(struct pst_node*)  *num_patterns );
+		
+		num_patterns = 0;
+		num_patterns = add_patterns(all_patterns,pst->pst_root, num_patterns);
+		num_patterns  = add_patterns(all_patterns,pst->ppt_root,num_patterns);
+		
+		
+		qsort((void *)  all_patterns, num_patterns, sizeof(struct pst_node* ),(compfn) sort_pst_nodel_according_to_label);
+		
+		
+		c = 0;
+		for(i = 0; i < num_patterns-1;i++){
+			if(strcmp(all_patterns[i]->label, all_patterns[i+1]->label)){
+				all_patterns[c] = all_patterns[i];
+				c++;
+			}
+			//fprintf(stderr,"%s	%d\n",all_patterns[i]->label,i );
+		}
+		
+		//for(i = 0; i < c;i++){
+		//	fprintf(stderr,"%s	%d\n",all_patterns[i]->label,i );
+		//}
+		// got all strings combined and ready for dbscan.....
+		
+		cStartClock = clock();
+		cluster_reads_based_on_pst_patterns(all_patterns,c,numseq);
+		fprintf(stderr,"clustered   in %4.2f seconds\n",(double)( clock() - cStartClock) / (double)CLOCKS_PER_SEC);
+		exit(0);
 		run_gmm_on_sequences(ri,numseq);
 		
 		
-		exit(0);
+		
 		print_pst(pst,pst->pst_root,ri);
 		fprintf(stderr,"happily got here...\n");
 		print_pst(pst,pst->ppt_root,ri);
+		exit(0);
 		//cStartClock = clock();
 		//ri =  scan_read_with_pst( ri, pst);
 		//fprintf(stderr,"scanned  in %4.2f seconds\n",(double)( clock() - cStartClock) / (double)CLOCKS_PER_SEC);
@@ -175,7 +206,7 @@ void pst_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		
 		
 		cStartClock = clock();
-		pst->pst_root = count_patterns(ri,pst,pst->pst_root);
+		//pst->pst_root = count_patterns(ri,pst,pst->pst_root);
 		fprintf(stderr,"counted  in %4.2f seconds\n",(double)( clock() - cStartClock) / (double)CLOCKS_PER_SEC);
 		print_pst(pst,pst->pst_root,ri);
 		
@@ -323,6 +354,9 @@ struct pst_node* build_pst(struct pst* pst,struct pst_node* n )
 }
 
 
+
+
+
 struct pst_node* build_ppt(struct pst* pst,struct pst_node* n )
 {
 	char alphabet[] = "ACGTN";
@@ -404,7 +438,7 @@ struct pst_node* build_ppt(struct pst* pst,struct pst_node* n )
 					if(add){
 						n->next[i]->in_T = 1;
 					}
-					n->next[i] = build_ppt(pst,n->next[i]  );
+					n->next[i] = build_ppt(pst,n->next[i]);
 					
 				}
 			}
@@ -460,47 +494,34 @@ struct read_info**  scan_read_with_pst(struct read_info** ri,struct pst* pst)
 	
 	float* base_p = pst->pst_root->nuc_probability;
 	char* seq;
-	//char* qual;
-	
+	char* qual;
 	
 	float total_T = prob2scaledprob(1.0);
 	float total_R = prob2scaledprob(1.0);
 	
 	float A,B;
 	
-	//int good_hits[11];
-	
 	//scan to cpount occurances... 
 	for(i = 0; i < pst->numseq;i++){
 		
 		seq = ri[i]->seq;
-		
-		
-		//if(!i){
-		
-		//}
-		
-		
-		
 		for(j = 0; j < ri[i]->len; j++ ){
-			//ri[i]->qual[j] = 48 + (int) 10* get_pst_prob(pst->root, seq,  nuc_code5[(int)seq[j]], j, i);
+			pst->pst_root = count_pst_lables(pst->pst_root, seq,  j, i);
+			pst->ppt_root = count_ppt_lables(pst->ppt_root, seq, j , i);
 			
-			pst->pst_root = count_pst_lables(pst->pst_root, seq,  nuc_code5[(int)seq[j]], j, i);
-			pst->ppt_root = count_ppt_lables(pst->ppt_root, seq,  nuc_code5[(int)seq[j]], j, i);
 		}
 	}
 	
-	fprintf(stderr,"%f\n",pst->numseq);
-	
+	//fprintf(stderr,"%f\n",pst->numseq);
 	
 	for(i = 0; i < pst->numseq;i++){
-		/*if(!ri[i]->qual){
+		if(!ri[i]->qual){
 			ri[i]->qual = malloc(sizeof(char)* (ri[i]->len+1));
 		}
 		for(j = 0; j < ri[i]->len; j++ ){
 			ri[i]->qual[j] = 48;
 		}
-		qual = ri[i]->qual;*/
+		qual = ri[i]->qual;
 		seq = ri[i]->seq;
 		
 		//if(!i){
@@ -510,7 +531,7 @@ struct read_info**  scan_read_with_pst(struct read_info** ri,struct pst* pst)
 		P_T = prob2scaledprob(1.0);
 		P_R = prob2scaledprob(1.0);
 		//P_PT =  prob2scaledprob(1.0);
-		
+		//fprintf(stdout,"%s\n",seq );
 				
 		for(j = 0; j < ri[i]->len; j++ ){
 			P_R = P_R + prob2scaledprob(base_p[nuc_code5[(int)seq[j]]]);
@@ -523,7 +544,8 @@ struct read_info**  scan_read_with_pst(struct read_info** ri,struct pst* pst)
 			
 			P_T = P_T + prob2scaledprob(max(A,B));
 			
-			//ri[i]->qual[j] = 48 + (int) (10.0* (max(A,B)));
+			//fprintf(stdout,"%d	%f	%f\n", j , A,B);
+			ri[i]->qual[j] = 48 + (int) (10.0* (max(A,B)));
 			
 			//P_PT = P_PT + prob2scaledprob(get_ppt_prob(pst->ppt_root, seq,  nuc_code5[(int)seq[j]], j, i));
 			
@@ -539,11 +561,11 @@ struct read_info**  scan_read_with_pst(struct read_info** ri,struct pst* pst)
 		//ri[i]->qual[ri[i]->len] = 0;
 		//P_T-P_R;
 		//if(!i){
-		//fprintf(stdout,"%s	",seq );
+		
 		//fprintf(stdout,"%f	%f\n",P_T-P_R, exp(P_T-P_R) / (1+exp(P_T - P_R)));
 		//ri[i]->qual[ri[i]->len] = 0;
 		//}
-		ri[i]->mapq = prob2scaledprob(exp(P_T-P_R) / (1.0+exp(P_T - P_R)));
+		ri[i]->mapq = P_T-P_R;///100.0 * (exp(P_T-P_R) / (1.0+exp(P_T - P_R)));
 		//fprintf(stdout,"%s\n",ri[i]->qual);
 		//break;
 	}
@@ -551,6 +573,49 @@ struct read_info**  scan_read_with_pst(struct read_info** ri,struct pst* pst)
 	
 	
 	return ri;
+}
+
+
+
+int add_patterns(struct pst_node** all_patterns, struct pst_node* n,int num)
+{
+	int i;
+	if(strlen(n->label) > 2){
+		if(n->in_T){
+			all_patterns[num] = n;
+			num += 1;
+			//fprintf(stderr,"ADDED: %s	%d\n",n->label,num);
+		}
+	}
+	
+	for(i = 0;i < 5;i++){
+		if(n->next[i]){
+			//fprintf(stderr,"Going:%d\n",i);
+			num = add_patterns(all_patterns,n->next[i],num);
+		}
+	}
+	
+	return num;
+}
+
+int count_patterns(struct pst_node* n,int num)
+{
+	int i;
+	if(strlen(n->label) > 2){
+		if(n->in_T){
+			num += 1;
+			//fprintf(stderr,"ADDED: %s	%d\n",n->label,num);
+		}
+	}
+	
+	for(i = 0;i < 5;i++){
+		if(n->next[i]){
+			//fprintf(stderr,"Going:%d\n",i);
+			num = count_patterns(n->next[i],num);
+		}
+	}
+
+	return num;
 }
 
 float get_pst_prob(struct pst_node* n, char* string,int target, int pos,int seq_id)
@@ -576,6 +641,8 @@ float get_pst_prob(struct pst_node* n, char* string,int target, int pos,int seq_
 		return n->nuc_probability[target];
 	}
 }
+
+
 
 
 float get_ppt_prob(struct pst_node* n, char* string,int target, int pos,int seq_id)
@@ -624,50 +691,72 @@ int get_occ(struct pst_node* n, char* string,int target, int pos,int seq_id)
 }
 
 
-struct pst_node*  count_pst_lables(struct pst_node* n, char* string,int target, int pos,int seq_id)
+struct pst_node*  count_pst_lables(struct pst_node* n, char* string, int pos,int seq_id)
 {
 	//if(!seq_id){
 	//fprintf(stderr,"%d	%s	%f	(%d)	- OCC:%d\n", target,n->label,n->nuc_probability[target],n->in_T, n->occ);
 	//}
-	if(n->last_seen != seq_id){
+	
+	int c = nuc_code5[(int)string[pos]];
+	if(n->next[c]){
+		if(n->next[c]->last_seen != seq_id){
+			n->next[c]->occ++;
+			n->next[c]->bit_occ = bit_set(n->next[c]->bit_occ , seq_id);
+			n->next[c]->last_seen = seq_id;
+		}
+		pos = pos -1;
+		if(pos != -1){
+			n->next[c] =  count_pst_lables(n->next[c], string,pos,seq_id);
+		}
+	}else{
+		return n;
+	}
+	
+	/*if(n->last_seen != seq_id){
 		n->occ++;
 		//n->bit_occ = bit_set(n->bit_occ, seq_id);
 		n->last_seen = seq_id;
 	}
+	//fprintf(stderr,"%s	(L-PST)\n", n->label );
+	//fprintf(stderr,"%s\n", string+pos);
+	//fprintf(stderr,"%s\n", string);
+	
 	if(pos == 0){
 		return n;
 	}
 	pos = pos -1;
-	int c = nuc_code5[(int)string[pos]];
+	
 	if(n->next[c]){
-		n->next[c] =  count_pst_lables(n->next[c], string, target,pos,seq_id);
+		n->next[c] =  count_pst_lables(n->next[c], string,pos,seq_id);
 	}else{
 		return n;
-	}
+	}*/
 	return n;
 }
 
 
-struct pst_node*  count_ppt_lables(struct pst_node* n, char* string,int target, int pos,int seq_id)
+struct pst_node*  count_ppt_lables(struct pst_node* n, char* string, int pos,int seq_id)
 {
-	//if(!seq_id){
-	//fprintf(stderr,"%d	%s	%f	(%d)	- OCC:%d\n", target,n->label,n->nuc_probability[target],n->in_T, n->occ);
-	//}
-	if(n->last_seen != seq_id){
-		n->occ++;
-	//	n->bit_occ = bit_set(n->bit_occ, seq_id);
-		n->last_seen = seq_id;
-	}
-	if(string[pos+1] == 0){
+	int c = nuc_code5[(int)string[pos]];
+	if(!string[pos]){
 		return n;
 	}
-	pos = pos + 1;
-	int c = nuc_code5[(int)string[pos]];
 	if(n->next[c]){
-		n->next[c] =  count_ppt_lables(n->next[c], string, target,pos,seq_id);
+		if(n->next[c]->last_seen != seq_id){
+			n->next[c]->occ++;
+			n->next[c]->bit_occ = bit_set(n->next[c]->bit_occ , seq_id);
+			n->next[c]->last_seen = seq_id;
+		}
+		pos = pos +1;
+		//n = n->next;
+		//if(pos){
+			n->next[c] =  count_ppt_lables(n->next[c], string,pos,seq_id);
+		//}
 	}else{
 		return n;
 	}
+
+	
 	return n;
 }
 
@@ -784,8 +873,8 @@ void print_pst(struct pst* pst,struct pst_node* n, struct read_info** ri )
 
 struct pst_node* alloc_bit_occ_pst(struct pst_node* n, int num)
 {
-/*	int i;
-	n->bit_occ = malloc(sizeof(int)* (1+ num / BITSPERWORD));
+	int i;
+	n->bit_occ = _mm_malloc(sizeof(int)* (1+ num / BITSPERWORD) , 16);
 	
 	assert(n->bit_occ != 0);
 	
@@ -797,7 +886,7 @@ struct pst_node* alloc_bit_occ_pst(struct pst_node* n, int num)
 		if(n->next[i]){
 			n->next[i] = alloc_bit_occ_pst(n->next[i],num);
 		}
-	}*/
+	}
 	return n;
 }
 
@@ -831,6 +920,15 @@ int establish_rank(const void *a, const void *b)
 	}else{
 		return 1;
 	}
+}
+
+
+int sort_pst_nodel_according_to_label(const void *a, const void *b)
+{
+	struct pst_node * const *one = a;
+	struct pst_node* const *two = b;
+	
+	return strcmp((*one)->label,(*two)->label) ;
 }
 
 
