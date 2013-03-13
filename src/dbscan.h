@@ -21,7 +21,9 @@
 
 
 float jaccard_coefficient(int* a, int* b , int n);
-void cluster_reads_based_on_pst_patterns(struct pst_node** patterns, int num_patterns, int numseq);
+
+float intersection(int* a, int* b , int n);
+void cluster_reads_based_on_pst_patterns(struct pst_node** patterns, int num_patterns, int numseq,struct read_info** ri);
 
 
 int expand (int * cluster,int * visited , float eps, int min_size,int n,float** dm,int t,int ID);

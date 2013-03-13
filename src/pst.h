@@ -31,11 +31,23 @@ struct ranks{
 	int sample;
 };
 
+struct suffix_node{
+	char* string;
+	int seq_id;
+};
+
+
+
 struct pst {
 	struct pst_node* pst_root;
 	struct pst_node* ppt_root;
 	struct ranks** rank_array;
 	char** suffix_array;
+	
+	char** suffix_array_local;
+	int* seq_id_in_suffix;
+	
+	struct suffix_node** sn;
 
 	int total_len;
 	
@@ -48,11 +60,13 @@ struct pst {
 	double numseq;
 	double mean_length;
 	int suffix_len;
+	int suffix_len_local;
 	int current_suffix_size;
+	
 };
 
+void pst_tree(struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ),int file_num);
 void pst_controller(struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ),int file_num);
-
 struct pst_node* alloc_node(struct pst_node* n,char* string,int len);
 struct pst_node* build_pst(struct pst* pst,struct pst_node* n );
 struct pst_node* build_ppt(struct pst* pst,struct pst_node* n );
@@ -85,6 +99,10 @@ int sort_pst_nodel_according_to_label(const void *a, const void *b);
 
 int add_patterns(struct pst_node** all_patterns, struct pst_node* n,int num);
 
+void pst_based_partition(struct read_info** ri, int* samples, int numseq,int active);
+int qsort_suffix_node_string_cmp(const void *a, const void *b);
+
+void free_pst(struct pst_node* n);
 #endif
 
 

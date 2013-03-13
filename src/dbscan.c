@@ -16,7 +16,7 @@
 #include "dbscan.h"
 
 
-void cluster_reads_based_on_pst_patterns(struct pst_node** patterns, int num_patterns, int numseq)
+void cluster_reads_based_on_pst_patterns(struct pst_node** patterns, int num_patterns, int numseq,struct read_info** ri)
 {
 	int i,j,c,max_len,representative;
 	float** dm = 0;
@@ -24,7 +24,7 @@ void cluster_reads_based_on_pst_patterns(struct pst_node** patterns, int num_pat
 	
 	float eps = 0.1;
 	float min_points = 2;
-	
+	float P ;
 	int* closeby = malloc(sizeof(int) * num_patterns);
 	int* closeby2 = malloc(sizeof(int) * num_patterns);
 	int* clusters = malloc(sizeof(int) * num_patterns);
@@ -37,7 +37,7 @@ void cluster_reads_based_on_pst_patterns(struct pst_node** patterns, int num_pat
 	}
 	
 	
-	
+	float left,right,pl1,pl2,pr1,pr2,reduction;
 	dm = malloc(sizeof(float*) * num_patterns );
 	for(i =0 ; i < num_patterns;i++){
 		patterns[i]->last_seen = 0;
@@ -46,6 +46,47 @@ void cluster_reads_based_on_pst_patterns(struct pst_node** patterns, int num_pat
 			dm[i][j] = 0.0f;
 			
 			dm[i][j] = 1.0f -  jaccard_coefficient(patterns[i]->bit_occ, patterns[j]->bit_occ ,1+ numseq  / BITSPERWORD);
+			
+			left = (patterns[i]->occ) / (float)numseq;
+			right = ((float)numseq - patterns[i]->occ)  /(float)numseq ;
+			
+			
+			//1n's left - in region covered by i 
+			pl1 = intersection(patterns[i]->bit_occ, patterns[j]->bit_occ ,1+ numseq  / BITSPERWORD);
+			
+			
+			//1n's right - remaining ...    - in region covered by i 
+			pr1 =  patterns[j]->occ - pl1;
+			
+			pl1 /= (float) patterns[i]->occ;
+			pl2 = 1.0 - pl1;
+			
+			pr1 /=(float) patterns[j]->occ;
+			
+			pr2 = 1.0 -pr1;
+			
+			reduction = -1.0 * (left * log2(left) + (right) * log2(right));
+			
+			fprintf(stderr,"%d		%f	%f	%f	%f	%f	%f	%f	",i,left,right,pl1,pl2,pr1,pr2,reduction);
+			
+			if(pl1 == 0 || pl2 == 0){
+				if(pr1 == 0 || pr2 == 0){
+					reduction = reduction;
+				}else{
+					reduction = reduction - left* ( -1.0 * (pl1 * log2(pl1) + (pl2) * log2(pl2)  ));
+				}
+				
+			}else{
+				if(pr1 == 0 || pr2 == 0){
+					reduction = reduction - right*(-1.0*(pr1 * log2(pr1) + (pr2) * log2(pr2)));
+				}else{
+					reduction = reduction - left* ( -1.0 * (pl1 * log2(pl1) + (pl2) * log2(pl2)  )) -   right*(-1.0*(pr1 * log2(pr1) + (pr2) * log2(pr2)));
+				}
+			}
+			
+			
+			fprintf(stderr,"%d		%f\n",j, reduction);
+			
 			//if(strlen(patterns[i]->label) > 5 && strlen(patterns[j]->label)  ){
 			//	fprintf(stderr,"%d	%d	%s	%s	%f\n",i,j,patterns[i]->label,  patterns[j]->label,  dm[i][j] );
 			//}
@@ -113,21 +154,43 @@ void cluster_reads_based_on_pst_patterns(struct pst_node** patterns, int num_pat
 		}
 		max_len = 0;
 		//fprintf(stderr,"%d\n",j);
+		P = 0;
+		
+		for(j = 0 ; j<  numseq; j++){
+			if(bit_test( patterns[representative]->bit_occ,j )){
+				P += ri[j]->mapq;
+			}
+			//max_len += pop( patterns[representative]->bit_occ[j]);// |= patterns[i]->bit_occ[j];
+			
+			
+		}
+		
 		for(j = 0 ; j<1+ numseq  / BITSPERWORD ;j++){
 			max_len += pop( patterns[representative]->bit_occ[j]);// |= patterns[i]->bit_occ[j];
+			
+			
 		}
 		
-		fprintf(stderr,"%s	%d	%d\n",patterns[representative]->label,  max_len,numseq );
+		fprintf(stderr,"%s	%d	%d	%f    Entrophy: %f\n",patterns[representative]->label,  max_len,numseq , P / (double)max_len ,   -1*((double) max_len / (double)numseq) * log2((double)max_len / (double)numseq)+  (1.0 - (double) max_len / (double)numseq) * log2(1.0 - (double)max_len / (double)numseq)    );
 		
 	}
-	/*fprintf(stderr,"Leftover:\n");
+	fprintf(stderr,"Leftover:\n");
 	for(i = 0 ; i  < num_patterns;i++){
 		if(clusters[i] == -1){
-			fprintf(stderr,"%s\n",patterns[i]->label);
+			clusterID++;
+			max_len = 0;
+			for(j = 0 ; j<1+ numseq  / BITSPERWORD ;j++){
+				max_len += pop( patterns[i]->bit_occ[j]);// |= patterns[i]->bit_occ[j];
+				
+				
+			}
+			
+			//fprintf(stderr,"%s	%d	%d	%f    Entrophy: %f\n",patterns[representative]->label,  max_len,numseq , P / (double)max_len ,    );
+			fprintf(stderr,"%s	  Entrophy: %f	%d	%d	%d\n",patterns[i]->label, -1*(((double) max_len / (double)numseq) * log2((double)max_len / (double)numseq)+  (1.0 - (double) max_len / (double)numseq) * log2(1.0 - (double)max_len / (double)numseq))  ,max_len, patterns[i]->occ,numseq);
 		}
 		
-	}*/
-	
+	}
+	fprintf(stderr,"%d\n",clusterID);
 	for(i =0 ; i < num_patterns;i++){
 		free(dm[i]);/// =  malloc(sizeof(float) * num_patterns );
 	}
@@ -307,5 +370,95 @@ float jaccard_coefficient(int* a, int* b , int n)
 	return j_intersection / j_union;
 }
 
+
+
+float intersection(int* a, int* b , int n)
+{
+	
+	float j_intersection = 0.0;
+	int i,x;
+	
+	for(i = 0; i < n;i++){
+	 x = a[i] & b[i];
+	 j_intersection += pop(x);
+	 
+	// x = a[i] | b[i];
+	 //j_union += pop(x);
+	 }
+	return j_intersection;
+	
+	int j = n / 4;
+	const __m128i* a_ptr = (__m128i*) a;
+	const __m128i* b_ptr =  (__m128i*) b;
+	__m128i xmm1;
+	__m128i xmm2;
+	__m128i xmm3;
+	
+	const unsigned mu1 = 0x55555555;
+	const unsigned mu2 = 0x33333333;
+	const unsigned mu3 = 0x0F0F0F0F;
+	const unsigned mu4 = 0x0000003F;
+	
+	__m128i m1 = _mm_set_epi32 (mu1, mu1, mu1, mu1);
+	__m128i m2 = _mm_set_epi32 (mu2, mu2, mu2, mu2);
+	__m128i m3 = _mm_set_epi32 (mu3, mu3, mu3, mu3);
+	__m128i m4 = _mm_set_epi32 (mu4, mu4, mu4, mu4);
+	__m128i mcnt_i;
+	__m128i mcnt_u;
+	mcnt_i =  _mm_set1_epi32(0);//   _mm_xor_si128(mcnt_i, mcnt_i); // cnt = 0
+	mcnt_u = _mm_set1_epi32(0);//
+	
+	for(i = 0; i < j;i++){
+		xmm1 = _mm_load_si128(a_ptr);
+		xmm2 = _mm_load_si128(b_ptr);
+		//xmm4 = _mm_or_si128(xmm1, xmm2);
+		xmm1 = _mm_and_si128(xmm1, xmm2);
+		
+		
+		// b = (b & 0x55555555) + (b >> 1 & 0x55555555);
+		xmm2 = _mm_srli_epi32(xmm1, 1);                    // tmp1 = (b >> 1 & 0x55555555)
+		xmm2 = _mm_and_si128(xmm2, m1);
+		xmm3 = _mm_and_si128(xmm1, m1);                    // tmp2 = (b & 0x55555555)
+		xmm1    = _mm_add_epi32(xmm2, xmm3);               //  b = tmp1 + tmp2
+		
+		// b = (b & 0x33333333) + (b >> 2 & 0x33333333);
+		xmm2 = _mm_srli_epi32(xmm1, 2);                    // (b >> 2 & 0x33333333)
+		xmm2 = _mm_and_si128(xmm2, m2);
+		xmm3 = _mm_and_si128(xmm1, m2);                    // (b & 0x33333333)
+		xmm1    = _mm_add_epi32(xmm2, xmm3);               // b = tmp1 + tmp2
+		
+		// b = (b + (b >> 4)) & 0x0F0F0F0F;
+		xmm2 = _mm_srli_epi32(xmm1, 4);                    // tmp1 = b >> 4
+		xmm1 = _mm_add_epi32(xmm1, xmm2);                     // b = b + (b >> 4)
+		xmm1 = _mm_and_si128(xmm1, m3);                       //           & 0x0F0F0F0F
+		
+		// b = b + (b >> 8);
+		xmm2 = _mm_srli_epi32 (xmm1, 8);                   // tmp1 = b >> 8
+		xmm1 = _mm_add_epi32(xmm1, xmm2);                     // b = b + (b >> 8)
+		
+		// b = (b + (b >> 16)) & 0x0000003F;
+		xmm2 = _mm_srli_epi32 (xmm1, 16);                  // b >> 16
+		xmm1 = _mm_add_epi32(xmm1, xmm2);                     // b + (b >> 16)
+		xmm1 = _mm_and_si128(xmm1, m4);                       // (b >> 16) & 0x0000003F;
+		
+		mcnt_i = _mm_add_epi32(mcnt_i,xmm1);
+		
+				
+		
+		
+		
+		
+		
+		a_ptr++;
+		b_ptr++;
+		
+	}
+	_MM_ALIGN16 int result[4];
+	_mm_storeu_si128((__m128i*)result, mcnt_i);
+	//fprintf(stderr,"%f\t",j_intersection);
+	j_intersection = (float)(result[0] + result[1] + result[2] + result[3]);
+	//fprintf(stderr,"%f\t",j_intersection);
+	return j_intersection;
+}
 
 

@@ -57,6 +57,12 @@
             ReferencedContainer = "container:tagdust2.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
+      <CommandLineArguments>
+         <CommandLineArgument
+            argument = "/Users/lassmann/ENCODE_hg19/3UTRsENSEMBLE_longest.fa"
+            isEnabled = "YES">
+         </CommandLineArgument>
+      </CommandLineArguments>
       <AdditionalOptions>
       </AdditionalOptions>
    </LaunchAction>
