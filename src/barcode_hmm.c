@@ -1,7 +1,7 @@
 //
 //  barcode_hmm.c
 //  tagdust2
-//
+//  
 //  Created by lassmann on 2/5/13.
 //  Copyright (c) 2013 lassmann. All rights reserved.
 //
@@ -11,7 +11,7 @@
 #include "interface.h"
 #include "io.h"
 #include "misc.h"
-
+#include "nuc_code.h"
 
 #include "barcode_hmm.h"
 
@@ -24,18 +24,41 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	int total_read = 0;
 	
 	float sum = 0.0;
+	
+	int segment_length;
+	int read_length;
+	
 	init_logsum();
+	
+	/*int len,c;
+	float max;
+	
+	for(j = 0; j < 10;j++){
+	len = j+1;
+	//len = model->hmms[0]->num_columns;
+	c = 0;
+	max = -1;
+	for(i = 0; i< 1000;i++){
+		if(binomial_distribution((double)i / 1000.0 , len  ,1)  > max){
+			max = binomial_distribution((double)i / 1000.0 ,len ,1 );
+			c = i;
+		}
+	}
+	max = (double)c / 1000.0;
+		fprintf(stderr,"%d	%f\n",j+1,max	);
+	}
+	exit(0);*/
 	
 	
 	float* back = 0;
-	
+	int average_length = 0;
 	back = malloc(sizeof(float)*5);
 	for(i = 0; i < 5;i++){
-		back[i]= prob2scaledprob( 0.2);
+		back[i]= 0.0f;//prob2scaledprob( 0.2);
 	}
 	
-	struct model* model =  malloc_model(16, 10, 64);
-		
+	param->num_query = 100;
+	
 	/*model = init_model(model , back,24);
 	
 	struct model* model2 = copy_and_malloc_model(model);
@@ -53,6 +76,8 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	FILE* unmapped = 0;
 	
 	ri = malloc(sizeof(struct read_info*) * param->num_query);
+	
+	assert(ri !=0);
 	
 	for(i = 0; i < param->num_query;i++){
 		ri[i] = malloc(sizeof(struct read_info));
@@ -86,38 +111,105 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	 */
 	
 	
-	model->average_length = 0;
+	average_length = 0;
 	for(i = 0; i < 5;i++){
-		model->background_nuc_frequency[i] = 0.0;
+		back[i] = 0.0;
 	}
 	total_read = 0;
 	
 	while ((numseq = fp(ri, param,file)) != 0){
 		//fprintf(stderr,"rread: %d\n",numseq);
 		for(i = 0; i < numseq;i++){
-			model->average_length += ri[i]->len;
+			average_length += ri[i]->len;
 			for(j = 0;j < ri[i]->len;j++){
-				model->background_nuc_frequency[ri[i]->seq[j]] += 1;
+				back[(int)ri[i]->seq[j]] += 1.0f;
 			}
 		}
-		total_read+= numseq;
-		if(total_read > 10000000){
+		total_read += numseq;
+		if(total_read > 10){
 			break;
 		}
 	}
 	
-	model->average_length = model->average_length / total_read;
+	average_length = average_length / total_read;
+	
+	param->average_read_length = average_length;
 	
 	for(i = 0; i < 5;i++){
-		sum += model->background_nuc_frequency[i];
+		sum += back[i];
 	}
 	
 	for(i = 0; i < 5;i++){
-		model->background_nuc_frequency[i] = prob2scaledprob(model->background_nuc_frequency[i]  / sum);
+		back[i] = prob2scaledprob(back[i]  / sum);
 	}
 	
 	rewind(file);
 	
+	
+	//init models
+	
+	struct model_bag* mb = malloc(sizeof(struct model_bag));
+	
+	assert(mb!=0);
+	
+	mb->model = malloc(sizeof(struct model* ) * param->read_structure->num_segments);
+	
+	assert(mb->model);
+	
+	mb->num_models = param->read_structure->num_segments;
+	// get read length estimate...
+	read_length = average_length;
+	for(i = 0; i < mb->num_models;i++){
+		//mb->model[i] = malloc_model_according_to_read_structure(param->read_structure,i);
+		
+		if(param->read_structure->type[i] == 'G'){
+			read_length = read_length -2;
+			
+		}else{
+			read_length = read_length - (int)strlen(param->read_structure->sequence_matrix[i][0]);
+		}
+		
+		
+		
+	}
+	fprintf(stderr,"READlength: %d",read_length);
+	
+	for(i = 0; i < mb->num_models;i++){
+		mb->model[i] = malloc_model_according_to_read_structure(param->read_structure,i);
+		segment_length = 0;
+		if(param->read_structure->type[i] == 'G'){
+			segment_length = 2;
+			
+		}
+		if(param->read_structure->type[i]  == 'R'){
+			segment_length = read_length;
+		}
+		
+		
+		
+		mb->model[i] = init_model_according_to_read_structure(mb->model[i], param, i,back,segment_length);
+		print_model(mb->model[i]);
+		
+		
+	}
+	
+	
+	char test[] = "AAAGGG";
+	
+	for(i = 0; i < 6;i++){
+		test[i] = nuc_code5[test[i]];
+	}
+ 	
+	mb = forward(mb, test, 6);
+	
+	mb = backward(mb, test , 6);
+	
+	for(i = 0; i < mb->num_models;i++){
+		free_model(mb->model[i]);
+	}
+	free(mb->model);
+	free(mb);
+	exit(0);
 	
 	/*
 	 
@@ -132,7 +224,7 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	 */
 	
 	
-	model = init_model(model);
+	//model = init_model(model);
 	/*
 	 
 	 done init model;
@@ -146,7 +238,7 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	 
 	 */
 	
-	for(i = 0; i < 10;i++){
+	/*for(i = 0; i < 10;i++){
 		
 		while ((numseq = fp(ri, param,file)) != 0){
 			//fprintf(stderr,"rread: %d\n",numseq);
@@ -164,7 +256,7 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		//re-restimate...
 		
 		
-	}
+	}*/
 	
 	/*
 	 
@@ -202,6 +294,305 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	}
 
 }
+
+
+struct model_bag* backward(struct model_bag* mb, char* a, int len)
+{
+	int i,j;
+	int f,g;
+	
+	int model_len = 0;
+	
+	struct hmm* hmm = 0;
+	struct hmm_column* c_hmm_column = 0;
+	struct hmm_column* p_hmm_column = 0;
+	
+	float previous_silent[MAX_HMM_SEQ_LEN];
+	float current_silent[MAX_HMM_SEQ_LEN];
+	
+	char* seqa = a -1;
+	//init - len+1 set to zero.... 
+	
+	for(j = 0; j < mb->num_models;j++){
+		for(f = 0;f < mb->model[j]->num_hmms;f++){
+			model_len = mb->model[j]->hmms[f]->num_columns-1;
+			for(g = 0;g < mb->model[j]->hmms[f]->num_columns;g++){
+				c_hmm_column = mb->model[j]->hmms[f]->hmm_column[g];
+				for(i = 0; i <= len+1;i++){
+					c_hmm_column->M_backward[i] = prob2scaledprob(0.0);
+					c_hmm_column->I_backward[i] = prob2scaledprob(0.0);
+					c_hmm_column->D_backward[i] = prob2scaledprob(0.0);
+				}
+			}
+		}
+	}
+	
+	for(i = 0; i <= len+1;i++){
+		previous_silent[i] = prob2scaledprob(0.0f);
+		current_silent[i] = prob2scaledprob(0.0);
+	}
+	current_silent[len+1] = prob2scaledprob(1.0f);
+	
+	//start with last segment... 
+	for(j = mb->num_models-1 ; j >= 0;j--){
+		for(f = 0;f < mb->model[j]->num_hmms;f++){
+			hmm = mb->model[j]->hmms[f];
+			model_len = mb->model[j]->hmms[f]->num_columns-1;
+			for(i = len ; i > 0;i-- ){
+				c_hmm_column = hmm->hmm_column[model_len];
+				
+				c_hmm_column->M_backward[i] = current_silent[i+1] + mb->model[j]->M_to_silent[f] ;
+				//fprintf(stderr," Mback at modellen:%f\n", c_hmm_column->M_backward[i] );
+				
+				c_hmm_column->I_backward[i] = current_silent[i+1] + mb->model[j]->I_to_silent[f] ;
+				
+				if(i != len){
+				c_hmm_column->I_backward[i] = logsum(c_hmm_column->I_backward[i] , c_hmm_column->M_backward[i+1] + c_hmm_column->short_transition[IM] + c_hmm_column->m_emit[seqa[i+1]]);
+					c_hmm_column->I_backward[i] = logsum(c_hmm_column->I_backward[i] , c_hmm_column->I_backward[i+1] + c_hmm_column->short_transition[II] + c_hmm_column->i_emit[seqa[i+1]]);
+				}
+				
+				
+				c_hmm_column->D_backward[i] = prob2scaledprob(0.0f);
+				for(g = model_len-1;g >= 0;g--){
+					c_hmm_column = hmm->hmm_column[g];
+					p_hmm_column = hmm->hmm_column[g+1];
+					
+					c_hmm_column->M_backward[i]  = p_hmm_column->M_backward[i+1] + p_hmm_column->m_emit[seqa[i+1]] + c_hmm_column->short_transition[MM];
+					
+					//insert - emit previous symbol etc. etc.
+					c_hmm_column->M_backward[i] = logsum(c_hmm_column->M_backward[i] , c_hmm_column->I_backward[i+1] +c_hmm_column->i_emit[seqa[i+1] ]  + c_hmm_column->short_transition[MI]);
+					
+					//delete - neex to go to previous columns
+					
+					c_hmm_column->M_backward[i] = logsum(c_hmm_column->M_backward[i],p_hmm_column->D_backward[i] + c_hmm_column->short_transition[MD]);
+					
+					// insert state..
+					// from previous insertion....
+					c_hmm_column->I_backward[i] = c_hmm_column->I_backward[i+1] + c_hmm_column->short_transition[II] + c_hmm_column->i_emit[seqa[i+1]];
+					//from previous match state....
+					
+					c_hmm_column->I_backward[i] = logsum( c_hmm_column->I_backward[i],p_hmm_column->M_backward[i+1] + c_hmm_column->short_transition[IM] + p_hmm_column->m_emit[seqa[i+1]]);
+					///GRERRRRRRR 
+					
+					//delete state
+					
+					//from previous delection
+					c_hmm_column->D_backward[i] = p_hmm_column->D_backward[i] + c_hmm_column->short_transition[DD];
+					
+					//from previous match (i.e. gap close
+					
+					c_hmm_column->D_backward[i] = logsum(c_hmm_column->D_backward[i], p_hmm_column->M_backward[i] + p_hmm_column->m_emit[seqa[i]] + c_hmm_column->short_transition[DM]);
+					
+				}
+				c_hmm_column = hmm->hmm_column[0];
+				previous_silent[i] = logsum(previous_silent[i],   c_hmm_column->M_backward[i] + mb->model[j]->silent_to_M[f] +  c_hmm_column->m_emit[seqa[i]] );// i+1 ??????? probably no....
+				
+				//fprintf(stderr,"transfer_porb:%f + %f	+ emit: %f  = %f \n",c_hmm_column->M_backward[i] ,  mb->model[j]->silent_to_M[f], c_hmm_column->m_emit[seqa[i]],previous_silent[i] );
+				
+				previous_silent[i] = logsum(previous_silent[i],c_hmm_column->I_backward[i] + mb->model[j]->silent_to_I[f] +  c_hmm_column->i_emit[seqa[i]] );
+				
+				//previous_silent[i] = logsum(previous_silent[i],  current_silent[i]+ mb->model[j] ->skip );
+				
+				//current_silent[i] =  logsum(current_silent[i],  c_hmm_column->M_foward[i] + mb->model[j]->M_to_silent[f]);
+				//current_silent[i] =  logsum(current_silent[i],  c_hmm_column->I_foward[i] + mb->model[j]->I_to_silent[f]);
+				//seqa = a[i];
+			}
+			
+		}
+		fprintf(stderr,"SILENT: ");
+		for(i = 0; i <= len+1;i++){
+			fprintf(stderr,"%f	", previous_silent[i]);
+		}
+		
+		
+		current_silent[len+1] = prob2scaledprob(0.0f);
+		for(i = 0; i <= len;i++){
+			current_silent[i] = previous_silent[i];
+			previous_silent[i] = prob2scaledprob(0.0f);
+			//fprintf(stderr,"%f	", current_silent[i]);
+			
+		}
+		fprintf(stderr,"\n"); //
+		
+		
+		
+	}
+	
+	previous_silent[0] = prob2scaledprob(0.0);
+	for(f = 0;f < mb->model[0]->num_hmms;f++){
+		c_hmm_column = mb->model[0]->hmms[f]->hmm_column[0];
+		
+		previous_silent[0] = logsum(previous_silent[0],  c_hmm_column->M_backward[1] +  c_hmm_column->m_emit[seqa[1]]  + mb->model[0]->silent_to_M[f] );
+		previous_silent[0] = logsum(previous_silent[0], c_hmm_column->I_backward[1] +  c_hmm_column->i_emit[seqa[1]]  + mb->model[0]->silent_to_I[f] );
+		
+	}
+	
+	fprintf(stderr,"SCore:%f	%f\n", previous_silent[0] , scaledprob2prob(previous_silent[0]) );
+	
+	fprintf(stderr," BACKWARD:::::::::::\n");
+	
+	for(j = 0; j < mb->num_models;j++){
+		
+		for(f = 0;f < mb->model[j]->num_hmms;f++){
+			for(g = 0;g < mb->model[j]->hmms[f]->num_columns;g++){
+				
+				c_hmm_column = mb->model[j]->hmms[f]->hmm_column[g];
+				for(i = 0; i <= len;i++){
+					//c_hmm_column->M_foward[i] = prob2scaledprob(0.0);
+					//c_hmm_column->I_foward[i] = prob2scaledprob(0.0);
+					//c_hmm_column->D_foward[i] = prob2scaledprob(0.0);
+					fprintf(stderr,"segment:%d	HMM:%d	column:%d	i:%d	%f	%f	%f\n",j,f,g,i, ( c_hmm_column->M_backward[i]) , ( c_hmm_column->I_backward[i]), (c_hmm_column->D_backward[i])   );
+				}
+			}
+		}
+	}
+	
+	return mb;
+}
+
+struct model_bag* forward(struct model_bag* mb, char* a, int len)
+{
+	
+	int i,j,c;
+	int f,g;
+	
+	struct hmm* hmm = 0;
+	struct hmm_column* c_hmm_column = 0;
+	struct hmm_column* p_hmm_column = 0;
+	
+	char* seqa = a -1;
+	
+	
+	float previous_silent[MAX_HMM_SEQ_LEN];
+	float current_silent[MAX_HMM_SEQ_LEN];
+	
+	//init
+	
+	//float silent_start = prob2scaledprob(1.0);
+	
+	// M state of first set of HMMS.....
+	for(j = 0; j < mb->num_models;j++){
+
+		for(f = 0;f < mb->model[j]->num_hmms;f++){
+			for(g = 0;g < mb->model[j]->hmms[f]->num_columns;g++){
+		
+				c_hmm_column = mb->model[j]->hmms[f]->hmm_column[g];
+				//i = 0;
+				for(i = 0; i <= len;i++){
+					c_hmm_column->M_foward[i] = prob2scaledprob(0.0);
+					c_hmm_column->I_foward[i] = prob2scaledprob(0.0);
+					c_hmm_column->D_foward[i] = prob2scaledprob(0.0);
+					fprintf(stderr,"segment:%d	HMM:%d	column:%d	i:%d	%f	%f	%f\n",j,f,g,i, c_hmm_column->M_foward[i] ,c_hmm_column->I_foward[i],c_hmm_column->D_foward[i]    );
+				}
+				
+			}
+		}
+	}
+	
+	for(i = 0; i <= len;i++){
+		previous_silent[i] = prob2scaledprob(0.0f);
+		current_silent[i] = prob2scaledprob(0.0);
+	}
+	
+	previous_silent[0] = prob2scaledprob(1.0);
+
+	//loop thorugh the segments
+	// in each run the contained HMMS and update silent states;
+	for(j = 0; j < mb->num_models;j++){
+		for(f = 0;f < mb->model[j]->num_hmms;f++){
+			hmm = mb->model[j]->hmms[f];
+			for(i = 1; i <= len;i++){
+				c = seqa[i];
+				
+				c_hmm_column = hmm->hmm_column[0];
+				// first column  comes from previous state cheekily transferring its pd to M[0[
+				c_hmm_column->M_foward[i] =previous_silent[i-1] + mb->model[j]->silent_to_M[f] + c_hmm_column->m_emit[c];
+ 				c_hmm_column->I_foward[i] = previous_silent[i-1] + mb->model[j]->silent_to_I[f] ;
+				//add transitions to first columns////
+				if(i > 1){
+					c_hmm_column->I_foward[i] = logsum(c_hmm_column->I_foward[i], c_hmm_column->I_foward[i-1] + c_hmm_column->short_transition[II]);
+					c_hmm_column->I_foward[i]  = logsum ( c_hmm_column->I_foward[i] ,c_hmm_column->M_foward[i-1] + c_hmm_column->short_transition[MI]);
+				}
+				
+				c_hmm_column->I_foward[i] = c_hmm_column->I_foward[i] + c_hmm_column->i_emit[c];
+				
+				c_hmm_column->D_foward[i] = prob2scaledprob(0.0f);
+				
+				for(g = 1;g < hmm->num_columns;g++){
+					c_hmm_column = hmm->hmm_column[g];
+					p_hmm_column = hmm->hmm_column[g-1];
+					
+					//Match state
+					//transition from previous match state
+					c_hmm_column->M_foward[i] = p_hmm_column->M_foward[i-1] + p_hmm_column->short_transition[MM];
+					//transition from previous insert state
+					c_hmm_column->M_foward[i] = logsum(c_hmm_column->M_foward[i] , p_hmm_column->I_foward[i-1] + p_hmm_column->short_transition[IM] );
+					//transition from previous delete state
+					c_hmm_column->M_foward[i] = logsum(c_hmm_column->M_foward[i], p_hmm_column->D_foward[i] + p_hmm_column->short_transition[DM]);
+					
+					// emission promability in curent M state ;
+					c_hmm_column->M_foward[i]  = c_hmm_column->M_foward[i]  + c_hmm_column->m_emit[c];
+					
+					
+					// Instertion State ..
+					//self loop insertion to insertion
+					c_hmm_column->I_foward[i] = c_hmm_column->I_foward[i-1] + c_hmm_column->short_transition[II];
+					// start new insertion
+					c_hmm_column->I_foward[i]  = logsum ( c_hmm_column->I_foward[i] ,c_hmm_column->M_foward[i-1] + c_hmm_column->short_transition[MI]);
+					
+					//instertion emission...
+					c_hmm_column->I_foward[i]  = c_hmm_column->I_foward[i]  + c_hmm_column->i_emit[c];
+					
+					
+					// deletion state
+					//from previous match state.
+					c_hmm_column->D_foward[i] = p_hmm_column->M_foward[i] + p_hmm_column->short_transition[MD];
+					//from previous delete state
+					
+					c_hmm_column->D_foward[i] = logsum(c_hmm_column->D_foward[i], p_hmm_column->D_foward[i] + p_hmm_column->short_transition[DD] );
+					
+				}
+				current_silent[i] =  logsum(current_silent[i],  c_hmm_column->M_foward[i] + mb->model[j]->M_to_silent[f]);
+				current_silent[i] =  logsum(current_silent[i],  c_hmm_column->I_foward[i] + mb->model[j]->I_to_silent[f]);
+			}
+		}
+		
+		for(i = 0; i <= len;i++){
+			previous_silent[i] = logsum(current_silent[i] , previous_silent[i] + mb->model[j]->skip);
+			current_silent[i] = prob2scaledprob(0.0f);
+		}
+	}
+	
+	current_silent[0] = prob2scaledprob(0.0f);
+	
+	j =  mb->num_models-1;
+	for(f = 0;f < mb->model[j]->num_hmms;f++){
+		g= mb->model[j]->hmms[0]->num_columns-1;
+		c_hmm_column = mb->model[j]->hmms[f]->hmm_column[g];
+		current_silent[0] = logsum(current_silent[0],  c_hmm_column->M_foward[len] +mb->model[j]->M_to_silent[f]  );
+		current_silent[0] =  logsum(current_silent[0],  c_hmm_column->I_foward[len] +mb->model[j]->I_to_silent[f]  );
+	}
+	fprintf(stderr,"SCORE:  %f	%f\n", current_silent[0], scaledprob2prob(current_silent[0]) );
+	
+	 
+	for(j = 0; j < mb->num_models;j++){
+		
+		for(f = 0;f < mb->model[j]->num_hmms;f++){
+			for(g = 0;g < mb->model[j]->hmms[f]->num_columns;g++){
+				
+				c_hmm_column = mb->model[j]->hmms[f]->hmm_column[g];
+				for(i = 0; i <= len;i++){
+					//c_hmm_column->M_foward[i] = prob2scaledprob(0.0);
+					//c_hmm_column->I_foward[i] = prob2scaledprob(0.0);
+					//c_hmm_column->D_foward[i] = prob2scaledprob(0.0);
+					fprintf(stderr,"segment:%d	HMM:%d	column:%d	i:%d	%f	%f	%f\n",j,f,g,i, ( c_hmm_column->M_foward[i]) , ( c_hmm_column->I_foward[i]), (c_hmm_column->D_foward[i] )   );
+				}
+			}
+		}
+	}
+	return mb;
+}
+
 
 struct model* malloc_model(int main_length, int sub_length, int number_sub_models)
 {
@@ -253,6 +644,273 @@ struct model* malloc_model(int main_length, int sub_length, int number_sub_model
 }
 
 
+struct model* malloc_model_according_to_read_structure(struct read_structure* rs, int key)
+{
+	struct model* model = NULL;
+	int i = 0;
+	int j = 0;
+	int len = 0;
+
+	model = malloc(sizeof(struct model));
+	assert(model != 0);
+	
+	model->num_hmms =  (rs->numseq_in_segment[key]);
+	model->hmms = malloc(sizeof(struct hmm*) * (rs->numseq_in_segment[key]));
+	assert(model->hmms !=0);
+	
+	for(i = 0; i < model->num_hmms;i++){
+		model->hmms[i] = malloc(sizeof(struct hmm) );
+		assert(model->hmms[i]  != 0);
+	}
+	model->M_to_silent = malloc(sizeof(float) * model->num_hmms);
+	model->silent_to_M = malloc(sizeof(float) * model->num_hmms);
+	
+	model->I_to_silent = malloc(sizeof(float) * model->num_hmms);
+	model->silent_to_I = malloc(sizeof(float) * model->num_hmms);
+	
+	for(i = 0 ;i  < model->num_hmms;i++){
+		model->M_to_silent[i] = 0.0f;
+		model->silent_to_M[i] = 0.0f;
+		model->I_to_silent[i] = 0.0f;
+		model->silent_to_I[i] = 0.0f;
+	}
+	
+	len = (int)strlen(rs->sequence_matrix[key][0]);
+	for(i = 0; i < model->num_hmms;i++){
+		model->hmms[i]->num_columns = len;
+		model->hmms[i]->hmm_column = malloc(sizeof(struct hmm_column*) * len);
+		assert(model->hmms[i]->hmm_column != 0);
+		for(j = 0; j < len;j++){
+			model->hmms[i]->hmm_column[j] = malloc(sizeof(struct hmm_column));
+			assert(model->hmms[i]->hmm_column[j] != 0);
+		}
+	}
+	return model;
+}
+
+struct model* init_model_according_to_read_structure(struct model* model,struct parameters* param , int key, float* background,int assumed_length)
+{
+
+	struct read_structure* rs = param->read_structure;
+	float base_error = param->sequencer_error_rate;
+	float indel_freq = param->indel_frequency;
+	struct hmm_column* col =0;
+	int i,j,c,len;
+	int current_nuc;
+	char* tmp = 0;
+	
+	for(i= 0;i < 5;i++){
+		model->background_nuc_frequency[i]= background[i];
+		//fprintf(stderr,"%f\n",background[i]);
+	}
+	
+	for(i = 0; i < model->num_hmms;i++){
+		len = model->hmms[i]->num_columns;
+		tmp = rs->sequence_matrix[key][i];
+		for(j = 0; j < len;j++){
+			col = model->hmms[i]->hmm_column[j];
+			
+			current_nuc = nuc_code5[(int) tmp[j]];
+			col->identifier = -1;
+			if(current_nuc != 4){
+				
+				for(c = 0; c < 5;c++){
+					if(c == current_nuc){
+						col->m_emit[c] = prob2scaledprob(1.0 - base_error* (1.0- indel_freq));
+					}else{
+						col->m_emit[c] =  prob2scaledprob( base_error* (1.0- indel_freq)/ 4.0);
+					}
+					col->i_emit[c] = background[c];
+					col->i_emit_e[c] =  prob2scaledprob(0.0f);
+					col->m_emit_e[c] =  prob2scaledprob(0.0f);
+				}
+			}else{
+				for(c = 0; c < 5;c++){
+	
+					col->m_emit[c] =  background[c];
+					col->i_emit[c] =  background[c];
+					col->i_emit_e[c] =  prob2scaledprob(0.0f);
+					col->m_emit_e[c] =  prob2scaledprob(0.0f);
+				}
+			}
+			col->short_transition[MM] = prob2scaledprob( 1.0 - base_error * indel_freq);
+			col->short_transition[MI] = prob2scaledprob(base_error * indel_freq) +  prob2scaledprob(0.5);
+			col->short_transition[MD] = prob2scaledprob(base_error * indel_freq) +  prob2scaledprob(0.5);
+			
+			col->short_transition[MQUIT] = prob2scaledprob(0.0);
+			
+			col->short_transition[II] = prob2scaledprob(1.0 - 0.999);
+			col->short_transition[IM] = prob2scaledprob(0.999);
+			
+			col->short_transition[DD] = prob2scaledprob(1.0 - 0.999);
+			col->short_transition[DM] = prob2scaledprob(0.999);
+			
+			
+			col->short_transition_e[MM] =  prob2scaledprob(0.0);
+			col->short_transition_e[MI] =  prob2scaledprob(0.0);
+			col->short_transition_e[MD] =  prob2scaledprob(0.0);
+			
+			col->short_transition_e[MQUIT] = prob2scaledprob(0.0);
+			
+			col->short_transition_e[II] =  prob2scaledprob(0.0);
+			col->short_transition_e[IM] =  prob2scaledprob(0.0);
+			
+			col->short_transition_e[DD] =  prob2scaledprob(0.0);
+			col->short_transition_e[DM] =  prob2scaledprob(0.0);
+		}
+		
+	}
+	
+	// init all probs to 0
+	
+	for(i = 0 ; i < model->num_hmms;i++){
+		model->silent_to_M[i] = prob2scaledprob(0.0);
+		model->M_to_silent[i] = prob2scaledprob(0.0);
+		
+		model->silent_to_I[i] = prob2scaledprob(0.0);
+		model->I_to_silent[i] = prob2scaledprob(0.0);
+	}
+	model->skip = prob2scaledprob(0.0);
+	model->random_next = prob2scaledprob(0.0);
+	model->random_self = prob2scaledprob(0.0);
+	
+	if(rs->type[key] == 'B'){// barcodes all have same length & equal prior probability... 
+		for(i = 0 ; i < model->num_hmms;i++){
+			model->silent_to_M[i] = prob2scaledprob(1.0 / (float) model->num_hmms);
+			model->M_to_silent[i] = prob2scaledprob(1.0);
+			
+			model->silent_to_I[i] = prob2scaledprob(0.0f);
+			model->I_to_silent[i] = prob2scaledprob(0.0f);
+			
+			
+		}
+		model->skip = prob2scaledprob(0.0);
+	}
+	
+	if(rs->type[key] == 'F'){// fingerprint all have same length & equal prior probability... (of course we specify 1 with NNNNNNNN
+		for(i = 0 ; i < model->num_hmms;i++){
+			model->silent_to_M[i] = prob2scaledprob(1.0 / (float) model->num_hmms);
+			model->M_to_silent[i] = prob2scaledprob(1.0);
+		}
+		model->skip = prob2scaledprob(0.0);
+	}
+		
+	if(rs->type[key] == 'O'){ // optional - like a G, GG or GGG priot probability set to 0.5  - assume length 2 for now, 
+		for(i = 0 ; i < model->num_hmms;i++){
+			model->silent_to_M[i] = prob2scaledprob(1.0 / (float) model->num_hmms) + prob2scaledprob(0.5);
+			model->M_to_silent[i] = prob2scaledprob(1.0);
+		}
+		model->skip = prob2scaledprob(0.5);
+		col = model->hmms[0]->hmm_column[0];
+		col->short_transition[MM] = prob2scaledprob( 1.0 - 1.0 / (float) 2 );
+		col->short_transition[MI] = prob2scaledprob(0.0);
+		col->short_transition[MD] = prob2scaledprob(0.0);
+		
+		//col->short_transition[MQUIT] = prob2scaledprob(1.0 / (float) 2);
+		
+		col->short_transition[II] = prob2scaledprob(0.0);
+		col->short_transition[IM] = prob2scaledprob(0.0);
+		
+		col->short_transition[DD] = prob2scaledprob(0.0);
+		col->short_transition[DM] = prob2scaledprob(0.0);
+		
+		
+		col->short_transition_e[MM] =  prob2scaledprob(0.0);
+		col->short_transition_e[MI] =  prob2scaledprob(0.0);
+		col->short_transition_e[MD] =  prob2scaledprob(0.0);
+		
+		col->short_transition_e[MQUIT] = prob2scaledprob(0.0);
+		
+		col->short_transition_e[II] =  prob2scaledprob(0.0);
+		col->short_transition_e[IM] =  prob2scaledprob(0.0);
+		
+		col->short_transition_e[DD] =  prob2scaledprob(0.0);
+		col->short_transition_e[DM] =  prob2scaledprob(0.0);
+	}
+	
+	if(rs->type[key] == 'R'){// read - skip impossible; 
+		for(i = 0 ; i < model->num_hmms;i++){
+			model->silent_to_I[i] = prob2scaledprob(1.0 / (float) model->num_hmms);
+			model->I_to_silent[i] = prob2scaledprob(1.0 / (float) assumed_length);
+		}
+		col = model->hmms[0]->hmm_column[0];
+		for(c = 0; c < 5;c++){
+			
+			col->m_emit[c] =background[c];
+			
+			col->i_emit[c] = background[c];
+			col->i_emit_e[c] =  prob2scaledprob(0.0f);
+			col->m_emit_e[c] =  prob2scaledprob(0.0f);
+		}
+		col->short_transition[MM] = prob2scaledprob( 0.0);
+		col->short_transition[MI] = prob2scaledprob(0.0);
+		col->short_transition[MD] = prob2scaledprob(0.0);
+		
+		//col->short_transition[MQUIT] = prob2scaledprob(1.0 / (float) assumed_length);
+		
+		col->short_transition[II] = prob2scaledprob(1.0 - 1.0 / (float) assumed_length );
+		col->short_transition[IM] = prob2scaledprob(0.0);
+		
+		col->short_transition[DD] = prob2scaledprob(0.0);
+		col->short_transition[DM] = prob2scaledprob(0.0);
+		
+		
+		col->short_transition_e[MM] =  prob2scaledprob(0.0);
+		col->short_transition_e[MI] =  prob2scaledprob(0.0);
+		col->short_transition_e[MD] =  prob2scaledprob(0.0);
+		
+		col->short_transition_e[MQUIT] = prob2scaledprob(0.0);
+		
+		col->short_transition_e[II] =  prob2scaledprob(0.0);
+		col->short_transition_e[IM] =  prob2scaledprob(0.0);
+		
+		col->short_transition_e[DD] =  prob2scaledprob(0.0);
+		col->short_transition_e[DM] =  prob2scaledprob(0.0);
+		
+		model->skip = prob2scaledprob(0.0);
+		
+	}
+	
+	
+	return model;
+}
+
+void print_model(struct model* model)
+{
+	int i,j,c;
+	int len;
+	float sum = 0;
+	struct hmm_column* col =0;
+	fprintf(stderr,"Skip:%f Self:%f Next:%f\n",scaledprob2prob(model->skip), scaledprob2prob(model->random_self) , scaledprob2prob(model->random_next));
+	for(i = 0; i < model->num_hmms;i++){
+		fprintf(stderr,"HMM%d:		(get there:%f)\n",i, scaledprob2prob(model->silent_to_M[i]));
+		
+		
+		
+		len = model->hmms[i]->num_columns;
+		//tmp = rs->sequence_matrix[key][i];
+		for(j = 0; j < len;j++){
+			col = model->hmms[i]->hmm_column[j];
+			fprintf(stderr,"\t%d\t",j);
+			sum = 0.0;
+			for(c = 0; c < 5;c++){
+				sum += scaledprob2prob(col->m_emit[c]);
+				fprintf(stderr,"%0.4f ", scaledprob2prob(col->m_emit[c]));
+				
+			}
+			fprintf(stderr,"%0.1fc ",sum);
+			
+			for(c = 0; c < 7;c++){
+				fprintf(stderr,"%0.4f ", scaledprob2prob(col->short_transition[c]));
+
+			}
+			fprintf(stderr,"%0.3f %0.3f %0.3f\n",scaledprob2prob(col->short_transition[MM])+scaledprob2prob(col->short_transition[MI])+scaledprob2prob(col->short_transition[MD])  ,scaledprob2prob(col->short_transition[II])+scaledprob2prob(col->short_transition[IM]),  scaledprob2prob(col->short_transition[DD]) + scaledprob2prob(col->short_transition[DM]) );
+		}
+	}
+}
+
+
+
 
 void free_model(struct model* model)
 {
@@ -260,24 +918,25 @@ void free_model(struct model* model)
 	int j = 0;
 
 		
-	for(i = 1; i < model->num_hmms;i++){
+	for(i = 0; i < model->num_hmms;i++){
 		
 		for(j = 0; j < model->hmms[i]->num_columns;j++){
 			free(model->hmms[i]->hmm_column[j]);// = malloc(sizeof(struct hmm_column));
 			//assert(model->hmms[i]->hmm_column[j] !=0);
 			//model->hmms[i]->hmm_column[j]->identifier = -1;
+			
 		}
 		//model->hmms[i]->num_columns = sub_length;
 		free(model->hmms[i]->hmm_column);// = malloc(sizeof(struct hmm_column*) * sub_length);
 		//assert(model->hmms[i]->hmm_column !=0);
 	}
-	for(j = 0; j < 	model->hmms[0]->num_columns;j++){
-		free(model->hmms[0]->hmm_column[j]);// = malloc(sizeof(struct hmm_column));
+	//for(j = 0; j < 	model->hmms[0]->num_columns;j++){
+	//	free(model->hmms[0]->hmm_column[j]);// = malloc(sizeof(struct hmm_column));
 		//assert(model->hmms[0]->hmm_column[j] !=0);
-	}
+	//}
 
 	//model->hmms[0]->num_columns = main_length;
-	free(model->hmms[0]->hmm_column);// = malloc(sizeof(struct hmm_column*) * main_length);
+	//free(model->hmms[0]->hmm_column);// = malloc(sizeof(struct hmm_column*) * main_length);
 	//assert(model->hmms[0]->hmm_column !=0);
 	
 	///assert(model->hmms !=0);
@@ -288,7 +947,12 @@ void free_model(struct model* model)
 		//assert(model->hmms[i]  != 0);
 	}
 	free(model->hmms);// = malloc(sizeof(struct hmm*) * (1+ number_sub_models));
-	
+	if(model->silent_to_M){
+		free(model->silent_to_M);
+	}
+	if(model->M_to_silent){
+		free(model->M_to_silent );
+	}
 	free(model);// = malloc(sizeof(struct model));
 	//assert(model != 0);
 
@@ -653,17 +1317,8 @@ struct model* init_model(struct model* model)
 			
 			col->short_transition_e[DD] =  prob2scaledprob(0.0);
 			col->short_transition_e[DM] =  prob2scaledprob(0.0);
-
-			
-			
-			
-			
-			
 		}
-		
 	}
-	
-	
 	return model;
 }
 

@@ -22,7 +22,7 @@
 
 
 #include "misc.h"
-
+#include <ctype.h>
 
 float logsum_lookup[LOGSUM_SIZE];
 
@@ -65,6 +65,43 @@ float scaledprob2prob(float p)
 		//return sreEXP2(p / SCALE);
 	}
 }
+
+
+int byg_count(char* pattern,char*text)
+{
+	int Tc;
+	int i  = 0;
+	int s = 0;
+	int T[256];
+	for (i = 0;i < 256;i++){
+		T[i] = 0;
+	}
+	
+	int m = (int) strlen(pattern);
+	int n = (int) strlen(text);
+	int count = 0;
+	
+	if(m > n){
+		return -1;
+	}
+	int mb = (1 << (m-1));
+	
+	for (i= 0;i < m;i++){
+		T[(int)toupper(pattern[i])] |= (1 << i);
+	}
+	
+	for (i = 0;i < n;i++){
+		s <<= 1;
+		s |= 1;
+		Tc = T[(int)toupper(text[i])];
+		s &= Tc;
+		if(s & mb){
+			count++;
+		}
+	}
+	return count;
+}
+
 
 
 int byg_end(const char* pattern,const char*text)

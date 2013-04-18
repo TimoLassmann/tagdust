@@ -59,7 +59,7 @@
 #endif
 
 int byg_end(const char* pattern,const char*text);
-
+int byg_count(char* pattern,char*text);
 
 
 void init_logsum();

@@ -175,7 +175,7 @@ void print_just_seq(struct read_info* ri,FILE* out)
 	int i;
 	fprintf(out,"@%s\n",ri->name);
 	for(i =0;i < ri->len;i++){
-		fprintf(out,"%c",alphabet[ri->seq[i]]);
+		fprintf(out,"%c",alphabet[(int) ri->seq[i]]);
 	}
 	fprintf(out,"\n+\n");
 	if(ri->qual){
@@ -195,7 +195,7 @@ void print_seq(struct read_info* ri,FILE* out)
 	int i;
 	fprintf(out,"@%s\n",ri->name);
 	for(i =0;i < ri->len;i++){
-		fprintf(out,"%c",alphabet[ri->seq[i]]);
+		fprintf(out,"%c",alphabet[(int) ri->seq[i]]);
 	}
 	fprintf(out,"\n+\n");
 	if(ri->qual){

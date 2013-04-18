@@ -23,12 +23,13 @@
 #include "tagdust2.h"
 #include "interface.h"
 #include "io.h"
+#include "misc.h"
 
 
 
 struct parameters* interface(struct parameters* param,int argc, char *argv[])
 {
-	int c;
+	int i,c,f,g;
 	int help = 0;
 	
 	if (argc < 2 && isatty(0)){
@@ -42,7 +43,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->outfile = 0;
 
 	param->quiet_flag = 0;
-	param->num_query = 5000000;
+	param->num_query = 1000000;
 	param->kmer_size = 2;
 	param->print_unmapped = 0;
 	param->solexa = 0;
@@ -55,10 +56,51 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->alt_lib_name = 0;
 	param->gzipped = 0;
 	param->sam = 0;
+	
+	param->sequencer_error_rate = 0.02f;
+	param->indel_frequency = 0.1f;
+	param->average_read_length = 50;
+	
+	param->read_structure = 0;
+	
+	param->read_structure = malloc(sizeof(struct read_structure));
+	assert(param->read_structure !=0);
+	param->read_structure->sequence_matrix = malloc(sizeof(char**) * 5 );
+	assert(param->read_structure->sequence_matrix !=0);
+	
+	
+	param->read_structure->numseq_in_segment  = malloc(sizeof(int) * 5);
+	assert(param->read_structure->numseq_in_segment !=0);
+	param->read_structure->type = malloc(sizeof(char) * 5 );
+	
+	
+	
+	assert(param->read_structure->type !=0);
+	
+	
+	for(i = 0;i  <5;i++){
+		param->read_structure->sequence_matrix[i] = 0;
+		param->read_structure->numseq_in_segment[i] = 0;
+		param->read_structure->type[i] = 0;
+		
+	}
+	
+	param->read_structure->num_segments = 0;
+	
 		
 	while (1){	 
 		static struct option long_options[] ={
 			{"unmapped",required_argument,0, OPT_UNMAPPED},
+			{"1",required_argument,0, OPT_SEG1},
+			{"2",required_argument,0, OPT_SEG2},
+			{"3",required_argument,0, OPT_SEG3},
+			{"4",required_argument,0, OPT_SEG4},
+			{"5",required_argument,0, OPT_SEG5},
+			{"6",required_argument,0, OPT_SEG6},
+			{"7",required_argument,0, OPT_SEG7},
+			{"8",required_argument,0, OPT_SEG8},
+			{"9",required_argument,0, OPT_SEG9},
+			{"10",required_argument,0, OPT_SEG10},
 			{"quiet",0,0,'q'},
 			{"help",0,0,'h'},
 			{0, 0, 0, 0}
@@ -73,7 +115,36 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 		
 		switch(c) {
 			case 0:
-				
+				break;
+			case OPT_SEG1:
+				param = assign_segment_sequences(param, optarg , 0 );
+				break;
+			case OPT_SEG2:
+				param = assign_segment_sequences(param, optarg , 1 );
+				break;
+			case OPT_SEG3:
+				param = assign_segment_sequences(param, optarg , 2 );
+				break;
+			case OPT_SEG4:
+				param = assign_segment_sequences(param, optarg , 3 );
+				break;
+			case OPT_SEG5:
+				param = assign_segment_sequences(param, optarg , 4 );
+				break;
+			case OPT_SEG6:
+				param = assign_segment_sequences(param, optarg , 5 );
+				break;
+			case OPT_SEG7:
+				param = assign_segment_sequences(param, optarg , 6 );
+				break;
+			case OPT_SEG8:
+				param = assign_segment_sequences(param, optarg , 7 );
+				break;
+			case OPT_SEG9:
+				param = assign_segment_sequences(param, optarg , 8 );
+				break;
+			case OPT_SEG10:
+				param = assign_segment_sequences(param, optarg , 9 );
 				break;
 			case OPT_UNMAPPED:
 				param->print_unmapped = optarg;
@@ -109,6 +180,34 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	}
 	//fprintf(stderr,"Viterbi: %d\n",param->viterbi);
 	
+	for(i = 0; i < 5;i++){
+		if(param->read_structure->sequence_matrix[i]){
+			//serious checking...
+			for(g = 0;g < param->read_structure->numseq_in_segment[i];g++){
+				for(f = g+1;f < param->read_structure->numseq_in_segment[i];f++){
+					if(strlen(param->read_structure->sequence_matrix[i][g]) != strlen(param->read_structure->sequence_matrix[i][f])){
+						fprintf(stderr,"ERROR: the sequences in the same segment have to have the same length\n");
+						free_param(param);
+						exit(-1);
+					}
+					//assert(strlen(param->read_structure->sequence_matrix[i][g]) == strlen(param->read_structure->sequence_matrix[i][f]));
+					//fprintf(stderr,"\t%s\n",param->read_structure->sequence_matrix[i][g] );
+				}
+				//fprintf(stderr,"\t%s\n",param->read_structure->sequence_matrix[i][g] );
+			}
+			
+			
+			
+			fprintf(stderr,"Found %c segment %d with %d sequences\n",param->read_structure->type[i] ,i, param->read_structure->numseq_in_segment[i] );
+			for(g = 0;g < param->read_structure->numseq_in_segment[i];g++){
+				fprintf(stderr,"\t%s\n",param->read_structure->sequence_matrix[i][g] );
+			}
+			
+		}
+	}
+	
+	//exit(0);
+	
 	if(help){
 		usage();
 		free(param);
@@ -122,6 +221,47 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 		c++;
 	}
 	param->infiles = c;
+	return param;
+}
+
+struct parameters* assign_segment_sequences(struct parameters* param, char* tmp, int segment)
+{
+	int i,f,g;
+	int count;
+	//tmp = optarg;
+	count = byg_count(",", tmp);
+	//fprintf(stderr,"Segment %d: %d	sequences\n",segment,count+1);
+	param->read_structure->numseq_in_segment[segment] = count+1;
+	param->read_structure->sequence_matrix[segment] = malloc(sizeof(char*) * (count+1));
+	assert(param->read_structure->sequence_matrix[segment] !=0);
+	for(i = 0; i < count+1;i++){
+		param->read_structure->sequence_matrix[segment][i] = malloc(sizeof(char)* 32);
+	}
+	param->read_structure->type[segment] = tmp[0];
+	
+	if(tmp[0] == 'R'){
+		param->read_structure->sequence_matrix[segment][0][0]  = 'N';
+		param->read_structure->sequence_matrix[segment][0][1]  = 0;
+		
+	}else{
+	
+	f = 0;
+	g = 0;
+	for(i = 2;i < strlen(tmp);i++){
+		if(tmp[i] != ','){
+			param->read_structure->sequence_matrix[segment][f][g] = tmp[i];
+			g++;
+		}else{
+			param->read_structure->sequence_matrix[segment][f][g] = 0;
+			f++;
+			g = 0;
+		}
+	}
+	param->read_structure->sequence_matrix[segment][f][g] = 0;
+	}
+	if(segment+1 >param->read_structure->num_segments  ){
+		param->read_structure->num_segments = segment+1;
+	}
 	return param;
 }
 
@@ -149,6 +289,17 @@ void usage()
 
 void free_param(struct parameters* param)
 {
+	int i;
+	for(i = 0; i < 5;i++){
+		if(param->read_structure->sequence_matrix[i]){
+			free(param->read_structure->sequence_matrix[i]);
+		}
+	}
+	free(param->read_structure->sequence_matrix);
+	
+	free(param->read_structure->numseq_in_segment );
+	free(param->read_structure->type);
+	free(param->read_structure);
 	free(param->infile);
 	free(param);
 }

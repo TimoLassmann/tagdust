@@ -60,7 +60,7 @@ void pst_tree(struct parameters* param,int (*fp)(struct read_info** ,struct para
 	
 	//struct pst_node** all_patterns = 0;
 	
-	//init sample_list
+	//init sample_lists
 	numseq = fp(ri, param,file);
 	
 	if(!numseq){
@@ -68,7 +68,7 @@ void pst_tree(struct parameters* param,int (*fp)(struct read_info** ,struct para
 		exit(-1);
 	}
 	
-	
+	fprintf(stderr,"READ %d sequences\n", numseq);
 	
 	
 	
@@ -147,7 +147,7 @@ void pst_tree(struct parameters* param,int (*fp)(struct read_info** ,struct para
 	
 	// call recursive splitting function...
 	
-	pst_based_partition(ri,sample_list,numseq,numseq);
+	pst_based_partition(pst,ri,sample_list,numseq,numseq);
 	
 	
 	//end - results are not kept in memory
@@ -190,9 +190,9 @@ void pst_tree(struct parameters* param,int (*fp)(struct read_info** ,struct para
 	
 }
 
-void pst_based_partition(struct read_info** ri, int* samples, int numseq,int active)
+void pst_based_partition(struct pst* pst ,struct read_info** ri, int* samples, int numseq,int active)
 {
-	struct pst* pst = 0;
+	//struct pst* pst = 0;
 	
 	char* seq;
 	char alphabet[] = "ACGTN";
@@ -206,72 +206,72 @@ void pst_based_partition(struct read_info** ri, int* samples, int numseq,int act
 	int num_patterns;
 	float max_reduction = 0.0f;
 	
-	pst = malloc(sizeof(struct pst));
-	pst->current_suffix_size = numseq* 64;
-	pst->suffix_array = malloc(sizeof(char*)* pst->current_suffix_size);
+	//pst = malloc(sizeof(struct pst));
+	//pst->current_suffix_size = numseq* 64;
+	//pst->suffix_array = malloc(sizeof(char*)* pst->current_suffix_size);
 	
-	pst->L = MAX_PST_LEN;
-	pst->alpha = 0.0f;
-	pst->p_min = 0.0001f;
-	pst->lamba = 0.001f;
-	pst->r = 1.05f;
-	pst->total_len = 0;
+	//pst->L = MAX_PST_LEN;
+	//pst->alpha = 0.0f;
+	//pst->p_min = 0.0001f;
+	//pst->lamba = 0.001f;
+	//pst->r = 1.05f;
+	//pst->total_len = 0;
 	pst->pst_root = alloc_node(pst->pst_root,"",0);
 	//pst->ppt_root = alloc_node(pst->ppt_root,"",0);
-	pst->rank_array = 0;
+	//pst->rank_array = 0;
 	
-	for(i = 0; i < numseq;i++){
-		if(samples[i]){
+	//for(i = 0; i < numseq;i++){
+	//	if(samples[i]){
 		//ri[i]->seq[10] = 0;
 		//fprintf(stderr,"%d ",ri[i]->len);
-			pst->total_len += ri[i]->len;
-		}
-	}
+	//		pst->total_len += ri[i]->len;
+	//	}
+	//}
 	
 	
 	//cStartClock = clock();
-	if(pst->current_suffix_size < pst->total_len){
-		pst->suffix_array = realloc(pst->suffix_array , sizeof(char*)* (pst->total_len+64));
-		pst->current_suffix_size =  (pst->total_len+64);
-	}
+	//if(pst->current_suffix_size < pst->total_len){
+	//	pst->suffix_array = realloc(pst->suffix_array , sizeof(char*)* (pst->total_len+64));
+	//	pst->current_suffix_size =  (pst->total_len+64);
+	//}
 	
-	pst->sn = malloc(sizeof(struct suffix_node* ) * pst->total_len);
-	for(i = 0; i < pst->total_len;i++){
-		pst->sn[i] = malloc(sizeof(struct suffix_node));
-		pst->sn[i]->seq_id = -1;
-		pst->sn[i]->string = 0;
-	}
+	//pst->sn = malloc(sizeof(struct suffix_node* ) * pst->total_len);
+	//for(i = 0; i < pst->total_len;i++){
+	//	pst->sn[i] = malloc(sizeof(struct suffix_node));
+	//	pst->sn[i]->seq_id = -1;
+	//	pst->sn[i]->string = 0;
+	//}
 	
-	c = 0;
-	pst->mean_length = 0.0;
-	for(i = 0; i < numseq;i++){
-		if(samples[i]){
-			for(j = 0; j < ri[i]->len;j++){//ri[i]->len;j++){
-				pst->suffix_array[c] = ri[i]->seq +j;
-				pst->sn[c]->seq_id = i;
-				pst->sn[c]->string =  ri[i]->seq +j;
-				c++;
-			}
-			pst->mean_length +=  ri[i]->len;
-		}
-	}
+	//c = 0;
+	//pst->mean_length = 0.0;
+	//for(i = 0; i < numseq;i++){
+	//	if(samples[i]){
+	//		for(j = 0; j < ri[i]->len;j++){//ri[i]->len;j++){
+	//			pst->suffix_array[c] = ri[i]->seq +j;
+	//			pst->sn[c]->seq_id = i;
+	//			pst->sn[c]->string =  ri[i]->seq +j;
+	//			c++;
+	//		}
+	//		pst->mean_length +=  ri[i]->len;
+	//	}
+	//}
 	
-	pst->mean_length /= (float)numseq;
+	//pst->mean_length /= (float)numseq;
 	
-	pst->suffix_len = c;
-	pst->numseq = numseq;
-	pst->seq_id_in_suffix = malloc(sizeof(int) * pst->suffix_len );
+	//pst->suffix_len = c;
+	//pst->numseq = numseq;
+	//pst->seq_id_in_suffix = malloc(sizeof(int) * pst->suffix_len );
 	
-	qsort(pst->sn, pst->suffix_len, sizeof(struct suffix_node *), qsort_suffix_node_string_cmp);
-	for(i = 0; i <  pst->suffix_len;i++){
-		pst->suffix_array[i] = pst->sn[i]->string;
-		pst->seq_id_in_suffix[i] = pst->sn[i]->seq_id;
-	}
+	//qsort(pst->sn, pst->suffix_len, sizeof(struct suffix_node *), qsort_suffix_node_string_cmp);
+	//for(i = 0; i <  pst->suffix_len;i++){
+	//	pst->suffix_array[i] = pst->sn[i]->string;
+	//	pst->seq_id_in_suffix[i] = pst->sn[i]->seq_id;
+	//}
 	
-	for(i = 0; i < pst->total_len;i++){
-		free(pst->sn[i]);// = malloc(sizeof(struct suffix_node));
-	}
-	free(pst->sn);
+	//for(i = 0; i < pst->total_len;i++){
+	//	free(pst->sn[i]);// = malloc(sizeof(struct suffix_node));
+	//}
+	//free(pst->sn);
 
 	
 	//for(i = 0; i < 10000;i++){
@@ -326,6 +326,8 @@ void pst_based_partition(struct read_info** ri, int* samples, int numseq,int act
 	
 	
 	qsort((void *)  all_patterns, num_patterns, sizeof(struct pst_node* ),(compfn) sort_pst_nodel_according_to_label);
+	
+	fprintf(stderr,"%d NUMPATTERNS\n", num_patterns );
 	
 	float left,right,pl1,pl2,pr1,pr2,reduction;
 	for(i =0 ; i < num_patterns-1;i++){
@@ -411,6 +413,14 @@ void pst_based_partition(struct read_info** ri, int* samples, int numseq,int act
 		int* left_samples = 0;
 		int* right_samples = 0;
 		
+		int suffix_len_left = 0;
+		
+		int suffix_len_right = 0;
+		
+		int* seq_id_in_suffix_right =  malloc(sizeof(int) * pst->suffix_len );
+		char** suffix_right = malloc(sizeof(char*) * pst->suffix_len );
+		
+		
 		left_samples = malloc(sizeof(int)* numseq);
 		right_samples = malloc(sizeof(int)* numseq);
 		b = 0;
@@ -432,29 +442,69 @@ void pst_based_partition(struct read_info** ri, int* samples, int numseq,int act
 				right_samples[i] =0;
 			}
 		}
+		
+		
+		//a = 0;
+		//b = 0;
+		suffix_len_left = 0;
+		suffix_len_right = 0;
+		for(i = 0;i < pst->suffix_len;i++){
+			if(samples[ pst->seq_id_in_suffix[i]]){
+			if(bit_test(all_patterns[a]->bit_occ,  pst->seq_id_in_suffix[i])){
+				pst->seq_id_in_suffix[suffix_len_left] = pst->seq_id_in_suffix[i];
+				pst->suffix_array[suffix_len_left] = pst->suffix_array[i];
+				suffix_len_left++;
+			}else{
+				seq_id_in_suffix_right[suffix_len_right] =  pst->seq_id_in_suffix[i];
+				suffix_right[suffix_len_right] = pst->suffix_array[i];
+				suffix_len_right++;
+			}
+			}
+		}
 		free(samples);
 		free_pst(pst->pst_root);
 		//= malloc(sizeof(struct suffix_node* ) * pst->total_len);
-		free(pst->seq_id_in_suffix);
-		free(pst->suffix_array);
-		free(pst);
+		//free(pst->seq_id_in_suffix);
+		//free(pst->suffix_array);
+		//free(pst);
 		free(all_patterns);
 		
-		fprintf(stderr,"L:%d	%d\n",b,c);
+		fprintf(stderr,"L:%d	%d	%d	%d	%d\n",b,c,suffix_len_left,suffix_len_right , suffix_len_left+suffix_len_right );
 		fprintf(stderr,"Going left\n" );
-		pst_based_partition(ri,left_samples,  numseq,b);
+		pst->suffix_len = suffix_len_left;
+		
+		pst_based_partition(pst,ri,left_samples,  numseq,b);
 		fprintf(stderr,"Going right\n" );
-		pst_based_partition(ri, right_samples,  numseq,c);
+		pst->suffix_len = suffix_len_right;
+		free(pst->suffix_array);
+		free(pst->seq_id_in_suffix);
+		pst->suffix_array = suffix_right;
+		pst->seq_id_in_suffix = seq_id_in_suffix_right;
+		pst_based_partition(pst,ri, right_samples,  numseq,c);
 	}else{
+		///cluster_reads_based_on_pst_patterns(all_patterns,num_patterns,numseq,ri);
 		
 		fprintf(stderr,"Reached an END NODE...\n");
+		j = 0;
+		for(i = 0; i < numseq;i++){
+			if(samples[i]){
+				fprintf(stderr,"%s\n",ri[i]->seq);
+				j++;
+			}
+			if(j > 50){
+				break;
+			}
+		}
+
+		
+		
 		//print_pst(pst, pst->pst_root, ri);
 		free(samples);
 		free_pst(pst->pst_root);
 		//= malloc(sizeof(struct suffix_node* ) * pst->total_len);
-		free(pst->seq_id_in_suffix);
-		free(pst->suffix_array);
-		free(pst);
+		//free(pst->seq_id_in_suffix);
+		//free(pst->suffix_array);
+		//free(pst);
 		free(all_patterns);
 	}
 	

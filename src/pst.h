@@ -99,7 +99,7 @@ int sort_pst_nodel_according_to_label(const void *a, const void *b);
 
 int add_patterns(struct pst_node** all_patterns, struct pst_node* n,int num);
 
-void pst_based_partition(struct read_info** ri, int* samples, int numseq,int active);
+void pst_based_partition(struct pst* pst ,struct read_info** ri, int* samples, int numseq,int active);
 int qsort_suffix_node_string_cmp(const void *a, const void *b);
 
 void free_pst(struct pst_node* n);

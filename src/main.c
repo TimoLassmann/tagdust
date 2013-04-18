@@ -34,7 +34,7 @@ int main (int argc,char * argv[]) {
 	struct parameters* param = 0;
 	//struct seq_stats* seq_stats = 0;
 	FILE* outfile =0;
-	int i,j;
+	int i;
 	
 	init_nuc_code();
 	
@@ -155,11 +155,13 @@ int main (int argc,char * argv[]) {
 		if(param->sam != -1){
 			fprintf(stdout,"Working on:%s\n",param->infile[i]);
 			if(param->sam == 0){
-				pst_tree (param,&read_fasta_fastq,i);
+				hmm_controller(param,&read_fasta_fastq,i);
+				//pst_tree (param,&read_fasta_fastq,i);
 
 				//pst_controller (param,&read_fasta_fastq,i);
 			}else{
-				pst_tree(param,&read_sam_chunk,i);
+				hmm_controller(param,&read_sam_chunk,i);
+				//pst_tree(param,&read_sam_chunk,i);
 				//pst_controller(param,&read_sam_chunk,i);
 			}
 		
