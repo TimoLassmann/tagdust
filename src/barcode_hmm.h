@@ -27,7 +27,6 @@
 #define MM 0
 #define MI 1
 #define MD 2
-#define MQUIT 7
 #define II 3
 #define IM  4
 #define DD 5
@@ -85,11 +84,22 @@ struct model{
 	float* I_to_silent;
 	
 	
-	float silent[MAX_HMM_SEQ_LEN];
+	float* silent_to_M_e;
+	
+	float* M_to_silent_e;
+	
+	float* silent_to_I_e;
+	
+	float* I_to_silent_e;
+
+	
+	
+	float silent_forward[MAX_HMM_SEQ_LEN];
+	float silent_backward[MAX_HMM_SEQ_LEN];
 	float random_next;
 	float random_self;
 	float skip;
-	
+	float skip_e;
 	int average_length;
 	int num_hmms;
 }_MM_ALIGN16;
@@ -97,6 +107,9 @@ struct model{
 struct model_bag{
 	struct model** model;
 	int num_models;
+	float f_score;
+	float b_score; 
+	
 }_MM_ALIGN16;
 
 
@@ -117,6 +130,7 @@ void print_model(struct model* model);
 
 struct model_bag* forward(struct model_bag* mb, char* a, int len);
 struct model_bag* backward (struct model_bag* mb, char* a, int len);
+struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, int len);
 
 #endif
 
