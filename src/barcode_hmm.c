@@ -203,11 +203,11 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		test[i] = nuc_code5[test[i]];
 	}
  	
-	mb = forward(mb, test, 5);
+	//mb = forward(mb, test, 5);
 
 	mb = backward(mb, test ,5);
 	
-	//mb = forward_extract_posteriors(mb, test ,5);
+	mb = forward_extract_posteriors(mb, test ,5);
 	for(i = 0; i < mb->num_models;i++){
 		print_model(mb->model[i]);
 	}
@@ -347,7 +347,6 @@ struct model_bag* backward(struct model_bag* mb, char* a, int len)
 	struct hmm_column* p_hmm_column = 0;
 	
 	float previous_silent[MAX_HMM_SEQ_LEN];
-	float current_silent[MAX_HMM_SEQ_LEN];
 	
 	float* psilent;
 	float* csilent;
@@ -375,8 +374,6 @@ struct model_bag* backward(struct model_bag* mb, char* a, int len)
 	
 	for(i = 0; i <= len+1;i++){
 		previous_silent[i] = prob2scaledprob(0.0f);
-		current_silent[i] = prob2scaledprob(0.0f);
-		//mb->model[j]->silent[i]  = prob2scaledprob(0.0f);
 	}
 	previous_silent[len+1] = prob2scaledprob(1.0f);
 	
@@ -457,30 +454,8 @@ struct model_bag* backward(struct model_bag* mb, char* a, int len)
 				
 				//this should come from previous state .....
 				csilent[i] = logsum(csilent[i], psilent[i] + mb->model[j]->skip);
-				
-				
-				//previous_silent[i] = logsum(previous_silent[i],   c_hmm_column->M_backward[i] + mb->model[j]->silent_to_M[f] +  c_hmm_column->m_emit[seqa[i]] );// i+1 ??????? probably no....
-				
-				//fprintf(stderr,"transfer_porb:%f + %f	+ emit: %f  = %f \n",c_hmm_column->M_backward[i] ,  mb->model[j]->silent_to_M[f], c_hmm_column->m_emit[seqa[i]],previous_silent[i] );
-				
-				//previous_silent[i] = logsum(previous_silent[i],c_hmm_column->I_backward[i] + mb->model[j]->silent_to_I[f] +  c_hmm_column->i_emit[seqa[i]] );
-				
-				//previous_silent[i] = logsum(previous_silent[i],  current_silent[i]+ mb->model[j] ->skip );
 			}
-			
-			//csilent[0] = logsum(csilent[0], c_hmm_column->I_backward[0] + mb->model[j]->silent_to_I[f] );
-			//csilent[0] = logsum(csilent[0], psilent[i] + mb->model[j]->skip);
-			//previous_silent[0] = logsum(previous_silent[0],  current_silent[0]+ mb->model[j] ->skip );
 		}
-		//mb->model[j]->silent[
-		//current_silent[len+1] = prob2scaledprob(0.0f);
-		//for(i = 0; i <= len;i++){
-			//siphoning off silent probabilities to be used in forward _ get posteriors.... 
-			//mb->model[j]->silent[i] = previous_silent[i];
-			
-		//	current_silent[i] = previous_silent[i];
-		//	previous_silent[i] = prob2scaledprob(0.0f);
-		//}
 	}
 	
 	mb->b_score = mb->model[0]->silent_backward[1];
@@ -494,7 +469,7 @@ struct model_bag* backward(struct model_bag* mb, char* a, int len)
 		}
 	}
 	exit(0);*/
-	
+	/*
 	for(j = 0; j < mb->num_models;j++){
 		
 		for(f = 0;f < mb->model[j]->num_hmms;f++){
@@ -509,7 +484,7 @@ struct model_bag* backward(struct model_bag* mb, char* a, int len)
 				}
 			}
 		}
-	}
+	}*/
 	
 	return mb;
 }
@@ -530,7 +505,7 @@ struct model_bag* forward(struct model_bag* mb, char* a, int len)
 	float* csilent;
 	
 	float previous_silent[MAX_HMM_SEQ_LEN];
-	float current_silent[MAX_HMM_SEQ_LEN];
+	//float current_silent[MAX_HMM_SEQ_LEN];
 	
 	//init
 	
@@ -561,7 +536,6 @@ struct model_bag* forward(struct model_bag* mb, char* a, int len)
 	//fprintf(stderr,"%d	%f\n",0,mb->model[0]->silent_forward[0]   );
 	for(j = 1; j < mb->num_models;j++){
 		mb->model[j]->silent_forward[0] = mb->model[j-1]->silent_forward[0]  + mb->model[j-1]->skip ;
-	//	fprintf(stderr,"%d	%f\n",j,mb->model[j]->silent_forward[0]   );
 	}
 	
 	
@@ -570,7 +544,6 @@ struct model_bag* forward(struct model_bag* mb, char* a, int len)
 		
 		
 		previous_silent[i] = prob2scaledprob(0.0f);
-	//	current_silent[i] = prob2scaledprob(0.0);
 	}
 	previous_silent[0] = prob2scaledprob(1.0);
 
@@ -596,18 +569,10 @@ struct model_bag* forward(struct model_bag* mb, char* a, int len)
 				
 				//add transitions to first columns////
 				c_hmm_column->I_foward[i] = logsum(c_hmm_column->I_foward[i], c_hmm_column->I_foward[i-1] + c_hmm_column->short_transition[II]);
-				if(i ==1 ){
-					fprintf(stderr,"I: %d	%f\n",f,c_hmm_column->I_foward[i]   );
-				}
+				
 				c_hmm_column->I_foward[i]  = logsum ( c_hmm_column->I_foward[i] ,c_hmm_column->M_foward[i-1] + c_hmm_column->short_transition[MI]);
-				if(i ==1 ){
-					fprintf(stderr,"I: %d	%f\n",f,c_hmm_column->I_foward[i]   );
-				}
 				
 				c_hmm_column->I_foward[i] = c_hmm_column->I_foward[i] + c_hmm_column->i_emit[c];
-				if(i ==1 ){
-					fprintf(stderr,"I: %d	%f   %f\n",f,c_hmm_column->I_foward[i], c_hmm_column->i_emit[c]   );
-				}
 				
 				c_hmm_column->D_foward[i] = prob2scaledprob(0.0f);
 				
@@ -645,7 +610,7 @@ struct model_bag* forward(struct model_bag* mb, char* a, int len)
 					c_hmm_column->D_foward[i] = logsum(c_hmm_column->D_foward[i], p_hmm_column->D_foward[i] + p_hmm_column->short_transition[DD] );
 					
 				}
-				fprintf(stderr,"%d	%f	%f	%f	%f	%f\n",i,  c_hmm_column->M_foward[i] , mb->model[j]->M_to_silent[f],  c_hmm_column->I_foward[i] , mb->model[j]->I_to_silent[f], psilent[i]);
+				//fprintf(stderr,"%d	%f	%f	%f	%f	%f\n",i,  c_hmm_column->M_foward[i] , mb->model[j]->M_to_silent[f],  c_hmm_column->I_foward[i] , mb->model[j]->I_to_silent[f], psilent[i]);
 				csilent[i] =  logsum(csilent[i],  c_hmm_column->M_foward[i] + mb->model[j]->M_to_silent[f]);
 				csilent[i] =  logsum(csilent[i],  c_hmm_column->I_foward[i] + mb->model[j]->I_to_silent[f]);
 				csilent[i] = logsum(csilent[i], psilent[i] + mb->model[j]->skip);
@@ -660,7 +625,7 @@ struct model_bag* forward(struct model_bag* mb, char* a, int len)
 	
 	fprintf(stderr,"SCORE:%f	%f\n", mb->f_score, scaledprob2prob(mb->f_score));
 	
-	
+	/*
 	for(j = 0; j < mb->num_models;j++){
 		
 		for(f = 0;f < mb->model[j]->num_hmms;f++){
@@ -675,12 +640,13 @@ struct model_bag* forward(struct model_bag* mb, char* a, int len)
 				}
 			}
 		}
-	}
+	}*/
 	return mb;
 }
 
 struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, int len)
 {
+	
 	int i,j,c;
 	int f,g;
 	
@@ -690,20 +656,17 @@ struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, int 
 	
 	char* seqa = a -1;
 	
+	float* psilent;
+	float* csilent;
+	float* bsilent;
 	
 	float previous_silent[MAX_HMM_SEQ_LEN];
-	float current_silent[MAX_HMM_SEQ_LEN];
-	
-	//init
-	
-	//float silent_start = prob2scaledprob(1.0);
-	
+	float next_silent[MAX_HMM_SEQ_LEN];
+		
 	// M state of first set of HMMS.....
 	for(j = 0; j < mb->num_models;j++){
-		
 		for(f = 0;f < mb->model[j]->num_hmms;f++){
 			for(g = 0;g < mb->model[j]->hmms[f]->num_columns;g++){
-				
 				c_hmm_column = mb->model[j]->hmms[f]->hmm_column[g];
 				//i = 0;
 				for(i = 0; i <= len;i++){
@@ -712,20 +675,45 @@ struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, int 
 					c_hmm_column->D_foward[i] = prob2scaledprob(0.0);
 					//fprintf(stderr,"segment:%d	HMM:%d	column:%d	i:%d	%f	%f	%f\n",j,f,g,i, c_hmm_column->M_foward[i] ,c_hmm_column->I_foward[i],c_hmm_column->D_foward[i]    );
 				}
-				
 			}
+		}
+		for(i = 0; i <= len+1;i++){
+			mb->model[j]->silent_forward[i] = prob2scaledprob(0.0f);
 		}
 	}
 	
-	for(i = 0; i <= len;i++){
+	//fprintf(stderr,"\n\n\n");
+	mb->model[0]->silent_forward[0] = prob2scaledprob(1.0) + mb->model[0]->skip;
+	//fprintf(stderr,"Init silent states... \n");
+	//fprintf(stderr,"%d	%f\n",0,mb->model[0]->silent_forward[0]   );
+	for(j = 1; j < mb->num_models;j++){
+		mb->model[j]->silent_forward[0] = mb->model[j-1]->silent_forward[0]  + mb->model[j-1]->skip ;
+	}
+	
+	
+ 	for(i = 0; i <= len;i++){
+		
+		
+		next_silent[i] = prob2scaledprob(0.0f);
 		previous_silent[i] = prob2scaledprob(0.0f);
-		current_silent[i] = prob2scaledprob(0.0);
 	}
 	previous_silent[0] = prob2scaledprob(1.0);
+	next_silent[len+1] = prob2scaledprob(1.0f);
 	
 	//loop thorugh the segments
 	// in each run the contained HMMS and update silent states;
 	for(j = 0; j < mb->num_models;j++){
+		if(j == 0){
+			psilent = previous_silent;
+		}else{
+			psilent =  mb->model[j-1]->silent_forward;
+		}
+		csilent = mb->model[j]->silent_forward;
+		if(j +1 != mb->num_models){
+			bsilent = mb->model[j+1]->silent_backward;
+		}else{
+			bsilent = next_silent;
+		}
 		for(f = 0;f < mb->model[j]->num_hmms;f++){
 			hmm = mb->model[j]->hmms[f];
 			for(i = 1; i <= len;i++){
@@ -733,46 +721,48 @@ struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, int 
 				
 				c_hmm_column = hmm->hmm_column[0];
 				// first column  comes from previous state cheekily transferring its pd to M[0[
-				c_hmm_column->M_foward[i] =previous_silent[i-1] + mb->model[j]->silent_to_M[f] + c_hmm_column->m_emit[c];
+				c_hmm_column->M_foward[i] = psilent[i-1] + mb->model[j]->silent_to_M[f] + c_hmm_column->m_emit[c];
 				
-				//posterior emission estimation... 
-				//fprintf(stderr,"%f\n",mb->b_score);
-				c_hmm_column->m_emit_e[c] = logsum(c_hmm_column->m_emit_e[c] , c_hmm_column->M_foward[i]  + c_hmm_column->M_backward[i] - mb->b_score);
-				
-				
-				//posterior transition estimation - is the same as the emission -still wonder why ....
-				mb->model[j]->silent_to_M_e[f]  = logsum(mb->model[j]->silent_to_M_e[f] , previous_silent[i-1] + mb->model[j]->silent_to_M[f] + c_hmm_column->m_emit[c] +  c_hmm_column->M_backward[i] - mb->b_score);
+				//***************post
+				mb->model[j]->silent_to_M_e[f] = logsum(mb->model[j]->silent_to_M_e[f] ,psilent[i-1] + mb->model[j]->silent_to_M[f] + c_hmm_column->m_emit[c] + c_hmm_column->M_backward[i]  -mb->b_score);
 				
 				
- 				c_hmm_column->I_foward[i] = previous_silent[i-1] + mb->model[j]->silent_to_I[f] ;
+				
+				
+				c_hmm_column->m_emit_e[c] = logsum(c_hmm_column->m_emit_e[c] , c_hmm_column->M_foward[i]  + c_hmm_column->M_backward[i] -mb->b_score);
+				//***************post
+				
+				
+ 				c_hmm_column->I_foward[i]    =psilent[i-1] + mb->model[j]->silent_to_I[f] ;
+				
+				
+				
+				
 				//add transitions to first columns////
-				if(i > 1){
-					c_hmm_column->I_foward[i] = logsum(c_hmm_column->I_foward[i], c_hmm_column->I_foward[i-1] + c_hmm_column->short_transition[II]);
-					
-					//posterion transition
-					
-					c_hmm_column->short_transition_e[II] = logsum(c_hmm_column->short_transition_e[II],c_hmm_column->I_foward[i-1] + c_hmm_column->short_transition[II] + c_hmm_column->i_emit[c] +  c_hmm_column->I_backward[i] - mb->b_score );
-					
-					
-					c_hmm_column->I_foward[i]  = logsum ( c_hmm_column->I_foward[i] ,c_hmm_column->M_foward[i-1] + c_hmm_column->short_transition[MI]);
-					
-					//posterion transition
-					
-					c_hmm_column->short_transition_e[MI] = logsum(c_hmm_column->short_transition_e[MI],c_hmm_column->M_foward[i-1] + c_hmm_column->short_transition[MI] + c_hmm_column->i_emit[c] +  c_hmm_column->I_backward[i] - mb->b_score );
-					// bloody hell 
-					
-				}
+				c_hmm_column->I_foward[i] = logsum(c_hmm_column->I_foward[i], c_hmm_column->I_foward[i-1] + c_hmm_column->short_transition[II]);
+				
+				c_hmm_column->I_foward[i]  = logsum ( c_hmm_column->I_foward[i] ,c_hmm_column->M_foward[i-1] + c_hmm_column->short_transition[MI]);
 				
 				c_hmm_column->I_foward[i] = c_hmm_column->I_foward[i] + c_hmm_column->i_emit[c];
 				
-				//posterior  emission estimation... 
-				c_hmm_column->i_emit_e[c] = logsum(c_hmm_column->i_emit_e[c], c_hmm_column->I_foward[i]  +  c_hmm_column->I_backward[i] - mb->b_score );
+				//***************post
+				mb->model[j]->silent_to_I_e[f]  = logsum(mb->model[j]->silent_to_I_e[f] , psilent[i-1] + mb->model[j]->silent_to_I[f]  + c_hmm_column->i_emit[c] +  c_hmm_column->I_backward[i] -mb->b_score);
 				
-				//posterior transition estimation....
-				mb->model[j]->silent_to_I_e[f] = logsum( mb->model[j]->silent_to_I_e[f], previous_silent[i-1] + mb->model[j]->silent_to_I[f]  + c_hmm_column->i_emit[c] +   c_hmm_column->I_backward[i] - mb->b_score );
+				c_hmm_column->short_transition_e[II] = logsum(c_hmm_column->short_transition_e[II],c_hmm_column->I_foward[i-1] + c_hmm_column->short_transition[II] + c_hmm_column->i_emit[c] +  c_hmm_column->I_backward[i]-mb->b_score);
+				
+				c_hmm_column->short_transition_e[MI] = logsum(c_hmm_column->short_transition_e[MI] , c_hmm_column->M_foward[i-1] + c_hmm_column->short_transition[MI] +  c_hmm_column->i_emit[c] +  c_hmm_column->I_backward[i]-mb->b_score);
+				
+				
+				c_hmm_column->i_emit_e[c] = logsum( c_hmm_column->i_emit_e[c] , c_hmm_column->I_foward[i] + c_hmm_column->I_backward[i] -mb->b_score);
+				
+				//***************post
 				
 				
 				c_hmm_column->D_foward[i] = prob2scaledprob(0.0f);
+				
+				// no post???
+				
+				//
 				
 				for(g = 1;g < hmm->num_columns;g++){
 					c_hmm_column = hmm->hmm_column[g];
@@ -781,166 +771,93 @@ struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, int 
 					//Match state
 					//transition from previous match state
 					c_hmm_column->M_foward[i] = p_hmm_column->M_foward[i-1] + p_hmm_column->short_transition[MM];
-					
-					//posterior:
-					
-					p_hmm_column->short_transition_e[MM] = logsum(p_hmm_column->short_transition_e[MM] ,  p_hmm_column->M_foward[i-1] + p_hmm_column->short_transition[MM] + c_hmm_column->m_emit[c] +  c_hmm_column->M_backward[i] - mb->b_score );
-					
-					
 					//transition from previous insert state
 					c_hmm_column->M_foward[i] = logsum(c_hmm_column->M_foward[i] , p_hmm_column->I_foward[i-1] + p_hmm_column->short_transition[IM] );
-					
-					//posterior:
-					
-					p_hmm_column->short_transition_e[IM] = logsum(p_hmm_column->short_transition_e[IM] ,  p_hmm_column->I_foward[i-1] + p_hmm_column->short_transition[IM] + c_hmm_column->m_emit[c] +  c_hmm_column->M_backward[i] - mb->b_score );
-					
-					
 					//transition from previous delete state
 					c_hmm_column->M_foward[i] = logsum(c_hmm_column->M_foward[i], p_hmm_column->D_foward[i] + p_hmm_column->short_transition[DM]);
-					
-					//posterior:
-					p_hmm_column->short_transition_e[DM] = logsum(p_hmm_column->short_transition_e[DM] ,  p_hmm_column->D_foward[i] + p_hmm_column->short_transition[DM] + c_hmm_column->m_emit[c] +  c_hmm_column->M_backward[i] - mb->b_score );
 					
 					// emission promability in curent M state ;
 					c_hmm_column->M_foward[i]  = c_hmm_column->M_foward[i]  + c_hmm_column->m_emit[c];
 					
 					
-					//posterior emission estimation... 
+					//***************post
+					p_hmm_column->short_transition_e[MM] = logsum(p_hmm_column->short_transition_e[MM] , p_hmm_column->M_foward[i-1] + p_hmm_column->short_transition[MM] +  c_hmm_column->m_emit[c] +  c_hmm_column->M_backward[i] -mb->b_score );
 					
-					c_hmm_column->m_emit_e[c] = logsum(c_hmm_column->m_emit_e[c] , c_hmm_column->M_foward[i]  + c_hmm_column->M_backward[i] - mb->b_score);
+					p_hmm_column->short_transition_e[IM] = logsum(p_hmm_column->short_transition_e[IM],p_hmm_column->I_foward[i-1] + p_hmm_column->short_transition[IM] +  c_hmm_column->m_emit[c] +  c_hmm_column->M_backward[i] -mb->b_score);
+					
+					p_hmm_column->short_transition_e[DM] = logsum(p_hmm_column->short_transition_e[DM],p_hmm_column->D_foward[i] + p_hmm_column->short_transition[DM] + c_hmm_column->m_emit[c] +  c_hmm_column->M_backward[i] -mb->b_score);
+					
+					c_hmm_column->m_emit_e[c] = logsum(c_hmm_column->m_emit_e[c],  c_hmm_column->M_foward[i] + c_hmm_column->M_backward[i] -mb->b_score );
+					//***************post
+					
+					
 					
 					
 					
 					// Instertion State ..
 					//self loop insertion to insertion
 					c_hmm_column->I_foward[i] = c_hmm_column->I_foward[i-1] + c_hmm_column->short_transition[II];
-					
-					
-					//posterior 
-					c_hmm_column->short_transition_e[II] = logsum(c_hmm_column->short_transition_e[II], c_hmm_column->I_foward[i-1] + c_hmm_column->short_transition[II] + c_hmm_column->i_emit[c]+ c_hmm_column->I_backward[i] - mb->b_score );
-					
 					// start new insertion
 					c_hmm_column->I_foward[i]  = logsum ( c_hmm_column->I_foward[i] ,c_hmm_column->M_foward[i-1] + c_hmm_column->short_transition[MI]);
-					
-					//posterior
-					c_hmm_column->short_transition_e[IM] = logsum(c_hmm_column->short_transition_e[IM], c_hmm_column->M_foward[i-1] + c_hmm_column->short_transition[IM] + c_hmm_column->i_emit[c]+ c_hmm_column->I_backward[i] - mb->b_score );
-					
-					
 					
 					//instertion emission...
 					c_hmm_column->I_foward[i]  = c_hmm_column->I_foward[i]  + c_hmm_column->i_emit[c];
 					
-					//posterior  emission estimation... 
-					c_hmm_column->i_emit_e[c] = logsum(c_hmm_column->i_emit_e[c], c_hmm_column->I_foward[i]  +  c_hmm_column->I_backward[i] - mb->b_score );
+					//***************post
+					c_hmm_column->short_transition_e[II] = logsum(c_hmm_column->short_transition_e[II] ,  c_hmm_column->I_foward[i-1] + c_hmm_column->short_transition[II] + c_hmm_column->i_emit[c] + c_hmm_column->I_backward[i] - mb->b_score);
 					
+					c_hmm_column->short_transition_e[MI] = logsum(c_hmm_column->short_transition_e[MI] , c_hmm_column->M_foward[i-1] + c_hmm_column->short_transition[MI] + c_hmm_column->i_emit[c] + c_hmm_column->I_backward[i] - mb->b_score);
+					
+					c_hmm_column->i_emit_e[c] = logsum(c_hmm_column->i_emit_e[c] , c_hmm_column->I_foward[i]   + c_hmm_column->I_backward[i] - mb->b_score);
+					//***************post
+
 					
 					
 					// deletion state
 					//from previous match state.
 					c_hmm_column->D_foward[i] = p_hmm_column->M_foward[i] + p_hmm_column->short_transition[MD];
-					
-					//posterior
-					p_hmm_column->short_transition_e[MD] = logsum(p_hmm_column->short_transition_e[MD], p_hmm_column->M_foward[i] + p_hmm_column->short_transition[MD] + c_hmm_column->D_backward[i] - mb->b_score );
-					
-					
-					
-					
 					//from previous delete state
 					
 					c_hmm_column->D_foward[i] = logsum(c_hmm_column->D_foward[i], p_hmm_column->D_foward[i] + p_hmm_column->short_transition[DD] );
 					
+					//***************post
+					p_hmm_column->short_transition_e[MD] = logsum(p_hmm_column->short_transition_e[MD],  p_hmm_column->M_foward[i] + p_hmm_column->short_transition[MD] + c_hmm_column->D_backward[i] - mb->b_score);
 					
-					//posterior
-					p_hmm_column->short_transition_e[DD] = logsum(p_hmm_column->short_transition_e[DD], p_hmm_column->D_foward[i] + p_hmm_column->short_transition[DD] + c_hmm_column->D_backward[i] - mb->b_score );
+					p_hmm_column->short_transition_e[DD] = logsum(p_hmm_column->short_transition_e[DD] ,p_hmm_column->D_foward[i] + p_hmm_column->short_transition[DD] + c_hmm_column->D_backward[i] - mb->b_score);
+					//***************post
 					
 					
 				}
-				//fprintf(stderr,"%d	%f	%f	%f	%f\n",i,  c_hmm_column->M_foward[i] , mb->model[j]->M_to_silent[f],  c_hmm_column->I_foward[i] , mb->model[j]->I_to_silent[f]);
-				current_silent[i] =  logsum(current_silent[i],  c_hmm_column->M_foward[i] + mb->model[j]->M_to_silent[f]);
-				current_silent[i] =  logsum(current_silent[i],  c_hmm_column->I_foward[i] + mb->model[j]->I_to_silent[f]);
+				//fprintf(stderr,"%d	%f	%f	%f	%f	%f\n",i,  c_hmm_column->M_foward[i] , mb->model[j]->M_to_silent[f],  c_hmm_column->I_foward[i] , mb->model[j]->I_to_silent[f], psilent[i]);
+				csilent[i] =  logsum(csilent[i],  c_hmm_column->M_foward[i] + mb->model[j]->M_to_silent[f]);
 				
 				
-				//posterior collection....
-				if(j == mb->num_models-1){
-					//ARGGG
-					//fprintf(stderr,"J:%d i:%d	%f +1\n",j,i,mb->model[j+ 1]->silent[i] );
-					if(i == len){
-						mb->model[j]->M_to_silent_e[f] = logsum(mb->model[j]->M_to_silent_e[f],c_hmm_column->M_foward[i] + mb->model[j]->M_to_silent[f] + prob2scaledprob(1.0) - mb->b_score);
-						
-						mb->model[j]->I_to_silent_e[f] = logsum(mb->model[j]->I_to_silent_e[f], c_hmm_column->I_foward[i] + mb->model[j]->I_to_silent[f]  + prob2scaledprob(1.0) - mb->b_score);
-					}
-				}else{
-					if(i!= len){
-					//fprintf(stderr,"J:%d i:%d	%f\n",j,i,mb->model[j]->silent[i] );
-					//fprintf(stderr,"J:%d i:%d	%f +1\n",j,i,mb->model[j+ 1]->silent[i] );
-					//fprintf(stderr,"J:%d	%f\n",j,mb->model[j+2]->silent[i] );
-					
-					//mb->model[j]->M_to_silent_e[f] = logsum(mb->model[j]->M_to_silent_e[f],c_hmm_column->M_foward[i] + mb->model[j]->M_to_silent[f] + mb->model[j+1]->silent[i+1] - mb->b_score);
-					
-					//mb->model[j]->I_to_silent_e[f] = logsum(mb->model[j]->I_to_silent_e[f], c_hmm_column->I_foward[i] + mb->model[j]->I_to_silent[f]  + mb->model[j+1]->silent[i+1] - mb->b_score);
-					}
-				}
 				
-				//need to get current_silent_ backward... should be first M state in next segments's HMMs + emission of seq +1 (I guess..
-				//seqa[i+1]
+				csilent[i] =  logsum(csilent[i],  c_hmm_column->I_foward[i] + mb->model[j]->I_to_silent[f]);
+				csilent[i] = logsum(csilent[i], psilent[i] + mb->model[j]->skip);
+				
+				//***************post
+				mb->model[j]->M_to_silent_e[f] = logsum(mb->model[j]->M_to_silent_e[f],  c_hmm_column->M_foward[i] + mb->model[j]->M_to_silent[f] + bsilent[i+1] -mb->b_score);
+				
+				//fprintf(stderr,"ADDED TO M->S model: %d		%f %f %f %f %f\n", j , scaledprob2prob( mb->model[j]->M_to_silent_e[f]) ,scaledprob2prob(c_hmm_column->M_foward[i]) , scaledprob2prob(mb->model[j]->M_to_silent[f] ),scaledprob2prob( bsilent[i+1]) ,scaledprob2prob( mb->b_score));
+				
+				mb->model[j]->I_to_silent_e[f] = logsum(mb->model[j]->I_to_silent_e[f] , c_hmm_column->I_foward[i] + mb->model[j]->I_to_silent[f] + bsilent[i+1] -mb->b_score);
+				
+				mb->model[j]->skip_e =logsum(mb->model[j]->skip_e , psilent[i] + mb->model[j]->skip + bsilent[i+1] -mb->b_score);
+ 				
+				
+				
+				//***************post
 				
 			}
-		}
-		
-		for(i = 0; i <= len;i++){
-			fprintf(stderr,"%d	%d	%f	%f	%f\n",j,i, current_silent[i] , previous_silent[i] , mb->model[j]->skip);
-			if(j + 1 != mb->num_models && i != len){
-				
-				//fprintf(stderr," ADDING to SKIP_E: %f	%f	%f	%f	current:%f\n", previous_silent[i] , mb->model[j]->skip ,   mb->model[j+1]->silent[i+1] , mb->b_score,mb->model[j]->skip_e);
-				//mb->model[j]->skip_e = logsum(mb->model[j]->skip_e, previous_silent[i] + mb->model[j]->skip +   mb->model[j+1]->silent[i+1] - mb->b_score);
-			}
-
 			
-			
-			previous_silent[i] = logsum(current_silent[i] , previous_silent[i] + mb->model[j]->skip);
-			
-			
-						
-			current_silent[i] = prob2scaledprob(0.0f);
 		}
 	}
 	
-	current_silent[0] = prob2scaledprob(0.0f);
 	
-	j =  mb->num_models-1;
-	for(f = 0;f < mb->model[j]->num_hmms;f++){
-		g= mb->model[j]->hmms[0]->num_columns-1;
-		c_hmm_column = mb->model[j]->hmms[f]->hmm_column[g];
-		current_silent[0] = logsum(current_silent[0],  c_hmm_column->M_foward[len] +mb->model[j]->M_to_silent[f]  );
-		current_silent[0] =  logsum(current_silent[0],  c_hmm_column->I_foward[len] +mb->model[j]->I_to_silent[f]  );
-	}
+	mb->f_score = mb->model[mb->num_models-1]->silent_forward[len];
 	
-	mb->f_score = current_silent[0];
-	
-	fprintf(stderr,"SCORES: %f	%f",mb->f_score, mb->b_score);
-	for(j = 0; j < mb->num_models;j++){
-		
-		for(f = 0;f < mb->model[j]->num_hmms;f++){
-			for(g = 0;g < mb->model[j]->hmms[f]->num_columns;g++){
-				
-				c_hmm_column = mb->model[j]->hmms[f]->hmm_column[g];
-				for(i = 0; i <= len;i++){
-					//c_hmm_column->M_foward[i] = prob2scaledprob(0.0);
-					//c_hmm_column->I_foward[i] = prob2scaledprob(0.0);
-					//c_hmm_column->D_foward[i] = prob2scaledprob(0.0);
-					fprintf(stderr,"segment:%d	HMM:%d	column:%d	i:%d	%f	%f	%f\n",j,f,g,i,scaledprob2prob ( c_hmm_column->M_foward[i]) ,scaledprob2prob ( c_hmm_column->I_foward[i]), scaledprob2prob(c_hmm_column->D_foward[i] )   );
-				}
-			}
-		}
-		fprintf(stderr,"%d ",j);
-		for(i = 0 ; i <= len;i++){
-		//	fprintf(stderr,"%f ",scaledprob2prob( mb->model[j]->silent[i])  );
-		}
-		
-		fprintf(stderr,"\n");
-		
-	}
-	
+	fprintf(stderr,"SCORE:%f	%f\n", mb->f_score, scaledprob2prob(mb->f_score));
 	return mb;
 }
 

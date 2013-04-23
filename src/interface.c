@@ -57,7 +57,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->gzipped = 0;
 	param->sam = 0;
 	
-	param->sequencer_error_rate = 0.00f;
+	param->sequencer_error_rate = 0.02f;
 	param->indel_frequency = 0.1f;
 	param->average_read_length = 50;
 	
