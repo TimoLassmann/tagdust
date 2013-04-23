@@ -108,7 +108,15 @@ struct model_bag{
 	struct model** model;
 	int num_models;
 	float f_score;
-	float b_score; 
+	float b_score;
+	int** path;
+	float** dyn_prog_matrix;
+	float** transition_matrix;
+	
+	int* label;
+	
+	int total_hmm_num;
+	
 	
 }_MM_ALIGN16;
 
@@ -131,6 +139,7 @@ void print_model(struct model* model);
 struct model_bag* forward(struct model_bag* mb, char* a, int len);
 struct model_bag* backward (struct model_bag* mb, char* a, int len);
 struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, int len);
+struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, char* a, int len);
 
 #endif
 

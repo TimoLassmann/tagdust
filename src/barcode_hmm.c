@@ -19,7 +19,7 @@
 void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ),int file_num)
 {
 	struct read_info** ri = 0;
-	int i,j;
+	int i,j,g,c;
 	int numseq;
 	int total_read = 0;
 	
@@ -177,8 +177,11 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	}
 	fprintf(stderr,"READlength: %d",read_length);
 	
+	mb->total_hmm_num = 0;
+	
+	
 	for(i = 0; i < mb->num_models;i++){
-		mb->model[i] = malloc_model_according_to_read_structure(param->read_structure,i);
+				mb->model[i] = malloc_model_according_to_read_structure(param->read_structure,i);
 		segment_length = 0;
 		if(param->read_structure->type[i] == 'G'){
 			segment_length = 2;
@@ -192,22 +195,112 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		
 		mb->model[i] = init_model_according_to_read_structure(mb->model[i], param, i,back,segment_length);
 		print_model(mb->model[i]);
-		
-		
+		mb->total_hmm_num += mb->model[i]->num_hmms;
+
 	}
+	
+	mb->path = malloc(sizeof(int*) * MAX_SEQ_LEN);
+	mb->dyn_prog_matrix = malloc(sizeof(float*) * MAX_SEQ_LEN );
+
+	for (i = 0; i < MAX_SEQ_LEN;i++){
+		mb->path[i] = malloc(sizeof(int)* (mb->total_hmm_num +1) );
+		mb->dyn_prog_matrix[i] = malloc(sizeof(float) * (mb->total_hmm_num +1) );
+	}
+	
+	mb->transition_matrix = malloc(sizeof(float*) * (mb->total_hmm_num +1));
+	mb->label = malloc(sizeof(int) *  (mb->total_hmm_num +1));
+	c = 0;
+	for(i = 0; i < mb->num_models ;i++){
+		for(j = 0; j < mb->model[i]->num_hmms;j++){
+			mb->label[c] = (j << 16) | i ;
+			if(mb->model[i]->skip != prob2scaledprob(0.0)){
+				mb->label[c]  |= 0x80000000;
+			}
+			fprintf(stderr,"%d %d	%d %d\n",c,mb->label[c],mb->label[c] & 0xFFFF, (mb->label[c] >> 16) & 0x7FFF);
+			c++;
+			
+		}
+	}
+	
+	for(i = 0; i < mb->total_hmm_num+1 ;i++){
+		mb->transition_matrix[i] = malloc(sizeof(float) * (mb->total_hmm_num +1));
+		for(j = 0; j <  mb->total_hmm_num+1 ;j++){
+			mb->transition_matrix[i][j] = 0;
+		}
+	}
+	
+
+	for(i = 0; i < mb->total_hmm_num ;i++){
+		//mb->substitution_matrix[i] = malloc(sizeof(float) * (mb->total_hmm_num +1));
+		//c = 0; // assume no skipping....
+		//if(mb->label[i] & 0x80000000){
+		//	c =1;
+		//}
+		//if(mb->model[i]->skip){
+		//	c =1;
+		//}
+		
+		c = 1;
+		for(j = i+1; j <  mb->total_hmm_num ;j++){
+			mb->transition_matrix[i][j] = 0;
+			
+			
+			
+			if(i == j){
+				mb->transition_matrix[i][j] = 1;
+			}
+			
+			if((mb->label[i] & 0xFFFF)+1 == ((mb->label[j] & 0xFFFF) ) ){
+				mb->transition_matrix[i][j] = 1;
+			}
+			
+			
+			if(((mb->label[i] & 0xFFFF) < ((mb->label[j] & 0xFFFF) ) )&& c ){
+				mb->transition_matrix[i][j] = 1;
+			}
+			
+			if(!(mb->label[j] & 0x80000000)){
+				c =0;
+			}
+			fprintf(stderr,"%d, %d, %d %d\n ", j,   mb->label[j],mb->label[j] & 0xFFFF, (mb->label[j] >> 16) & 0x7FFF);
+			//if(!(mb->label[j] & 0x80000000)){
+			//	c =0;
+			//}
+			//if(!mb->model[mb->label[j] & 0xFFFF]->skip){
+			//	c = 0;
+			//}
+			
+			//mb->substitution_matrix[j][i] =  mb->substitution_matrix[i][j] ;
+			
+		}
+		
+		// remain in the same state.... 
+		mb->transition_matrix[i][i] = 1;
+	}
+	
+	for(i = 0; i < mb->total_hmm_num ;i++){
+		for(j = 0; j <  mb->total_hmm_num ;j++){
+			fprintf(stderr,"%f ",mb->transition_matrix[i][j] );
+		}
+		fprintf(stderr,"\n");
+	}
+	fprintf(stderr,"\n");
+	
 	
 	
 	char test[] = "AAAAA";
 	
 	for(i = 0; i < 5;i++){
-		test[i] = nuc_code5[test[i]];
+		test[i] = nuc_code5[(int)test[i]];
 	}
  	
 	//mb = forward(mb, test, 5);
 
 	mb = backward(mb, test ,5);
 	
-	mb = forward_extract_posteriors(mb, test ,5);
+	//mb = forward_extract_posteriors(mb, test ,5);
+	mb =  forward_max_posterior_decoding(mb, test ,5);
+	
 	for(i = 0; i < mb->num_models;i++){
 		print_model(mb->model[i]);
 	}
@@ -353,6 +446,9 @@ struct model_bag* backward(struct model_bag* mb, char* a, int len)
 	
 	
 	char* seqa = a -1;
+	
+	int c;
+	
 	//init - len+1 set to zero.... 
 	
 	for(j = 0; j < mb->num_models;j++){
@@ -400,6 +496,8 @@ struct model_bag* backward(struct model_bag* mb, char* a, int len)
 			//previous_silent[len+1] = logsum(previous_silent[len+1],  current_silent[len+1]+ mb->model[j] ->skip );
 			//csilent[len+1] =psilent[len+1] + mb->model[j]->skip;
 			for(i = len ; i > 0;i-- ){
+				
+				c = (int)seqa[i+1];
 				c_hmm_column = hmm->hmm_column[model_len];
 				
 				c_hmm_column->M_backward[i] = psilent[i+1] + mb->model[j]->M_to_silent[f] ;
@@ -407,9 +505,9 @@ struct model_bag* backward(struct model_bag* mb, char* a, int len)
 				
 				c_hmm_column->I_backward[i] =  psilent[i+1]+ mb->model[j]->I_to_silent[f] ;
 				
-				c_hmm_column->I_backward[i] = logsum(c_hmm_column->I_backward[i] , c_hmm_column->M_backward[i+1] + c_hmm_column->short_transition[IM] + c_hmm_column->m_emit[seqa[i+1]]);
+				c_hmm_column->I_backward[i] = logsum(c_hmm_column->I_backward[i] , c_hmm_column->M_backward[i+1] + c_hmm_column->short_transition[IM] + c_hmm_column->m_emit[c]);
 				
-				c_hmm_column->I_backward[i] = logsum(c_hmm_column->I_backward[i] , c_hmm_column->I_backward[i+1] + c_hmm_column->short_transition[II] + c_hmm_column->i_emit[seqa[i+1]]);
+				c_hmm_column->I_backward[i] = logsum(c_hmm_column->I_backward[i] , c_hmm_column->I_backward[i+1] + c_hmm_column->short_transition[II] + c_hmm_column->i_emit[c]);
 				
 				
 				
@@ -418,10 +516,10 @@ struct model_bag* backward(struct model_bag* mb, char* a, int len)
 					c_hmm_column = hmm->hmm_column[g];
 					p_hmm_column = hmm->hmm_column[g+1];
 					
-					c_hmm_column->M_backward[i]  = p_hmm_column->M_backward[i+1] + p_hmm_column->m_emit[seqa[i+1]] + c_hmm_column->short_transition[MM];
+					c_hmm_column->M_backward[i]  = p_hmm_column->M_backward[i+1] + p_hmm_column->m_emit[c] + c_hmm_column->short_transition[MM];
 					
 					//insert - emit previous symbol etc. etc.
-					c_hmm_column->M_backward[i] = logsum(c_hmm_column->M_backward[i] , c_hmm_column->I_backward[i+1] +c_hmm_column->i_emit[seqa[i+1] ]  + c_hmm_column->short_transition[MI]);
+					c_hmm_column->M_backward[i] = logsum(c_hmm_column->M_backward[i] , c_hmm_column->I_backward[i+1] +c_hmm_column->i_emit[c ]  + c_hmm_column->short_transition[MI]);
 					
 					//delete - neex to go to previous columns
 					
@@ -429,10 +527,10 @@ struct model_bag* backward(struct model_bag* mb, char* a, int len)
 					
 					// insert state..
 					// from previous insertion....
-					c_hmm_column->I_backward[i] = c_hmm_column->I_backward[i+1] + c_hmm_column->short_transition[II] + c_hmm_column->i_emit[seqa[i+1]];
+					c_hmm_column->I_backward[i] = c_hmm_column->I_backward[i+1] + c_hmm_column->short_transition[II] + c_hmm_column->i_emit[c];
 					//from previous match state....
 					
-					c_hmm_column->I_backward[i] = logsum( c_hmm_column->I_backward[i],p_hmm_column->M_backward[i+1] + c_hmm_column->short_transition[IM] + p_hmm_column->m_emit[seqa[i+1]]);
+					c_hmm_column->I_backward[i] = logsum( c_hmm_column->I_backward[i],p_hmm_column->M_backward[i+1] + c_hmm_column->short_transition[IM] + p_hmm_column->m_emit[c]);
 					///GRERRRRRRR 
 					
 					//delete state
@@ -442,13 +540,13 @@ struct model_bag* backward(struct model_bag* mb, char* a, int len)
 					
 					//from previous match (i.e. gap close
 					
-					c_hmm_column->D_backward[i] = logsum(c_hmm_column->D_backward[i], p_hmm_column->M_backward[i] + p_hmm_column->m_emit[seqa[i]] + c_hmm_column->short_transition[DM]);
+					c_hmm_column->D_backward[i] = logsum(c_hmm_column->D_backward[i], p_hmm_column->M_backward[i] + p_hmm_column->m_emit[(int) seqa[i]] + c_hmm_column->short_transition[DM]);
 					
 				}
 				c_hmm_column = hmm->hmm_column[0];
 				// link j+1 to j... dfor silent;
-				csilent[i] = logsum(csilent[i], c_hmm_column->M_backward[i] + mb->model[j]->silent_to_M[f] + c_hmm_column->m_emit[seqa[i]]);
-				csilent[i] = logsum(csilent[i], c_hmm_column->I_backward[i] + mb->model[j]->silent_to_I[f] + c_hmm_column->i_emit[seqa[i]]);
+				csilent[i] = logsum(csilent[i], c_hmm_column->M_backward[i] + mb->model[j]->silent_to_M[f] + c_hmm_column->m_emit[(int)seqa[i]]);
+				csilent[i] = logsum(csilent[i], c_hmm_column->I_backward[i] + mb->model[j]->silent_to_I[f] + c_hmm_column->i_emit[(int)seqa[i]]);
 				
 				//fprintf(stderr,"Looking for Insertyion to silent in segment1: %d	%f\n",f, mb->model[j]->silent_to_I[f]);
 				
@@ -469,8 +567,8 @@ struct model_bag* backward(struct model_bag* mb, char* a, int len)
 		}
 	}
 	exit(0);*/
-	/*
-	for(j = 0; j < mb->num_models;j++){
+	
+	/*for(j = 0; j < mb->num_models;j++){
 		
 		for(f = 0;f < mb->model[j]->num_hmms;f++){
 			for(g = 0;g < mb->model[j]->hmms[f]->num_columns;g++){
@@ -484,8 +582,8 @@ struct model_bag* backward(struct model_bag* mb, char* a, int len)
 				}
 			}
 		}
-	}*/
-	
+	}
+	*/
 	return mb;
 }
 
@@ -535,7 +633,8 @@ struct model_bag* forward(struct model_bag* mb, char* a, int len)
 	//fprintf(stderr,"Init silent states... \n");
 	//fprintf(stderr,"%d	%f\n",0,mb->model[0]->silent_forward[0]   );
 	for(j = 1; j < mb->num_models;j++){
-		mb->model[j]->silent_forward[0] = mb->model[j-1]->silent_forward[0]  + mb->model[j-1]->skip ;
+		mb->model[j]->silent_forward[0] = mb->model[j-1]->silent_forward[0]  + mb->model[j]->skip ;
+		//fprintf(stderr,"%d	%f	%f	%f\n",j,mb->model[j]->silent_forward[0]  ,mb->model[j-1]->silent_forward[0]  , mb->model[j]->skip  );
 	}
 	
 	
@@ -625,7 +724,7 @@ struct model_bag* forward(struct model_bag* mb, char* a, int len)
 	
 	fprintf(stderr,"SCORE:%f	%f\n", mb->f_score, scaledprob2prob(mb->f_score));
 	
-	/*
+	
 	for(j = 0; j < mb->num_models;j++){
 		
 		for(f = 0;f < mb->model[j]->num_hmms;f++){
@@ -640,7 +739,7 @@ struct model_bag* forward(struct model_bag* mb, char* a, int len)
 				}
 			}
 		}
-	}*/
+	}
 	return mb;
 }
 
@@ -687,7 +786,8 @@ struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, int 
 	//fprintf(stderr,"Init silent states... \n");
 	//fprintf(stderr,"%d	%f\n",0,mb->model[0]->silent_forward[0]   );
 	for(j = 1; j < mb->num_models;j++){
-		mb->model[j]->silent_forward[0] = mb->model[j-1]->silent_forward[0]  + mb->model[j-1]->skip ;
+		mb->model[j]->silent_forward[0] = mb->model[j-1]->silent_forward[0]  + mb->model[j]->skip ;
+		//mb->model[j]->silent_forward[0] = mb->model[j-1]->silent_forward[0]  + mb->model[j-1]->skip ;
 	}
 	
 	
@@ -863,6 +963,298 @@ struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, int 
 
 
 
+struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, char* a, int len)
+{
+	
+	int i,j,c;
+	int f,g;
+	
+	int hmm_counter = 0;
+	
+	struct hmm* hmm = 0;
+	struct hmm_column* c_hmm_column = 0;
+	struct hmm_column* p_hmm_column = 0;
+	
+	char* seqa = a -1;
+	
+	float* psilent;
+	float* csilent;
+	float* bsilent;
+	
+	float previous_silent[MAX_HMM_SEQ_LEN];
+	float next_silent[MAX_HMM_SEQ_LEN];
+	
+	// M state of first set of HMMS.....
+	for(j = 0; j < mb->num_models;j++){
+		for(f = 0;f < mb->model[j]->num_hmms;f++){
+			for(g = 0;g < mb->model[j]->hmms[f]->num_columns;g++){
+				c_hmm_column = mb->model[j]->hmms[f]->hmm_column[g];
+				//i = 0;
+				for(i = 0; i <= len;i++){
+					c_hmm_column->M_foward[i] = prob2scaledprob(0.0);
+					c_hmm_column->I_foward[i] = prob2scaledprob(0.0);
+					c_hmm_column->D_foward[i] = prob2scaledprob(0.0);
+					//fprintf(stderr,"segment:%d	HMM:%d	column:%d	i:%d	%f	%f	%f\n",j,f,g,i, c_hmm_column->M_foward[i] ,c_hmm_column->I_foward[i],c_hmm_column->D_foward[i]    );
+				}
+			}
+		}
+		for(i = 0; i <= len+1;i++){
+			mb->model[j]->silent_forward[i] = prob2scaledprob(0.0f);
+		}
+	}
+	
+	//fprintf(stderr,"\n\n\n");
+	mb->model[0]->silent_forward[0] = prob2scaledprob(1.0) + mb->model[0]->skip;
+	//fprintf(stderr,"Init silent states... \n");
+	//fprintf(stderr,"%d	%f\n",0,mb->model[0]->silent_forward[0]   );
+	for(j = 1; j < mb->num_models;j++){
+		mb->model[j]->silent_forward[0] = mb->model[j-1]->silent_forward[0]  + mb->model[j]->skip ;
+		//mb->model[j]->silent_forward[0] = mb->model[j-1]->silent_forward[0]  + mb->model[j-1]->skip ;
+	}
+	
+	for(i = 0; i <= len;i++){
+		for(j = 0; j < mb->total_hmm_num;j++){
+			mb->dyn_prog_matrix[i][j] = prob2scaledprob(0.0f);
+			mb->path[i][j] = -1;
+		}
+	}
+
+	
+	
+	
+ 	for(i = 0; i <= len;i++){
+		
+		
+		next_silent[i] = prob2scaledprob(0.0f);
+		previous_silent[i] = prob2scaledprob(0.0f);
+	}
+	previous_silent[0] = prob2scaledprob(1.0);
+	next_silent[len+1] = prob2scaledprob(1.0f);
+	
+	//loop thorugh the segments
+	// in each run the contained HMMS and update silent states;
+	for(j = 0; j < mb->num_models;j++){
+		if(j == 0){
+			psilent = previous_silent;
+		}else{
+			psilent =  mb->model[j-1]->silent_forward;
+		}
+		csilent = mb->model[j]->silent_forward;
+		if(j +1 != mb->num_models){
+			bsilent = mb->model[j+1]->silent_backward;
+		}else{
+			bsilent = next_silent;
+		}
+		for(f = 0;f < mb->model[j]->num_hmms;f++){
+			
+			fprintf(stderr," %d %d %d\n", j , f, hmm_counter);
+			hmm = mb->model[j]->hmms[f];
+			for(i = 1; i <= len;i++){
+				c = seqa[i];
+				
+				c_hmm_column = hmm->hmm_column[0];
+				// first column  comes from previous state cheekily transferring its pd to M[0[
+				c_hmm_column->M_foward[i] = psilent[i-1] + mb->model[j]->silent_to_M[f] + c_hmm_column->m_emit[c];
+				
+				//***************post
+				//mb->model[j]->silent_to_M_e[f] = logsum(mb->model[j]->silent_to_M_e[f] ,psilent[i-1] + mb->model[j]->silent_to_M[f] + c_hmm_column->m_emit[c] + c_hmm_column->M_backward[i]  -mb->b_score);
+				
+				
+				mb->dyn_prog_matrix[i][hmm_counter] = logsum(mb->dyn_prog_matrix[i][hmm_counter],  c_hmm_column->M_foward[i]  + c_hmm_column->M_backward[i] -mb->b_score );
+				
+				//c_hmm_column->m_emit_e[c] = logsum(c_hmm_column->m_emit_e[c] , c_hmm_column->M_foward[i]  + c_hmm_column->M_backward[i] -mb->b_score);
+				//***************post
+				
+				
+ 				c_hmm_column->I_foward[i]    =psilent[i-1] + mb->model[j]->silent_to_I[f] ;
+				
+				
+				
+				
+				//add transitions to first columns////
+				c_hmm_column->I_foward[i] = logsum(c_hmm_column->I_foward[i], c_hmm_column->I_foward[i-1] + c_hmm_column->short_transition[II]);
+				
+				c_hmm_column->I_foward[i]  = logsum ( c_hmm_column->I_foward[i] ,c_hmm_column->M_foward[i-1] + c_hmm_column->short_transition[MI]);
+				
+				c_hmm_column->I_foward[i] = c_hmm_column->I_foward[i] + c_hmm_column->i_emit[c];
+				
+				
+				
+				
+				//***************post
+				
+				mb->dyn_prog_matrix[i][hmm_counter] = logsum(mb->dyn_prog_matrix[i][hmm_counter],  c_hmm_column->I_foward[i] + c_hmm_column->I_backward[i] -mb->b_score );
+				
+				
+				//***************post
+				
+				
+				c_hmm_column->D_foward[i] = prob2scaledprob(0.0f);
+				
+				// no post???
+				
+				//
+				
+				for(g = 1;g < hmm->num_columns;g++){
+					c_hmm_column = hmm->hmm_column[g];
+					p_hmm_column = hmm->hmm_column[g-1];
+					
+					//Match state
+					//transition from previous match state
+					c_hmm_column->M_foward[i] = p_hmm_column->M_foward[i-1] + p_hmm_column->short_transition[MM];
+					//transition from previous insert state
+					c_hmm_column->M_foward[i] = logsum(c_hmm_column->M_foward[i] , p_hmm_column->I_foward[i-1] + p_hmm_column->short_transition[IM] );
+					//transition from previous delete state
+					c_hmm_column->M_foward[i] = logsum(c_hmm_column->M_foward[i], p_hmm_column->D_foward[i] + p_hmm_column->short_transition[DM]);
+					
+					// emission promability in curent M state ;
+					c_hmm_column->M_foward[i]  = c_hmm_column->M_foward[i]  + c_hmm_column->m_emit[c];
+					
+					
+					//***************post
+					mb->dyn_prog_matrix[i][hmm_counter] = logsum(mb->dyn_prog_matrix[i][hmm_counter],  c_hmm_column->M_foward[i]  + c_hmm_column->M_backward[i] -mb->b_score );
+					//***************post
+					
+					
+					
+					
+					
+					// Instertion State ..
+					//self loop insertion to insertion
+					c_hmm_column->I_foward[i] = c_hmm_column->I_foward[i-1] + c_hmm_column->short_transition[II];
+					// start new insertion
+					c_hmm_column->I_foward[i]  = logsum ( c_hmm_column->I_foward[i] ,c_hmm_column->M_foward[i-1] + c_hmm_column->short_transition[MI]);
+					
+					//instertion emission...
+					c_hmm_column->I_foward[i]  = c_hmm_column->I_foward[i]  + c_hmm_column->i_emit[c];
+					
+					//***************post
+					mb->dyn_prog_matrix[i][hmm_counter] = logsum(mb->dyn_prog_matrix[i][hmm_counter],  c_hmm_column->I_foward[i] + c_hmm_column->I_backward[i] -mb->b_score );
+					//***************post
+					
+					
+					
+					// deletion state
+					//from previous match state.
+					c_hmm_column->D_foward[i] = p_hmm_column->M_foward[i] + p_hmm_column->short_transition[MD];
+					//from previous delete state
+					
+					c_hmm_column->D_foward[i] = logsum(c_hmm_column->D_foward[i], p_hmm_column->D_foward[i] + p_hmm_column->short_transition[DD] );
+					
+					//***************post
+					p_hmm_column->short_transition_e[MD] = logsum(p_hmm_column->short_transition_e[MD],  p_hmm_column->M_foward[i] + p_hmm_column->short_transition[MD] + c_hmm_column->D_backward[i] - mb->b_score);
+					
+					p_hmm_column->short_transition_e[DD] = logsum(p_hmm_column->short_transition_e[DD] ,p_hmm_column->D_foward[i] + p_hmm_column->short_transition[DD] + c_hmm_column->D_backward[i] - mb->b_score);
+					//***************post
+					
+					
+				}
+				//fprintf(stderr,"%d	%f	%f	%f	%f	%f\n",i,  c_hmm_column->M_foward[i] , mb->model[j]->M_to_silent[f],  c_hmm_column->I_foward[i] , mb->model[j]->I_to_silent[f], psilent[i]);
+				csilent[i] =  logsum(csilent[i],  c_hmm_column->M_foward[i] + mb->model[j]->M_to_silent[f]);
+				
+				
+				
+				csilent[i] =  logsum(csilent[i],  c_hmm_column->I_foward[i] + mb->model[j]->I_to_silent[f]);
+				csilent[i] = logsum(csilent[i], psilent[i] + mb->model[j]->skip);
+			}
+			hmm_counter++;
+			
+		}
+		//hmm_counter++;
+	}
+	
+	
+	mb->f_score = mb->model[mb->num_models-1]->silent_forward[len];
+	
+	for(i = 0; i <= len;i++){
+		fprintf(stderr,"%d ",i);
+		for(j = 0; j < mb->total_hmm_num;j++){
+			fprintf(stderr,"%0.3f ",scaledprob2prob( mb->dyn_prog_matrix[i][j]));
+			mb->dyn_prog_matrix[i][j] = scaledprob2prob( mb->dyn_prog_matrix[i][j]);
+		}
+		fprintf(stderr,"\n");
+	}
+	
+	float max = 0;
+	float tmp;
+	int move = -1;
+	
+	for(i = 1;i <= len;i++){
+		for(j = 0; j < mb->total_hmm_num;j++){
+			max = -1;
+			for(c = 0 ;c <= j ;c++){
+				tmp =  mb->dyn_prog_matrix[i-1][c] * mb->transition_matrix[c][j];
+				
+				if(tmp > max){
+					move = c;
+					max = tmp;
+				}
+			
+			//	fprintf(stderr,"%0.3f ",scaledprob2prob( mb->dyn_prog_matrix[i][j]));
+			}
+			mb->dyn_prog_matrix[i][j]+= max;
+			mb->path[i][j] = move;
+		}
+	}
+	fprintf(stderr,"MATRIX:\n");
+	for(i = 0; i <= len;i++){
+		fprintf(stderr,"%d ",i);
+		for(j = 0; j < mb->total_hmm_num;j++){
+			fprintf(stderr,"%0.3f ", mb->dyn_prog_matrix[i][j]);
+			//mb->dyn_prog_matrix[i][j] = scaledprob2prob( mb->dyn_prog_matrix[i][j]);
+		}
+		fprintf(stderr,"\n");
+	}
+	fprintf(stderr,"PATH:\n");
+	for(i = 0; i <= len;i++){
+		fprintf(stderr,"%d ",i);
+		for(j = 0; j < mb->total_hmm_num;j++){
+			fprintf(stderr,"%d ", mb->path[i][j]);
+			//mb->dyn_prog_matrix[i][j] = scaledprob2prob( mb->dyn_prog_matrix[i][j]);
+		}
+		fprintf(stderr,"\n");
+	}
+	
+	char path[100];
+	
+	i = len;
+	max = -1;
+	for(j = 0; j < mb->total_hmm_num;j++){
+		if(mb->dyn_prog_matrix[i][j] > max){
+			max = mb->dyn_prog_matrix[i][j];
+			move = j;
+		}
+	}
+	
+	for(i = 0; i <= len;i++){
+		path[i] = 0;
+		//fprintf(stderr,"%d %d\n",i, path[i]);
+	}
+	
+	path[len] = move;
+	
+	
+	for(i = len ;i > 0;i--){
+		move = mb->path[i][move];
+		path[i-1] = move;
+	}
+	
+	for(i = 0; i <= len;i++){
+		fprintf(stderr,"%d %d\n",i, (int)path[i]);
+	}
+	
+	
+	
+	
+	
+	
+	
+	fprintf(stderr,"SCORE:%f	%f\n", mb->f_score, scaledprob2prob(mb->f_score));
+	return mb;
+}
+
+
+
 struct model* malloc_model(int main_length, int sub_length, int number_sub_models)
 {
 	struct model* model = NULL;
@@ -1009,6 +1401,19 @@ struct model* init_model_according_to_read_structure(struct model* model,struct 
 					col->m_emit_e[c] =  prob2scaledprob(0.0f);
 				}
 			}
+			
+			if(j == len-1){
+				col->short_transition[MM] = prob2scaledprob(0.0f );// 1.0 - base_error * indel_freq);
+				col->short_transition[MI] = prob2scaledprob(0.0f );//(base_error * indel_freq) +  prob2scaledprob(0.5);
+				col->short_transition[MD] = prob2scaledprob(0.0f );//(base_error * indel_freq) +  prob2scaledprob(0.5);
+				
+				col->short_transition[II] = prob2scaledprob(1.0 - 0.999);
+				col->short_transition[IM] = prob2scaledprob(0.999);
+				
+				col->short_transition[DD] = prob2scaledprob(0.0f );//(1.0 - 0.999);
+				col->short_transition[DM] = prob2scaledprob(0.0f );//0.999);
+			}else{
+			
 			col->short_transition[MM] = prob2scaledprob( 1.0 - base_error * indel_freq);
 			col->short_transition[MI] = prob2scaledprob(base_error * indel_freq) +  prob2scaledprob(0.5);
 			col->short_transition[MD] = prob2scaledprob(base_error * indel_freq) +  prob2scaledprob(0.5);
@@ -1018,6 +1423,7 @@ struct model* init_model_according_to_read_structure(struct model* model,struct 
 			
 			col->short_transition[DD] = prob2scaledprob(1.0 - 0.999);
 			col->short_transition[DM] = prob2scaledprob(0.999);
+			}
 			
 			
 			col->short_transition_e[MM] =  prob2scaledprob(0.0);
