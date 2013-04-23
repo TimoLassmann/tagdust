@@ -59,7 +59,7 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "/Users/lassmann/ENCODE_hg19/3UTRsENSEMBLE_longest.fa"
+            argument = "/Users/lassmann/Downloads/NChi10019.110922_SN549_0034_BB03F7ABXX.read1.lane7.fq  -1 O:A,T  -2 R:N"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

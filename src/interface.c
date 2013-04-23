@@ -41,19 +41,11 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->infiles = 0;
 	param->infile = 0;
 	param->outfile = 0;
+	param->num_threads = 1;
 
 	param->quiet_flag = 0;
 	param->num_query = 1000000;
-	param->kmer_size = 2;
-	param->print_unmapped = 0;
-	param->solexa = 0;
-	param->print_qual = 0;
-	param->print_posteriors = 0;
-	param->summary = 0;
-	param->k_errors_allowed = -1;
 	param->format = 0;
-	param->filter = 0;
-	param->alt_lib_name = 0;
 	param->gzipped = 0;
 	param->sam = 0;
 	
@@ -90,7 +82,6 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 		
 	while (1){	 
 		static struct option long_options[] ={
-			{"unmapped",required_argument,0, OPT_UNMAPPED},
 			{"1",required_argument,0, OPT_SEG1},
 			{"2",required_argument,0, OPT_SEG2},
 			{"3",required_argument,0, OPT_SEG3},
@@ -101,13 +92,16 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			{"8",required_argument,0, OPT_SEG8},
 			{"9",required_argument,0, OPT_SEG9},
 			{"10",required_argument,0, OPT_SEG10},
+			{"train",required_argument,0, OPT_TRAIN},
+			{"format",required_argument,0, OPT_FORMAT},
+			{"filter",required_argument,0, 'f'},
 			{"quiet",0,0,'q'},
 			{"help",0,0,'h'},
 			{0, 0, 0, 0}
 		};
 		
 		int option_index = 0;
-		c = getopt_long_only (argc, argv,"qhk:s:f:n:F:",long_options, &option_index);
+		c = getopt_long_only (argc, argv,"qhf:t:",long_options, &option_index);
 		
 		if (c == -1){
 			break;
@@ -146,29 +140,23 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			case OPT_SEG10:
 				param = assign_segment_sequences(param, optarg , 9 );
 				break;
-			case OPT_UNMAPPED:
-				param->print_unmapped = optarg;
+			case OPT_TRAIN:
+				param->train = optarg;
+				break;
+			case OPT_FORMAT:
+				param->format = optarg;
+				break;
+			case 'f':
+				param->filter = optarg;
+				break;
+			case 't':
+				param->num_threads = atoi(optarg);
 				break;
 			case 'q':
 				param->quiet_flag = 1;
 				break;
-			case 'f':
-				param->format = optarg;
-				break;
-			case 'F':
-				param->filter = optarg;
-				break;
-			case 's':
-				param->summary = optarg;
-				break;
-			case 'k':
-				param->k_errors_allowed = atoi(optarg);
-				break;
 			case 'h':
 				help = 1;
-				break;
-			case 'n':
-				param->alt_lib_name = optarg;
 				break;
 			case '?':
 				exit(1);

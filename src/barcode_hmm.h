@@ -120,7 +120,14 @@ struct model_bag{
 	
 }_MM_ALIGN16;
 
-
+struct thread_data{
+	struct model_bag* mb;
+	struct parameters* param;
+	struct read_info** ri;
+	int numseq;
+	int start;
+	int end;
+};
 
 void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ),int file_num);
 
@@ -142,12 +149,15 @@ struct model_bag* backward (struct model_bag* mb, char* a, int len);
 struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, int len);
 struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, char* a, int len);
 
-
+struct model_bag* copy_model_bag(struct model_bag* org);
 struct model_bag* init_model_bag(struct parameters* param,float* back);
 struct model* copy_model_parameters(struct model* org, struct model* copy );
 struct model* copy_estimated_parameter(struct model* target, struct model* source );
 struct model* reestimate(struct model* m, int mode);
 void free_model_bag(struct model_bag* mb);
+
+struct model_bag* run_pHMM(struct model_bag* mb,struct read_info** ri,struct parameters* param,int numseq, int mode);
+void* do_baum_welch_thread(void *threadarg);
 #endif
 
 

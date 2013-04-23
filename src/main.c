@@ -33,19 +33,13 @@
 int main (int argc,char * argv[]) {
 	struct parameters* param = 0;
 	//struct seq_stats* seq_stats = 0;
-	FILE* outfile =0;
+	//FILE* outfile =0;
 	int i;
 	
 	init_nuc_code();
 	
 	param = interface(param,argc,argv);
 	
-	if(param->summary){
-		if ((outfile = fopen(param->summary, "w")) == NULL){
-			fprintf(stderr,"can't open output\n");
-			exit(-1);
-		}
-	}
 	
 	if(!param->infiles && !isatty(0)){
 		if(!param->format){
@@ -166,11 +160,6 @@ int main (int argc,char * argv[]) {
 			}
 		
 		}
-	}
-	
-	
-	if(param->summary){
-		fclose(outfile);
 	}
 	free_param(param);
 	return 0;

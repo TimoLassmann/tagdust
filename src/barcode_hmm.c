@@ -12,6 +12,7 @@
 #include "io.h"
 #include "misc.h"
 #include "nuc_code.h"
+#include <pthread.h>
 
 #include "barcode_hmm.h"
 
@@ -25,30 +26,7 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	
 	float sum = 0.0;
 	
-	//int segment_length;
-	//int read_length;
-	
 	init_logsum();
-	
-	/*int len,c;
-	float max;
-	
-	for(j = 0; j < 10;j++){
-	len = j+1;
-	//len = model->hmms[0]->num_columns;
-	c = 0;
-	max = -1;
-	for(i = 0; i< 1000;i++){
-		if(binomial_distribution((double)i / 1000.0 , len  ,1)  > max){
-			max = binomial_distribution((double)i / 1000.0 ,len ,1 );
-			c = i;
-		}
-	}
-	max = (double)c / 1000.0;
-		fprintf(stderr,"%d	%f\n",j+1,max	);
-	}
-	exit(0);*/
-	
 	
 	float* back = 0;
 	int average_length = 0;
@@ -57,23 +35,10 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		back[i]= 0.0f;//prob2scaledprob( 0.2);
 	}
 	
-	param->num_query = 100;
+	param->num_query = 10;
 	
-	/*model = init_model(model , back,24);
-	
-	struct model* model2 = copy_and_malloc_model(model);
-	
-	free_model(model);
-	free_model(model2);
-	free(back);
-	
-	free_param(param);
-	exit(0);
-	*/
-	 //char command[1000];
-	//char  tmp[1000];
 	FILE* file = 0;
-	FILE* unmapped = 0;
+	//FILE* unmapped = 0;
 	
 	ri = malloc(sizeof(struct read_info*) * param->num_query);
 	
@@ -96,13 +61,6 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		ri[i]->read_end = -1;
 	}
 	file =  io_handler(file, file_num,param);
-	
-	if(param->print_unmapped){
-		if (!(unmapped = fopen(param->print_unmapped, "w" ))){
-			fprintf(stderr,"Cannot open file '%s'\n",param->print_unmapped);
-			exit(-1);
-		}
-	}
 	
 	/*
 	 
@@ -150,30 +108,37 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	
 	
 	struct model_bag* mb = init_model_bag(param, back);
-	
-	
-	
-	
-	
-	char test[] = "AAATTTAA";
-	
-	for(i = 0; i < 8;i++){
-		test[i] = nuc_code5[(int)test[i]];
+	for(i = 0; i < mb->num_models;i++){
+		print_model(mb->model[i]);
+
 	}
- 	
-	//mb = forward(mb, test, 5);
-	for(i = 0; i < 10;i++){
-	mb = backward(mb, ri[i]->seq ,ri[i]->len);
+
+	//Init models done.
 	
-	mb = forward_extract_posteriors(mb, ri[i]->seq ,ri[i]->len);
-	//mb =  forward_max_posterior_decoding(mb, test ,8);
-	}
+	//for(i = 0; i < 10;i++){
+	//mb = backward(mb, ri[i]->seq ,ri[i]->len);
+	//fprintf(stderr,"GAGA\n");
+	//mb = forward_extract_posteriors(mb, ri[i]->seq ,ri[i]->len);
+	//}
+	//exit(0);
+	mb =  run_pHMM(mb,ri,param,numseq,0);
+	
+	//exit(0);
+	
 	for(i = 0; i < mb->num_models;i++){
 		print_model(mb->model[i]);
 		mb->model[i] = reestimate(mb->model[i], 0);
 		print_model(mb->model[i]);
 	}
 	
+	
+	if( !strcmp( param->train , "full")){
+		
+	}else if (!strcmp(param->train, "half" )){
+		
+	}
+	
+		
 	
 	/*char test2[] = "CCCAAAA";
 	
@@ -208,7 +173,7 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	//	free(mb->model);
 	//free(mb);
 	free_model_bag(mb);
-	exit(0);
+	//exit(0);
 	
 	/*
 	 
@@ -264,10 +229,6 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	 */
 	
 	
-	if(param->print_unmapped){
-		fclose(unmapped);
-	}
-	
 	for(i = 0; i < param->num_query;i++){
 		free(ri[i]->strand);
 		free(ri[i]->hits);
@@ -294,6 +255,119 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 
 }
 
+
+struct model_bag* run_pHMM(struct model_bag* mb,struct read_info** ri,struct parameters* param,int numseq, int mode)
+{
+	struct thread_data* thread_data = 0;
+	thread_data = malloc(sizeof(struct thread_data)* param->num_threads);
+	pthread_t threads[param->num_threads];
+	pthread_attr_t attr;
+	int i,t;
+	int interval = 0;
+	int rc;
+	
+	interval =  (int)((double)numseq /(double)param->num_threads);
+	
+	for(t = 0;t < param->num_threads ;t++) {
+		thread_data[t].ri = ri;
+		thread_data[t].mb = copy_model_bag(mb);
+		thread_data[t].start = t*interval;
+		thread_data[t].end = t*interval + interval;
+		thread_data[t].param = param;
+	}
+	thread_data[param->num_threads-1].end = numseq;
+	
+	for(i = 0; i < mb->num_models;i++){
+		print_model(thread_data[0].mb->model[i]);
+	}
+	
+	
+	fprintf(stderr,"got here...\n");
+	//exit(0);
+	rc = pthread_attr_init(&attr);
+	if(rc){
+		fprintf(stderr,"ERROR; return code from pthread_attr_init() is %d\n", rc);
+		exit(-1);
+	}
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+	
+	for(t = 0;t < param->num_threads;t++) {
+		/*switch (mode) {
+			case RUN_FULL_HMM:
+				rc = pthread_create(&threads[t], &attr, do_baum_welch_thread, (void *) &thread_data_array[t]);
+				break;
+			case RUN_RANDOM_HMM:
+				rc = pthread_create(&threads[t], &attr, do_baum_welch_thread_random_model, (void *) &thread_data_array[t]);
+				break;
+			case RUN_BEST_HIT_HMM:
+				rc = pthread_create(&threads[t], &attr, do_baum_welch_best_thread, (void *) &thread_data_array[t]);
+				break;
+				
+			case RUN_V3_HMM:
+				rc = pthread_create(&threads[t], &attr, do_baum_welch_3_thread, (void *) &thread_data_array[t]);
+				break;
+			case RUN_RANDOM_READ_HMM:
+				rc = pthread_create(&threads[t], &attr, do_baum_welch_thread_random_read_model, (void *) &thread_data_array[t]);
+				break;
+			default:
+				fprintf(stderr,"ERROR: hmm mode not found...%d (%d	%d	%d)\n",  mode, RUN_FULL_HMM, RUN_RANDOM_HMM,RUN_BEST_HIT_HMM );
+				break;
+		}*/
+		rc = pthread_create(&threads[t], &attr, do_baum_welch_thread, (void *) &thread_data[t]);
+		if (rc) {
+			fprintf(stderr,"ERROR; return code from pthread_create() is %d\n", rc);
+			exit(-1);
+		}
+	}
+	
+	pthread_attr_destroy(&attr);
+	
+	for (t = 0;t < param->num_threads;t++){
+		rc = pthread_join(threads[t], NULL);
+		if (rc){
+			fprintf(stderr,"ERROR; return code from pthread_join()is %d\n", rc);
+			exit(-1);
+		}
+	}
+	
+	for (t = 0;t < param->num_threads;t++){
+		for(i = 0; i < mb->num_models;i++){
+
+			mb->model[i] = copy_estimated_parameter(mb->model[i], thread_data[t].mb->model[i]);
+		}
+	}
+	fprintf(stderr,"got here...\n");
+	
+	for(t = 0;t < param->num_threads;t++) {
+		free_model_bag(thread_data[t].mb);
+	}
+	
+	free(thread_data);
+	return mb;
+}
+
+
+void* do_baum_welch_thread(void *threadarg)
+{
+	struct thread_data *data;
+	data = (struct thread_data *) threadarg;
+	
+	//struct parameters* param = data->param;
+	struct read_info** ri  = data->ri;
+	struct model_bag* mb = data->mb;
+	
+	int start = data->start;
+	int end = data->end;
+	int i;
+	
+	for(i = start; i < end;i++){
+		fprintf(stderr,"%d-%d	%d\n",start, end, i);
+		mb = backward(mb, ri[i]->seq ,ri[i]->len);
+		//fprintf(stderr,"GAGA\n");
+		mb = forward_extract_posteriors(mb, ri[i]->seq ,ri[i]->len);
+	}
+	pthread_exit((void *) 0);
+}
 
 struct model_bag* backward(struct model_bag* mb, char* a, int len)
 {
@@ -434,8 +508,8 @@ struct model_bag* backward(struct model_bag* mb, char* a, int len)
 		}
 	}
 	exit(0);*/
-	
-	/*for(j = 0; j < mb->num_models;j++){
+	/*
+	for(j = 0; j < mb->num_models;j++){
 		
 		for(f = 0;f < mb->model[j]->num_hmms;f++){
 			for(g = 0;g < mb->model[j]->hmms[f]->num_columns;g++){
@@ -1822,12 +1896,12 @@ struct model_bag* copy_model_bag(struct model_bag* org)
 	copy->model = malloc(sizeof(struct model* ) * org->num_models);//   param->read_structure->num_segments);
 	
 	assert(copy->model);
-	
+	copy->num_models  = org->num_models;
 	copy->total_hmm_num = org->total_hmm_num;
 	for(i = 0; i < org->num_models;i++){
 		copy->model[i] = malloc_model_according_to_read_structure(org->model[i]->num_hmms,  org->model[i]->hmms[0]->num_columns);
 		
-		copy->model[i]  = copy_model_parameters(copy->model[i] , org->model[i]);
+		copy->model[i]  = copy_model_parameters(org->model[i],copy->model[i]) ;
 	}
 	
 	copy->path = malloc(sizeof(int*) * MAX_SEQ_LEN);
@@ -1899,7 +1973,8 @@ struct model* copy_model_parameters(struct model* org, struct model* copy )
 		}
 	}
 	copy->skip = org->skip;
-	copy->skip_e = copy->skip_e;
+	copy->skip_e = org->skip_e;
+	copy->num_hmms = org->num_hmms;
 	return copy;
 }
 
@@ -1917,21 +1992,21 @@ struct model* reestimate(struct model* m, int mode)
 	// silent to M /I ....
 	// add pseudocount of 1;
 	
-	sum = prob2scaledprob(0.0);
-	for(i = 0; i < m->num_hmms;i++){
-		sum = logsum(sum, logsum(m->silent_to_I_e[i],prob2scaledprob(1.0)));
-		sum = logsum(sum, logsum(m->silent_to_M_e[i] , prob2scaledprob(1.0)) );
+	if(mode){
+		sum = prob2scaledprob(0.0);
+		for(i = 0; i < m->num_hmms;i++){
+			sum = logsum(sum, logsum(m->silent_to_I_e[i],prob2scaledprob(1.0)));
+			sum = logsum(sum, logsum(m->silent_to_M_e[i] , prob2scaledprob(1.0)) );
+		}
+		sum = logsum(sum,logsum( m->skip_e , prob2scaledprob(1.0)));
+		
+		for(i = 0; i < m->num_hmms;i++){
+			m->silent_to_I[i]  =  logsum(m->silent_to_I_e[i] ,prob2scaledprob(1.0)) - sum;
+			m->silent_to_M[i]  = logsum(m->silent_to_M_e[i],prob2scaledprob(1.0)) - sum;
+		}
+	
+		m->skip = logsum(m->skip_e ,prob2scaledprob(1.0)) - sum;
 	}
-	sum = logsum(sum,logsum( m->skip_e , prob2scaledprob(1.0)));
-	
-	
-	for(i = 0; i < m->num_hmms;i++){
-		m->silent_to_I[i]  =  logsum(m->silent_to_I_e[i] ,prob2scaledprob(1.0)) - sum;
-		m->silent_to_M[i]  = logsum(m->silent_to_M_e[i],prob2scaledprob(1.0)) - sum;
-	}
-	
-	m->skip = logsum(m->skip_e ,prob2scaledprob(1.0)) - sum;
-	
 	
 	
 	for(i = 0; i < m->num_hmms;i++){
@@ -2133,7 +2208,7 @@ struct model_bag* init_model_bag(struct parameters* param,float* back)
 		
 		
 		mb->model[i] = init_model_according_to_read_structure(mb->model[i], param, i,back,segment_length);
-		print_model(mb->model[i]);
+		//print_model(mb->model[i]);
 		mb->total_hmm_num += mb->model[i]->num_hmms;
 		
 	}
