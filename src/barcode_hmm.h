@@ -52,8 +52,8 @@ struct hmm_column{
 	float D_foward[MAX_HMM_SEQ_LEN];
 	float D_backward[MAX_HMM_SEQ_LEN];
 	
-	float long_transition[MAX_NUM_SUB_MODELS];
-	float long_transition_e[MAX_NUM_SUB_MODELS];
+	//float long_transition[MAX_NUM_SUB_MODELS];
+	//float long_transition_e[MAX_NUM_SUB_MODELS];
 	
 	float short_transition[8];
 	float short_transition_e[8];
@@ -126,12 +126,13 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 
 struct model* malloc_model(int main_length, int sub_length, int number_sub_models);
 
-struct model* init_model(struct model* model);
-struct model* copy_and_malloc_model(struct model* org);
-struct model* add_estimates_to_model(struct model* target, struct model* source);
+//struct model* init_model(struct model* model);
+//struct model* copy_and_malloc_model(struct model* org);
+//struct model* add_estimates_to_model(struct model* target, struct model* source);
 void free_model(struct model* model);
 
-struct model* malloc_model_according_to_read_structure(struct read_structure* rs, int key);
+//struct model* malloc_model_according_to_read_structure(struct read_structure* rs, int key);
+struct model* malloc_model_according_to_read_structure(int num_hmm, int length);
 struct model* init_model_according_to_read_structure(struct model* model,struct parameters* param , int key, float* background,int assumed_length);
 void print_model(struct model* model);
 
@@ -141,6 +142,12 @@ struct model_bag* backward (struct model_bag* mb, char* a, int len);
 struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, int len);
 struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, char* a, int len);
 
+
+struct model_bag* init_model_bag(struct parameters* param,float* back);
+struct model* copy_model_parameters(struct model* org, struct model* copy );
+struct model* copy_estimated_parameter(struct model* target, struct model* source );
+struct model* reestimate(struct model* m, int mode);
+void free_model_bag(struct model_bag* mb);
 #endif
 
 
