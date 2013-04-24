@@ -223,9 +223,7 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file)
 		free(ri[i]->seq);
 		free(ri[i]->name);
 		free(ri[i]->qual);
-		if(ri[i]->priors){
-			free(ri[i]->priors);
-		}
+		free(ri[i]->labels);
 		
 		if(ri[i]->cigar){
 			free(ri[i]->cigar);
@@ -238,7 +236,6 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file)
 			free(ri[i]->xp);
 		}
 		
-		ri[i]->priors = 0;
 		ri[i]->seq = 0;
 		ri[i]->name = 0;
 		ri[i]->qual = 0;
@@ -340,14 +337,19 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file)
 							}
 							
 							ri[c]->seq = malloc(sizeof(unsigned char)* tmp);
+							ri[c]->labels = malloc(sizeof(unsigned char)* tmp);
+							
 							g = 0;
 							for(j = i+1;j < MAX_LINE;j++){
 								
 								if(isspace((int)line[j])){
 									ri[c]->seq[g] = 0;
+									ri[c]->labels[g] = 0;
 									break;
 								}
 								ri[c]->seq[g] = nuc_code5[(int)line[j]];
+								ri[c]->labels[g] = 0;
+
 								g++;
 							}
 							
@@ -439,7 +441,6 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file)
 			}
 			
 			ri[c]->hits[hit] = 0xFFFFFFFFu;
-			ri[c]->identity[hit] = -2.0f;
 			
 			c++;
 			read++;
@@ -462,17 +463,15 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
 	int size = 0;
 	
 	for(i = 0; i < param->num_query;i++){
+		
 		free(ri[i]->seq);
 		free(ri[i]->name);
 		free(ri[i]->qual);
-		if(ri[i]->priors){
-			free(ri[i]->priors);
-		}
-		//free(ri[i]->strand);
-		ri[i]->priors = 0;
+		free(ri[i]->labels);
 		ri[i]->seq = 0;
 		ri[i]->name = 0;
 		ri[i]->qual = 0;
+		ri[i]->labels = 0;
 		ri[i]->len = 0;
 		ri[i]->md = 0;
 		ri[i]->xp = 0;
@@ -536,15 +535,19 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
 					}
 					//fprintf(stderr,"SEQ LEN:%d	%s\n",len,line);
 					ri[park_pos]->seq = malloc(sizeof(unsigned char)* (len+1));
+					
+					ri[park_pos]->labels = malloc(sizeof(unsigned char)* (len+1));
+					
 					for(i = 0;i < MAX_LINE;i++){
 						if(isspace((int)line[i])){
 							ri[park_pos]->seq[i] = 0;
+							ri[park_pos]->labels[i] = 0;
 							break;
 						}
 						ri[park_pos]->seq[i] = nuc_code5[(int)line[i]];
+						ri[park_pos]->labels[i] = 0;
 					}
 					ri[park_pos]->len = len-1;
-					
 				}else{
 					len = 0;
 					for(i = 0;i < MAX_LINE;i++){

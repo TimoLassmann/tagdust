@@ -47,10 +47,8 @@ void pst_tree(struct parameters* param,int (*fp)(struct read_info** ,struct para
 		ri[i]->cigar = 0;
 		ri[i]->md = 0;
 		ri[i]->xp = 0;
-		ri[i]->priors = 0;// malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 		ri[i]->strand = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 		ri[i]->hits = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
-		ri[i]->identity = malloc(sizeof(float)* (LIST_STORE_SIZE+1));
 		ri[i]->read_start = -1;
 		ri[i]->read_end = -1;
 	}
@@ -156,7 +154,6 @@ void pst_tree(struct parameters* param,int (*fp)(struct read_info** ,struct para
 	for(i = 0; i < param->num_query;i++){
 		free(ri[i]->strand);
 		free(ri[i]->hits);
-		free(ri[i]->identity);
 		if(ri[i]->name){
 			free(ri[i]->name);
 		}
@@ -552,10 +549,8 @@ void pst_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		ri[i]->cigar = 0;
 		ri[i]->md = 0;
 		ri[i]->xp = 0;
-		ri[i]->priors = 0;// malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 		ri[i]->strand = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 		ri[i]->hits = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
-		ri[i]->identity = malloc(sizeof(float)* (LIST_STORE_SIZE+1));
 		ri[i]->read_start = -1;
 		ri[i]->read_end = -1;
 	}
@@ -731,7 +726,6 @@ void pst_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	for(i = 0; i < param->num_query;i++){
 		free(ri[i]->strand);
 		free(ri[i]->hits);
-		free(ri[i]->identity);
 		
 		if(ri[i]->cigar){
 			free(ri[i]->cigar);

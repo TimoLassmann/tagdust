@@ -41,15 +41,16 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->infiles = 0;
 	param->infile = 0;
 	param->outfile = 0;
-	param->num_threads = 1;
+	param->num_threads = 8;
 
 	param->quiet_flag = 0;
 	param->num_query = 1000000;
 	param->format = 0;
 	param->gzipped = 0;
 	param->sam = 0;
+	param->train = 0;
 	
-	param->sequencer_error_rate = 0.02f;
+	param->sequencer_error_rate = 0.01f;
 	param->indel_frequency = 0.1f;
 	param->average_read_length = 50;
 	
@@ -277,9 +278,13 @@ void usage()
 
 void free_param(struct parameters* param)
 {
-	int i;
+	int i,j;
 	for(i = 0; i < 5;i++){
 		if(param->read_structure->sequence_matrix[i]){
+			for(j = 0; j < param->read_structure->numseq_in_segment[i];j++){
+				free(param->read_structure->sequence_matrix[i][j]);
+			}
+			
 			free(param->read_structure->sequence_matrix[i]);
 		}
 	}

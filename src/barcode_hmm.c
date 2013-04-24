@@ -35,7 +35,7 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		back[i]= 0.0f;//prob2scaledprob( 0.2);
 	}
 	
-	param->num_query = 10;
+	param->num_query = 100000;
 	
 	FILE* file = 0;
 	//FILE* unmapped = 0;
@@ -49,14 +49,13 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		ri[i]->seq = 0;
 		ri[i]->name = 0;
 		ri[i]->qual = 0;
+		ri[i]->labels = 0;
 		ri[i]->len = 0;
 		ri[i]->cigar = 0;
 		ri[i]->md = 0;
 		ri[i]->xp = 0;
-		ri[i]->priors = 0;// malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 		ri[i]->strand = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 		ri[i]->hits = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
-		ri[i]->identity = malloc(sizeof(float)* (LIST_STORE_SIZE+1));
 		ri[i]->read_start = -1;
 		ri[i]->read_end = -1;
 	}
@@ -84,7 +83,7 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 			}
 		}
 		total_read += numseq;
-		if(total_read > 10){
+		if(total_read > 1000000){
 			break;
 		}
 	}
@@ -103,136 +102,82 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	
 	rewind(file);
 	
-	
-	//init models
-	
-	
 	struct model_bag* mb = init_model_bag(param, back);
 	for(i = 0; i < mb->num_models;i++){
 		print_model(mb->model[i]);
-
 	}
 
-	//Init models done.
+	/*
+	int gen;
 	
-	//for(i = 0; i < 10;i++){
-	//mb = backward(mb, ri[i]->seq ,ri[i]->len);
-	//fprintf(stderr,"GAGA\n");
-	//mb = forward_extract_posteriors(mb, ri[i]->seq ,ri[i]->len);
-	//}
-	//exit(0);
-	mb =  run_pHMM(mb,ri,param,numseq,0);
+	for (gen = 0;gen < 10;gen++){
+		
+		while ((numseq = fp(ri, param,file)) != 0){
+			mb =  run_pHMM(mb,ri,param,numseq,0);
+		}
 	
-	//exit(0);
 	
-	for(i = 0; i < mb->num_models;i++){
-		print_model(mb->model[i]);
-		mb->model[i] = reestimate(mb->model[i], 0);
-		print_model(mb->model[i]);
+		rewind(file);
+	
+		fprintf(stderr,"\n\n\n\n\n\n");
+	
+		for(i = 0; i < mb->num_models;i++){
+			//print_model(mb->model[i]);
+			mb->model[i] = reestimate(mb->model[i], 1);
+			print_model(mb->model[i]);
+		}
 	}
-	
-	
-	if( !strcmp( param->train , "full")){
+	*/
+
+	char alpha[5] = "ACGTN";
+	if(!param->train){
+		while ((numseq = fp(ri, param,file)) != 0){
+			//	numseq = fp(ri, param,file);
+			mb =  run_pHMM(mb,ri,param,numseq,MODE_GET_LABEL);
+			
+			
+			int c1,c2,c3;
+			for(i = 0; i < 10;i++){
+				fprintf(stderr,"%s\n", ri[i]->name);
+				for(j = 0; j < ri[i]->len;j++){
+					c1 = mb->label[(int)ri[i]->labels[j+1]];
+					c2 = c1 & 0xFFFF;
+					c3 = (c1 >> 16) & 0x7FFF;
+					fprintf(stderr,"%c",  alpha[(int)ri[i]->seq[j]] );
+				}
+				fprintf(stderr,"\n");
+				for(j = 0; j < ri[i]->len;j++){
+					c1 = mb->label[(int)ri[i]->labels[j+1]];
+					c2 = c1 & 0xFFFF;
+					c3 = (c1 >> 16) & 0x7FFF;
+					fprintf(stderr,"%c",   param->read_structure->type[c2] );
+				}
+				fprintf(stderr,"\n");
+				
+				for(j = 0; j < ri[i]->len;j++){
+					c1 = mb->label[(int)ri[i]->labels[j+1]];
+					c2 = c1 & 0xFFFF;
+					c3 = (c1 >> 16) & 0x7FFF;
+					fprintf(stderr,"%d", c3   );
+				}
+				fprintf(stderr,"\n");
+				
+				
+			}
+		}
+		
+	}else if( !strcmp( param->train , "full")){
+		
 		
 	}else if (!strcmp(param->train, "half" )){
 		
 	}
 	
-		
-	
-	/*char test2[] = "CCCAAAA";
-	
-	for(i = 0; i < 7;i++){
-		test2[i] = nuc_code5[test2[i]];
-	}
- 	
-	//mb = forward(mb, test, 5);
-	
-	mb = backward(mb, test2 ,7);
-	
-	mb = forward_extract_posteriors(mb, test2,7);
-	
-		
-	for(i = 0; i < mb->num_models;i++){
-		print_model(mb->model[i]);
-	}
-	*/
-	/*
-	test[1] = 1;
-	test[3] = 1;
-	
-	mb = backward(mb, test ,5);
-	
-	mb = forward_extract_posteriors(mb, test ,5);
-		
-	for(i = 0; i < mb->num_models;i++){
-		print_model(mb->model[i]);
-	}
-	*/
-	
-	//	free(mb->model);
-	//free(mb);
 	free_model_bag(mb);
-	//exit(0);
-	
-	/*
-	 
-	 got backgorund nucleotide distribution - from all reads?
-	 
-	 */
-	
-	/*
-	 
-	 init model; 
-	 
-	 */
-	
-	
-	//model = init_model(model);
-	/*
-	 
-	 done init model;
-	 
-	 */
-	
-	
-	/*
-	 
-	run Baum Welch  X times using threads
-	 
-	 */
-	
-	/*for(i = 0; i < 10;i++){
-		
-		while ((numseq = fp(ri, param,file)) != 0){
-			//fprintf(stderr,"rread: %d\n",numseq);
-			for(i = 0; i < numseq;i++){
-				model->average_length += ri[i]->len;
-				for(j = 0;j < ri[i]->len;j++){
-					model->background_nuc_frequency[ri[i]->seq[j]] += 1;
-				}
-			}
-			total_read+= numseq;
-			
-		}
-		
-		
-		//re-restimate...
-		
-		
-	}*/
-	
-	/*
-	 
-	done...  run Baum Welch  X times using threads
-	 
-	 */
-	
 	
 	for(i = 0; i < param->num_query;i++){
 		free(ri[i]->strand);
 		free(ri[i]->hits);
-		free(ri[i]->identity);
 		
 		if(ri[i]->cigar){
 			free(ri[i]->cigar);
@@ -240,19 +185,25 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		if(ri[i]->md){
 			free(ri[i]->md);
 		}
+		if(ri[i]->name){
+			free(ri[i]->name);
+		}
+		if(ri[i]->seq){
+			free(ri[i]->seq);
+		}
+		if(ri[i]->qual){
+			free(ri[i]->qual );
+		}
 		
 		free(ri[i]);
 	}
+	free(back);
 	free(ri);
-	//fprintf(stderr,"%p\n",file);
 	if(param->sam == 2 || param->sam == 1 || param->gzipped ){
 		pclose(file);
 	}else{
-		//if(file_num != -1){
 		fclose(file);
-		//}
 	}
-
 }
 
 
@@ -274,15 +225,18 @@ struct model_bag* run_pHMM(struct model_bag* mb,struct read_info** ri,struct par
 		thread_data[t].start = t*interval;
 		thread_data[t].end = t*interval + interval;
 		thread_data[t].param = param;
+	//m	fprintf(stderr,"%d %d %d %d\n",t,thread_data[t].start,thread_data[t].end,numseq );
 	}
 	thread_data[param->num_threads-1].end = numseq;
 	
-	for(i = 0; i < mb->num_models;i++){
-		print_model(thread_data[0].mb->model[i]);
-	}
 	
 	
-	fprintf(stderr,"got here...\n");
+	//for(i = 0; i < mb->num_models;i++){
+	//	print_model(thread_data[0].mb->model[i]);
+	//}
+	
+	
+	//fprintf(stderr,"got here...\n");
 	//exit(0);
 	rc = pthread_attr_init(&attr);
 	if(rc){
@@ -292,28 +246,17 @@ struct model_bag* run_pHMM(struct model_bag* mb,struct read_info** ri,struct par
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 	
 	for(t = 0;t < param->num_threads;t++) {
-		/*switch (mode) {
-			case RUN_FULL_HMM:
-				rc = pthread_create(&threads[t], &attr, do_baum_welch_thread, (void *) &thread_data_array[t]);
+		switch (mode) {
+			case MODE_GET_LABEL:
+				rc = pthread_create(&threads[t], &attr, do_label_thread, (void *) &thread_data[t]);
 				break;
-			case RUN_RANDOM_HMM:
-				rc = pthread_create(&threads[t], &attr, do_baum_welch_thread_random_model, (void *) &thread_data_array[t]);
+			case MODE_TRAIN:
+				rc = pthread_create(&threads[t], &attr, do_baum_welch_thread, (void *) &thread_data[t]);
 				break;
-			case RUN_BEST_HIT_HMM:
-				rc = pthread_create(&threads[t], &attr, do_baum_welch_best_thread, (void *) &thread_data_array[t]);
-				break;
-				
-			case RUN_V3_HMM:
-				rc = pthread_create(&threads[t], &attr, do_baum_welch_3_thread, (void *) &thread_data_array[t]);
-				break;
-			case RUN_RANDOM_READ_HMM:
-				rc = pthread_create(&threads[t], &attr, do_baum_welch_thread_random_read_model, (void *) &thread_data_array[t]);
-				break;
-			default:
-				fprintf(stderr,"ERROR: hmm mode not found...%d (%d	%d	%d)\n",  mode, RUN_FULL_HMM, RUN_RANDOM_HMM,RUN_BEST_HIT_HMM );
-				break;
-		}*/
-		rc = pthread_create(&threads[t], &attr, do_baum_welch_thread, (void *) &thread_data[t]);
+		}
+		
+		
+		
 		if (rc) {
 			fprintf(stderr,"ERROR; return code from pthread_create() is %d\n", rc);
 			exit(-1);
@@ -336,7 +279,7 @@ struct model_bag* run_pHMM(struct model_bag* mb,struct read_info** ri,struct par
 			mb->model[i] = copy_estimated_parameter(mb->model[i], thread_data[t].mb->model[i]);
 		}
 	}
-	fprintf(stderr,"got here...\n");
+	//fprintf(stderr,"got here...\n");
 	
 	for(t = 0;t < param->num_threads;t++) {
 		free_model_bag(thread_data[t].mb);
@@ -347,12 +290,11 @@ struct model_bag* run_pHMM(struct model_bag* mb,struct read_info** ri,struct par
 }
 
 
-void* do_baum_welch_thread(void *threadarg)
+void* do_label_thread(void *threadarg)
 {
 	struct thread_data *data;
 	data = (struct thread_data *) threadarg;
 	
-	//struct parameters* param = data->param;
 	struct read_info** ri  = data->ri;
 	struct model_bag* mb = data->mb;
 	
@@ -361,9 +303,27 @@ void* do_baum_welch_thread(void *threadarg)
 	int i;
 	
 	for(i = start; i < end;i++){
-		fprintf(stderr,"%d-%d	%d\n",start, end, i);
 		mb = backward(mb, ri[i]->seq ,ri[i]->len);
-		//fprintf(stderr,"GAGA\n");
+		mb = forward_max_posterior_decoding(mb, ri[i]);
+	}
+	pthread_exit((void *) 0);
+}
+
+
+void* do_baum_welch_thread(void *threadarg)
+{
+	struct thread_data *data;
+	data = (struct thread_data *) threadarg;
+	
+	struct read_info** ri  = data->ri;
+	struct model_bag* mb = data->mb;
+	
+	int start = data->start;
+	int end = data->end;
+	int i;
+	
+	for(i = start; i < end;i++){
+		mb = backward(mb, ri[i]->seq ,ri[i]->len);
 		mb = forward_extract_posteriors(mb, ri[i]->seq ,ri[i]->len);
 	}
 	pthread_exit((void *) 0);
@@ -498,9 +458,9 @@ struct model_bag* backward(struct model_bag* mb, char* a, int len)
 	}
 	
 	mb->b_score = mb->model[0]->silent_backward[1];
-	fprintf(stderr,"SCore:%f	%f\n", mb->b_score , scaledprob2prob(mb->b_score) );
+	//fprintf(stderr,"SCore:%f	%f\n", mb->b_score , scaledprob2prob(mb->b_score) );
 	
-	fprintf(stderr," BACKWARD:::::::::::\n");
+	//fprintf(stderr," BACKWARD:::::::::::\n");
 	
 	/*for(j = 0; j < mb->num_models;j++){
 		for(i = 0; i <= len;i++){
@@ -898,15 +858,17 @@ struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, int 
 	
 	mb->f_score = mb->model[mb->num_models-1]->silent_forward[len];
 	
-	fprintf(stderr,"SCORE:%f	%f\n", mb->f_score, scaledprob2prob(mb->f_score));
+	//fprintf(stderr,"SCORE:%f	%f\n", mb->f_score, scaledprob2prob(mb->f_score));
 	return mb;
 }
 
 
 
-struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, char* a, int len)
+struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct read_info* ri)
 {
 	
+	char* a = ri->seq;
+	int len = ri->len;
 	int i,j,c;
 	int f,g;
 	
@@ -955,6 +917,7 @@ struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, char* a, 
 	
 	for(i = 0; i <= len;i++){
 		for(j = 0; j < mb->total_hmm_num;j++){
+			
 			mb->dyn_prog_matrix[i][j] = prob2scaledprob(0.0f);
 			mb->path[i][j] = -1;
 		}
@@ -988,7 +951,7 @@ struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, char* a, 
 		}
 		for(f = 0;f < mb->model[j]->num_hmms;f++){
 			
-			fprintf(stderr," %d %d %d\n", j , f, hmm_counter);
+			//fprintf(stderr," %d %d %d\n", j , f, hmm_counter);
 			hmm = mb->model[j]->hmms[f];
 			for(i = 1; i <= len;i++){
 				c = seqa[i];
@@ -1108,12 +1071,12 @@ struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, char* a, 
 	mb->f_score = mb->model[mb->num_models-1]->silent_forward[len];
 	
 	for(i = 0; i <= len;i++){
-		fprintf(stderr,"%d ",i);
+	//	fprintf(stderr,"%d ",i);
 		for(j = 0; j < mb->total_hmm_num;j++){
-			fprintf(stderr,"%0.3f ",scaledprob2prob( mb->dyn_prog_matrix[i][j]));
+	//		fprintf(stderr,"%0.3f ",scaledprob2prob( mb->dyn_prog_matrix[i][j]));
 			mb->dyn_prog_matrix[i][j] = scaledprob2prob( mb->dyn_prog_matrix[i][j]);
 		}
-		fprintf(stderr,"\n");
+	//	fprintf(stderr,"\n");
 	}
 	
 	float max = 0;
@@ -1130,14 +1093,19 @@ struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, char* a, 
 					move = c;
 					max = tmp;
 				}
-			
+				if(tmp == max && c == j){
+					move = c;
+					max = tmp;
+				}
+				
 			//	fprintf(stderr,"%0.3f ",scaledprob2prob( mb->dyn_prog_matrix[i][j]));
 			}
+			
 			mb->dyn_prog_matrix[i][j]+= max;
 			mb->path[i][j] = move;
 		}
 	}
-	fprintf(stderr,"MATRIX:\n");
+	/*fprintf(stderr,"MATRIX:\n");
 	for(i = 0; i <= len;i++){
 		fprintf(stderr,"%d ",i);
 		for(j = 0; j < mb->total_hmm_num;j++){
@@ -1155,8 +1123,8 @@ struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, char* a, 
 		}
 		fprintf(stderr,"\n");
 	}
-	
-	char path[100];
+	*/
+	//char path[100];
 	
 	i = len;
 	max = -1;
@@ -1168,21 +1136,24 @@ struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, char* a, 
 	}
 	
 	for(i = 0; i <= len;i++){
-		path[i] = 0;
+		ri->labels[i] = 0;
+		
+		//path[i] = 0;
 		//fprintf(stderr,"%d %d\n",i, path[i]);
 	}
 	
-	path[len] = move;
-	
+	//path[len] = move;
+	ri->labels[len] = move;
 	
 	for(i = len ;i > 0;i--){
 		move = mb->path[i][move];
-		path[i-1] = move;
+	//	path[i-1] = move;
+		ri->labels[i-1] = move;
 	}
 	
-	for(i = 0; i <= len;i++){
-		fprintf(stderr,"%d %d\n",i, (int)path[i]);
-	}
+	//for(i = 0; i <= len;i++){
+	//	fprintf(stderr,"%d %d\n",i, (int)path[i]);
+	//}
 	
 	
 	
@@ -1190,7 +1161,8 @@ struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, char* a, 
 	
 	
 	
-	fprintf(stderr,"SCORE:%f	%f\n", mb->f_score, scaledprob2prob(mb->f_score));
+	//fprintf(stderr,"SCORE:%f	%f\n", mb->f_score, scaledprob2prob(mb->f_score));
+	///exit(0);
 	return mb;
 }
 
@@ -1400,10 +1372,6 @@ struct model* init_model_according_to_read_structure(struct model* model,struct 
 	model->skip = prob2scaledprob(0.0f);
 	model->skip_e = prob2scaledprob(0.0f);
 	
-	
-	model->random_next = prob2scaledprob(0.0);
-	model->random_self = prob2scaledprob(0.0);
-	
 	if(rs->type[key] == 'B'){// barcodes all have same length & equal prior probability... 
 		for(i = 0 ; i < model->num_hmms;i++){
 			model->silent_to_M[i] = prob2scaledprob(1.0 / (float) model->num_hmms);
@@ -1424,6 +1392,16 @@ struct model* init_model_according_to_read_structure(struct model* model,struct 
 		}
 		model->skip = prob2scaledprob(0.0);
 	}
+	
+	
+	if(rs->type[key] == 'S'){// fingerprint all have same length & equal prior probability... (of course we specify 1 with NNNNNNNN
+		for(i = 0 ; i < model->num_hmms;i++){
+			model->silent_to_M[i] = prob2scaledprob(1.0 / (float) model->num_hmms);
+			model->M_to_silent[i] = prob2scaledprob(1.0);
+		}
+		model->skip = prob2scaledprob(0.0);
+	}
+
 		
 	if(rs->type[key] == 'O'){ // optional - like a G, GG or GGG priot probability set to 0.5  - assume length 2 for now,
 		len = model->hmms[0]->num_columns;
@@ -1521,7 +1499,7 @@ void print_model(struct model* model)
 	int len;
 	float sum = 0;
 	struct hmm_column* col =0;
-	fprintf(stderr,"Skip:%f Self:%f Next:%f\n",scaledprob2prob(model->skip), scaledprob2prob(model->random_self) , scaledprob2prob(model->random_next));
+	//fprintf(stderr,"Skip:%f Self:%f Next:%f\n",scaledprob2prob(model->skip), scaledprob2prob(model->random_self) , scaledprob2prob(model->random_next));
 	for(i = 0; i < model->num_hmms;i++){
 		fprintf(stderr,"HMM%d:		(get there:%f)\n",i, scaledprob2prob(model->silent_to_M[i]));
 		
@@ -2006,6 +1984,14 @@ struct model* reestimate(struct model* m, int mode)
 		}
 	
 		m->skip = logsum(m->skip_e ,prob2scaledprob(1.0)) - sum;
+		
+		//clear counts.... 
+		for(i = 0; i < m->num_hmms;i++){
+			m->silent_to_I_e[i] = prob2scaledprob(0.0);
+			m->silent_to_M_e[i] = prob2scaledprob(0.0);
+		}
+		m->skip_e = prob2scaledprob(0.0);
+		
 	}
 	
 	
@@ -2033,6 +2019,11 @@ struct model* reestimate(struct model* m, int mode)
 				m_col->i_emit[c] = logsum(m_col->i_emit_e[c] , prob2scaledprob(1.0f)) - sum;
 			}
 			
+			for(c = 0; c< 5;c++){
+				m_col->i_emit_e[c] =  prob2scaledprob(0.0f);
+			}
+			
+			
 			sum = prob2scaledprob(0.0f);
 			
 			for(c = 0; c< 5;c++){
@@ -2042,6 +2033,12 @@ struct model* reestimate(struct model* m, int mode)
 			for(c = 0; c< 5;c++){
 				m_col->m_emit[c] = logsum(m_col->m_emit_e[c] , prob2scaledprob(1.0f)) - sum;
 			}
+			
+			for(c = 0; c< 5;c++){
+				m_col->m_emit_e[c] =  prob2scaledprob(0.0f);
+			}
+
+			
 			// internal hmm states...
 			if(j != m->hmms[0]->num_columns-1){
 				sum = prob2scaledprob(0.0f);
@@ -2097,6 +2094,13 @@ struct model* reestimate(struct model* m, int mode)
 				m_col->short_transition[DM] = prob2scaledprob(0.0);//  m_col->short_transition_e[DM] + prob2scaledprob(1.0) - sum;
 				
 				
+			}
+			
+			m->I_to_silent_e[i] = prob2scaledprob(0.0);
+			m->M_to_silent_e[i] = prob2scaledprob(0.0);
+			
+			for(c = 0; c< 7;c++){
+				m_col->short_transition_e[c] =  prob2scaledprob(0.0f);
 			}
 		}
 	}

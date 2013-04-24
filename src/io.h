@@ -25,14 +25,15 @@ struct read_info{
 	char* name;
 	char* qual;
 	char* seq;
+	char* labels;
 	unsigned int* strand;
 	unsigned int* hits;
 	char* cigar;
 	char* md;
 	char* xp;
 	float mapq;
-	float* priors;
-	float* identity;
+	//float* priors;
+	//float* identity;
 	int read_start;
 	int read_end;
 	int len;

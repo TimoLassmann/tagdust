@@ -41,6 +41,9 @@
 
 #define MAX_NUM_SUB_MODELS 64
 
+#define MODE_GET_LABEL 1
+#define MODE_TRAIN 2
+
 
 struct hmm_column{
 	float M_foward[MAX_HMM_SEQ_LEN];
@@ -96,8 +99,8 @@ struct model{
 	
 	float silent_forward[MAX_HMM_SEQ_LEN];
 	float silent_backward[MAX_HMM_SEQ_LEN];
-	float random_next;
-	float random_self;
+	//float random_next;
+	//float random_self;
 	float skip;
 	float skip_e;
 	int average_length;
@@ -147,7 +150,8 @@ void print_model(struct model* model);
 struct model_bag* forward(struct model_bag* mb, char* a, int len);
 struct model_bag* backward (struct model_bag* mb, char* a, int len);
 struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, int len);
-struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, char* a, int len);
+//struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, char* a, int len);
+struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct read_info* ri);
 
 struct model_bag* copy_model_bag(struct model_bag* org);
 struct model_bag* init_model_bag(struct parameters* param,float* back);
@@ -158,6 +162,7 @@ void free_model_bag(struct model_bag* mb);
 
 struct model_bag* run_pHMM(struct model_bag* mb,struct read_info** ri,struct parameters* param,int numseq, int mode);
 void* do_baum_welch_thread(void *threadarg);
+void* do_label_thread(void *threadarg);
 #endif
 
 
