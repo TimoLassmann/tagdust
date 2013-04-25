@@ -32,6 +32,7 @@ struct read_info{
 	char* md;
 	char* xp;
 	float mapq;
+	float prob;
 	//float* priors;
 	//float* identity;
 	int read_start;
