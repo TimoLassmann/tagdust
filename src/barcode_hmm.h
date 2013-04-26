@@ -32,6 +32,9 @@
 #define DD 5
 #define DM 6
 
+#define MSKIP 7
+#define ISKIP 8
+
 
 #define SELF 0
 #define NEXT 1
@@ -55,11 +58,8 @@ struct hmm_column{
 	float D_foward[MAX_HMM_SEQ_LEN];
 	float D_backward[MAX_HMM_SEQ_LEN];
 	
-	//float long_transition[MAX_NUM_SUB_MODELS];
-	//float long_transition_e[MAX_NUM_SUB_MODELS];
-	
-	float short_transition[8];
-	float short_transition_e[8];
+	float transition[9];
+	float transition_e[9];
 	
 	float m_emit[5];
 	float i_emit[5];
@@ -80,20 +80,20 @@ struct model{
 	float background_nuc_frequency[5];
 	float* silent_to_M;
 	
-	float* M_to_silent;
+	//float* M_to_silent;
 	
 	float* silent_to_I;
 	
-	float* I_to_silent;
+	//float* I_to_silent;
 	
 	
 	float* silent_to_M_e;
 	
-	float* M_to_silent_e;
+	//float* M_to_silent_e;
 	
 	float* silent_to_I_e;
 	
-	float* I_to_silent_e;
+	//float* I_to_silent_e;
 
 	
 	

@@ -57,10 +57,12 @@ struct parameters {
 	char* train;
 	int gzipped;
 	int sam;
+	int fasta;
 	float sequencer_error_rate;
 	float indel_frequency;
 	int average_read_length;
 	int num_threads;
+	float confidence_threshold; 
 };
 
 struct parameters* interface(struct parameters* param,int argc, char *argv[]);

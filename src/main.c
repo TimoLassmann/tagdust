@@ -103,6 +103,8 @@ int main (int argc,char * argv[]) {
 		//}else if (byg_end(".fa", param->infile[i])  == strlen(param->infile[i])){
 		}else if (!strcmp(".fa", param->infile[i] + (strlen(param->infile[i] ) - 3))){
 			param->sam = 0;
+			param->fasta = 1;
+			//fprintf(stderr,"Fasta format no longer supported... ");
 		//}else if (byg_end(".fq", param->infile[i])  == strlen(param->infile[i])){
 		}else if (!strcmp(".fq", param->infile[i] + (strlen(param->infile[i] ) - 3))){
 			param->sam = 0;
@@ -115,6 +117,7 @@ int main (int argc,char * argv[]) {
 		//}else if (byg_end(".fasta", param->infile[i])  == strlen(param->infile[i])){
 		}else if (!strcmp(".fasta", param->infile[i] + (strlen(param->infile[i] ) - 6))){
 			param->sam = 0;
+			param->fasta = 1;
 		}else if(!strcmp(".sam.gz", param->infile[i] + (strlen(param->infile[i] ) - 7))){
 			param->sam = 1;
 			param->gzipped  = 1;
@@ -125,6 +128,7 @@ int main (int argc,char * argv[]) {
 			//}else if (byg_end(".fa", param->infile[i])  == strlen(param->infile[i])){
 		}else if (!strcmp(".fa.gz", param->infile[i] + (strlen(param->infile[i] ) - 6))){
 			param->sam = 0;
+			param->fasta = 1;
 			param->gzipped  = 1;
 			//}else if (byg_end(".fq", param->infile[i])  == strlen(param->infile[i])){
 		}else if (!strcmp(".fq.gz", param->infile[i] + (strlen(param->infile[i] ) - 6))){

@@ -21,6 +21,8 @@
 
 #define LIST_STORE_SIZE 1
 
+#include "barcode_hmm.h"
+
 struct read_info{
 	char* name;
 	char* qual;
@@ -35,8 +37,8 @@ struct read_info{
 	float prob;
 	//float* priors;
 	//float* identity;
-	int read_start;
-	int read_end;
+	//int read_start;
+	//int read_end;
 	int len;
 	int errors;
 };
@@ -47,4 +49,4 @@ void print_seq(struct read_info* ri,FILE* out);
 int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file);
 int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file);
 
-
+int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  struct read_info* ri,FILE* out);

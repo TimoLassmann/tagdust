@@ -49,29 +49,28 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->gzipped = 0;
 	param->sam = 0;
 	param->train = 0;
+	param->fasta = 0;
 	
 	param->sequencer_error_rate = 0.01f;
-	param->indel_frequency = 0.1f;
+	param->indel_frequency = 0.0f;
 	param->average_read_length = 50;
+	
+	param->confidence_threshold = 0.99;//ence
 	
 	param->read_structure = 0;
 	
 	param->read_structure = malloc(sizeof(struct read_structure));
 	assert(param->read_structure !=0);
-	param->read_structure->sequence_matrix = malloc(sizeof(char**) * 5 );
+	param->read_structure->sequence_matrix = malloc(sizeof(char**) * 10 );
 	assert(param->read_structure->sequence_matrix !=0);
 	
-	
-	param->read_structure->numseq_in_segment  = malloc(sizeof(int) * 5);
+	param->read_structure->numseq_in_segment  = malloc(sizeof(int) * 10);
 	assert(param->read_structure->numseq_in_segment !=0);
-	param->read_structure->type = malloc(sizeof(char) * 5 );
-	
-	
+	param->read_structure->type = malloc(sizeof(char) * 10 );
 	
 	assert(param->read_structure->type !=0);
 	
-	
-	for(i = 0;i  <5;i++){
+	for(i = 0;i  <10;i++){
 		param->read_structure->sequence_matrix[i] = 0;
 		param->read_structure->numseq_in_segment[i] = 0;
 		param->read_structure->type[i] = 0;
@@ -95,14 +94,17 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			{"10",required_argument,0, OPT_SEG10},
 			{"train",required_argument,0, OPT_TRAIN},
 			{"format",required_argument,0, OPT_FORMAT},
+			//{"format",required_argument,0, OPT_FORMAT},
+			
 			{"filter",required_argument,0, 'f'},
+			
 			{"quiet",0,0,'q'},
 			{"help",0,0,'h'},
 			{0, 0, 0, 0}
 		};
 		
 		int option_index = 0;
-		c = getopt_long_only (argc, argv,"qhf:t:",long_options, &option_index);
+		c = getopt_long_only (argc, argv,"p:qhf:t:",long_options, &option_index);
 		
 		if (c == -1){
 			break;
@@ -150,6 +152,8 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			case 'f':
 				param->filter = optarg;
 				break;
+				
+		
 			case 't':
 				param->num_threads = atoi(optarg);
 				break;
@@ -169,7 +173,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	}
 	//fprintf(stderr,"Viterbi: %d\n",param->viterbi);
 	
-	for(i = 0; i < 5;i++){
+	for(i = 0; i < 10;i++){
 		if(param->read_structure->sequence_matrix[i]){
 			//serious checking...
 			for(g = 0;g < param->read_structure->numseq_in_segment[i];g++){
@@ -219,7 +223,7 @@ struct parameters* assign_segment_sequences(struct parameters* param, char* tmp,
 	int count;
 	//tmp = optarg;
 	count = byg_count(",", tmp);
-	//fprintf(stderr,"Segment %d: %d	sequences\n",segment,count+1);
+	fprintf(stderr,"Segment %d: %d	sequences\n",segment,count+1);
 	param->read_structure->numseq_in_segment[segment] = count+1;
 	param->read_structure->sequence_matrix[segment] = malloc(sizeof(char*) * (count+1));
 	assert(param->read_structure->sequence_matrix[segment] !=0);

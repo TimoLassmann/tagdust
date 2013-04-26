@@ -25,7 +25,9 @@
 #include "interface.h"
 #include "nuc_code.h"
 #include "misc.h"
+
 #include "io.h"
+
 #include "tagdust2.h"
 
 FILE* io_handler(FILE* file, int file_num,struct parameters* param)
@@ -48,7 +50,7 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 		fprintf(stderr,"Cannot find gzcat / zcat on your system. Try gzcat <infile> | samstat -f sam/bam/fa/fq\n");
 		exit(-1);
 	}
-	//fprintf(stderr,"%d	%d	%s\n",sam,file_num,param->infile[file_num]);
+	//fprintf(stderr,"%d	%d	%d	%s\n",param->sam,param->gzipped ,file_num,param->infile[file_num]);
 	if(file_num == -1){
 		if(param->sam == 2){
 			command[0] = 0;
@@ -159,13 +161,155 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 				exit(-1);
 			}
 		}else{
-			if (!(file = fopen(param->infile[file_num] , "r" ))){
-				fprintf(stderr,"Cannot open sam file '%s'\n",param->infile[file_num]);
+			command[0] = 0;
+			if(param->gzipped){
+				if(gzcat == 1){
+					strcat ( command, "gzcat ");
+				}else{
+					strcat ( command, "zcat ");
+				}
+			}else{
+				strcat ( command, "cat ");
+			}
+			i = sprintf (tmp, "%s ", param->infile[file_num]);
+			strcat ( command, tmp);
+			//fprintf(stderr,"%s\n", command);
+			if (!(file = popen(command, "r"))) {
+				fprintf(stderr,"Cannot open bam file '%s' with command:%s\n",param->infile[file_num],command);
 				exit(-1);
 			}
+			//if (!(file = fopen(param->infile[file_num] , "r" ))){
+			//	fprintf(stderr,"Cannot open sam file '%s'\n",param->infile[file_num]);
+			//	exit(-1);
+			//}
 		}
 	}
 	return file;
+}
+
+
+int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  struct read_info* ri,FILE* out)
+{
+	int j,c1,c2,c3,key,bar,mem,fingerlen,required_finger_len,ret;
+	char alpha[5] = "ACGTN";
+	key = 0;
+	bar = -1;
+	mem = -1;
+	ret = 0;
+	if(param->confidence_threshold <=  expf( ri->prob) / (1.0f + expf(ri->prob ))){
+		fingerlen = 0;
+		required_finger_len = -1;
+		
+		for(j = 0; j < ri->len;j++){
+			c1 = mb->label[(int)ri->labels[j+1]];
+			c2 = c1 & 0xFFFF;
+			c3 = (c1 >> 16) & 0x7FFF;
+			//fprintf(stderr,"%c",   param->read_structure->type[c2] );
+			if(param->read_structure->type[c2] == 'F'){
+				required_finger_len = (int) strlen(param->read_structure->sequence_matrix[c2][0]);
+				fingerlen++;
+				key = (key << 2 )|  (ri->seq[j] & 0x3);
+			}
+			
+		}
+		
+		
+		
+		for(j = 0; j < ri->len;j++){
+			c1 = mb->label[(int)ri->labels[j+1]];
+			c2 = c1 & 0xFFFF;
+			c3 = (c1 >> 16) & 0x7FFF;
+			//fprintf(stderr,"%d", c3   );
+			if(param->read_structure->type[c2] == 'B'){
+				bar = c3;
+				mem = c2;
+			}
+		}
+		if(fingerlen == required_finger_len && bar != -1){
+			ret = 1;
+			fprintf(out,"@%s	BAR:%s		Finger:%d\n",ri->name,param->read_structure->sequence_matrix[mem][bar],key);
+			for(j = 0; j < ri->len;j++){
+				c1 = mb->label[(int)ri->labels[j+1]];
+				c2 = c1 & 0xFFFF;
+				c3 = (c1 >> 16) & 0x7FFF;
+				//fprintf(stderr,"%c",   param->read_structure->type[c2] );
+				if(param->read_structure->type[c2] == 'R'){
+					fprintf(out,"%c",  alpha[(int)ri->seq[j]] );
+					//key = (key << 2 )|  (ri->seq[j] & 0x3);
+				}
+				
+			}
+			fprintf(out,"\n+\n");
+			if(ri->qual){
+				for(j = 0; j < ri->len;j++){
+					c1 = mb->label[(int)ri->labels[j+1]];
+					c2 = c1 & 0xFFFF;
+					c3 = (c1 >> 16) & 0x7FFF;
+					//fprintf(stderr,"%c",   param->read_structure->type[c2] );
+					if(param->read_structure->type[c2] == 'R'){
+						fprintf(out,"%c",  ri->qual[j] );
+						//key = (key << 2 )|  (ri->seq[j] & 0x3);
+					}
+					
+				}
+			}else{
+				for(j = 0; j < ri->len;j++){
+					c1 = mb->label[(int)ri->labels[j+1]];
+					c2 = c1 & 0xFFFF;
+					c3 = (c1 >> 16) & 0x7FFF;
+					//fprintf(stderr,"%c",   param->read_structure->type[c2] );
+					if(param->read_structure->type[c2] == 'R'){
+						fprintf(out,"%c",  '.');
+						//key = (key << 2 )|  (ri->seq[j] & 0x3);
+					}
+					
+				}
+				
+			}
+			fprintf(out,"\n");
+
+		}
+		
+	}//else{
+	//	ret = 0;
+		//discard....
+	//}
+	/*
+	fprintf(stderr,"%f	%f\n",  expf( ri->prob) / (1.0 + expf(ri->prob )) ,ri->prob);
+	
+	
+	fprintf(stderr,"%s\n", ri->name);
+	for(j = 0; j < ri->len;j++){
+		c1 = mb->label[(int)ri->labels[j+1]];
+		c2 = c1 & 0xFFFF;
+		c3 = (c1 >> 16) & 0x7FFF;
+		fprintf(stderr,"%c",  alpha[(int)ri->seq[j]] );
+	}
+	fprintf(stderr,"\n");
+	for(j = 0; j < ri->len;j++){
+		c1 = mb->label[(int)ri->labels[j+1]];
+		c2 = c1 & 0xFFFF;
+		c3 = (c1 >> 16) & 0x7FFF;
+		fprintf(stderr,"%c",   param->read_structure->type[c2] );
+		if(param->read_structure->type[c2] == 'F'){
+			key = (key << 2 )|  (ri->seq[j] & 0x3);
+		}
+		
+	}
+	fprintf(stderr,"	key = %d\n",key);
+	
+	for(j = 0; j < ri->len;j++){
+		c1 = mb->label[(int)ri->labels[j+1]];
+		c2 = c1 & 0xFFFF;
+		c3 = (c1 >> 16) & 0x7FFF;
+		fprintf(stderr,"%d", c3   );
+		if(param->read_structure->type[c2] == 'B'){
+			bar = c3;
+			mem = c2;
+		}
+	}
+	fprintf(stderr,"	bar= %d (%s)\n",bar,   param->read_structure->sequence_matrix[mem][bar] );*/
+	return ret;
 }
 
 
@@ -244,8 +388,8 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file)
 		ri[i]->cigar = 0;
 		ri[i]->md = 0;
 		ri[i]->xp = 0;
-		ri[i]->read_start = -1;
-		ri[i]->read_end = -1;
+		//ri[i]->read_start = -1;
+		//ri[i]->read_end = -1;
 		
 	}
 	
@@ -477,8 +621,8 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
 		ri[i]->xp = 0;
 		ri[i]->cigar = 0;
 		ri[i]->errors = 0;
-		ri[i]->read_start = -1;
-		ri[i]->read_end = -1;
+		//ri[i]->read_start = -1;
+		//ri[i]->read_end = -1;
 		//ri[i]->strand = 0;
 	}
 	
@@ -486,12 +630,12 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
 		if((line[0] == '@' && !set)|| (line[0] == '>' && !set)){
 			//set sequence length of previous read
 			
-			//check if there is still space.... 
-			if(param->num_query == size){
-				fseek (file , -  strlen(line) , SEEK_CUR);
+			//check if there is still space....
+			//if(param->num_query == size){
+			//	fseek (file , -  strlen(line) , SEEK_CUR);
 				
-				return size;
-			}
+			//	return size;
+			//}
 			park_pos++;
 			len = 0;
 			seq_p = 1;
@@ -569,6 +713,15 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
 				}
 			}
 			set = 0;
+		}
+		if(param->num_query == size ){//here I know I am in the last entry AND filled the quality...
+			if(!param->fasta && ri[park_pos]->qual){
+				return size;
+			}
+			if(param->fasta && ri[park_pos]->seq){
+			   
+				return size;
+			}
 		}
 	}
 	return size;
