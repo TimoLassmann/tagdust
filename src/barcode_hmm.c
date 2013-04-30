@@ -76,10 +76,20 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	
 	while ((numseq = fp(ri, param,file)) != 0){
 		//fprintf(stderr,"rread: %d\n",numseq);
-		for(i = 0; i < numseq;i++){
-			average_length += ri[i]->len;
-			for(j = 0;j < ri[i]->len;j++){
-				back[(int)ri[i]->seq[j]] += 1.0f;
+		
+		if(param->matchstart!= -1 || param->matchend !=-1){
+			for(i = 0; i < numseq;i++){
+				average_length += param->matchend - param->matchstart;
+				for(j = param->matchstart;j < param->matchend;j++){
+					back[(int)ri[i]->seq[j]] += 1.0f;
+				}
+			}
+		}else{
+			for(i = 0; i < numseq;i++){
+				average_length += ri[i]->len;
+				for(j = 0;j < ri[i]->len;j++){
+					back[(int)ri[i]->seq[j]] += 1.0f;
+				}
 			}
 		}
 		total_read += numseq;
@@ -136,6 +146,7 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	*/
 
 	if(!param->train ){
+	
 	}else if( !strcmp( param->train , "full")){
 		for(i = 0; i < 10;i++){
 			fprintf(stderr,"Iteration %d\n",i);
@@ -189,7 +200,8 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	pclose(file);
 	file =  io_handler(file, file_num,param);
 	//rewind(file);
-	
+	//int key,bar,c1,c2,c3,mem;
+	//char alpha[5] = "ACGTN";
 	total_read = 0;
 	success = 0;
 	while ((numseq = fp(ri, param,file)) != 0){
@@ -200,11 +212,11 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		for(i = 0; i < numseq;i++){
 			success += print_trimmed_sequence(mb, param,  ri[i],stdout);
 			
-			/*
-			key = 0;
+			
+			/*key = 0;
 			bar = -1;
 			mem = -1;
-			if( expf( ri[i]->prob) / (1.0 + expf(ri[i]->prob )) < 0.5){
+			//if( expf( ri[i]->prob) / (1.0 + expf(ri[i]->prob )) < 0.5){
 			fprintf(stderr,"%f	%f\n",  expf( ri[i]->prob) / (1.0 + expf(ri[i]->prob )) ,ri[i]->prob);
 			
 			
@@ -238,11 +250,13 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 					mem = c2;
 				}
 			}
-			fprintf(stderr,"	bar= %d (%s)\n",bar,   param->read_structure->sequence_matrix[mem][bar] );
-			}
-			//	if(i == 1000){
-			//	exit(0);
-			//}*/
+				fprintf(stderr,"\n");
+			//	bar = 1;
+			//fprintf(stderr,"	bar= %d (%s)\n",bar,   param->read_structure->sequence_matrix[mem][bar] );
+			//}
+				if(i == 1000){
+				exit(0);
+			}*/
 		}
 		fprintf(stderr,"%0.1f%% extracted (%d read so far...)\n",  (float) success / (float) total_read  *100.0f,total_read);
 	}
@@ -380,14 +394,32 @@ void* do_label_thread(void *threadarg)
 	struct read_info** ri  = data->ri;
 	struct model_bag* mb = data->mb;
 	
+	int matchstart = data->param->matchstart;
+	int matchend = data->param->matchend;
+	
 	int start = data->start;
 	int end = data->end;
 	int i;
+	int tmp = 0;
 	
-	for(i = start; i < end;i++){
-		mb = backward(mb, ri[i]->seq ,ri[i]->len);
-		//mb = forward(mb,  ri[i]->seq ,ri[i]->len);
-		mb = forward_max_posterior_decoding(mb, ri[i]);
+	if(matchstart != -1 || matchend != -1){
+		for(i = start; i < end;i++){
+			tmp = matchend - matchstart ;
+			
+			
+			
+			mb = backward(mb, ri[i]->seq + matchstart , tmp);
+			//mb = forward(mb,  ri[i]->seq ,ri[i]->len);
+			mb = forward_max_posterior_decoding(mb, ri[i] , ri[i]->seq+matchstart ,tmp );
+			
+		}
+	}else{
+		for(i = start; i < end;i++){
+			mb = backward(mb, ri[i]->seq ,ri[i]->len);
+			//mb = forward(mb,  ri[i]->seq ,ri[i]->len);
+			mb = forward_max_posterior_decoding(mb, ri[i], ri[i]->seq ,ri[i]->len);
+		
+		}
 	}
 	pthread_exit((void *) 0);
 }
@@ -991,11 +1023,11 @@ struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, int 
 
 
 
-struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct read_info* ri)
+struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct read_info* ri, char* a, int len)
 {
 	
-	char* a = ri->seq;
-	int len = ri->len;
+	//char* a = ri->seq;
+	//int len = ri->len;
 	int i,j,c;
 	int f,g;
 	

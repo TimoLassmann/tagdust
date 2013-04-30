@@ -151,7 +151,7 @@ int main (int argc,char * argv[]) {
 		}
 		//fprintf(stdout,"Loking at on:%s	%d\n",param->infile[i],sam);
 		if(param->sam != -1){
-			fprintf(stdout,"Working on:%s\n",param->infile[i]);
+			//fprintf(stdout,"Working on:%s\n",param->infile[i]);
 			if(param->sam == 0){
 				hmm_controller(param,&read_fasta_fastq,i);
 				//pst_tree (param,&read_fasta_fastq,i);

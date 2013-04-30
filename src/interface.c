@@ -50,6 +50,8 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->sam = 0;
 	param->train = 0;
 	param->fasta = 0;
+	param->matchstart = -1;
+	param->matchend = -1;
 	
 	param->sequencer_error_rate = 0.01f;
 	param->indel_frequency = 0.0f;
@@ -94,6 +96,9 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			{"10",required_argument,0, OPT_SEG10},
 			{"train",required_argument,0, OPT_TRAIN},
 			{"format",required_argument,0, OPT_FORMAT},
+			{"start",required_argument,0, OPT_START},
+			{"end",required_argument,0, OPT_END},
+
 			//{"format",required_argument,0, OPT_FORMAT},
 			
 			{"filter",required_argument,0, 'f'},
@@ -149,6 +154,12 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			case OPT_FORMAT:
 				param->format = optarg;
 				break;
+			case OPT_START:
+				param->matchstart = atoi(optarg)-1;
+				break;
+			case OPT_END:
+				param->matchend = atoi(optarg);
+				break;
 			case 'f':
 				param->filter = optarg;
 				break;
@@ -171,6 +182,8 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 				abort ();
 		}
 	}
+	
+	//if(param->matchstart)
 	//fprintf(stderr,"Viterbi: %d\n",param->viterbi);
 	
 	for(i = 0; i < 10;i++){

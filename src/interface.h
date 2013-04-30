@@ -37,6 +37,8 @@
 #define OPT_SEG10 10
 #define OPT_TRAIN 11
 #define OPT_FORMAT 12
+#define OPT_START 13
+#define OPT_END 14
 
 struct read_structure{
 	char*** sequence_matrix;
@@ -62,7 +64,9 @@ struct parameters {
 	float indel_frequency;
 	int average_read_length;
 	int num_threads;
-	float confidence_threshold; 
+	float confidence_threshold;
+	int matchstart;
+	int matchend;
 };
 
 struct parameters* interface(struct parameters* param,int argc, char *argv[]);

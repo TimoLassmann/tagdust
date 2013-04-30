@@ -151,7 +151,7 @@ struct model_bag* forward(struct model_bag* mb, char* a, int len);
 struct model_bag* backward (struct model_bag* mb, char* a, int len);
 struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, int len);
 //struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, char* a, int len);
-struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct read_info* ri);
+struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct read_info* ri, char* a, int len);
 
 struct model_bag* copy_model_bag(struct model_bag* org);
 struct model_bag* init_model_bag(struct parameters* param,float* back);
