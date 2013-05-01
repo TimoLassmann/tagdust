@@ -1056,7 +1056,6 @@ struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct re
 					c_hmm_column->M_foward[i] = prob2scaledprob(0.0);
 					c_hmm_column->I_foward[i] = prob2scaledprob(0.0);
 					c_hmm_column->D_foward[i] = prob2scaledprob(0.0);
-					//fprintf(stderr,"segment:%d	HMM:%d	column:%d	i:%d	%f	%f	%f\n",j,f,g,i, c_hmm_column->M_foward[i] ,c_hmm_column->I_foward[i],c_hmm_column->D_foward[i]    );
 				}
 			}
 		}
@@ -1065,18 +1064,14 @@ struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct re
 		}
 	}
 	
-	//fprintf(stderr,"\n\n\n");
 	mb->model[0]->silent_forward[0] = prob2scaledprob(1.0) + mb->model[0]->skip;
-	//fprintf(stderr,"Init silent states... \n");
-	//fprintf(stderr,"%d	%f\n",0,mb->model[0]->silent_forward[0]   );
+	
 	for(j = 1; j < mb->num_models;j++){
 		mb->model[j]->silent_forward[0] = mb->model[j-1]->silent_forward[0]  + mb->model[j]->skip ;
-		//mb->model[j]->silent_forward[0] = mb->model[j-1]->silent_forward[0]  + mb->model[j-1]->skip ;
 	}
 	
 	for(i = 0; i <= len;i++){
 		for(j = 0; j < mb->total_hmm_num;j++){
-			
 			mb->dyn_prog_matrix[i][j] = prob2scaledprob(0.0f);
 			mb->path[i][j] = -1;
 		}
@@ -1086,8 +1081,6 @@ struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct re
 	
 	
  	for(i = 0; i <= len;i++){
-		
-		
 		next_silent[i] = prob2scaledprob(0.0f);
 		previous_silent[i] = prob2scaledprob(0.0f);
 	}
@@ -1129,7 +1122,7 @@ struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct re
 				//***************post
 				
 				
- 				c_hmm_column->I_foward[i]    =psilent[i-1] + mb->model[j]->silent_to_I[f] ;
+ 				c_hmm_column->I_foward[i] = psilent[i-1] + mb->model[j]->silent_to_I[f] ;
 				
 				
 				
@@ -1137,7 +1130,7 @@ struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct re
 				//add transitions to first columns////
 				c_hmm_column->I_foward[i] = logsum(c_hmm_column->I_foward[i], c_hmm_column->I_foward[i-1] + c_hmm_column->transition[II]);
 				
-				c_hmm_column->I_foward[i]  = logsum ( c_hmm_column->I_foward[i] ,c_hmm_column->M_foward[i-1] + c_hmm_column->transition[MI]);
+				c_hmm_column->I_foward[i] = logsum ( c_hmm_column->I_foward[i] ,c_hmm_column->M_foward[i-1] + c_hmm_column->transition[MI]);
 				
 				c_hmm_column->I_foward[i] = c_hmm_column->I_foward[i] + c_hmm_column->i_emit[c];
 				
@@ -1158,8 +1151,8 @@ struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct re
 				
 				//
 				
-				csilent[i] =  logsum(csilent[i],  c_hmm_column->M_foward[i] +c_hmm_column->transition[MSKIP]);
-				csilent[i] =  logsum(csilent[i],  c_hmm_column->I_foward[i] +c_hmm_column->transition[ISKIP]);
+				csilent[i] =  logsum(csilent[i],  c_hmm_column->M_foward[i] + c_hmm_column->transition[MSKIP]);
+				csilent[i] =  logsum(csilent[i],  c_hmm_column->I_foward[i] + c_hmm_column->transition[ISKIP]);
 
 				
 				for(g = 1;g < hmm->num_columns;g++){
@@ -1303,9 +1296,6 @@ struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct re
 	
 	for(i = 0; i <= len;i++){
 		ri->labels[i] = 0;
-		
-		//path[i] = 0;
-		//fprintf(stderr,"%d %d\n",i, path[i]);
 	}
 	
 	//path[len] = move;
@@ -1316,19 +1306,12 @@ struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct re
 	//	path[i-1] = move;
 		ri->labels[i-1] = move;
 	}
-	
-	//for(i = 0; i <= len;i++){
-	//	fprintf(stderr,"%d %d\n",i, (int)path[i]);
-	//}
+
 	next_silent[0] = prob2scaledprob(1.0);
 	
 	for(i = 1; i <= len;i++){
 		c = seqa[i];
 		next_silent[0] = next_silent[0] + mb->model[0]->background_nuc_frequency[c] + prob2scaledprob(1.0 - (1.0 / (float)len));
-		
-		//fprintf(stderr,"%f	%f	%f\n", next_silent[0] , mb->model[0]->background_nuc_frequency[c] , prob2scaledprob(1.0 - (1.0 / (float)len) ));
-		
-		
 	}
 	next_silent[0] += prob2scaledprob(1.0 / (float)len);
 	

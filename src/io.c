@@ -235,24 +235,17 @@ int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  stru
 			if(param->read_structure->type[c2] == 'R'){
 				out_seq[s_pos] = alpha[(int)ri->seq[j+offset]];
 				s_pos++;
-				
-				//fprintf(out,"%c",  );
-				//key = (key << 2 )|  (ri->seq[j] & 0x3);
-			}
-			
-			if(param->read_structure->type[c2] == 'R'){
 				if(ri->qual){
 					out_qual[q_pos] =  ri->qual[j+offset] ;
-				
+					
 				}else{
 					out_qual[q_pos] = '.';
 				}
 				q_pos++;
-				//fprintf(out,"%c",  ri->qual[j+offset] );
+				
+				//fprintf(out,"%c",  );
 				//key = (key << 2 )|  (ri->seq[j] & 0x3);
-			}
-			
-			
+			}			
 		}
 		for(j = len; j < ri->len;j++){
 			out_seq[s_pos] = alpha[(int)ri->seq[j+offset]];

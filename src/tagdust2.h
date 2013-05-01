@@ -37,9 +37,9 @@
 #define MAX_SEQ_LEN 5000
 #define MAX_LINE 50000
 
-#define MAXERROR 100
-#define VERSION 1.08
-#define KMERLEN 10
+//#define MAXERROR 100
+#define VERSION 2.0
+//#define KMERLEN 10
 
 
 

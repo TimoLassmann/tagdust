@@ -79,28 +79,11 @@ struct model{
 	struct hmm** hmms;
 	float background_nuc_frequency[5];
 	float* silent_to_M;
-	
-	//float* M_to_silent;
-	
 	float* silent_to_I;
-	
-	//float* I_to_silent;
-	
-	
 	float* silent_to_M_e;
-	
-	//float* M_to_silent_e;
-	
 	float* silent_to_I_e;
-	
-	//float* I_to_silent_e;
-
-	
-	
 	float silent_forward[MAX_HMM_SEQ_LEN];
 	float silent_backward[MAX_HMM_SEQ_LEN];
-	//float random_next;
-	//float random_self;
 	float skip;
 	float skip_e;
 	int average_length;
@@ -115,12 +98,8 @@ struct model_bag{
 	int** path;
 	float** dyn_prog_matrix;
 	float** transition_matrix;
-	
 	int* label;
-	
 	int total_hmm_num;
-	
-	
 }_MM_ALIGN16;
 
 struct thread_data{
