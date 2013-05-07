@@ -39,7 +39,8 @@
 #define OPT_FORMAT 12
 #define OPT_START 13
 #define OPT_END 14
-
+#define OPT_MINLEN 15
+\
 struct read_structure{
 	char*** sequence_matrix;
 	int* numseq_in_segment;
@@ -67,6 +68,7 @@ struct parameters {
 	float confidence_threshold;
 	int matchstart;
 	int matchend;
+	int minlen;
 };
 
 struct parameters* interface(struct parameters* param,int argc, char *argv[]);

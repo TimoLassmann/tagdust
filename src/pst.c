@@ -46,7 +46,7 @@ void pst_tree(struct parameters* param,int (*fp)(struct read_info** ,struct para
 		ri[i]->len = 0;
 		ri[i]->cigar = 0;
 		ri[i]->md = 0;
-		ri[i]->xp = 0;
+		//ri[i]->xp = 0;
 		ri[i]->strand = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 		ri[i]->hits = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 		//ri[i]->read_start = -1;
@@ -548,7 +548,7 @@ void pst_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		ri[i]->len = 0;
 		ri[i]->cigar = 0;
 		ri[i]->md = 0;
-		ri[i]->xp = 0;
+		//ri[i]->xp = 0;
 		ri[i]->strand = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 		ri[i]->hits = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 		//ri[i]->read_start = -1;

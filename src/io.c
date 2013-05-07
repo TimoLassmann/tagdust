@@ -203,20 +203,25 @@ int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  stru
 	ret = 0;
 	int offset = 0;
 	int len;
+	int hmm_has_barcode = 0;
 	
 	len = ri->len;
 	if(param->matchstart != -1 || param->matchend != -1){
 		offset = param->matchstart;
-		
 		len = param->matchend - param->matchstart;
-		
+	}
+	required_finger_len = 0;
+	for(j = 0; j < param->read_structure->num_segments;j++){
+		if(param->read_structure->type[j] == 'F'){
+			required_finger_len += (int) strlen(param->read_structure->sequence_matrix[j][0]);
+		}
 	}
 	
 	
 	
 	if(param->confidence_threshold <=  expf( ri->prob) / (1.0f + expf(ri->prob ))){
 		fingerlen = 0;
-		required_finger_len = -1;
+		//required_finger_len = 0;
 		
 		for(j = 0; j < len;j++){
 			c1 = mb->label[(int)ri->labels[j+1]];
@@ -224,11 +229,12 @@ int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  stru
 			c3 = (c1 >> 16) & 0x7FFF;
 			//fprintf(stderr,"%c",   param->read_structure->type[c2] );
 			if(param->read_structure->type[c2] == 'F'){
-				required_finger_len = (int) strlen(param->read_structure->sequence_matrix[c2][0]);
+			//	required_finger_len += (int) strlen(param->read_structure->sequence_matrix[c2][0]);
 				fingerlen++;
 				key = (key << 2 )|  (ri->seq[j+offset] & 0x3);
 			}
 			if(param->read_structure->type[c2] == 'B'){
+				hmm_has_barcode = 1;
 				bar = c3;
 				mem = c2;
 			}
@@ -262,7 +268,7 @@ int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  stru
 		
 		
 		out_seq[s_pos] = 0;
-		out_qual[s_pos] = 0;
+		out_qual[q_pos] = 0;
 		
 		// can add to loop above... 
 		
@@ -273,57 +279,49 @@ int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  stru
 			//fprintf(stderr,"%d", c3   );
 			
 		//}
-		if(fingerlen == required_finger_len && bar != -1){
-			ret = 1;
-			fprintf(out,"@%s	BAR:%s		Finger:%d	P:%f\n",ri->name,param->read_structure->sequence_matrix[mem][bar],key,1.0-expf( ri->prob) / (1.0f + expf(ri->prob )));
-			fprintf(out,"%s\n+\n%s\n", out_seq,out_qual);
-			/*
-			for(j = 0; j < len;j++){
-				c1 = mb->label[(int)ri->labels[j+1]];
-				c2 = c1 & 0xFFFF;
-				c3 = (c1 >> 16) & 0x7FFF;
-				//fprintf(stderr,"%c",   param->read_structure->type[c2] );
-				if(param->read_structure->type[c2] == 'R'){
-					fprintf(out,"%c",  alpha[(int)ri->seq[j+offset]] );
-					//key = (key << 2 )|  (ri->seq[j] & 0x3);
+		
+		//check - has barcode
+		
+		//fprintf(stderr,"%d	%d	%d	%d\n",hmm_has_barcode,required_finger_len, bar,fingerlen );
+		if(s_pos >= param->minlen){
+			
+			if(hmm_has_barcode && required_finger_len){
+				if(fingerlen == required_finger_len && bar != -1){
+					ret = 1;
+					fprintf(out,"@%s BC:%s;FP:%d\n",ri->name,param->read_structure->sequence_matrix[mem][bar],key);
+					fprintf(out,"%s\n+\n%s\n", out_seq,out_qual);
+				}else{
+					ret = -3; // something wrong with the architecture
+				}
+			}else if(hmm_has_barcode){
+				if(bar != -1){
+					ret = 1;
+					fprintf(out,"@%s BC:%s\n",ri->name,param->read_structure->sequence_matrix[mem][bar]);
+					fprintf(out,"%s\n+\n%s\n", out_seq,out_qual);
+				}else{
+					ret = -3; // something wrong with the architecture
 				}
 				
-			}
-			fprintf(out,"\n+\n");
-			if(ri->qual){
-				for(j = 0; j < len;j++){
-					c1 = mb->label[(int)ri->labels[j+1]];
-					c2 = c1 & 0xFFFF;
-					c3 = (c1 >> 16) & 0x7FFF;
-					//fprintf(stderr,"%c",   param->read_structure->type[c2] );
-					if(param->read_structure->type[c2] == 'R'){
-						fprintf(out,"%c",  ri->qual[j+offset] );
-						//key = (key << 2 )|  (ri->seq[j] & 0x3);
-					}
-					
+			}else if(required_finger_len){
+				if(fingerlen == required_finger_len){
+					ret = 1;
+					fprintf(out,"@%s FP:%d\n",ri->name,key);
+					fprintf(out,"%s\n+\n%s\n", out_seq,out_qual);
+				}else{
+					ret = -3; // something wrong with the architecture
 				}
 			}else{
-				for(j = 0; j < len;j++){
-					c1 = mb->label[(int)ri->labels[j+1]];
-					c2 = c1 & 0xFFFF;
-					c3 = (c1 >> 16) & 0x7FFF;
-					//fprintf(stderr,"%c",   param->read_structure->type[c2] );
-					if(param->read_structure->type[c2] == 'R'){
-						fprintf(out,"%c",  '.');
-						//key = (key << 2 )|  (ri->seq[j] & 0x3);
-					}
-					
-				}
-				
+				ret = 1;
+				fprintf(out,"@%s\n",ri->name);
+				fprintf(out,"%s\n+\n%s\n", out_seq,out_qual);
 			}
-			fprintf(out,"\n");*/
-
+		}else{
+			ret = -2; //read to short
 		}
-		
-	}//else{
-	//	ret = 0;
+	}else{
+		ret = -1; // probability not acceptable
 		//discard....
-	//}
+	}
 	/*
 	fprintf(stderr,"%f	%f\n",  expf( ri->prob) / (1.0 + expf(ri->prob )) ,ri->prob);
 	
@@ -426,10 +424,7 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file)
 			free(ri[i]->md);
 		}
 		
-		if(ri[i]->xp){
-			free(ri[i]->xp);
-		}
-		
+				
 		ri[i]->seq = 0;
 		ri[i]->name = 0;
 		ri[i]->qual = 0;
@@ -437,7 +432,6 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file)
 		ri[i]->errors = -1;
 		ri[i]->cigar = 0;
 		ri[i]->md = 0;
-		ri[i]->xp = 0;
 		//ri[i]->read_start = -1;
 		//ri[i]->read_end = -1;
 		
@@ -611,28 +605,7 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file)
 				}
 			}
 			
-			tmp = byg_end("XP:Z:", line  );
-			if(tmp){
-				g = 0;
-				for(j = tmp ;j < MAX_LINE;j++){
-					g++;
-					if(isspace((int)line[j])){
-						break;
-					}
-					
-				}
-				ri[c]->xp = malloc(sizeof(unsigned char)* g);
-				g = 0;
-				for(j = tmp ;j < MAX_LINE;j++){
-					
-					if(isspace((int)line[j])){
-						ri[c]->xp[g] = 0;
-						break;
-					}
-					ri[c]->xp[g] = line[j];
-					g++;
-				}
-			}
+			
 			
 			ri[c]->hits[hit] = 0xFFFFFFFFu;
 			
@@ -668,7 +641,7 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
 		ri[i]->labels = 0;
 		ri[i]->len = 0;
 		ri[i]->md = 0;
-		ri[i]->xp = 0;
+		//ri[i]->xp = 0;
 		ri[i]->cigar = 0;
 		ri[i]->errors = 0;
 		//ri[i]->read_start = -1;

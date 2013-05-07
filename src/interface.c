@@ -52,6 +52,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->fasta = 0;
 	param->matchstart = -1;
 	param->matchend = -1;
+	param->minlen = 16;
 	
 	param->sequencer_error_rate = 0.01f;
 	param->indel_frequency = 0.0f;
@@ -96,9 +97,10 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			{"10",required_argument,0, OPT_SEG10},
 			{"train",required_argument,0, OPT_TRAIN},
 			{"format",required_argument,0, OPT_FORMAT},
+			{"minlen",required_argument,0, OPT_MINLEN},
 			{"start",required_argument,0, OPT_START},
 			{"end",required_argument,0, OPT_END},
-
+			{"out",required_argument,0, 'o'},
 			//{"format",required_argument,0, OPT_FORMAT},
 			
 			{"filter",required_argument,0, 'f'},
@@ -109,7 +111,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 		};
 		
 		int option_index = 0;
-		c = getopt_long_only (argc, argv,"p:qhf:t:",long_options, &option_index);
+		c = getopt_long_only (argc, argv,"o:p:qhf:t:",long_options, &option_index);
 		
 		if (c == -1){
 			break;
@@ -162,6 +164,9 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 				break;
 			case 'f':
 				param->filter = optarg;
+				break;
+			case 'o':
+				param->outfile = optarg;
 				break;
 				
 		
@@ -274,9 +279,9 @@ struct parameters* assign_segment_sequences(struct parameters* param, char* tmp,
 
 void usage()
 {
-	fprintf(stdout, "\nSAMStat %0.2f, Copyright (C) 2010, 2011 Timo Lassmann <timolassmann@gmail.com>\n", VERSION);
+	fprintf(stdout, "\nTagDust %0.2f, Copyright (C) 2010, 2011 Timo Lassmann <timolassmann@gmail.com>\n", VERSION);
 	fprintf(stdout, "\n");
-	fprintf(stdout, "Usage:   samstat <file.sam> <file.bam> <file.fa> <file.fq> .... \n\n");
+	fprintf(stdout, "Usage:   tagdust <file.sam> <file.bam> <file.fa> <file.fq> .... \n\n");
 	fprintf(stdout, "Options:\n");
 	fprintf(stdout, "         -s             STR    prints summary statistics of multiple libraries into one FILE [NA].\n");
 	fprintf(stdout, "         -k             INT    treat all reads mapping more than k errors as unmapped [off].\n");

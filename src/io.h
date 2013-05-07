@@ -32,7 +32,7 @@ struct read_info{
 	unsigned int* hits;
 	char* cigar;
 	char* md;
-	char* xp;
+	//char* xp;
 	float mapq;
 	float prob;
 	//float* priors;

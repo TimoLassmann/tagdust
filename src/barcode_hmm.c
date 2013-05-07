@@ -20,10 +20,15 @@
 void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ),int file_num)
 {
 	struct read_info** ri = 0;
-	int i,j;
+	
+	FILE* outfile;
+	int i,j,c;
 	int numseq;
 	int total_read = 0;
 	int success = 0;
+	int prob_failure = 0;
+	int len_failure = 0;
+	int arch_failure = 0;
 	float sum = 0.0;
 	
 	init_logsum();
@@ -53,7 +58,7 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		ri[i]->len = 0;
 		ri[i]->cigar = 0;
 		ri[i]->md = 0;
-		ri[i]->xp = 0;
+		//ri[i]->xp = 0;
 		ri[i]->strand = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 		ri[i]->hits = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 		//ri[i]->read_start = -1;
@@ -202,15 +207,43 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	//rewind(file);
 	//int key,bar,c1,c2,c3,mem;
 	//char alpha[5] = "ACGTN";
+	if(param->outfile){
+		if ((outfile = fopen( param->outfile, "w")) == NULL){
+			fprintf(stderr,"can't open output\n");
+			exit(-1);
+		}
+	}else{
+		outfile= stdout;
+	}
+	
 	total_read = 0;
 	success = 0;
+	prob_failure = 0;
+	len_failure = 0;
+	arch_failure = 0;
 	while ((numseq = fp(ri, param,file)) != 0){
 		//	numseq = fp(ri, param,file);
 		mb =  run_pHMM(mb,ri,param,numseq,MODE_GET_LABEL);
 		total_read += numseq;
 		
 		for(i = 0; i < numseq;i++){
-			success += print_trimmed_sequence(mb, param,  ri[i],stdout);
+			c = print_trimmed_sequence(mb, param,  ri[i],outfile);
+			switch (c) {
+				case 1:
+					success++;
+					break;
+				case -1:
+					prob_failure++;
+					break;
+				case -2:
+					len_failure++;
+					break;
+				case -3:
+					arch_failure++;
+					break;
+				default:
+					break;
+			}
 			
 			
 			/*key = 0;
@@ -259,6 +292,10 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 			}*/
 		}
 		fprintf(stderr,"%0.1f%% extracted (%d read so far...)\n",  (float) success / (float) total_read  *100.0f,total_read);
+		fprintf(stderr,"%d	successfully extracted\n" , success);
+		fprintf(stderr,"%d	low probability\n" , prob_failure);
+		fprintf(stderr,"%d	too short\n" , len_failure);
+		fprintf(stderr,"%d	problems with architecture\n" , arch_failure);
 	}
 	
 	//for(i = 0; i < mb->num_models;i++){
@@ -266,7 +303,11 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	//}
 	
 	fprintf(stderr,"%d\n", total_read);
-	fprintf(stderr,"%d\n" , success);
+	fprintf(stderr,"%d	successfully extracted\n" , success);
+	fprintf(stderr,"%d	low probability\n" , prob_failure);
+	fprintf(stderr,"%d	too short\n" , len_failure);
+	fprintf(stderr,"%d	problems with architecture\n" , arch_failure);
+	
 	fprintf(stderr,"%0.1f%% extracted\n",  (float) success / (float) total_read  *100.0f);
 	
 	free_model_bag(mb);
@@ -300,6 +341,10 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	}else{
 		fclose(file);
 	}
+	if(param->outfile){
+		fclose(outfile);
+	}
+	
 }
 
 
