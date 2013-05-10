@@ -40,7 +40,9 @@
 #define OPT_START 13
 #define OPT_END 14
 #define OPT_MINLEN 15
-\
+#define OPT_THRESHOLD 16
+
+
 struct read_structure{
 	char*** sequence_matrix;
 	int* numseq_in_segment;

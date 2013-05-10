@@ -31,6 +31,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 {
 	int i,c,f,g;
 	int help = 0;
+	int last;
 	
 	if (argc < 2 && isatty(0)){
 		usage();
@@ -100,6 +101,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			{"minlen",required_argument,0, OPT_MINLEN},
 			{"start",required_argument,0, OPT_START},
 			{"end",required_argument,0, OPT_END},
+			{"threshold",required_argument,0, OPT_THRESHOLD},
 			{"out",required_argument,0, 'o'},
 			//{"format",required_argument,0, OPT_FORMAT},
 			
@@ -111,7 +113,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 		};
 		
 		int option_index = 0;
-		c = getopt_long_only (argc, argv,"o:p:qhf:t:",long_options, &option_index);
+		c = getopt_long_only (argc, argv,"e:o:p:qhf:t:",long_options, &option_index);
 		
 		if (c == -1){
 			break;
@@ -162,14 +164,19 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			case OPT_END:
 				param->matchend = atoi(optarg);
 				break;
+			case OPT_THRESHOLD:
+				param->confidence_threshold = atof(optarg);
+				break;
+				
 			case 'f':
 				param->filter = optarg;
 				break;
 			case 'o':
 				param->outfile = optarg;
 				break;
-				
-		
+			case 'e':
+				param->sequencer_error_rate = atof(optarg); //0.01f;
+				break;
 			case 't':
 				param->num_threads = atoi(optarg);
 				break;
@@ -190,9 +197,15 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	
 	//if(param->matchstart)
 	//fprintf(stderr,"Viterbi: %d\n",param->viterbi);
-	
+	last = -1;
 	for(i = 0; i < 10;i++){
 		if(param->read_structure->sequence_matrix[i]){
+			if(last +1 != i){
+				fprintf(stderr,"ERROR: a hmm building lock was skipped??\n");
+				free_param(param);
+				exit(-1);
+			}
+			
 			//serious checking...
 			for(g = 0;g < param->read_structure->numseq_in_segment[i];g++){
 				for(f = g+1;f < param->read_structure->numseq_in_segment[i];f++){
@@ -213,6 +226,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			for(g = 0;g < param->read_structure->numseq_in_segment[i];g++){
 				fprintf(stderr,"\t%s\n",param->read_structure->sequence_matrix[i][g] );
 			}
+			last = i;
 			
 		}
 	}

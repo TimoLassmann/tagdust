@@ -6,8 +6,21 @@ AC_INIT(Tagdust, 2.0, timolassmann@gmail.com)
 AC_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE([1.10 -Wall no-define])
 
+
 CXXFLAGS="$CXXFLAGS"
-CFLAGS="$CFLAGS"
+
+AC_ARG_ENABLE(debug,
+              [  --enable-debug          Enable debugging information],
+              USE_DEBUG="$enableval", USE_DEBUG="no")
+
+if test $USE_DEBUG = yes ; then 
+  DEBUG=1
+  CFLAGS="$CFLAGS -ggdb -Wall -m64 -std=gnu99"
+else
+ CFLAGS="$CFLAGS -O9 -Wall -m64 -std=gnu99"
+  DEBUG=0
+fi
+
 
 # Checks for programs.
 AC_PROG_CC
@@ -18,7 +31,6 @@ AM_PROG_CC_C_O
 # Checks for header files.
 AC_HEADER_STDC
 AC_CHECK_HEADERS([ assert.h ctype.h float.h getopt.h limits.h math.h pthread.h stdio.h stdlib.h string.h sys/stat.h time.h unistd.h xmmintrin.h ])
-
 
 
 # Checks for typedefs, structures, and compiler characteristics.

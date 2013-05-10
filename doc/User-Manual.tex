@@ -209,7 +209,7 @@ Tagdust allows users to specify the expected architecture of a read and converts
 \end{scope}
 
 \begin{scope}[shift={(0,1.5)}];
-\node[Mstate] (O1) at (0,0){\shortstack{ A\\   C\\  G\\ T} };
+\node[Mstate] (O1) at (0,0){\shortstack{ A\\  C\\  G\\ T} };
 \end{scope}
 
 \begin{scope}[shift={(2,2)}];
@@ -480,10 +480,13 @@ bash-3.1$ tagdust [-options] <input file>
 \begin{tabular}{| l | l | p{12cm}|}
 \hline
 \rowcolor{blue} \textcolor{white}{\scshape Option}		&\textcolor{white}{\scshape Type}		&	\textcolor{white}{\scshape Description}\\ \hline
+-threshold & FLT & confidence threshold [0.99].\\
 -start & INT & start of search area [0].\\
 -end & INT & end of  search area [length of sequence].\\
 -format & STR & format of input sequence file.\\
 -minlen & INT & minimal accepted read length [16].\\
+-e & FLT & expected sequencer error rate [0.02].\\ 
+
 -o & STR & output file name.\\
 -t & INT & number of threads [8].\\
 -1 & STR & type of the first HMM building block. \\
@@ -492,7 +495,7 @@ bash-3.1$ tagdust [-options] <input file>
 \hline
 \end{tabular}
 \end{center}
-
+The {\tt -threshold} option sets the minimum acceptable probability of a read to belong to the specified architecture. For most applications this should not be changed.
 As a default, TagDust attempts to match the entire sequence to the HMM (global). The options {\tt -start} and {\tt -end} restricts the matching to region specified. TagDust assumes that all residues upstream of 'start' do not belong to the read while all residues following 'end' are read residues.
 
 In the presence of barcodes or fingerprints, TagDust will recognize the most likely code and append it to the name of the read. 
@@ -829,7 +832,7 @@ Segment modeling a pre-defined sequence.
 \end{tikzpicture}
 \end{figure}
 
-
+\newpage
 \subsection{Partial}
 This segment is used to model sequences that may only be partially present at the end of the read.\\
 
@@ -994,7 +997,7 @@ Note on the last line I restricted the search to the first 25 nucleotides for ef
 
 \section{Sequence scoring} 
 
-TagDust implements the basic forward and backward algorithm as described in \cite{durbin}. For each sequence the logs odds score is defined by the summed probability of all paths (forward score) divided by the probability of a background zero order Markov model. The latter is parameterized based on the length and nucleotide distribution in the input reads. Finally, the log odds score is converted into a probability using the logistic function.
+TagDust implements the basic forward and backward algorithm as described in \citep{durbin}. For each sequence the logs odds score is defined by the summed probability of all paths (forward score) divided by the probability of a background zero order Markov model. The latter is parameterized based on the length and nucleotide distribution in the input reads. Finally, the log odds score is converted into a probability using the logistic function.
 
 
 \section{Implementation} 
@@ -1002,14 +1005,14 @@ TagDust implements the basic forward and backward algorithm as described in \cit
 Internally, Tagdust uses a full profile HMM for each building block. We simply set some transition probabilities to zero to emulate different models. For example the read building block 'R' is implemented as a profile HMM with one column and transitions directly to and from the insertion state.
 This is quite inefficient as the dynamic programming code still needs to evaluate all possible transitions, even those we know in advance have a probability of zero. In future I might do something about this. 
 
-\section{ Optimal accuracy decoding} 
+\section{Optimal accuracy decoding} 
 
-To obtain the most probably labeling of the sequence, we employ the optimal accuracy decoding algorithm as described in \cite{Kall:2005vg}. To apply this algorithm to our problem define the label probability of a nucleotide by the summed posterior label probabilities of states belonging to a particular HMM building block. A secondary dynamic programming algorithm is used to determine the path with the maximal label probability, constrained by the global HMM architecture. The label probabilities are essentially used as a substitution matrix while the architecture is enforced by gap penalties.  
+To obtain the most probably labeling of the sequence, we employ the optimal accuracy decoding algorithm as described in \citep{Kall:2005vg}. To apply this algorithm to our problem define the label probability of a nucleotide by the summed posterior label probabilities of states belonging to a particular HMM building block. A secondary dynamic programming algorithm is used to determine the path with the maximal label probability, constrained by the global HMM architecture. The label probabilities are essentially used as a substitution matrix while the architecture is enforced by the equivalent of gap penalties.  
 
 
 \chapter{Acknowledgements }
 
-afa
+
 
 
 \begin{tikzpicture}[]
@@ -1119,7 +1122,7 @@ afa
   
 %-----------------------------------------------------------
 \addcontentsline{toc}{chapter}{\numberline{}Bibliography}
-\bibliographystyle{plainnat}
+\bibliographystyle{plain}
 \bibliography{ref.bib}
 
 

@@ -111,6 +111,18 @@ struct thread_data{
 	int end;
 };
 
+
+struct log_information{
+	int probability_distribution[1001];
+	
+	int total_read;
+	int success;
+	int prob_failure;
+	int len_failure;
+	int arch_failure;
+
+};
+
 void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ),int file_num);
 
 struct model* malloc_model(int main_length, int sub_length, int number_sub_models);

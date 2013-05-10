@@ -6,7 +6,6 @@ bin_PROGRAMS = tagdust
 tagdust_SOURCES = src/barcode_hmm.h src/dbscan.h src/interface.h src/misc.h src/pst.h src/gmm.h src/io.h src/nuc_code.h src/tagdust2.h src/main.c src/interface.c src/nuc_code.c src/misc.c src/io.c src/barcode_hmm.c src/pst.c src/gmm.c src/dbscan.c 
 tagdust_LDFLAGS =  -lpthread -lm
 
-tagdust_CFLAGS =  -O9 -Wall -m64 -std=gnu99
 
 dist_noinst_SCRIPTS = autogen.sh
 

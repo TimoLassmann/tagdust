@@ -219,7 +219,7 @@ int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  stru
 	
 	
 	
-	if(param->confidence_threshold <=  expf( ri->prob) / (1.0f + expf(ri->prob ))){
+	if(param->confidence_threshold <=   ri->prob){
 		fingerlen = 0;
 		//required_finger_len = 0;
 		
@@ -288,7 +288,7 @@ int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  stru
 			if(hmm_has_barcode && required_finger_len){
 				if(fingerlen == required_finger_len && bar != -1){
 					ret = 1;
-					fprintf(out,"@%s BC:%s;FP:%d\n",ri->name,param->read_structure->sequence_matrix[mem][bar],key);
+					fprintf(out,"@%s;BC:%s;FP:%d\n",ri->name,param->read_structure->sequence_matrix[mem][bar],key);
 					fprintf(out,"%s\n+\n%s\n", out_seq,out_qual);
 				}else{
 					ret = -3; // something wrong with the architecture
@@ -296,7 +296,7 @@ int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  stru
 			}else if(hmm_has_barcode){
 				if(bar != -1){
 					ret = 1;
-					fprintf(out,"@%s BC:%s\n",ri->name,param->read_structure->sequence_matrix[mem][bar]);
+					fprintf(out,"@%s;BC:%s\n",ri->name,param->read_structure->sequence_matrix[mem][bar]);
 					fprintf(out,"%s\n+\n%s\n", out_seq,out_qual);
 				}else{
 					ret = -3; // something wrong with the architecture
@@ -305,7 +305,7 @@ int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  stru
 			}else if(required_finger_len){
 				if(fingerlen == required_finger_len){
 					ret = 1;
-					fprintf(out,"@%s FP:%d\n",ri->name,key);
+					fprintf(out,"@%s;FP:%d\n",ri->name,key);
 					fprintf(out,"%s\n+\n%s\n", out_seq,out_qual);
 				}else{
 					ret = -3; // something wrong with the architecture
