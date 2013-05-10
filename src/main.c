@@ -15,7 +15,7 @@
  GNU General Public License for more details.
  
  You should have received a copy of the GNU General Public License
- along with Delve.  If not, see <http://www.gnu.org/licenses/>.
+ along with Tagdust.  If not, see <http://www.gnu.org/licenses/>.
  
  */
 
@@ -26,7 +26,7 @@
 #include "misc.h"
 #include "tagdust2.h"
 #include "barcode_hmm.h"
-#include "pst.h"
+//#include "pst.h"
 #include <math.h>
 
 

@@ -15,12 +15,12 @@
  GNU General Public License for more details.
  
  You should have received a copy of the GNU General Public License
- along with Delve.  If not, see <http://www.gnu.org/licenses/>.
+ along with Tagdust.  If not, see <http://www.gnu.org/licenses/>.
  
  */
 
 
-unsigned int nuc_code5[255];
+unsigned int nuc_code[255];
 
 void init_nuc_code(void);
 

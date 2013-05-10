@@ -15,7 +15,7 @@
  GNU General Public License for more details.
  
  You should have received a copy of the GNU General Public License
- along with Delve.  If not, see <http://www.gnu.org/licenses/>.
+ along with Tagdust.  If not, see <http://www.gnu.org/licenses/>.
  
  */
 
@@ -535,7 +535,7 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file)
 									ri[c]->labels[g] = 0;
 									break;
 								}
-								ri[c]->seq[g] = nuc_code5[(int)line[j]];
+								ri[c]->seq[g] = nuc_code[(int)line[j]];
 								ri[c]->labels[g] = 0;
 
 								g++;
@@ -711,7 +711,7 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
 							ri[park_pos]->labels[i] = 0;
 							break;
 						}
-						ri[park_pos]->seq[i] = nuc_code5[(int)line[i]];
+						ri[park_pos]->seq[i] = nuc_code[(int)line[i]];
 						ri[park_pos]->labels[i] = 0;
 					}
 					ri[park_pos]->len = len-1;

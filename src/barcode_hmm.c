@@ -1,10 +1,23 @@
-//
-//  barcode_hmm.c
-//  tagdust2
-//  
-//  Created by lassmann on 2/5/13.
-//  Copyright (c) 2013 lassmann. All rights reserved.
-//
+/*
+ 
+ Copyright (C) 2013 Timo Lassmann <timolassmann@gmail.com>
+ 
+ This file is part of TagDust.
+ 
+ TagDust is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ 
+ TagDust is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ 
+ You should have received a copy of the GNU General Public License
+ along with Tagdust.  If not, see <http://www.gnu.org/licenses/>.
+ 
+ */
 
 #include <stdio.h>
 #include "tagdust2.h"
@@ -15,7 +28,6 @@
 #include <pthread.h>
 
 #include "barcode_hmm.h"
-
 
 void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ),int file_num)
 {
@@ -1475,7 +1487,7 @@ struct model* init_model_according_to_read_structure(struct model* model,struct 
 		for(j = 0; j < len;j++){
 			col = model->hmms[i]->hmm_column[j];
 			
-			current_nuc = nuc_code5[(int) tmp[j]];
+			current_nuc = nuc_code[(int) tmp[j]];
 			col->identifier = -1;
 			if(current_nuc != 4){
 				

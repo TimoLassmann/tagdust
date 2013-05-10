@@ -1026,12 +1026,12 @@ struct read_info**  scan_read_with_pst(struct read_info** ri,struct pst* pst)
 		//fprintf(stdout,"%s\n",seq );
 				
 		for(j = 0; j < ri[i]->len; j++ ){
-			P_R = P_R + prob2scaledprob(base_p[nuc_code5[(int)seq[j]]]);
+			P_R = P_R + prob2scaledprob(base_p[nuc_code[(int)seq[j]]]);
 			
 			
 			//get_occ
-			A = get_pst_prob(pst->pst_root, seq,  nuc_code5[(int)seq[j]], j, i);
-			B = get_ppt_prob(pst->ppt_root, seq,  nuc_code5[(int)seq[j]], j, i);
+			A = get_pst_prob(pst->pst_root, seq,  nuc_code[(int)seq[j]], j, i);
+			B = get_ppt_prob(pst->ppt_root, seq,  nuc_code[(int)seq[j]], j, i);
 			
 			
 			P_T = P_T + prob2scaledprob(max(A,B));
@@ -1116,7 +1116,7 @@ float get_pst_prob(struct pst_node* n, char* string,int target, int pos,int seq_
 		return n->nuc_probability[target];
 	}
 	pos = pos -1;
-	c = nuc_code5[(int)string[pos]];
+	c = nuc_code[(int)string[pos]];
 	if(n->next[c]){
 		return get_pst_prob(n->next[c], string, target,pos,seq_id);
 	}else{
@@ -1143,7 +1143,7 @@ float get_ppt_prob(struct pst_node* n, char* string,int target, int pos,int seq_
 		return n->nuc_probability[target];
 	}
 	pos = pos +1;
-	c = nuc_code5[(int)string[pos]];
+	c = nuc_code[(int)string[pos]];
 	if(n->next[c]){
 		return get_ppt_prob(n->next[c], string, target,pos,seq_id);
 	}else{
@@ -1165,7 +1165,7 @@ int get_occ(struct pst_node* n, char* string,int target, int pos,int seq_id)
 		return n->occ;
 	}
 	pos = pos -1;
-	int c = nuc_code5[(int)string[pos]];
+	int c = nuc_code[(int)string[pos]];
 	if(n->next[c]){
 		return get_occ(n->next[c], string, target,pos,seq_id);
 	}else{
@@ -1180,7 +1180,7 @@ struct pst_node*  count_pst_lables(struct pst_node* n, char* string, int pos,int
 	//fprintf(stderr,"%d	%s	%f	(%d)	- OCC:%d\n", target,n->label,n->nuc_probability[target],n->in_T, n->occ);
 	//}
 	
-	int c = nuc_code5[(int)string[pos]];
+	int c = nuc_code[(int)string[pos]];
 	if(n->next[c]){
 		if(n->next[c]->last_seen != seq_id){
 			if(!bit_test(n->next[c]->bit_occ , seq_id)){
@@ -1222,7 +1222,7 @@ struct pst_node*  count_pst_lables(struct pst_node* n, char* string, int pos,int
 
 struct pst_node*  count_ppt_lables(struct pst_node* n, char* string, int pos,int seq_id)
 {
-	int c = nuc_code5[(int)string[pos]];
+	int c = nuc_code[(int)string[pos]];
 	if(!string[pos]){
 		return n;
 	}
