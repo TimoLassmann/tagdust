@@ -14,6 +14,8 @@
 		A10B994616C09F2900AF1A1E /* misc.c in Sources */ = {isa = PBXBuildFile; fileRef = A10B993E16C09F2900AF1A1E /* misc.c */; };
 		A10B994716C09F2900AF1A1E /* nuc_code.c in Sources */ = {isa = PBXBuildFile; fileRef = A10B994016C09F2900AF1A1E /* nuc_code.c */; };
 		A10B994D16C0C7FF00AF1A1E /* barcode_hmm.c in Sources */ = {isa = PBXBuildFile; fileRef = A10B994C16C0C7FF00AF1A1E /* barcode_hmm.c */; };
+		A16115CC1741BAC40077DEFD /* exact.c in Sources */ = {isa = PBXBuildFile; fileRef = A16115CB1741BAC40077DEFD /* exact.c */; };
+		A16115CF1741E85D0077DEFD /* sim.c in Sources */ = {isa = PBXBuildFile; fileRef = A16115CE1741E85D0077DEFD /* sim.c */; };
 		A1E3055216DB316B00FDAA86 /* gmm.c in Sources */ = {isa = PBXBuildFile; fileRef = A1E3055116DB316B00FDAA86 /* gmm.c */; };
 		A1E919D616C38FBE00739ACC /* pst.c in Sources */ = {isa = PBXBuildFile; fileRef = A1E919D516C38FBE00739ACC /* pst.c */; };
 		A1EB019416DEDE49001F6892 /* dbscan.c in Sources */ = {isa = PBXBuildFile; fileRef = A1EB019316DEDE49001F6892 /* dbscan.c */; };
@@ -48,6 +50,12 @@
 		A10B994816C0A11200AF1A1E /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; name = Makefile; path = src/Makefile; sourceTree = "<group>"; };
 		A10B994C16C0C7FF00AF1A1E /* barcode_hmm.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = barcode_hmm.c; path = src/barcode_hmm.c; sourceTree = "<group>"; };
 		A10B994F16C0E65B00AF1A1E /* barcode_hmm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = barcode_hmm.h; path = src/barcode_hmm.h; sourceTree = "<group>"; };
+		A16115CB1741BAC40077DEFD /* exact.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = exact.c; path = src/exact.c; sourceTree = "<group>"; };
+		A16115CD1741BAF90077DEFD /* exact.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = exact.h; path = src/exact.h; sourceTree = "<group>"; };
+		A16115CE1741E85D0077DEFD /* sim.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = sim.c; path = src/sim.c; sourceTree = "<group>"; };
+		A16115D01741E88C0077DEFD /* sim.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = sim.h; path = src/sim.h; sourceTree = "<group>"; };
+		A16115D117421A6D0077DEFD /* make_benchmark_dataset.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = make_benchmark_dataset.sh; path = scripts/make_benchmark_dataset.sh; sourceTree = "<group>"; };
+		A16115D2174229BD0077DEFD /* start_tagdust_runs.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = start_tagdust_runs.sh; path = scripts/start_tagdust_runs.sh; sourceTree = "<group>"; };
 		A1E3055116DB316B00FDAA86 /* gmm.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = gmm.c; path = src/gmm.c; sourceTree = "<group>"; };
 		A1E3055316DB317C00FDAA86 /* gmm.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = gmm.h; path = src/gmm.h; sourceTree = "<group>"; };
 		A1E919D516C38FBE00739ACC /* pst.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pst.c; path = src/pst.c; sourceTree = "<group>"; };
@@ -82,10 +90,16 @@
 				A10B993B16C09F2900AF1A1E /* io.c */,
 				A10B994F16C0E65B00AF1A1E /* barcode_hmm.h */,
 				A10B994C16C0C7FF00AF1A1E /* barcode_hmm.c */,
+				A16115CD1741BAF90077DEFD /* exact.h */,
+				A16115CB1741BAC40077DEFD /* exact.c */,
 				A1E919D716C38FD200739ACC /* pst.h */,
 				A1E919D516C38FBE00739ACC /* pst.c */,
 				A10B993F16C09F2900AF1A1E /* misc.h */,
 				A10B993E16C09F2900AF1A1E /* misc.c */,
+				A16115D01741E88C0077DEFD /* sim.h */,
+				A16115CE1741E85D0077DEFD /* sim.c */,
+				A16115D2174229BD0077DEFD /* start_tagdust_runs.sh */,
+				A16115D117421A6D0077DEFD /* make_benchmark_dataset.sh */,
 				A10B994116C09F2900AF1A1E /* nuc_code.h */,
 				A10B994016C09F2900AF1A1E /* nuc_code.c */,
 				A10B994816C0A11200AF1A1E /* Makefile */,
@@ -170,6 +184,8 @@
 				A1E919D616C38FBE00739ACC /* pst.c in Sources */,
 				A1E3055216DB316B00FDAA86 /* gmm.c in Sources */,
 				A1EB019416DEDE49001F6892 /* dbscan.c in Sources */,
+				A16115CC1741BAC40077DEFD /* exact.c in Sources */,
+				A16115CF1741E85D0077DEFD /* sim.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

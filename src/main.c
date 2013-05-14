@@ -26,6 +26,8 @@
 #include "misc.h"
 #include "tagdust2.h"
 #include "barcode_hmm.h"
+#include "exact.h"
+#include "sim.h"
 //#include "pst.h"
 #include <math.h>
 
@@ -40,6 +42,9 @@ int main (int argc,char * argv[]) {
 	
 	param = interface(param,argc,argv);
 	
+	if(param->sim){
+		simulate(param);
+	}
 	
 	if(!param->infiles && !isatty(0)){
 		if(!param->format){
@@ -149,16 +154,27 @@ int main (int argc,char * argv[]) {
 		}else{
 			param->sam = -1;
 		}
+		
+		
+		
 		//fprintf(stdout,"Loking at on:%s	%d\n",param->infile[i],sam);
 		if(param->sam != -1){
 			//fprintf(stdout,"Working on:%s\n",param->infile[i]);
 			if(param->sam == 0){
-				hmm_controller(param,&read_fasta_fastq,i);
+				if(param->exact5){
+					exact_controller(param,&read_fasta_fastq,i);
+				}else{
+					hmm_controller(param,&read_fasta_fastq,i);
+				}
 				//pst_tree (param,&read_fasta_fastq,i);
 
 				//pst_controller (param,&read_fasta_fastq,i);
 			}else{
-				hmm_controller(param,&read_sam_chunk,i);
+				if(param->exact5){
+					exact_controller(param,&read_sam_chunk,i);
+				}else{
+					hmm_controller(param,&read_sam_chunk,i);
+				}
 				//pst_tree(param,&read_sam_chunk,i);
 				//pst_controller(param,&read_sam_chunk,i);
 			}

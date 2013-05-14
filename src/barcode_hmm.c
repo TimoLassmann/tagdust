@@ -1844,10 +1844,6 @@ void print_model(struct model* model)
 			}
 			fprintf(stderr,"%0.3f %0.3f %0.3f\n",scaledprob2prob(col->transition_e[MM])+scaledprob2prob(col->transition_e[MI])+scaledprob2prob(col->transition_e[MD])  ,scaledprob2prob(col->transition_e[II])+scaledprob2prob(col->transition_e[IM]),  scaledprob2prob(col->transition_e[DD]) + scaledprob2prob(col->transition_e[DM]) );
 		}
-		
-		
-		
-		
 	}
 	fprintf(stderr,"Links:silent to\n");
 	

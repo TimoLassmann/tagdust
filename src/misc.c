@@ -151,6 +151,7 @@ int byg_end(const char* pattern,const char*text)
 
 
 
+
 double binomial_distribution(double p , int n, int k)
 {
 	double fac = gammln((double)n + 1.0);
@@ -428,3 +429,55 @@ unsigned int pop(int x)
 	return n;
 }
 
+int bpm(const  char* t,const  char* p,int n,int m)
+{
+	register unsigned long int i;//,c;
+	unsigned long int diff;
+	unsigned long int B[5];
+	if(m > 31){
+		m = 31;
+	}
+	
+	unsigned long int k = m;
+	//static int counter = 0;
+	register unsigned long int VP,VN,D0,HN,HP,X;
+	
+	long int MASK = 0;
+	//c = 0;
+	
+	diff = m;
+	
+	for(i = 0; i < 5;i++){
+		B[i] = 0;
+	}
+	
+	for(i = 0; i < m;i++){
+		B[(int)(p[i] & 0x3)] |= (1ul << i);
+	}
+	
+	//c = 0;
+	VP = 0xFFFFFFFFFFFFFFFFul;
+	VN = 0ul;
+	m--;
+	MASK = 1ul << m;
+	for(i = 0; i < n;i++){
+		X = (B[(int)(t[i] &0x3)  ] | VN);
+		D0 = ((VP+(X&VP)) ^ VP) | X ;
+		HN = VP & D0;
+		HP = VN | ~(VP | D0);
+		X = HP << 1ul;
+		VN = X & D0;
+		VP = (HN << 1ul) | ~(X | D0);
+		diff += (HP & MASK) >> m;
+		diff -= (HN & MASK) >> m;
+		if(diff < k){
+			k = diff;
+			//fprintf(stderr,"%ld	%ld\n",i,k);
+			//if(k <= limit){
+			//	return (int)k;
+			//}
+			
+		}
+	}
+	return (int)k;
+}

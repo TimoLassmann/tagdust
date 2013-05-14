@@ -41,6 +41,9 @@
 #define OPT_END 14
 #define OPT_MINLEN 15
 #define OPT_THRESHOLD 16
+#define OPT_EXACT5 17
+#define OPT_SIM 18
+#define OPT_NUMBARCODE 19
 
 
 struct read_structure{
@@ -60,6 +63,7 @@ struct parameters {
 	char* format;
 	char* filter;
 	char* train;
+	char* exact5; 
 	int gzipped;
 	int sam;
 	int fasta;
@@ -71,6 +75,8 @@ struct parameters {
 	int matchstart;
 	int matchend;
 	int minlen;
+	int sim;
+	int numbarcode;
 };
 
 struct parameters* interface(struct parameters* param,int argc, char *argv[]);

@@ -53,11 +53,13 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->matchstart = -1;
 	param->matchend = -1;
 	param->minlen = 16;
+	param->exact5 = 0;
+	param->sim = 0;
 	
 	param->sequencer_error_rate = 0.01f;
 	param->indel_frequency = 0.0f;
 	param->average_read_length = 50;
-	
+	param->numbarcode = 8;
 	param->confidence_threshold = 0.99;//ence
 	
 	param->read_structure = 0;
@@ -99,10 +101,13 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			{"format",required_argument,0, OPT_FORMAT},
 			{"minlen",required_argument,0, OPT_MINLEN},
 			{"start",required_argument,0, OPT_START},
+			{"exact5",required_argument,0, OPT_EXACT5},
+			{"simulation",required_argument,0, OPT_SIM},
+			{"numbarcode",required_argument,0, OPT_NUMBARCODE},
 			{"end",required_argument,0, OPT_END},
 			{"threshold",required_argument,0, OPT_THRESHOLD},
 			{"out",required_argument,0, 'o'},
-			//{"format",required_argument,0, OPT_FORMAT},
+			//{"format",required_argument,0, OPT_SIM},
 			
 			{"filter",required_argument,0, 'f'},
 			
@@ -166,7 +171,13 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			case OPT_THRESHOLD:
 				param->confidence_threshold = atof(optarg);
 				break;
-				
+			case OPT_EXACT5:
+				param->exact5 = optarg;
+				break;
+			case OPT_SIM:
+				param->sim = atoi(optarg);
+			case OPT_NUMBARCODE:
+				param->numbarcode = atoi(optarg);
 			case 'f':
 				param->filter = optarg;
 				break;

@@ -59,6 +59,7 @@
 #endif
 
 int byg_end(const char* pattern,const char*text);
+
 int byg_count(char* pattern,char*text);
 
 
@@ -76,7 +77,7 @@ double gammln(const double xx);
 
 int qsort_string_cmp(const void *a, const void *b);
 
-
+int bpm(const char* t,const char* p,int n,int m);
 
 
 int binsearch_down(const char*p,const char** suffix,int h,int len);
