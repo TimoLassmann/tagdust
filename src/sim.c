@@ -112,7 +112,7 @@ void simulate(struct parameters* param)
 	
 	sprintf (outfile, "%s_read.fq",param->outfile);
 	
-	fprintf(file,"tagdust %s -1 B:",outfile);
+	fprintf(file,"tagdust %s -t 80 -1 B:",outfile);
 	
 	
 	for(i = 0 ;i < num_barcode-1;i++){
@@ -131,8 +131,59 @@ void simulate(struct parameters* param)
 	fprintf(file," -2 R:N -o %s -threshold 0.5 -e 0.05 \n", outfile);
 	
 	//fprintf(file,"echo -n %d\t%d\t%f\t;\t",param->numbarcode, param->sim,param->sequencer_error_rate);
-	fprintf(file,"grep READ  %s  |  awk -v numbarcode=%d -v sim=%d -v errorrate=%f 'BEGIN{p=0;n=0}{x = split($0,a,\"[;,:]\");if(a[x] == a[3]){p++}else{n++}}END{printf \"%%d\\t%%d\\t%%f\\t%%d\\t%%d\\n\",numbarcode,sim,errorrate,p,n}'  >> tagdust_benchmark.csv\n", outfile,param->numbarcode, param->sim,param->sequencer_error_rate );
+	fprintf(file,"grep READ  %s  |  awk -v numbarcode=%d -v sim=%d -v errorrate=%f 'BEGIN{p=0;n=0}{x = split($0,a,\"[;,:]\");if(a[x] == a[3]){p++}else{n++}}END{printf \"%%d\\t%%d\\t%%f\\t%%d\\t%%d\\n\",numbarcode,sim,errorrate,p,n}'  >> tagdust_benchmark.csv &\n", outfile,param->numbarcode, param->sim,param->sequencer_error_rate );
 	
+	sprintf (outfile, "%s_read.fq",param->outfile);
+	fprintf(file,"cat %s | ", outfile);
+	
+	
+	sprintf (outfile, "%s_barcodefile.txt",param->outfile);
+	
+	fprintf(file,"./fastx_barcode_splitter.pl  --bcfile %s --bol --mismatches 2 --prefix ~/tmp/bla2_ --suffix \".txt\"  | awk -v numbarcode=%d -v sim=%d -v errorrate=%f  '{printf\"%%d\\t%%d\\t%%f\\t%%d\\t%%d\\t%%d\\n\" ,numbarcode,sim,errorrate,$1,$2,$3 }' >> fastx_benchmark_2.csv &\n",outfile,param->numbarcode, param->sim,param->sequencer_error_rate );
+	
+	sprintf (outfile, "%s_read.fq",param->outfile);
+	fprintf(file,"cat %s | ", outfile);
+	
+	
+	sprintf (outfile, "%s_barcodefile.txt",param->outfile);
+
+	
+	fprintf(file,"./fastx_barcode_splitter.pl  --bcfile %s --bol --mismatches 1 --prefix ~/tmp/bla1_ --suffix \".txt\"  | awk -v numbarcode=%d -v sim=%d -v errorrate=%f  '{printf\"%%d\\t%%d\\t%%f\\t%%d\\t%%d\\t%%d\\n\" ,numbarcode,sim,errorrate,$1,$2,$3 }' >> fastx_benchmark_1.csv &\n",outfile,param->numbarcode, param->sim,param->sequencer_error_rate );
+	
+	sprintf (outfile, "%s_read.fq",param->outfile);
+	fprintf(file,"cat %s | ", outfile);
+	
+	
+	sprintf (outfile, "%s_barcodefile.txt",param->outfile);
+
+	
+	fprintf(file,"./fastx_barcode_splitter.pl  --bcfile %s --bol --mismatches 0 --prefix ~/tmp/bla0_ --suffix \".txt\"  | awk -v numbarcode=%d -v sim=%d -v errorrate=%f  '{printf\"%%d\\t%%d\\t%%f\\t%%d\\t%%d\\t%%d\\n\" ,numbarcode,sim,errorrate,$1,$2,$3 }' >> fastx_benchmark_0.csv \n",outfile,param->numbarcode, param->sim,param->sequencer_error_rate );
+	
+	
+	fclose(file);
+	
+	sprintf (outfile, "%s_barcodefile.txt",param->outfile);
+	if ((file = fopen(outfile, "w")) == NULL){
+		fprintf(stderr,"can't open output\n");
+		exit(-1);
+	}
+	
+	for(i = 0 ;i < num_barcode-1;i++){
+		fprintf(file,"BC%d ",i);
+		for(j = 0; j < param->sim;j++){
+			fprintf(file,"%c",alpha[(int)barcode[i][j]]);
+		}
+		fprintf(file,"\n");
+		
+	}
+	fprintf(file,"BC%d ",num_barcode-1);
+
+	for(j = 0; j < param->sim;j++){
+		fprintf(file,"%c",alpha[(int)barcode[num_barcode-1][j]]);
+	}
+	fprintf(file,"\n");
+
+
 	//free(barcode);
 	fclose(file);
 	
