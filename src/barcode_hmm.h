@@ -57,7 +57,7 @@
 
 #define MODE_GET_LABEL 1
 #define MODE_TRAIN 2
-
+#define MODE_RUN_RANDOM 3
 
 struct hmm_column{
 	float M_foward[MAX_HMM_SEQ_LEN];
@@ -106,11 +106,13 @@ struct model_bag{
 	int num_models;
 	float f_score;
 	float b_score;
+	float bar_score;
 	int** path;
 	float** dyn_prog_matrix;
 	float** transition_matrix;
 	int* label;
 	int total_hmm_num;
+	float model_multiplier;
 }_MM_ALIGN16;
 
 struct thread_data{
@@ -165,6 +167,7 @@ void free_model_bag(struct model_bag* mb);
 struct model_bag* run_pHMM(struct model_bag* mb,struct read_info** ri,struct parameters* param,int numseq, int mode);
 void* do_baum_welch_thread(void *threadarg);
 void* do_label_thread(void *threadarg);
+void* do_run_random_sequences(void *threadarg);
 #endif
 
 

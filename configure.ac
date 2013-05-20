@@ -15,7 +15,7 @@ AC_ARG_ENABLE(debug,
 
 if test $USE_DEBUG = yes ; then 
   DEBUG=1
-  CFLAGS="$CFLAGS -ggdb -Wall -m64 -std=gnu99"
+  CFLAGS="$CFLAGS -D DEBUG -ggdb -Wall -m64 -std=gnu99"
 else
  CFLAGS="$CFLAGS -O9 -Wall -m64 -std=gnu99"
   DEBUG=0

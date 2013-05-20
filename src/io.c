@@ -219,7 +219,7 @@ int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  stru
 	
 	
 	
-	if(param->confidence_threshold <=   ri->prob){
+	if(param->confidence_threshold <=  scaledprob2prob(ri->bar_prob)){
 		fingerlen = 0;
 		//required_finger_len = 0;
 		

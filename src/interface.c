@@ -56,8 +56,8 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->exact5 = 0;
 	param->sim = 0;
 	
-	param->sequencer_error_rate = 0.01f;
-	param->indel_frequency = 0.0f;
+	param->sequencer_error_rate = 0.05f;
+	param->indel_frequency = 0.1f;
 	param->average_read_length = 50;
 	param->numbarcode = 8;
 	param->confidence_threshold = 0.99;//ence
@@ -117,7 +117,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 		};
 		
 		int option_index = 0;
-		c = getopt_long_only (argc, argv,"e:o:p:qhf:t:",long_options, &option_index);
+		c = getopt_long_only (argc, argv,"e:o:p:qhf:t:i:",long_options, &option_index);
 		
 		if (c == -1){
 			break;
@@ -186,6 +186,9 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 				break;
 			case 'e':
 				param->sequencer_error_rate = atof(optarg); //0.01f;
+				break;
+			case 'i':
+				param->indel_frequency = atof(optarg); //0.01f;
 				break;
 			case 't':
 				param->num_threads = atoi(optarg);

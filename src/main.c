@@ -46,6 +46,8 @@ int main (int argc,char * argv[]) {
 		simulate(param);
 	}
 	
+	debug_print("%d \n", param->num_threads);
+	
 	if(!param->infiles && !isatty(0)){
 		if(!param->format){
 			fprintf(stderr,"No format specified. Use -f <sam | bam | fa | fq > \n");

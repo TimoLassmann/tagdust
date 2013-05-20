@@ -19,7 +19,7 @@
 
 void simulate(struct parameters* param)
 {
-	int i,j,c,n,n_dash;
+	int i,j,c,n,n_dash,read_pos, mismatches, indel;
 	float r = 0.0;
 	FILE* file = 0;
 	int errors_allowed = 6;
@@ -128,10 +128,12 @@ void simulate(struct parameters* param)
 	}
 	sprintf (outfile, "%s_read_extracted.fq",param->outfile);
 	
-	fprintf(file," -2 R:N -o %s -threshold 0.5 -e 0.05 \n", outfile);
+	fprintf(file," -2 R:N -o %s -threshold 0.99 -e 0.05 \n", outfile);
 	
 	//fprintf(file,"echo -n %d\t%d\t%f\t;\t",param->numbarcode, param->sim,param->sequencer_error_rate);
-	fprintf(file,"grep READ  %s  |  awk -v numbarcode=%d -v sim=%d -v errorrate=%f 'BEGIN{p=0;n=0}{x = split($0,a,\"[;,:]\");if(a[x] == a[3]){p++}else{n++}}END{printf \"%%d\\t%%d\\t%%f\\t%%d\\t%%d\\n\",numbarcode,sim,errorrate,p,n}'  >> tagdust_benchmark.csv &\n", outfile,param->numbarcode, param->sim,param->sequencer_error_rate );
+	fprintf(file,"grep READ  %s  |  awk -v numbarcode=%d -v sim=%d -v errorrate=%f  -v indelrate=%f 'BEGIN{p=0;n=0}{x = split($0,a,\"[;,:]\");if(a[x] == a[3]){p++}else{n++}}END{printf \"%%d\\t%%d\\t%%f\\t%%f\\t%%d\\t%%d\\t%%d\\n\",numbarcode,sim,errorrate,indelrate,p,1000000 - (p + n),n}'  >> tagdust_benchmark.csv &\n", outfile,param->numbarcode, param->sim,param->sequencer_error_rate, param->indel_frequency );
+	
+	
 	
 	sprintf (outfile, "%s_read.fq",param->outfile);
 	fprintf(file,"cat %s | ", outfile);
@@ -139,16 +141,7 @@ void simulate(struct parameters* param)
 	
 	sprintf (outfile, "%s_barcodefile.txt",param->outfile);
 	
-	fprintf(file,"./fastx_barcode_splitter.pl  --bcfile %s --bol --mismatches 2 --prefix ~/tmp/bla2_ --suffix \".txt\"  | awk -v numbarcode=%d -v sim=%d -v errorrate=%f  '{printf\"%%d\\t%%d\\t%%f\\t%%d\\t%%d\\t%%d\\n\" ,numbarcode,sim,errorrate,$1,$2,$3 }' >> fastx_benchmark_2.csv &\n",outfile,param->numbarcode, param->sim,param->sequencer_error_rate );
-	
-	sprintf (outfile, "%s_read.fq",param->outfile);
-	fprintf(file,"cat %s | ", outfile);
-	
-	
-	sprintf (outfile, "%s_barcodefile.txt",param->outfile);
-
-	
-	fprintf(file,"./fastx_barcode_splitter.pl  --bcfile %s --bol --mismatches 1 --prefix ~/tmp/bla1_ --suffix \".txt\"  | awk -v numbarcode=%d -v sim=%d -v errorrate=%f  '{printf\"%%d\\t%%d\\t%%f\\t%%d\\t%%d\\t%%d\\n\" ,numbarcode,sim,errorrate,$1,$2,$3 }' >> fastx_benchmark_1.csv &\n",outfile,param->numbarcode, param->sim,param->sequencer_error_rate );
+	fprintf(file,"./fastx_barcode_splitter.pl  --bcfile %s --bol --mismatches 2 --prefix ~/tmp/bla2_ --suffix \".txt\"  | awk -v numbarcode=%d -v sim=%d -v errorrate=%f -v indelrate=%f  '{printf\"%%d\\t%%d\\t%%f\\t%%f\\t%%d\\t%%d\\t%%d\\n\" ,numbarcode,sim,errorrate,indelrate,$1,$2,$3 }' >> fastx_benchmark_2.csv &\n",outfile,param->numbarcode, param->sim,param->sequencer_error_rate, param->indel_frequency  );
 	
 	sprintf (outfile, "%s_read.fq",param->outfile);
 	fprintf(file,"cat %s | ", outfile);
@@ -157,7 +150,16 @@ void simulate(struct parameters* param)
 	sprintf (outfile, "%s_barcodefile.txt",param->outfile);
 
 	
-	fprintf(file,"./fastx_barcode_splitter.pl  --bcfile %s --bol --mismatches 0 --prefix ~/tmp/bla0_ --suffix \".txt\"  | awk -v numbarcode=%d -v sim=%d -v errorrate=%f  '{printf\"%%d\\t%%d\\t%%f\\t%%d\\t%%d\\t%%d\\n\" ,numbarcode,sim,errorrate,$1,$2,$3 }' >> fastx_benchmark_0.csv \n",outfile,param->numbarcode, param->sim,param->sequencer_error_rate );
+	fprintf(file,"./fastx_barcode_splitter.pl  --bcfile %s --bol --mismatches 1 --prefix ~/tmp/bla1_ --suffix \".txt\"  | awk -v numbarcode=%d -v sim=%d -v errorrate=%f -v indelrate=%f  '{printf\"%%d\\t%%d\\t%%f\\t%%f\\t%%d\\t%%d\\t%%d\\n\" ,numbarcode,sim,errorrate,indelrate,$1,$2,$3 }' >> fastx_benchmark_1.csv &\n",outfile,param->numbarcode, param->sim,param->sequencer_error_rate,param->indel_frequency  );
+	
+	sprintf (outfile, "%s_read.fq",param->outfile);
+	fprintf(file,"cat %s | ", outfile);
+	
+	
+	sprintf (outfile, "%s_barcodefile.txt",param->outfile);
+
+	
+	fprintf(file,"./fastx_barcode_splitter.pl  --bcfile %s --bol --mismatches 0 --prefix ~/tmp/bla0_ --suffix \".txt\"  | awk -v numbarcode=%d -v sim=%d -v errorrate=%f -v indelrate=%f  '{printf\"%%d\\t%%d\\t%%f\\t%%f\\t%%d\\t%%d\\t%%d\\n\" ,numbarcode,sim,errorrate,indelrate,$1,$2,$3 }' >> fastx_benchmark_0.csv \n",outfile,param->numbarcode, param->sim,param->sequencer_error_rate,  param->indel_frequency );
 	
 	
 	fclose(file);
@@ -188,14 +190,16 @@ void simulate(struct parameters* param)
 	fclose(file);
 	
 	char* read = malloc(sizeof(char)* (param->sim *2 + 20));
+	char* read_mutated = malloc(sizeof(char)* (param->sim *2 + 20));
+
 	assert(read!=0);
 	
 	int num_bar_correct = 0;
 	int num_bar_misassigned = 0;
 	int num_bar_missed = 0;
 	
-	int num_finger_correct = 0;
-	int num_finger_misassigned = 0;
+	//int num_finger_correct = 0;
+	//int num_finger_misassigned = 0;
 	//int num_finger_missed = 0;
 	
 	sprintf (outfile, "%s_read.fq",param->outfile);
@@ -220,32 +224,108 @@ void simulate(struct parameters* param)
 		
 		
 		// apply errors
+		
+		read_pos = 0;
+		mismatches =0 ;
+		indel = 0;
+		
 		for(j = 0;j < param->sim;j++){
 			r = (float)rand_r(&seed)/(float)RAND_MAX;
 			if(r <= param->sequencer_error_rate){
-				n = read[j];
+				//we have an error
 				
-				while(n == read[j]){
+				
+				r = (float)rand_r(&seed)/(float)RAND_MAX;
+				if(r <= param->indel_frequency){
+					indel++;
+					// we have an indel (only considering single nucleotide.....
 					r = (float)rand_r(&seed)/(float)RAND_MAX;
-					if(r < 0.25){
-						n = 0;
-					}else if(r < 0.5){
-						n = 1;
-					}else if(r < 0.75){
-						n = 2;
+					if(r <= 0.5){
+						//insertion
+						//n_dash = read[j];
+						r = (float)rand_r(&seed)/(float)RAND_MAX;
+						if(r < 0.25){
+							n = 0;
+						}else if(r < 0.5){
+							n = 1;
+						}else if(r < 0.75){
+							n = 2;
+						}else{
+							n = 3;
+						}
+						read_mutated[read_pos] = read[j];
+						read_pos++;
+						read_mutated[read_pos] = n;
+						read_pos++;
+						
+						
+						
+						
 					}else{
-						n = 3;
+						//deletion
 					}
+					
+				}else{
+					mismatches++;
+					n = read[j];
+				
+					while(n == read[j]){
+						r = (float)rand_r(&seed)/(float)RAND_MAX;
+						if(r < 0.25){
+							n = 0;
+						}else if(r < 0.5){
+							n = 1;
+						}else if(r < 0.75){
+							n = 2;
+						}else{
+							n = 3;
+						}
+					}
+					read_mutated[read_pos] = n;
+					read_pos++;
 				}
-				read[j] = n;
+			}else{
+				read_mutated[read_pos] = read[j];
+				read_pos++;
 			}
 		}
+		
+		/*if(bpm(barcode[c], read_mutated, param->sim, read_pos)  != 0){
+		fprintf(stderr,"%d ",i);
+			for(j = 0;j < param->sim;j++){
+				fprintf(stderr,"%d", (int) barcode[c][j]);
+			}
+			fprintf(stderr,"\t");
+			
+			for(j = 0;j < read_pos;j++){
+				fprintf(stderr,"%d", (int) read_mutated[j]);
+			}
+			fprintf(stderr," Mis:%d Indel:%d\n", mismatches,indel  );
+			
+			
+		}*/
+		for(j = 0; j < 20;j++){
+			r = (float)rand_r(&seed)/(float)RAND_MAX;
+			if(r < 0.25){
+				n = 0;
+			}else if(r < 0.5){
+				n = 1;
+			}else if(r < 0.75){
+				n = 2;
+			}else{
+				n = 3;
+			}
+			read_mutated[read_pos] = n;
+			read_pos++;
+			//fprintf(file,"%c",alpha[(int) n ]);// = barcode[c][j];
+		}
+		//fprintf(file,"\n");
 		
 		
 		// test if read is recognizeable...
 		n = -1;
 		for(j = 0;j < num_barcode;j++){
-			if(bpm(barcode[j], read, param->sim, param->sim)  == 0){
+			if(bpm(barcode[j], read_mutated, param->sim,  param->sim)  == 0){
 				if(j == c){
 					n = 1;
 				}else{
@@ -270,10 +350,10 @@ void simulate(struct parameters* param)
 		}
 		
 		
-		for(j = 0;j < param->sim;j++){
-			fprintf(file,"%c",alpha[(int) read[j]]);// = barcode[c][j];
+		for(j = 0;j < read_pos;j++){
+			fprintf(file,"%c",alpha[(int) read_mutated[j]]);// = barcode[c][j];
 		}
-		for(j = 0; j < 20;j++){
+		/*for(j = 0; j < 20;j++){
 			r = (float)rand_r(&seed)/(float)RAND_MAX;
 			if(r < 0.25){
 				n = 0;
@@ -285,11 +365,11 @@ void simulate(struct parameters* param)
 				n = 3;
 			}
 			fprintf(file,"%c",alpha[(int) n ]);// = barcode[c][j];
-		}
+		}*/
 		fprintf(file,"\n");
 		
 		fprintf(file,"+\n");
-		for(j = 0; j < 20+param->sim;j++){
+		for(j = 0; j < read_pos;j++){
 			fprintf(file,".");
 		}
 		fprintf(file,"\n");
@@ -366,6 +446,8 @@ void simulate(struct parameters* param)
 	//fprintf(stderr,"%d(%0.1f) correct\n", num_finger_correct,(float)num_finger_correct / 1000000.0* 100.0);
 	//fprintf(stderr,"%d(%0.1f) num_bar_misassigned\n", num_finger_misassigned,(float)num_finger_misassigned / 1000000.0* 100.0 );
 	
+	free(read_mutated);
+	free(read);
 	
 	for(i = 0 ;i < num_barcode;i++){
 		
