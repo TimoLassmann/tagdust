@@ -30,6 +30,7 @@
 #include "sim.h"
 //#include "pst.h"
 #include <math.h>
+#include "fly.h"
 
 
 int main (int argc,char * argv[]) {
@@ -41,6 +42,8 @@ int main (int argc,char * argv[]) {
 	init_nuc_code();
 	
 	param = interface(param,argc,argv);
+	
+	//flytest();
 	
 	if(param->sim){
 		simulate(param);

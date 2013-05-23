@@ -1,0 +1,103 @@
+# create datasets ...
+
+I guess 1 ,3,4 are normal, the second one might be relevant for Helicos like technologies with barcodes...
+
+~/git/tagdust2/scripts/make_benchmark_dataset.sh   -b 8 -n 8 -i 0.01
+~/git/tagdust2/scripts/make_benchmark_dataset.sh   -b 8 -n 8 -i 0.6 
+~/git/tagdust2/scripts/make_benchmark_dataset.sh   -b 24 -n 24 -i 0.01
+~/git/tagdust2/scripts/make_benchmark_dataset.sh   -b 24 -n 24 -i 0.6
+~/git/tagdust2/scripts/make_benchmark_dataset.sh   -b 96 -n 96 -i 0.01
+~/git/tagdust2/scripts/make_benchmark_dataset.sh   -b 96 -n 96 -i 0.6
+
+~/git/tagdust2/scripts/start_tagdust_runs.sh  . 
+
+# wait. 
+
+scp lassmann@osc-lm3:/home/lassmann/benchmark/TagDu*/sim/*csv  ~/benchmark/TagDust/sim/ 
+
+
+cd ~/benchmark/TagDust/sim/ 
+
+R 
+
+library(ggplot2)
+td = read.table ("tagdust_benchmark.csv", header = F)
+
+fx = read.table("fastx_benchmark_1.csv",header = F)
+
+remove(x)
+
+t = subset(td,td[,1] == 8 & td[,4] == 0.01)
+f = subset(fx,fx[,1] == 8 & fx[,4] == 0.01)
+
+t[,8] = "Tagdust";
+f[,8] = "FastX"
+
+
+x =  rbind(t,f) 
+
+x = x[ order(x[,2]), ]
+
+colnames(x)[8] = "Program"
+
+colnames(x)[2] = "BarcodeLength"
+colnames(x)[3] = "ErrorRate"
+colnames(x)[5] = "Correctly Extracted"
+colnames(x)[7] = "Incorrectly Assigned"
+
+
+#x[,2] = paste("Barcode Lenght" ,x[,2])
+
+
+p = ggplot(x, aes(x=ErrorRate, y=`Incorrectly Assigned`, group=Program,colour = Program))
+p + geom_line() + facet_wrap( ~ BarcodeLength,scales = "free") +scale_y_log10()
+
+p = ggplot(x, aes(x=ErrorRate, y=`Correctly Extracted`, group=Program,colour = Program))
+p + geom_line() + facet_wrap( ~ BarcodeLength,scales = "free")+scale_y_log10()
+
+p = ggplot(x, aes(x=ErrorRate, y=`Incorrectly Assigned` / (`Correctly Extracted` + `Incorrectly Assigned`), group=Program,colour = Program))
+p + geom_line() + facet_wrap( ~ BarcodeLength,scales = "fixed")
+
+p = ggplot(x, aes(x=ErrorRate, y= (`Correctly Extracted` + `Incorrectly Assigned`+0.001), group=Program,colour = Program))
+p + geom_line() + facet_wrap( ~ BarcodeLength,scales = "fixed")
+
+
+p <- ggplot(x, aes(ErrorRate,`Incorrectly Assigned`, size=`Correctly Extracted`, label=Program,colour = Program))
+p+geom_point(aes(colour = Program) ) +geom_text(size=0)+  facet_wrap( ~ BarcodeLength,scales = "free") 
+
+
+p <- ggplot(x, aes(ErrorRate, `Incorrectly Assigned`/ (`Correctly Extracted` +`Incorrectly Assigned`) * 100, size=(`Correctly Extracted` +`Incorrectly Assigned`) / 10000, label=Program,colour = Program))
+
+p+geom_point(aes(colour = Program) ) +geom_text(size=0)+  facet_wrap( ~ BarcodeLength,scales = "free") + scale_size(name = "Extracted",range = c(1, 20))  + scale_x_continuous(limits=c(0.005, 0.055),breaks = c(0.01,0.02,0.03,0.04,0.05))
+
+
+p <- ggplot(x, aes((`Correctly Extracted` +`Incorrectly Assigned`) / 10000, `Incorrectly Assigned`/ (`Correctly Extracted` +`Incorrectly Assigned`) * 100, size= ErrorRate , label=Program,colour = Program))
+
+p+geom_point(aes(colour = Program) ) +geom_text(size=0)+  facet_wrap( ~ BarcodeLength,scales = "free") + scale_size(name = "Extracted",range = c(1, 5))  ;
+
+
+
+
+
+
+ggplot(x,aes(x=ErrorRate))+ geom_line(aes(y=`Incorrectly Assigned` / (`Correctly Extracted` + `Incorrectly Assigned`), color = ProgramE)) + geom_line(aes(y=1 -(`Correctly Extracted` + `Incorrectly Assigned`)/ 1000000, color = ProgramEX ))+ facet_wrap( ~ BarcodeLength,scales = "fixed")
+
+ggplot(x,aes(x=ErrorRate))+ geom_line(aes(y=`Incorrectly Assigned`, color = ProgramE)) + geom_line(aes(y=1000000 -(`Correctly Extracted` + `Incorrectly Assigned`), color = ProgramEX ))+ facet_wrap( ~ BarcodeLength,scales = "fixed")
+
+
+ggplot(x,aes(x=ErrorRate))+ geom_line(aes(y=`Incorrectly Assigned`, color = Program))  + geom_line(aes(y=(1000000 -(`Correctly Extracted` + `Incorrectly Assigned`) )* (-1), color = Program))    +  facet_wrap( ~ BarcodeLength,scales = "fixed") +scale_x_log10()
+
+
+
+remove(x)
+
+
+
+
+
+
+
+
+
+
+

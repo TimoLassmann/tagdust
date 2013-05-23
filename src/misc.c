@@ -150,43 +150,6 @@ int byg_end(const char* pattern,const char*text)
 
 
 
-
-
-double binomial_distribution(double p , int n, int k)
-{
-	double fac = gammln((double)n + 1.0);
-	if(k < 0){
-		//fprintf(stderr,"Bad k in binomialdist\n");
-	}
-	if(k > n){
-		return 0;
-	}
-	return exp(k*log(p) +(n-k)*log(1.0 - p) + fac -gammln(k + 1.0) - gammln(n-k+1.0));
-	
-}
-
-
-
-double gammln(const double xx)
-{
-	int j;
-	double x,tmp,y,ser;
-	static const double cof[14] = {57.1562356658629235,-59.5979603554754912,14.1360979747417471, -0.491913816097620199,0.339946499848118887e-4,0.465236289270485756e-4, -0.983744753048795646e-4, 0.0158088703224912494e-3,-0.210264441724104883e-3, 0.217439618115212643e-3, -0.164318106536763890e-3,0.888182239838527433e-4, -0.261908384015814087e-4, 0.368991826595316234e-5};
-	if(xx <= 0.0){
-		//fprintf(stderr,"bar arg in gammln");
-	}
-	y = xx;
-	x = xx;
-	tmp = x+5.24218750000000000;
-	tmp = (x + 0.5) * log(tmp) - tmp;
-	ser = 0.999999999999997092;
-	for(j = 0; j < 14;j++){
-		ser += cof[j] / ++y;
-	}
-	return tmp + log(2.5066282746310005*ser/x);
-}
-
-
 int count_string(const char*p,const char** suffix,int h,int len)
 {
 	int a,b;
@@ -253,128 +216,6 @@ int qsort_string_cmp(const void *a, const void *b)
 }
 
 
-
-
-
-
-double cdf(double x, double mean,double stdev)
-{
-	double out;
-	
-	out = 0.5 * erffc(-(x-mean)/(stdev*sqrtl(2.0)));
-	
-	return out;
-}
-
-
-double gammp(double a, double x)
-{
-	//void gcf(float *gammcf, float a, float x, float *gln);
-	//void gser(float *gamser, float a, float x, float *gln);
-	//void nrerror(char error_text[]);
-	double gamser,gammcf,gln;
-	if (x < 0.0 || a <= 0.0){
-		fprintf(stderr,"Invalid arguments in routine gammp");
-	}
-	if(x < (a+1.0)){
-		gser(&gamser,a,x,&gln);
-		return gamser;
-	} else {
-		gcf(&gammcf,a,x,&gln);
-		return 1.0-gammcf;
-	}
-	
-	
-}
-
-double gammq(double a, double x)
-{
-	//void gcf(float *gammcf, float a, float x, float *gln);
-	//void gser(float *gamser, float a, float x, float *gln);
-	//void nrerror(char error_text[]);
-	double gamser,gammcf,gln;
-	if (x < 0.0 || a <= 0.0){
-		fprintf(stderr,"Invalid arguments in routine gammq");
-	}
-	if (x < (a+1.0)) {
-		gser(&gamser,a,x,&gln);
-		return 1.0-gamser;
-	} else {
-		gcf(&gammcf,a,x,&gln);
-		return gammcf;
-	}
-}
-
-void gser(double *gamser, double a, double x, double *gln)
-{
-	int n;
-	double sum,del,ap;
-	*gln=gammln(a);
-	if (x <= 0.0) {
-		if (x < 0.0){
-			fprintf(stderr,"x less than 0 in routine gser");
-		}
-		*gamser=0.0;
-		return;
-	} else {
-		ap=a;
-		del=sum=1.0/a;
-		for (n=1;n<=ITMAX;n++) {
-			++ap;
-			del *= x/ap;
-			sum += del;
-			if (fabs(del) < fabs(sum)*EPS) {
-				*gamser=sum*exp(-x+a*log(x)-(*gln));
-				return;
-			}
-		}
-		fprintf(stderr,"a too large, ITMAX too small in routine gser");
-		return;
-	}
-}
-
-void gcf(double *gammcf, double a, double x, double *gln)
-{
-	int i;
-	double an,b,c,d,del,h;
-	*gln=gammln(a);
-	b=x+1.0-a;
-	c=1.0/FPMIN;
-	d=1.0/b;
-	h=d;
-	for(i = 1; i <=ITMAX;i++){
-		an = -i*(i-a);
-		b += 2.0;
-		d = an*d+b;
-		if(fabs(d) < FPMIN){
-			d = FPMIN;
-		}
-		c=b+an/c;
-		if(fabs(c) < FPMIN){
-			c = FPMIN;
-		}
-		d = 1.0/d;
-		del = d*c;
-		h *= del;
-		if(fabs(del-1.0) < EPS){
-			break;
-		}
-	}
-	if (i > ITMAX){
-		fprintf(stderr,"a too large, ITMAX too small in gcf");
-	}
-	*gammcf=exp(-x+a*log(x)-(*gln))*h;
-	
-}
-
-
-double erffc(double x)
-{
-	//float gammp(float a, float x);
-	//float gammq(float a, float x);
-	return x < 0.0 ? 1.0+gammp(0.5,x*x) : gammq(0.5,x*x);
-}
-
 double gaussian_pdf(double x, double m,double s)
 {
 	double a = (x-m) / s;
@@ -401,23 +242,6 @@ double log_pdf(double x, double mean,double stdev)
 	return out;
 }
 
-double log_truncated_pdf(double x, double mean,double stdev,double a, double b)
-{
-	double out;
-	if(a <= x &&  x <= b){
-		//fprintf(stderr,"%f	%f	%f	mean:%f	stdev:%f\n",x, a,b,mean,stdev);
-		out  =log_pdf( x,  mean, stdev) ;
-		//if(out){
-		//	fprintf(stderr,"%e	%e	%e	%f	%f\n",pdf( x,  mean, stdev) , cdf(b, mean, stdev), cdf(a, mean, stdev),a,b);
-		out  = out - log(cdf(b, mean, stdev)- cdf(a, mean, stdev));
-		//	fprintf(stderr,"%f	%f	%f\n",x,out,out);
-		//}
-		return out;
-	}else{
-		fprintf(stderr,"Something is wrong... \n");
-		return log(0.0);
-	}
-}
 
 unsigned int pop(int x)
 {

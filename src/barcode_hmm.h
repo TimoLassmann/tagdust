@@ -111,6 +111,10 @@ struct model_bag{
 	float** dyn_prog_matrix;
 	float** transition_matrix;
 	int* label;
+	float* random_scores;
+	float lambda;
+	float mu;
+	
 	int total_hmm_num;
 	float model_multiplier;
 }_MM_ALIGN16;

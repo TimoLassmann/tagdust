@@ -197,6 +197,7 @@ void simulate(struct parameters* param)
 	int num_bar_correct = 0;
 	int num_bar_misassigned = 0;
 	int num_bar_missed = 0;
+	int no_bar = 0;
 	
 	//int num_finger_correct = 0;
 	//int num_finger_misassigned = 0;
@@ -208,7 +209,40 @@ void simulate(struct parameters* param)
 		exit(-1);
 	}
 	
-	for(i = 0; i < 1000000;i++){
+	
+	for(i = 0; i < 1000000*0.1;i++){
+		read_pos = 0;
+		for(j = 0; j < 20+param->sim;j++){
+			r = (float)rand_r(&seed)/(float)RAND_MAX;
+			if(r < 0.25){
+				n = 0;
+			}else if(r < 0.5){
+				n = 1;
+			}else if(r < 0.75){
+				n = 2;
+			}else{
+				n = 3;
+			}
+			read_mutated[read_pos] = n;
+			read_pos++;
+			//fprintf(file,"%c",alpha[(int) n ]);// = barcode[c][j];
+		}
+		fprintf(file,"@READ%d;RBC:NOBAR\n",i);
+		for(j = 0;j < read_pos;j++){
+			fprintf(file,"%c",alpha[(int) read_mutated[j]]);// = barcode[c][j];
+		}
+		fprintf(file,"\n");
+		
+		fprintf(file,"+\n");
+		for(j = 0; j < read_pos;j++){
+			fprintf(file,".");
+		}
+		fprintf(file,"\n");
+		no_bar++;
+		
+	}
+	
+	for(i = 0; i < 1000000*0.9;i++){
 		//construct fake read
 		c = (int) (rand_r(&seed) % (int) (num_barcode)) ;
 		
@@ -434,13 +468,14 @@ void simulate(struct parameters* param)
 		fprintf(stderr,"can't open output\n");
 		exit(-1);
 	}
-	fprintf(file,"%d\t%d\t%f\t%d\t%d\t%d\n",param->numbarcode, param->sim,param->sequencer_error_rate,num_bar_correct,num_bar_missed,num_bar_misassigned);
+	fprintf(file,"%d\t%d\t%f\t%d\t%d\t%d\t%d\n",param->numbarcode, param->sim,param->sequencer_error_rate,num_bar_correct,num_bar_missed,num_bar_misassigned,no_bar);
 	
 	fclose(file);
 	fprintf(stderr,"BARCODE:\n");
 	fprintf(stderr,"%d(%0.1f) correct\n", num_bar_correct,(float)num_bar_correct / 1000000.0* 100.0);
 	fprintf(stderr,"%d(%0.1f) num_bar_misassigned\n", num_bar_misassigned,(float)num_bar_misassigned / 1000000.0* 100.0 );
 	fprintf(stderr,"%d(%0.1f) num_bar_missed\n", num_bar_missed,(float)num_bar_missed / 1000000.0 * 100.0);
+	fprintf(stderr,"%d(%0.1f) no_bar\n", no_bar,(float)no_bar / 1000000.0 * 100.0);
 	
 	//fprintf(stderr,"Fingerprint:\n");
 	//fprintf(stderr,"%d(%0.1f) correct\n", num_finger_correct,(float)num_finger_correct / 1000000.0* 100.0);

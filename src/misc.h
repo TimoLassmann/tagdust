@@ -42,17 +42,7 @@
 #define SCALEINFTY HUGE_VAL
 #endif
 
-
-#define PI 3.14159265
-#define MAXIT 1000
-#define EPS 3.0e-7
-#define FPMIN 1.0e-30
-#define ITMAX 100
-
-
 #define SQRT2M_PI 2.506628274631
-#define MIN_STDEV 0.3989422804014
-
 #define INV_SQRT_2PI 0.3989422804014327
 
 
@@ -72,9 +62,6 @@ unsigned int pop(int x);
 float prob2scaledprob(float p);
 float scaledprob2prob(float p);
 
-double binomial_distribution(double p , int n, int k);
-double gammln(const double xx);
-
 int qsort_string_cmp(const void *a, const void *b);
 
 int bpm(const char* t,const char* p,int n,int m);
@@ -85,16 +72,7 @@ int binsearch_up(const char*p,const char** suffix,int h,int len);
 
 int count_string(const char*p,const char** suffix,int h,int len);
 
-double cdf(double x, double mean,double stdev);
-double gammp(double a, double x);
-double gammq(double a, double x);
-double erffc(double x);
-
-void gser(double *gamser, double a, double x, double *gln);
-void gcf(double *gammcf, double a, double x, double *gln);
-
 double log_pdf(double x, double mean,double stdev);
-double log_truncated_pdf(double x, double mean,double stdev,double a, double b);
 double gaussian_pdf(double x, double m,double s);
 
 

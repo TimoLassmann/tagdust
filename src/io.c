@@ -217,7 +217,9 @@ int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  stru
 		}
 	}
 	
+	//ri[i]->prob = expf( ri[i]->prob) / (1.0f + expf(ri[i]->prob ));
 	
+	if(ri->prob <= 500){
 	
 	if(param->confidence_threshold <=  scaledprob2prob(ri->bar_prob)){
 		fingerlen = 0;
@@ -321,6 +323,9 @@ int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  stru
 	}else{
 		ret = -1; // probability not acceptable
 		//discard....
+	}
+	}else{
+		ret = -3;
 	}
 	/*
 	fprintf(stderr,"%f	%f\n",  expf( ri->prob) / (1.0 + expf(ri->prob )) ,ri->prob);
