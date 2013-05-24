@@ -9,7 +9,7 @@
 \usepackage{hyperref}
 \usepackage{pgf}
 \usepackage{natbib}
-
+\usepackage{verbatim}
 \usepackage{titlesec}
 \titleformat{\chapter}[hang] 
 {\normalfont\huge\bfseries}{\ \thechapter}{1em}{} 
@@ -485,7 +485,7 @@ bash-3.1$ tagdust [-options] <input file>
 -end & INT & end of  search area [length of sequence].\\
 -format & STR & format of input sequence file.\\
 -minlen & INT & minimal accepted read length [16].\\
--e & FLT & expected sequencer error rate [0.02].\\ 
+-e & FLT & expected sequencer error rate [0.05].\\ 
 
 -o & STR & output file name.\\
 -t & INT & number of threads [8].\\
@@ -495,7 +495,9 @@ bash-3.1$ tagdust [-options] <input file>
 \hline
 \end{tabular}
 \end{center}
-The {\tt -threshold} option sets the minimum acceptable probability of a read to belong to the specified architecture. For most applications this should not be changed.
+The {\tt -threshold} option sets the minimum acceptable probability of a read to belong to the specified architecture. If barcodes are present, this option is reused to set the minimum acceptable probability of a read belonging to any barcode sequence. If the reads are very short or the model very simple (e.g. 3 nucleotide barcode followed by the read) this threshold might have to be lowered.
+
+
 As a default, TagDust attempts to match the entire sequence to the HMM (global). The options {\tt -start} and {\tt -end} restricts the matching to region specified. TagDust assumes that all residues upstream of 'start' do not belong to the read while all residues following 'end' are read residues.
 
 In the presence of barcodes or fingerprints, TagDust will recognize the most likely code and append it to the name of the read. 
@@ -577,7 +579,39 @@ Example code: O:N\\
 
 \end{tikzpicture}
 \end{figure}
+
 \newpage 
+\subsection{G addition}
+Segment modeling the occasional addition of guanines to the reads. (89.3\% chance of a single G , 19.5 \% chance of  2 Gs..).\\
+Example code: O:N\\
+
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+ 
+ \node  at (-6,0)  [font=\Large,style={align=center}] () {{\bf Code: -[1-9] G:G}};
+ 
+\node[Dstate,fill=orange] (START) at (-1.5,0){$S$};
+
+\node[Mstate] (O1) at (0,1.5){\shortstack{ A\\   C\\  G\\ T} };
+
+\node[Dstate,fill=yellowgreen] (END) at (1.5,0){$S$};
+
+ \path 
+
+(START) edge [lightedge] (O1) 
+(O1) edge [lightedge] (END) 
+(START) edge [lightedge] (END)
+   
+(O1) edge [lightedge,loop above] ();
+
+\end{tikzpicture}
+\end{figure}
+
+
+
+
 
 \subsection{Barcode or Index}
 
@@ -590,7 +624,7 @@ Segment modeling a set of barcode sequences. For each sequence a separate HMM is
 \begin{tikzpicture}
  \tiny
  
- \node  at (-7,0)  [font=\Large,style={align=center}] () {{\bf Code: -[1-9] O:GTA,AAC}};
+ \node  at (-7,0)  [font=\Large,style={align=center}] () {{\bf Code: -[1-9] B:GTA,AAC}};
  
  \node[Dstate,fill=orange] (START) at (-3,0){$S$};
  
@@ -832,7 +866,7 @@ Segment modeling a pre-defined sequence.
 \end{tikzpicture}
 \end{figure}
 
-\newpage
+
 \subsection{Partial}
 This segment is used to model sequences that may only be partially present at the end of the read.\\
 
@@ -997,23 +1031,59 @@ Note on the last line I restricted the search to the first 25 nucleotides for ef
 
 \section{Sequence scoring} 
 
-TagDust implements the basic forward and backward algorithm as described in \citep{durbin}. For each sequence the logs odds score is defined by the summed probability of all paths (forward score) divided by the probability of a background zero order Markov model. The latter is parameterized based on the length and nucleotide distribution in the input reads. Finally, the log odds score is converted into a probability using the logistic function.
+TagDust implements the basic forward and backward algorithm as described in \citep{durbin}. For each sequence the logs odds score is defined by the summed probability of all paths (forward score) divided by the probability of a background zero order Markov model. The latter is parameterized based on the length and nucleotide distribution in the input reads. 
 
+\begin{equation}
+	S  = log \left(  \frac{P(M)}{P(R)} \right) + log \left(\frac{\sum\limits_{\pi} P(x,\pi | M )}{P(x | R ) } \right)
+\end{equation}
+
+The prior probabilities $P(M)$ and  $P(R)$ are set to 0.9 and 0.1 respectively. Finally, the log odds score is converted into a probability using the logistic function:
+
+\begin{equation}
+	P(M | x) = \frac{e^S}{1-e^S}
+\end{equation}
+
+If barcodes are present TagDust calculated an additional confidence score. At every building block which contains multiple transitions from the silent state to HMMs, TagDust calculates the maximum probability of selecting one particular transition:       
+
+
+\begin{equation}
+	V = \max_j \left( \frac{f_s(i)  ( a_{s,m_j} e_{m_j}(x+1) b_{m_j}(i+1)+  a_{s,I_j} e_{I_j}(x+1) b_{I_j}(i+1))}{\sum\limits_{\pi} P(x,\pi | M )}\right)
+\end{equation}
+
+where $m_j$ and $I$ are the first match and insert states of a barcode HMM model. In essence this probability reflects how confident we are in selecting one barcode over any other. 
+
+As a default Tagdust only extracts reads if both $V$ and $P(M | x)$ is greater than 0.99. 
 
 \section{Implementation} 
 
 Internally, Tagdust uses a full profile HMM for each building block. We simply set some transition probabilities to zero to emulate different models. For example the read building block 'R' is implemented as a profile HMM with one column and transitions directly to and from the insertion state.
-This is quite inefficient as the dynamic programming code still needs to evaluate all possible transitions, even those we know in advance have a probability of zero. In future I might do something about this. 
+This is fairly inefficient as the dynamic programming code still needs to evaluate all possible transitions, even those we know in advance have a probability of zero. In future I might do something about this. 
 
 \section{Optimal accuracy decoding} 
 
-To obtain the most probably labeling of the sequence, we employ the optimal accuracy decoding algorithm as described in \citep{Kall:2005vg}. To apply this algorithm to our problem define the label probability of a nucleotide by the summed posterior label probabilities of states belonging to a particular HMM building block. A secondary dynamic programming algorithm is used to determine the path with the maximal label probability, constrained by the global HMM architecture. The label probabilities are essentially used as a substitution matrix while the architecture is enforced by the equivalent of gap penalties.  
+To obtain the most probably labeling of the sequence, we employ the optimal accuracy decoding algorithm as described in \citep{Kall:2005vg}. To apply this algorithm to our problem define the label probability of a nucleotide by the summed posterior label probabilities of states belonging to a particular HMM building block. A secondary dynamic programming algorithm is used to determine the path with the maximal label probability, constrained by the global HMM architecture. The label probabilities are essentially used as a substitution matrix while the architecture is enforced by the equivalent of gap penalties. 
+
+If fingerprints are present TagDust checks at this stage is the length after decoding matches the users input. If not the read is discarded. 
+
+\chapter{Benchmarks}
+
+We created a small program to simulate barcodes datasets. Parameters include the length of the barcodes, the number of barcodes / libraries, the expected error rate and index frequency. The program automatically maximizes the minimum hamming distance among barcodes. For each test we simulated 900k reads containing a 5' barcode followed by a 20nt read. In addition we added 100k random sequences. 
+We compared Tagdust using default parameters to the fastx\_barcode\_splitter.pl script of the FASTX package(http://hannonlab.cshl.edu/fastx\_toolkit/). 
+
+\begin{figure}[H]
+\includegraphics[scale = 0.65]{figures/8Barcodes1Indels.pdf}
+\caption{Number of extracted and correctly extracted reads as a function of error rate. When the error rate is high or the barcode sequence is short TagDust is conservative and extract fewer reads. However, Tagdust only mis-assignes a tiny fraction reads (here the maximum is 0.43\%)  compared to FASTX. Note that the axis are on different scales.}
+\end{figure}
+\begin{figure}
+\includegraphics[scale = 0.65]{figures/96Barcodes1Indels.pdf}
+\caption{Number of extracted and correctly extracted reads as a function of error rate. In the case of short 4 nucleotide barcodes, TagDust does not extract any reads with default parameters. In this case FASTX extract 100\% of the reads but mis-assigns 13 - 25\%. The maximum error rate for TagDust is only 0.447\%. Note that the axis are on different scales.}
+\end{figure}
 
 
 \chapter{Acknowledgements }
 
 
-
+\begin{comment}
 
 \begin{tikzpicture}[]
 %\definecolor{black}{RGB}{0,0,0}
@@ -1118,7 +1188,7 @@ To obtain the most probably labeling of the sequence, we employ the optimal accu
 
 
 \end{tikzpicture}
-
+\end{comment}
   
 %-----------------------------------------------------------
 \addcontentsline{toc}{chapter}{\numberline{}Bibliography}

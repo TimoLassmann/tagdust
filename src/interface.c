@@ -306,22 +306,36 @@ struct parameters* assign_segment_sequences(struct parameters* param, char* tmp,
 
 void usage()
 {
-	fprintf(stdout, "\nTagDust %0.2f, Copyright (C) 2010, 2011 Timo Lassmann <timolassmann@gmail.com>\n", VERSION);
+	fprintf(stdout, "\nTagDust %0.2f, Copyright (C) 2013 Timo Lassmann <timolassmann@gmail.com>\n", VERSION);
 	fprintf(stdout, "\n");
-	fprintf(stdout, "Usage:   tagdust <file.sam> <file.bam> <file.fa> <file.fq> .... \n\n");
+	fprintf(stdout, "Usage:   tagdust [options] <file>  .... \n\n");
 	fprintf(stdout, "Options:\n");
-	fprintf(stdout, "         -s             STR    prints summary statistics of multiple libraries into one FILE [NA].\n");
-	fprintf(stdout, "         -k             INT    treat all reads mapping more than k errors as unmapped [off].\n");
-	fprintf(stdout, "         -n             STR    name of library and output file when reading from stdin\n");
-	fprintf(stdout, "         -f             STR    specifies the format when reading from stdin.\n");
-	fprintf(stdout, "         -F             INT    filter used in samtools [768].\n");
+	
+	fprintf(stdout, "         -threshold FLT     confidence threshold [0.99].\n");
+	fprintf(stdout, "         -start     INT     start of search area [0].\n");
+	fprintf(stdout, "         -end       INT     end of search area [length of sequence].\n");
+	fprintf(stdout, "         -format    STR     format of input sequence file.\n");
+	fprintf(stdout, "         -minlen    INT     minimal accepted read length [16].\n");
+	fprintf(stdout, "         -e         FLT     expected sequencer error rate [0.05].\n");
+	fprintf(stdout, "         -o         STR     output file name.\n");
+	fprintf(stdout, "         -t         INT     number of threads [8].\n");
+	fprintf(stdout, "         -1         STR     type of the first HMM building block.\n");
+	fprintf(stdout, "         -2         STR     type of the second HMM building block.\n");
+	fprintf(stdout, "         -...       STR     type of the . . . HMM building block.\n");
+	
+	
+	//fprintf(stdout, "         -s             STR    prints summary statistics of multiple libraries into one FILE [NA].\n");
+	//fprintf(stdout, "         -k             INT    treat all reads mapping more than k errors as unmapped [off].\n");
+	//fprintf(stdout, "         -n             STR    name of library and output file when reading from stdin\n");
+	//fprintf(stdout, "         -f             STR    specifies the format when reading from stdin.\n");
+	//fprintf(stdout, "         -F             INT    filter used in samtools [768].\n");
 	//fprintf(stdout, "Options: -unmapped      STR    print unmapped reads to Length of simulated reads [30]\n");
 	fprintf(stdout, "\n");
-	fprintf(stdout, "Example: Reading from standard input:\n\n");
-	fprintf(stdout, "	cat library.sam | samstat -f sam -n library_one\n");
-	fprintf(stdout, "	or:\n");
-	fprintf(stdout, "	samtools view -ub  ~/tmp/small.bam   | ./samstat -f bam -n library_one\n\n");
-	fprintf(stdout, "	In both cases SAMStat will list the stats in the file \"library_one.html\"\n");
+	//fprintf(stdout, "Example: Reading from standard input:\n\n");
+	//fprintf(stdout, "	cat library.sam | samstat -f sam -n library_one\n");
+	//fprintf(stdout, "	or:\n");
+	//fprintf(stdout, "	samtools view -ub  ~/tmp/small.bam   | ./samstat -f bam -n library_one\n\n");
+	//fprintf(stdout, "	In both cases SAMStat will list the stats in the file \"library_one.html\"\n");
 }
 
 

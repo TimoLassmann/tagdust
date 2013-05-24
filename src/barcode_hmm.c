@@ -29,7 +29,7 @@
 #include <assert.h>
 #include "barcode_hmm.h"
 
-#include "fly.h"
+//#include "fly.h"
 
 void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ),int file_num)
 {
@@ -40,7 +40,7 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	int numseq;
 	int total_read = 0;
 	float sum = 0.0;
-	float* out = 0;
+	//float* out = 0;
 	
 	init_logsum();
 	
@@ -148,7 +148,7 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	
 	struct model_bag* mb = init_model_bag(param, back);
 		
-	
+	/*
 	numseq = fp(ri, param,file);
 	assert( numseq >=  5000);
 		
@@ -204,6 +204,7 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	
 	
 	pclose(file);
+	*/
 	
 	file =  io_handler(file, file_num,param);
 
@@ -290,13 +291,13 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		li->total_read += numseq;
 		
 		for(i = 0; i < numseq;i++){
-			//ri[i]->prob = ri[i]->prob + mb->model_multiplier;
+			ri[i]->prob = ri[i]->prob + log (0.9 / 0.1);// )mb->model_multiplier;
 			//float tmp = 1- exp(-1 * exp(-1 * mb->lambda *(ri[i]->prob- mb->mu)));
 			//fprintf(stderr,"LL:%f E-Value:%e P-Value:%e\n", ri[i]->prob, 1000000 * tmp,   1 - exp(-1000000 *tmp)        );
 			
-			//ri[i]->prob = expf( ri[i]->prob) / (1.0f + expf(ri[i]->prob ));
+			ri[i]->prob = expf( ri[i]->prob) / (1.0f + expf(ri[i]->prob ));
 			
-			ri[i]->prob =  1000000 * 1- exp(-1 * exp(-1 * mb->lambda *(ri[i]->prob- mb->mu)));
+			//ri[i]->prob =  1000000 * (1- exp(-1 * exp(-1 * mb->lambda *(ri[i]->prob- mb->mu))));
 			
 			//li->probability_distribution[  (int) floor(ri[i]->prob* 1000.0     + 0.5)]+= 1;
 			c = print_trimmed_sequence(mb, param,  ri[i],outfile);

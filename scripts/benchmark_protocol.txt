@@ -28,7 +28,7 @@ fx = read.table("fastx_benchmark_1.csv",header = F)
 remove(x)
 
 t = subset(td,td[,1] == 8 & td[,4] == 0.01)
-f = subset(fx,fx[,1] == 8 & fx[,4] == 0.01)
+f = subset(fx,fx[,1] ==8 & fx[,4] == 0.01)
 
 t[,8] = "Tagdust";
 f[,8] = "FastX"
@@ -46,7 +46,207 @@ colnames(x)[5] = "Correctly Extracted"
 colnames(x)[7] = "Incorrectly Assigned"
 
 
-#x[,2] = paste("Barcode Lenght" ,x[,2])
+x[,2] = paste("Barcode Lenght" ,x[,2])
+pdf("8Barcodes1Indels.pdf",  height = 8,width = 10,bg="white",pointsize = 36)
+
+
+x$BarcodeLength <- factor(x$BarcodeLength, levels = c("Barcode Lenght 4", "Barcode Lenght 6", "Barcode Lenght 8", "Barcode Lenght 10"));
+
+p <- ggplot(x, aes((`Correctly Extracted` +`Incorrectly Assigned`) / 10000, `Incorrectly Assigned`/ (`Correctly Extracted` +`Incorrectly Assigned`) * 100, size= ErrorRate , label=Program,colour = Program))
+p+geom_point(aes(colour = Program) ) +geom_text(size=0)+  facet_wrap( ~ BarcodeLength,scales = "free") + scale_size(name = "Error Rate",range = c(1, 5))  +scale_y_continuous (name = "Percentage of misassigned reads")+scale_x_continuous (name = "Percentage of extracted reads")+ labs(title = "8 Barcodes 1% Indels") ;
+dev.off();
+
+remove(x)
+
+t = subset(td,td[,1] == 24 & td[,4] == 0.01)
+f = subset(fx,fx[,1] ==24 & fx[,4] == 0.01)
+
+t[,8] = "Tagdust";
+f[,8] = "FastX"
+
+
+x =  rbind(t,f) 
+
+x = x[ order(x[,2]), ]
+
+colnames(x)[8] = "Program"
+
+colnames(x)[2] = "BarcodeLength"
+colnames(x)[3] = "ErrorRate"
+colnames(x)[5] = "Correctly Extracted"
+colnames(x)[7] = "Incorrectly Assigned"
+
+
+x[,2] = paste("Barcode Lenght" ,x[,2])
+
+pdf("24Barcodes1Indels.pdf",   height = 8,width = 10,bg="white",pointsize = 36);
+
+x$BarcodeLength <- factor(x$BarcodeLength, levels = c("Barcode Lenght 4", "Barcode Lenght 6", "Barcode Lenght 8", "Barcode Lenght 10"));
+
+p <- ggplot(x, aes((`Correctly Extracted` +`Incorrectly Assigned`) / 10000, `Incorrectly Assigned`/ (`Correctly Extracted` +`Incorrectly Assigned`) * 100, size= ErrorRate , label=Program,colour = Program))
+p+geom_point(aes(colour = Program) ) +geom_text(size=0)+  facet_wrap( ~ BarcodeLength,scales = "free") + scale_size(name = "Error Rate",range = c(1, 5))  +scale_y_continuous (name = "Percentage of misassigned reads")+scale_x_continuous (name = "Percentage of extracted reads")+ labs(title = "24 Barcodes 1% Indels") ;
+dev.off()
+
+
+
+remove(x)
+
+t = subset(td,td[,1] == 96 & td[,4] == 0.01)
+f = subset(fx,fx[,1] == 96 & fx[,4] == 0.01)
+
+t[,8] = "Tagdust";
+f[,8] = "FastX"
+
+
+x =  rbind(t,f) 
+
+x = x[ order(x[,2]), ]
+
+colnames(x)[8] = "Program"
+
+colnames(x)[2] = "BarcodeLength"
+colnames(x)[3] = "ErrorRate"
+colnames(x)[5] = "Correctly Extracted"
+colnames(x)[7] = "Incorrectly Assigned"
+
+
+x[,2] = paste("Barcode Lenght" ,x[,2])
+
+
+x$BarcodeLength <- factor(x$BarcodeLength, levels = c("Barcode Lenght 4", "Barcode Lenght 6", "Barcode Lenght 8", "Barcode Lenght 10"));
+
+pdf("96Barcodes1Indels.pdf",   height = 8,width = 10,bg="white",pointsize = 36);
+
+p <- ggplot(x, aes((`Correctly Extracted` +`Incorrectly Assigned`) / 10000, `Incorrectly Assigned`/ (`Correctly Extracted` +`Incorrectly Assigned`) * 100, size= ErrorRate , label=Program,colour = Program))
+p+geom_point(aes(colour = Program) ) +geom_text(size=0)+  facet_wrap( ~ BarcodeLength,scales = "free") + scale_size(name = "Error Rate",range = c(1, 5))  +scale_y_continuous (name = "Percentage of misassigned reads")+scale_x_continuous (name = "Percentage of extracted reads")+ labs(title = "96 Barcodes 1% Indels") ;
+
+dev.off();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+remove(x)
+
+t = subset(td,td[,1] == 8 & td[,4] == 0.6)
+f = subset(fx,fx[,1] ==8 & fx[,4] == 0.6)
+
+t[,8] = "Tagdust";
+f[,8] = "FastX"
+
+
+x =  rbind(t,f) 
+
+x = x[ order(x[,2]), ]
+
+colnames(x)[8] = "Program"
+
+colnames(x)[2] = "BarcodeLength"
+colnames(x)[3] = "ErrorRate"
+colnames(x)[5] = "Correctly Extracted"
+colnames(x)[7] = "Incorrectly Assigned"
+
+
+x[,2] = paste("Barcode Lenght" ,x[,2])
+pdf("8Barcodes60Indels.pdf",  height = 8,width = 10,bg="white",pointsize = 36)
+
+
+x$BarcodeLength <- factor(x$BarcodeLength, levels = c("Barcode Lenght 4", "Barcode Lenght 6", "Barcode Lenght 8", "Barcode Lenght 10"));
+
+p <- ggplot(x, aes((`Correctly Extracted` +`Incorrectly Assigned`) / 10000, `Incorrectly Assigned`/ (`Correctly Extracted` +`Incorrectly Assigned`) * 100, size= ErrorRate , label=Program,colour = Program))
+p+geom_point(aes(colour = Program) ) +geom_text(size=0)+  facet_wrap( ~ BarcodeLength,scales = "free") + scale_size(name = "Error Rate",range = c(1, 5))  +scale_y_continuous (name = "Percentage of misassigned reads")+scale_x_continuous (name = "Percentage of extracted reads")+ labs(title = "8 Barcodes 60% Indels") ;
+dev.off();
+
+remove(x)
+
+t = subset(td,td[,1] == 24 & td[,4] == 0.6)
+f = subset(fx,fx[,1] ==24 & fx[,4] == 0.6)
+
+t[,8] = "Tagdust";
+f[,8] = "FastX"
+
+
+x =  rbind(t,f) 
+
+x = x[ order(x[,2]), ]
+
+colnames(x)[8] = "Program"
+
+colnames(x)[2] = "BarcodeLength"
+colnames(x)[3] = "ErrorRate"
+colnames(x)[5] = "Correctly Extracted"
+colnames(x)[7] = "Incorrectly Assigned"
+
+
+x[,2] = paste("Barcode Lenght" ,x[,2])
+
+pdf("24Barcodes60Indels.pdf",   height = 8,width = 10,bg="white",pointsize = 36);
+
+x$BarcodeLength <- factor(x$BarcodeLength, levels = c("Barcode Lenght 4", "Barcode Lenght 6", "Barcode Lenght 8", "Barcode Lenght 10"));
+
+p <- ggplot(x, aes((`Correctly Extracted` +`Incorrectly Assigned`) / 10000, `Incorrectly Assigned`/ (`Correctly Extracted` +`Incorrectly Assigned`) * 100, size= ErrorRate , label=Program,colour = Program))
+p+geom_point(aes(colour = Program) ) +geom_text(size=0)+  facet_wrap( ~ BarcodeLength,scales = "free") + scale_size(name = "Error Rate",range = c(1, 5))  +scale_y_continuous (name = "Percentage of misassigned reads")+scale_x_continuous (name = "Percentage of extracted reads")+ labs(title = "24 Barcodes 60% Indels") ;
+dev.off()
+
+
+
+remove(x)
+
+t = subset(td,td[,1] == 96 & td[,4] == 0.6)
+f = subset(fx,fx[,1] == 96 & fx[,4] == 0.6)
+
+t[,8] = "Tagdust";
+f[,8] = "FastX"
+
+
+x =  rbind(t,f) 
+
+x = x[ order(x[,2]), ]
+
+colnames(x)[8] = "Program"
+
+colnames(x)[2] = "BarcodeLength"
+colnames(x)[3] = "ErrorRate"
+colnames(x)[5] = "Correctly Extracted"
+colnames(x)[7] = "Incorrectly Assigned"
+
+
+x[,2] = paste("Barcode Lenght" ,x[,2])
+
+
+x$BarcodeLength <- factor(x$BarcodeLength, levels = c("Barcode Lenght 4", "Barcode Lenght 6", "Barcode Lenght 8", "Barcode Lenght 10"));
+
+pdf("96Barcodes60Indels.pdf",   height = 8,width = 10,bg="white",pointsize = 36);
+
+p <- ggplot(x, aes((`Correctly Extracted` +`Incorrectly Assigned`) / 10000, `Incorrectly Assigned`/ (`Correctly Extracted` +`Incorrectly Assigned`) * 100, size= ErrorRate , label=Program,colour = Program))
+p+geom_point(aes(colour = Program) ) +geom_text(size=0)+  facet_wrap( ~ BarcodeLength,scales = "free") + scale_size(name = "Error Rate",range = c(1, 5))  +scale_y_continuous (name = "Percentage of misassigned reads")+scale_x_continuous (name = "Percentage of extracted reads")+ labs(title = "96 Barcodes 60% Indels") ;
+
+dev.off();
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 p = ggplot(x, aes(x=ErrorRate, y=`Incorrectly Assigned`, group=Program,colour = Program))
@@ -70,10 +270,6 @@ p <- ggplot(x, aes(ErrorRate, `Incorrectly Assigned`/ (`Correctly Extracted` +`I
 
 p+geom_point(aes(colour = Program) ) +geom_text(size=0)+  facet_wrap( ~ BarcodeLength,scales = "free") + scale_size(name = "Extracted",range = c(1, 20))  + scale_x_continuous(limits=c(0.005, 0.055),breaks = c(0.01,0.02,0.03,0.04,0.05))
 
-
-p <- ggplot(x, aes((`Correctly Extracted` +`Incorrectly Assigned`) / 10000, `Incorrectly Assigned`/ (`Correctly Extracted` +`Incorrectly Assigned`) * 100, size= ErrorRate , label=Program,colour = Program))
-
-p+geom_point(aes(colour = Program) ) +geom_text(size=0)+  facet_wrap( ~ BarcodeLength,scales = "free") + scale_size(name = "Extracted",range = c(1, 5))  ;
 
 
 
