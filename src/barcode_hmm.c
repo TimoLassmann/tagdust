@@ -27,6 +27,7 @@
 #include "nuc_code.h"
 #include <pthread.h>
 #include <assert.h>
+#include <float.h>
 #include "barcode_hmm.h"
 
 //#include "fly.h"
@@ -36,16 +37,23 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	struct read_info** ri = 0;
 	
 	FILE* outfile;
-	int i,j,c;
+	int i,j,c,g;
 	int numseq;
 	int total_read = 0;
+	int barcode_length;
+	int min_distance; 
 	float sum = 0.0;
 	//float* out = 0;
 	
 	init_logsum();
 	
+	//float* randomscores;
+	
 	float* back = 0;
 	int average_length = 0;
+	
+	float pi0;
+	
 	back = malloc(sizeof(float)*5);
 	for(i = 0; i < 5;i++){
 		back[i]= 0.0f;//prob2scaledprob( 0.2);
@@ -55,11 +63,11 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	param->num_query = 5001;
 #else
 	//printf("No Debug\n");
-	param->num_query = 5000000;
+	param->num_query = 500000;
 
 #endif
 
-	param->num_query = 5000000;
+	//param->num_query = 500000;
 	
 	FILE* file = 0;
 	
@@ -101,21 +109,21 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	while ((numseq = fp(ri, param,file)) != 0){
 		//fprintf(stderr,"rread: %d\n",numseq);
 		
-		if(param->matchstart!= -1 || param->matchend !=-1){
+		/*if(param->matchstart!= -1 || param->matchend !=-1){
 			for(i = 0; i < numseq;i++){
 				average_length += param->matchend - param->matchstart;
 				for(j = param->matchstart;j < param->matchend;j++){
 					back[(int)ri[i]->seq[j]] += 1.0f;
 				}
 			}
-		}else{
+		}else{*/
 			for(i = 0; i < numseq;i++){
 				average_length += ri[i]->len;
 				for(j = 0;j < ri[i]->len;j++){
 					back[(int)ri[i]->seq[j]] += 1.0f;
 				}
 			}
-		}
+		//}
 		total_read += numseq;
 #if DEBUG
 		if(total_read > 5001){
@@ -127,6 +135,10 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		}
 #endif
 	}
+	if(param->matchstart!= -1 || param->matchend !=-1){
+		average_length = (param->matchend - param->matchstart )* total_read;
+	}
+	
 	
 	average_length = average_length / total_read;
 	
@@ -141,13 +153,131 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	}
 	
 	pclose(file);
-	file =  io_handler(file, file_num,param);
+	//file =  io_handler(file, file_num,param);
 	
 	
 	//rewind(file);
 	
 	struct model_bag* mb = init_model_bag(param, back);
 		
+	/// Let's check the hamming distance between barcodes...
+	
+	g = 0;
+	min_distance = 1000; /// hamming distance.
+	for(i = 0; i < mb->num_models;i++){
+		if(param->read_structure->type[i] == 'B'){
+			barcode_length = (int)strlen(param->read_structure->sequence_matrix[i][0]);
+			for(j = 0; j < mb->model[i]->num_hmms;j++){
+				for(c = j +1;c <  mb->model[i]->num_hmms ;c++){
+					numseq = bpm(param->read_structure->sequence_matrix[i][j] ,param->read_structure->sequence_matrix[i][c], barcode_length,barcode_length);
+					
+					if(numseq < min_distance){
+						min_distance = numseq;
+						g = 1;
+					//	fprintf(stderr,"%s\n%s\t%d\n",param->read_structure->sequence_matrix[i][j],param->read_structure->sequence_matrix[i][c] ,numseq);
+					}else if(numseq == min_distance ){
+						g++;
+					}
+					
+					
+					
+					
+				}
+			}
+		}
+	}
+	if(min_distance != 1000){
+		fprintf(stderr,"Minumum edit distance among barcodes: %d, %d pairs\n", min_distance,g);
+	}
+	
+	
+	float test[10];
+	file =  io_handler(file, file_num,param);
+	numseq = fp(ri, param,file);
+	assert( numseq >=  NUM_RANDOM_SCORES);
+	mb =  run_pHMM(mb,ri,param,NUM_RANDOM_SCORES,MODE_RUN_RANDOM);
+	
+	for(i = 0; i < 10;i++){
+		fprintf(stderr,"%d %f\n",i,mb->random_scores[i]);
+		test[i] = mb->random_scores[i];
+	}
+	pclose(file);
+	
+	qsort(mb->random_scores, NUM_RANDOM_SCORES, sizeof(float), qsort_flt_cmp);
+	
+	//Got Random scores to estimate p values....
+	
+	
+	
+	
+	
+	for(i = 0; i < 10;i++){
+		fprintf(stderr,"%d %f\n",i,mb->random_scores[i]);
+	}
+	
+	for(i = 0; i < 10;i++){
+		
+		c = binfloatsearch_up(test[i],mb->random_scores,NUM_RANDOM_SCORES-1);
+		
+		fprintf(stderr,"Looking for: %f     %d       -1:%f\t0:%f\t1:%f\n",test[i],c, mb->random_scores[c-1],mb->random_scores[c], mb->random_scores[c+1]);
+		//binfloatsearch_up
+	}
+	
+	c = binfloatsearch_up(-2.0f,mb->random_scores,NUM_RANDOM_SCORES-1);
+	
+	fprintf(stderr,"Looking for: %f     %d       -1:%f\t0:%f\t1:%f\n",-2.0,c, mb->random_scores[c-1],mb->random_scores[c], mb->random_scores[c+1]);
+	
+	
+	float old_q;
+	
+	
+	file =  io_handler(file, file_num,param);
+	while ((numseq = fp(ri, param,file)) != 0){
+		//	numseq = fp(ri, param,file);
+		mb =  run_pHMM(mb,ri,param,numseq,MODE_GET_LABEL);
+		
+		qsort(ri, numseq, sizeof(struct read_info*), qsort_ri_prob_compare );
+		
+		for(i = 0; i < 10;i++){
+			c = binfloatsearch_up(ri[i]->prob,mb->random_scores,NUM_RANDOM_SCORES-1) -1; 
+			fprintf(stderr,"%s	%f	%e\n",ri[i]->name,ri[i]->prob, (double)c/  (double)NUM_RANDOM_SCORES);
+		}
+		
+		for(i = numseq-10; i < numseq;i++){
+			c = binfloatsearch_up(ri[i]->prob,mb->random_scores,NUM_RANDOM_SCORES-1) -1;
+			fprintf(stderr,"%s	%f	%e\n",ri[i]->name,ri[i]->prob, (double)c/  (double)NUM_RANDOM_SCORES);
+		}
+		//convert log prob to p-value;
+		for(i = 0; i < numseq;i++){
+			c = binfloatsearch_up(ri[i]->prob,mb->random_scores,NUM_RANDOM_SCORES-1) -1;
+
+			ri[i]->prob =  (double)c/  (double)NUM_RANDOM_SCORES;
+		}
+		
+		
+		pi0 = pi0_bootstrap(ri,numseq);
+		
+		
+		old_q = pi0 * ri[numseq-1]->prob;
+		fprintf(stdout,"%d	%e	%e\n",numseq-1, ri[numseq-1]->prob, old_q);
+		for(i = numseq-2;i >= 0; i--){
+			if(pi0* (float)numseq * ri[i]->prob / (float)i < old_q){
+				old_q = pi0* (float)numseq * ri[i]->prob / (float)i;
+			}
+			
+			fprintf(stdout,"%d	%e	%e\n",i, ri[i]->prob, old_q);
+		}
+		
+		exit(0);
+		
+	}
+	pclose(file);
+	
+	exit(0);
+	//if(bpm(barcode[c], barcode[i], param->sim, param->sim)  <= errors_allowed){
+	
+	
+	
 	/*
 	numseq = fp(ri, param,file);
 	assert( numseq >=  5000);
@@ -381,7 +511,7 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	//}
 	
 	
-	fprintf(stderr,"%f multiplier\n", mb->model_multiplier);
+	//fprintf(stderr,"%f multiplier\n", mb->model_multiplier);
 	fprintf(stderr,"%d\n", li->total_read);
 	fprintf(stderr,"%d	successfully extracted\n" ,li->success);
 	fprintf(stderr,"%d	low probability\n" , li->prob_failure);
@@ -427,6 +557,124 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		fclose(outfile);
 	}
 	
+}
+
+
+float pi0_bootstrap(struct read_info** ri, int numseq)
+{
+	float* lambda = 0;
+	float* mse = 0;
+	float* pi0 = 0;
+	float* pi0_boot = 0;
+	
+	float min_pi0 = FLT_MAX;
+	int i,j,c, bootstap;
+	
+	float accuracy = 1000.0;
+	
+	unsigned int seed = (unsigned int) (time(NULL) * ( 42));
+	
+	bootstap = 10;
+	lambda = malloc(sizeof(float) * accuracy);
+	mse = malloc(sizeof(float) * accuracy);
+	
+	pi0 = malloc(sizeof(float) * accuracy);
+	pi0_boot = malloc(sizeof(float) * accuracy);
+	
+	for(i = 0; i < accuracy;i++){
+		lambda[i] =(float)i/ accuracy;
+		pi0[i] = 0.0f;
+		mse[i] = 0.0f;
+	}
+	
+	
+	
+	for(i = 0; i < numseq;i++){
+		j = (int)(ri[i]->prob * accuracy);
+			pi0[j] += 1;
+		
+		if(i < 1000){
+		fprintf(stderr,"%f	%d\n",  ri[i]->prob, (int)(ri[i]->prob * accuracy));
+		}
+		
+		if(i < 1000){
+			fprintf(stderr,"%f	%d\n",  ri[i]->prob, (int)(ri[i]->prob * accuracy));
+		}
+		
+		//number of p >= lambda;
+		
+		//p >= lambda[i])/(1-lambda[i])
+		
+		
+	}
+	for(i = accuracy-2; i >=0;i--){
+		pi0[i] = pi0[i] + pi0[i+1];
+	}
+
+	min_pi0 = FLT_MAX;
+	for(i = 0; i < accuracy;i++){
+		//fprintf(stderr,"%f ",pi0[i]);
+		fprintf(stderr,"%f ",pi0[i]);
+		pi0[i] =( pi0[i]/(float) numseq ) /( 1.0 - lambda[i]);
+		//fprintf(stderr,"%f ",pi0[i]);
+		if(pi0[i] < min_pi0){
+			min_pi0 = pi0[i];
+		}
+		
+	}
+	fprintf(stderr,"	MIN:%f\n",min_pi0);
+	
+	//starting pi0 calculated... 
+	
+	for(i = 0; i< bootstap;i++){
+		
+		fprintf(stderr,"Boot:%d\n",i);
+		for(j = 0; j < accuracy;j++){
+			pi0_boot[j] = 0.0f;
+		}
+		for(j = 0; j < numseq;j++){
+			c = (int)( ri[(int)rand_r(&seed)% numseq]->prob *accuracy);
+			//for(c = (int)( ri[(int)rand_r(&seed)% numseq]->prob *accuracy) ; c < accuracy;c++){
+			pi0_boot[c] += 1.0f;
+			//}
+		}
+		for(j = accuracy-2; j >=0;j--){
+			pi0_boot[j] = pi0_boot[j] + pi0_boot[j+1];
+		
+		}
+		for(j = 0; j < accuracy;j++){
+			pi0_boot[j] = pi0_boot[j] / ((1.0 - lambda[j]) * (float)numseq) ;
+			
+			mse[j] = mse[j] + ( pi0_boot[j]  - min_pi0) *  ( pi0_boot[j]  - min_pi0);
+			fprintf(stderr,"%d %f	%f	%f\n",j, pi0_boot[j]  , min_pi0,    mse[j]);
+		}
+		fprintf(stderr,"\n");
+		
+		
+		
+	}
+	min_pi0 = FLT_MAX;
+	c = -1;
+	for(i = 0; i < accuracy;i++){
+		if(mse[i] < min_pi0){
+			min_pi0 = mse[i];
+			c = i;
+		}
+	}
+	
+	min_pi0 = pi0[c];
+	fprintf(stderr," pi0 = %f	%f\n", pi0[c], (float)c / accuracy);
+	
+	
+	
+	free(mse);// = malloc(sizeof(float) * 1000);
+	
+	free(pi0);// = malloc(sizeof(float) * 1000);
+	free(pi0_boot);// = malloc(sizeof(float) * 1000);
+	
+	
+	free(lambda);
+	return min_pi0;
 }
 
 
@@ -554,7 +802,6 @@ void* do_label_thread(void *threadarg)
 			mb = backward(mb, ri[i]->seq + matchstart , tmp);
 			//mb = forward(mb,  ri[i]->seq ,ri[i]->len);
 			mb = forward_max_posterior_decoding(mb, ri[i] , ri[i]->seq+matchstart ,tmp );
-			
 		}
 	}else{
 		for(i = start; i < end;i++){
@@ -562,17 +809,15 @@ void* do_label_thread(void *threadarg)
 			mb = backward(mb, ri[i]->seq ,ri[i]->len);
 			//fprintf(stderr,"%f reverse \n", mb->f_score);
 			mb = forward_max_posterior_decoding(mb, ri[i], ri[i]->seq ,ri[i]->len);
-			//fprintf(stderr,"%f forward \n", mb->f_score);
-
-			//fprintf(stderr,"%f score  \n\n", ri[i]->prob);
-			//fprintf(stderr,"%f barscore  \n\n", ri[i]->bar_prob);
 						
-						
-			
-			//fprintf(stderr,"%f\n", mb->f_score, mb->b_score);
-			
 		}
 	}
+	
+	//for(i = start; i < end;i++){
+	//	fprintf(stdout,"%f	%f\n",ri[i]->prob,ri[i]->bar_prob);
+	//}
+	//exit(0);
+	
 	pthread_exit((void *) 0);
 }
 
@@ -2359,10 +2604,10 @@ struct model_bag* copy_model_bag(struct model_bag* org)
 	
 	assert(copy->model);
 	
-	copy->random_scores = malloc(sizeof(float) * 5000);
+	copy->random_scores = malloc(sizeof(float) * NUM_RANDOM_SCORES);
 	assert(copy-> random_scores);
 
-	for(i = 0; i < 5000;i++){
+	for(i = 0; i < NUM_RANDOM_SCORES;i++){
 		copy->random_scores[i] = org->random_scores[i];
 	}
 	
@@ -2697,11 +2942,11 @@ struct model_bag* init_model_bag(struct parameters* param,float* back)
 	
 	assert(mb->model);
 	
-	mb->random_scores = malloc(sizeof(float) * 5000);
+	mb->random_scores = malloc(sizeof(float) * NUM_RANDOM_SCORES);
 	
 	assert(mb->random_scores);
 	
-	for(i= 0;i < 5000;i++){
+	for(i= 0;i < NUM_RANDOM_SCORES;i++){
 		mb->random_scores[i] = 0.0f;
 	}
 	

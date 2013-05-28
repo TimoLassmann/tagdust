@@ -30,6 +30,31 @@
 
 #include "tagdust2.h"
 
+
+
+	
+int qsort_ri_prob_compare(const void *a, const void *b)
+{
+	
+	//struct mys **a = (struct mys **)i1;
+	//struct mys **b = (struct mys **)i2;
+	//return (*b)->id - (*a)->id;
+	
+	const struct read_info **elem1 = (const struct read_info**) a;
+	
+	const struct read_info **elem2 = (const struct read_info**) b;
+	
+	if ( (*elem1)->prob > (*elem2)->prob)
+		return -1;
+	
+	else if ((*elem1)->prob < (*elem2)->prob)
+		return 1;
+	
+	else
+		return 0;
+}
+
+
 FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 {
 	char command[1000];

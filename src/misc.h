@@ -57,12 +57,13 @@ void init_logsum();
 float logsum(float a,float b);
 
 float logsum_print(float a,float b);
-
+int binfloatsearch_up(float x ,float* y,int h);
 unsigned int pop(int x);
 float prob2scaledprob(float p);
 float scaledprob2prob(float p);
 
 int qsort_string_cmp(const void *a, const void *b);
+int qsort_flt_cmp(const void * a, const void * b);
 
 int bpm(const char* t,const char* p,int n,int m);
 

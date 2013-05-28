@@ -208,12 +208,49 @@ int binsearch_up(const char*p,const char** suffix,int h,int len)
 
 
 
+int binfloatsearch_up(float x ,float* y,int h)
+{
+	int m = 0;
+	int l = 0;
+	/*if (t_long_strncmp(p,text+suffix[l],len)<= 0){
+	 l = l;
+	 }else*/
+	if(x < y[h]){
+		return h+1;
+	}else{
+		while(h-l > 1){
+			//m = (l+h)/2;
+			m = (l + h) >> 1;
+			
+			if(x <= y[m]){
+				l =m;
+			}else{
+				h = m;
+			}
+		}
+	}
+	return l+1;
+}
+
+
+
 int qsort_string_cmp(const void *a, const void *b)
 {
 	const char **one = (const char **)a;
 	const char **two = (const char **)b;
 	return strcmp(*one, *two);
 }
+
+int qsort_flt_cmp(const void * a, const void * b)
+{
+	//const float a  = (float) *elem1;
+	if(*(const float*)a > *(const float*)b)
+		return -1;
+	return *(const float*)a < *(const float*)b;
+	
+	//return (*(float*) a) - (*(float*) b);
+}
+
 
 
 double gaussian_pdf(double x, double m,double s)
@@ -257,7 +294,7 @@ int bpm(const  char* t,const  char* p,int n,int m)
 {
 	register unsigned long int i;//,c;
 	unsigned long int diff;
-	unsigned long int B[5];
+	unsigned long int B[255];
 	if(m > 31){
 		m = 31;
 	}
@@ -271,12 +308,12 @@ int bpm(const  char* t,const  char* p,int n,int m)
 	
 	diff = m;
 	
-	for(i = 0; i < 5;i++){
+	for(i = 0; i < 255;i++){
 		B[i] = 0;
 	}
 	
 	for(i = 0; i < m;i++){
-		B[(int)(p[i] & 0x3)] |= (1ul << i);
+		B[(int)(p[i] )] |= (1ul << i);
 	}
 	
 	//c = 0;
@@ -285,7 +322,7 @@ int bpm(const  char* t,const  char* p,int n,int m)
 	m--;
 	MASK = 1ul << m;
 	for(i = 0; i < n;i++){
-		X = (B[(int)(t[i] &0x3)  ] | VN);
+		X = (B[(int)(t[i])  ] | VN);
 		D0 = ((VP+(X&VP)) ^ VP) | X ;
 		HN = VP & D0;
 		HP = VN | ~(VP | D0);

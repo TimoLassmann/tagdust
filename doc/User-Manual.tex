@@ -157,7 +157,7 @@ Copyright \copyright 2013 Timo Lassmann (timolassmann@gmail.com)
 
 Raw sequences produced by next generation sequencing (NGS) machines contain linker sequences and barcode sequenced used to label samples. TagDust2 is a program to extract and label the sequences to be analyzed in downstream pipelines.
 
-Tagdust allows users to specify the expected architecture of a read and converts it into a hidden Markov model. The latter can assign sequences to a particular barcode (or index) even in the presence of sequencing errors. Sequences not matching the architecture (primer dimers, contaminants etc.) are automatically discarded.
+TagDust allows users to specify the expected architecture of a read and converts it into a hidden Markov model. The latter can assign sequences to a particular barcode (or index) even in the presence of sequencing errors. Sequences not matching the architecture (primer dimers, contaminants etc.) are automatically discarded.
 
 
 %\begin{wrapfigure}{l}{1\textwidth}
@@ -461,7 +461,7 @@ bash-3.1$ ./configure
 \begin{verbatim}
 bash-3.1$ make
 \end{verbatim}
-At this point the tagdust executable appears in the tagdust directory. You can copy it to any directory in your path. To install it system wide type:  
+At this point the TagDust executable appears in the TagDust directory. You can copy it to any directory in your path. To install it system wide type:  
 \begin{verbatim}
 bash-3.1$ make install
 \end{verbatim}
@@ -1012,7 +1012,7 @@ Here I downloaded a dataset from \cite{Kivioja:2012kg}. Reads start after the fo
 T(NNN)dU(NNNN)dU(NNN)[GACTT]rGrGrGrG
 \end{verbatim}
 }
-dU and rG represent deoxyuridine and guanine ribonucleotide, respectively. N's in brackets are the fingerprint nucleotides while GACTT is the barcode used. As you can see the ten nucleotide fingerprint is split into 3 part separated by T's. \\
+dU and rG represent deoxyuridine and guanine ribonucleotide, respectively. N's in brackets are the fingerprint nucleotides while GACTT is the barcode used. As you can see the ten nucleotide fingerprint is split into 3 parts separated by T's. \\
 
 Here is the corresponding TagDust command: 
 
@@ -1043,7 +1043,7 @@ The prior probabilities $P(M)$ and  $P(R)$ are set to 0.9 and 0.1 respectively. 
 	P(M | x) = \frac{e^S}{1-e^S}
 \end{equation}
 
-If barcodes are present TagDust calculated an additional confidence score. At every building block which contains multiple transitions from the silent state to HMMs, TagDust calculates the maximum probability of selecting one particular transition:       
+If barcodes are present TagDust calculated an additional confidence score. At every building block containing multiple transitions from the silent state to HMMs, TagDust calculates the maximum probability of selecting one particular transition:       
 
 
 \begin{equation}
@@ -1052,27 +1052,27 @@ If barcodes are present TagDust calculated an additional confidence score. At ev
 
 where $m_j$ and $I$ are the first match and insert states of a barcode HMM model. In essence this probability reflects how confident we are in selecting one barcode over any other. 
 
-As a default Tagdust only extracts reads if both $V$ and $P(M | x)$ is greater than 0.99. 
+As a default TagDust only extracts reads if both $V$ and $P(M | x)$ is greater than 0.99. 
 
 \section{Implementation} 
 
-Internally, Tagdust uses a full profile HMM for each building block. We simply set some transition probabilities to zero to emulate different models. For example the read building block 'R' is implemented as a profile HMM with one column and transitions directly to and from the insertion state.
+Internally, TagDust uses a full profile HMM for each building block. We simply set some transition probabilities to zero to emulate different models. For example the read building block 'R' is implemented as a profile HMM with one column and transitions directly to and from the insertion state.
 This is fairly inefficient as the dynamic programming code still needs to evaluate all possible transitions, even those we know in advance have a probability of zero. In future I might do something about this. 
 
 \section{Optimal accuracy decoding} 
 
 To obtain the most probably labeling of the sequence, we employ the optimal accuracy decoding algorithm as described in \citep{Kall:2005vg}. To apply this algorithm to our problem define the label probability of a nucleotide by the summed posterior label probabilities of states belonging to a particular HMM building block. A secondary dynamic programming algorithm is used to determine the path with the maximal label probability, constrained by the global HMM architecture. The label probabilities are essentially used as a substitution matrix while the architecture is enforced by the equivalent of gap penalties. 
 
-If fingerprints are present TagDust checks at this stage is the length after decoding matches the users input. If not the read is discarded. 
+If fingerprints are present TagDust checks at this stage if the length after decoding matches the users input. If not the read is discarded. 
 
 \chapter{Benchmarks}
 
 We created a small program to simulate barcodes datasets. Parameters include the length of the barcodes, the number of barcodes / libraries, the expected error rate and index frequency. The program automatically maximizes the minimum hamming distance among barcodes. For each test we simulated 900k reads containing a 5' barcode followed by a 20nt read. In addition we added 100k random sequences. 
-We compared Tagdust using default parameters to the fastx\_barcode\_splitter.pl script of the FASTX package(http://hannonlab.cshl.edu/fastx\_toolkit/). 
+We compared TagDust using default parameters (fairly strict) to the fastx\_barcode\_splitter.pl script of the FASTX package(http://hannonlab.cshl.edu/fastx\_toolkit/).  
 
 \begin{figure}[H]
 \includegraphics[scale = 0.65]{figures/8Barcodes1Indels.pdf}
-\caption{Number of extracted and correctly extracted reads as a function of error rate. When the error rate is high or the barcode sequence is short TagDust is conservative and extract fewer reads. However, Tagdust only mis-assignes a tiny fraction reads (here the maximum is 0.43\%)  compared to FASTX. Note that the axis are on different scales.}
+\caption{Number of extracted and correctly extracted reads as a function of error rate. When the error rate is high or the barcode sequence is short TagDust is conservative and extract fewer reads. However, TagDust only mis-assignes a tiny fraction reads (here the maximum is 0.43\%)  compared to FASTX. Note that the axis are on different scales.}
 \end{figure}
 \begin{figure}
 \includegraphics[scale = 0.65]{figures/96Barcodes1Indels.pdf}
@@ -1080,7 +1080,7 @@ We compared Tagdust using default parameters to the fastx\_barcode\_splitter.pl 
 \end{figure}
 
 
-\chapter{Acknowledgements }
+%\chapter{Acknowledgements }
 
 
 \begin{comment}

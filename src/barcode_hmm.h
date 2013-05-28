@@ -35,6 +35,9 @@
 #ifndef tagdust2_barcode_hmm_h
 #define tagdust2_barcode_hmm_h
 
+
+#define COMPARE(a, b) (((a) > (b)) - ((a) < (b)))
+
 #define MM 0
 #define MI 1
 #define MD 2
@@ -58,6 +61,8 @@
 #define MODE_GET_LABEL 1
 #define MODE_TRAIN 2
 #define MODE_RUN_RANDOM 3
+#define NUM_RANDOM_SCORES 100000
+
 
 struct hmm_column{
 	float M_foward[MAX_HMM_SEQ_LEN];
@@ -172,6 +177,10 @@ struct model_bag* run_pHMM(struct model_bag* mb,struct read_info** ri,struct par
 void* do_baum_welch_thread(void *threadarg);
 void* do_label_thread(void *threadarg);
 void* do_run_random_sequences(void *threadarg);
+
+float pi0_bootstrap(struct read_info** ri, int numseq);
+
+
 #endif
 
 

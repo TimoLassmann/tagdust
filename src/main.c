@@ -31,6 +31,7 @@
 //#include "pst.h"
 #include <math.h>
 ///#include "fly.h"
+#include "spline_fitting.h"
 
 
 int main (int argc,char * argv[]) {
@@ -40,6 +41,8 @@ int main (int argc,char * argv[]) {
 	int i;
 	
 	init_nuc_code();
+	
+	//test_spline();
 	
 	param = interface(param,argc,argv);
 	
