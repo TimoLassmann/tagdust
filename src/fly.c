@@ -15,20 +15,20 @@
 
 void flytest()
 {
-	float* data = 0;
-	float* min = 0;
-	float* max = 0;
-	float* out = 0;
+	double* data = 0;
+	double* min = 0;
+	double* max = 0;
+	double* out = 0;
 	//float r;
 	int i;
 	unsigned int seed = (unsigned int) (time(NULL) * ( 42));
 	
 	//r = (float)rand_r(&seed)/(float)RAND_MAX;
 	
-	data = malloc(sizeof(float) * 5000);
+	data = malloc(sizeof(double) * 5000);
 	
-	min = malloc(sizeof(float) * 2);
-	max = malloc(sizeof(float) * 2);
+	min = malloc(sizeof(double) * 2);
+	max = malloc(sizeof(double) * 2);
 	
 	min[0] = -20;
 	min[1] = 0;
@@ -57,7 +57,7 @@ void flytest()
 
 
 
-float*  run_firefly_thread(float* data,int n,int num_var,float* max, float* min, float (*fp)(float*,int ,  float* ,int ) ,int num_threads)
+double*  run_firefly_thread(double* data,int n,int num_var,double* max, double* min, double (*fp)(double*,int ,  double* ,int ) ,int num_threads)
 {
 	struct fly_thread_data* thread_data = 0;
 	thread_data = malloc(sizeof(struct fly_thread_data)* num_threads);
@@ -68,11 +68,11 @@ float*  run_firefly_thread(float* data,int n,int num_var,float* max, float* min,
 	int rc;
 	int num_fly = 20;
 	
-	float* result  = 0;
-	float best_light = 0;
+	double* result  = 0;
+	double best_light = 0;
 	
 	
-	result = malloc(sizeof(float) * num_var);
+	result = malloc(sizeof(double) * num_var);
 	
 	//unsigned int seed = (unsigned int) (time(NULL) * ( 42));
 	
@@ -172,7 +172,7 @@ void* do_fly(void *threadarg)
 {
 	struct fly_thread_data *thread_data;
 	thread_data = (struct fly_thread_data *) threadarg;
-	float* data = thread_data->data;
+	double* data = thread_data->data;
 	
 	//float* best = thread_data->best;
 	//float* max = thread_data->max;
@@ -190,10 +190,10 @@ void* do_fly(void *threadarg)
 	int i,j,c,f;
 	
 	int max_gen = 1000;
-	float d;
-	float lambda = 1.0; // absorption coefficient.
-	float alpha = 0.2;
-	float beta0 = 1.0;
+	double d;
+	double lambda = 4.0; // absorption coefficient.
+	double alpha = 0.2;
+	double beta0 = 1.0;
 
 	for(i = 0; i < swarm->num_fly;i++){
 		//light[i] =  fp(data,n,flies[i],num_var );
@@ -234,7 +234,7 @@ void* do_fly(void *threadarg)
 					}
 					//d = sqrtf(d);
 					for(f = 0;f < num_var;f++){
-						swarm->fly[c][f] = swarm->fly[c][f] + beta0* exp(-1.0 * lambda * d ) * (swarm->fly[j][f] - swarm->fly[c][f]) + alpha * (0.5 -  (float)rand_r(&seed)/(float)RAND_MAX);
+						swarm->fly[c][f] = swarm->fly[c][f] + beta0* exp(-1.0 * lambda * d ) * (swarm->fly[j][f] - swarm->fly[c][f]) + alpha * (0.5 -  (float)rand_r(&seed)/(double)RAND_MAX);
 					}
 					
 					swarm->light[c] =  thread_data->fp(data,num_data_points,swarm->fly[c],num_var );
@@ -253,7 +253,7 @@ void* do_fly(void *threadarg)
 		for(c= 0; c < swarm->num_fly;c++){
 			if(!swarm->moved[c]){
 				for(f = 0;f < num_var;f++){
-					swarm->fly[c][f] = swarm->fly[c][f] + alpha * (0.5 -  (float)rand_r(&seed)/(float)RAND_MAX);
+					swarm->fly[c][f] = swarm->fly[c][f] + alpha * (0.5 -  (double)rand_r(&seed)/(double)RAND_MAX);
 				}
 				
 				swarm->light[c] =  thread_data->fp(data,num_data_points,swarm->fly[c],num_var );
@@ -270,10 +270,10 @@ void* do_fly(void *threadarg)
 		}
 		
 		
-		//if(i % 10 == 0){
-		//	fprintf(stderr,"Thread %d Best: %f\n", thread_data->thread_num,swarm->best_light );
+		if(i % 50 == 0){
+			fprintf(stderr,"Thread %d Best: %f\n", thread_data->thread_num,swarm->best_light );
 			//fprintf(stderr,"%")
-		//}
+		}
 	}
 	
 
@@ -281,12 +281,12 @@ void* do_fly(void *threadarg)
 }
 
 
-float* firefly(float* data, int n,int num_var,float* max,float* min, float (*fp)(float*,int ,  float* ,int ))
+double* firefly(double* data, int n,int num_var,double* max,double* min, double (*fp)(double*,int ,  double* ,int ))
 {
-	float* var = 0;
+	double* var = 0;
 	
-	float** flies = 0;
-	float* light = 0;
+	double** flies = 0;
+	double* light = 0;
 
 	float r = 0;
 	int i,j,c,f;
@@ -294,20 +294,20 @@ float* firefly(float* data, int n,int num_var,float* max,float* min, float (*fp)
 	int max_gen = 1000;
 	int num_fly = 20;
 		
-	float d;
-	float lambda = 1.0; // absorption coefficient.
-	float alpha = 0.2;
-	float beta0 = 1.0;
+	double d;
+	double lambda = 1.0; // absorption coefficient.
+	double alpha = 0.2;
+	double beta0 = 1.0;
 	unsigned int seed = (unsigned int) (time(NULL) * ( 42));
 	
 	r = (float)rand_r(&seed)/(float)RAND_MAX;
 	
-	flies = malloc(sizeof(float*) * num_fly);
-	light = malloc(sizeof(float) * num_fly);
+	flies = malloc(sizeof(double*) * num_fly);
+	light = malloc(sizeof(double) * num_fly);
 	for(i = 0; i < num_fly;i++){
-		flies[i] = malloc(sizeof(float) * num_var);
+		flies[i] = malloc(sizeof(double) * num_var);
 		for (j = 0; j < num_var;j++){
-			flies[i][j] =  ( (float)rand_r(&seed)/(float)RAND_MAX * (max[j] - min[j])) + min[j];
+			flies[i][j] =  ( (double)rand_r(&seed)/(float)RAND_MAX * (max[j] - min[j])) + min[j];
 		}
 	}
 	
@@ -356,13 +356,13 @@ float* firefly(float* data, int n,int num_var,float* max,float* min, float (*fp)
 
 
 
-float extreme_value_distribution_eval(float*data,int n, float* var, int num_var)
+double extreme_value_distribution_eval(double*data,int n, double* var, int num_var)
 {
-	float sum = prob2scaledprob(1.0);
+	double sum = prob2scaledprob(1.0);
 	int i;
-	float mu = var[EVD_mu];
-	float lambda = var[EVD_lambda];
-	float px = 0;
+	double mu = var[EVD_mu];
+	double lambda = var[EVD_lambda];
+	double px = 0;
 	for(i = 0; i < n;i++){
 		px = lambda * exp(-1.0f *lambda* (data[i] - mu) - exp(-1.0f * lambda *  (data[i] - mu))  );
 		if(px <0){
@@ -390,9 +390,9 @@ struct swarm* init_swarm(int num_fly, int num_var)
 	
 	assert(swarm != 0);
 	
-	swarm->fly = malloc(sizeof(float*) * num_fly);
+	swarm->fly = malloc(sizeof(double*) * num_fly);
 	assert(swarm->fly  != 0);
-	swarm->light = malloc(sizeof(float) * num_fly);
+	swarm->light = malloc(sizeof(double) * num_fly);
 	assert(swarm->light  != 0);
 	
 	swarm->moved = malloc(sizeof(int) * num_fly);
@@ -400,7 +400,7 @@ struct swarm* init_swarm(int num_fly, int num_var)
 	
 	swarm->num_fly = num_fly;
 	swarm->best_light = -FLT_MAX;
-	swarm->best = malloc(sizeof(float) * num_var);
+	swarm->best = malloc(sizeof(double) * num_var);
 	for(j = 0; j < num_var;j++){
 		swarm->best[j] = 0.0f;
 	}
@@ -409,7 +409,7 @@ struct swarm* init_swarm(int num_fly, int num_var)
 	for(i = 0; i < num_fly;i++){
 		swarm->light[i] = 0.0f;
 		swarm->moved[i] = 0;
-		swarm->fly[i] = malloc(sizeof(float) * num_var);
+		swarm->fly[i] = malloc(sizeof(double) * num_var);
 		for(j = 0; j < num_var;j++){
 			swarm->fly[i][j] = 0.0f;
 		}

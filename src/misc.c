@@ -208,7 +208,7 @@ int binsearch_up(const char*p,const char** suffix,int h,int len)
 
 
 
-int binfloatsearch_up(float x ,float* y,int h)
+int bindoublesearch_up(double x ,double* y,int h)
 {
 	int m = 0;
 	int l = 0;

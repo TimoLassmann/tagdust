@@ -30,8 +30,78 @@
 #include "sim.h"
 //#include "pst.h"
 #include <math.h>
+
+#include "cmath.h"
 ///#include "fly.h"
-#include "spline_fitting.h"
+
+
+void test_spline(void)
+{
+	double* x = 0;
+	double* y = 0;
+	double* w = 0;
+	
+	int i;
+	int flag;
+	x = malloc(sizeof(double)* 10000);
+	y = malloc(sizeof(double) * 10000);
+	w = malloc(sizeof(double) * 10000);
+	
+	for(i = 0; i < 10000;i++){
+		x[i] = i;
+		y[i] = sqrt(sin((double)i  / 750)+1+((double)i / 10000) * ((double)i / 10000) );
+		w[i] = 1;
+	}
+	
+	double* knot_x = 0;
+	double* knot_y = 0;
+	int nknots = 3;
+	
+	knot_x = malloc(sizeof(double)* nknots);
+	knot_y = malloc(sizeof(double) * nknots);
+	
+	for(i= 0; i < nknots;i++){
+		knot_x[i] = x[(int)(10000 * (i* 1.0 / (double)(nknots+1)+1.0 / (double)(nknots+1) ))];
+		knot_y[i] = y[(int)(10000 * (i* 1.0 / (double)(nknots+1)+1.0 / (double)(nknots+1) ))];
+		//fprintf(stderr,"%d\n",(int)(10000 * (i* 1.0 / (double)(nknots+1)+1.0 / (double)(nknots+1) )) );
+	}
+	double* b = 0;
+	double*c = 0;
+	double*d = 0;
+	
+	b =  malloc(sizeof(double)* nknots);
+	c =  malloc(sizeof(double)* nknots);
+	d =  malloc(sizeof(double)* nknots);
+		
+	
+	double sums = 11;
+	double s1 = 0;
+	double s2 = 0;
+	fitspl (10000,x, y,w, nknots  , knot_x, knot_y, &s1, &s2, &sums,&flag);
+	
+	i = spline(nknots, 1, 1, s1, s2, knot_x, knot_y, b, c, d,&flag );
+	//i = spline(nknots, 0,0,0,0, knot_x, knot_y, b, c, d,&flag );
+
+	
+	
+	
+	double est = 0;
+	
+	int last = 0;
+	double mse = 0.0;
+	for(i = 0; i < 10000;i++){
+		est = seval (nknots, i, knot_x, knot_y, b, c, d, &last);
+		fprintf(stdout,"%f\t%f\t%f\n",x[i],y[i], est);
+		
+		mse = mse + (est - y[i]) *(est - y[i]) ;
+	}
+	
+	fprintf(stderr,"MSE:%f\n", mse / 10000.0 );
+	
+	exit(0);
+	
+}
+
 
 
 int main (int argc,char * argv[]) {

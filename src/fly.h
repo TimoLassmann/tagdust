@@ -17,22 +17,22 @@
 #include <float.h>
 
 struct swarm{
-	float** fly;
-	float* light;
+	double** fly;
+	double* light;
 	int* moved;
 	int num_fly;
-	float best_light;
-	float* best;
+	double best_light;
+	double* best;
 };
 
 
 struct fly_thread_data{
 	struct swarm* swarm;
-	float* data; //model_bag* mb;
+	double* data; //model_bag* mb;
 	int n;
 	int num_var;
 
-	float (*fp)(float*,int ,  float* ,int );
+	double (*fp)(double*,int ,  double* ,int );
 	int thread_num;
 	unsigned int seed;
 	//float* best;
@@ -40,10 +40,10 @@ struct fly_thread_data{
 
 
 void flytest();
-float* firefly(float* data, int n,int num_var,float* max,float* min, float (*fp)(float*,int ,  float* ,int ));
-float*  run_firefly_thread(float* data,int n,int num_var,float* max, float* min, float (*fp)(float*,int ,  float* ,int ) ,int num_threads);
+double* firefly(double* data, int n,int num_var,double* max,double* min, double (*fp)(double*,int ,  double* ,int ));
+double*  run_firefly_thread(double* data,int n,int num_var,double* max, double* min, double (*fp)(double*,int ,  double* ,int ) ,int num_threads);
 void* do_fly(void *threadarg);
-float extreme_value_distribution_eval(float*data,int n, float* var, int num_var);
+double extreme_value_distribution_eval(double*data,int n, double* var, int num_var);
 
 
 struct swarm* init_swarm(int num_fly, int num_var);

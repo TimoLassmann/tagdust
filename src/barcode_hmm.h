@@ -61,7 +61,7 @@
 #define MODE_GET_LABEL 1
 #define MODE_TRAIN 2
 #define MODE_RUN_RANDOM 3
-#define NUM_RANDOM_SCORES 100000
+#define NUM_RANDOM_SCORES 500000
 
 
 struct hmm_column{
@@ -116,7 +116,8 @@ struct model_bag{
 	float** dyn_prog_matrix;
 	float** transition_matrix;
 	int* label;
-	float* random_scores;
+	double* random_scores;
+	int num_random_scores;
 	float lambda;
 	float mu;
 	
@@ -156,7 +157,7 @@ void free_model(struct model* model);
 
 //struct model* malloc_model_according_to_read_structure(struct read_structure* rs, int key);
 struct model* malloc_model_according_to_read_structure(int num_hmm, int length);
-struct model* init_model_according_to_read_structure(struct model* model,struct parameters* param , int key, float* background,int assumed_length);
+struct model* init_model_according_to_read_structure(struct model* model,struct parameters* param , int key, double* background,int assumed_length);
 void print_model(struct model* model);
 
 
@@ -167,7 +168,7 @@ struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, int 
 struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct read_info* ri, char* a, int len);
 
 struct model_bag* copy_model_bag(struct model_bag* org);
-struct model_bag* init_model_bag(struct parameters* param,float* back);
+struct model_bag* init_model_bag(struct parameters* param,double* back);
 struct model* copy_model_parameters(struct model* org, struct model* copy );
 struct model* copy_estimated_parameter(struct model* target, struct model* source );
 struct model* reestimate(struct model* m, int mode);
@@ -178,8 +179,8 @@ void* do_baum_welch_thread(void *threadarg);
 void* do_label_thread(void *threadarg);
 void* do_run_random_sequences(void *threadarg);
 
-float pi0_bootstrap(struct read_info** ri, int numseq);
-
+double pi0_bootstrap(struct read_info** ri, int numseq);
+double get_min_pi0(double* x, double* y, int n_points);
 
 #endif
 

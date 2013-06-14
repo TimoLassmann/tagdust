@@ -57,7 +57,7 @@ void init_logsum();
 float logsum(float a,float b);
 
 float logsum_print(float a,float b);
-int binfloatsearch_up(float x ,float* y,int h);
+int bindoublesearch_up(double x ,double* y,int h);
 unsigned int pop(int x);
 float prob2scaledprob(float p);
 float scaledprob2prob(float p);

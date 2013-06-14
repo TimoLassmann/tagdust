@@ -245,27 +245,42 @@ int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  stru
 	//ri[i]->prob = expf( ri[i]->prob) / (1.0f + expf(ri[i]->prob ));
 	
 	if(param->confidence_threshold <=  ri->prob ){
-	
-	if(param->confidence_threshold <=  scaledprob2prob(ri->bar_prob)){
-		fingerlen = 0;
-		//required_finger_len = 0;
 		
-		for(j = 0; j < len;j++){
-			c1 = mb->label[(int)ri->labels[j+1]];
-			c2 = c1 & 0xFFFF;
-			c3 = (c1 >> 16) & 0x7FFF;
-			//fprintf(stderr,"%c",   param->read_structure->type[c2] );
-			if(param->read_structure->type[c2] == 'F'){
-			//	required_finger_len += (int) strlen(param->read_structure->sequence_matrix[c2][0]);
-				fingerlen++;
-				key = (key << 2 )|  (ri->seq[j+offset] & 0x3);
+		if(0.5 <=  ri->bar_prob){
+			fingerlen = 0;
+			//required_finger_len = 0;
+			
+			for(j = 0; j < len;j++){
+				c1 = mb->label[(int)ri->labels[j+1]];
+				c2 = c1 & 0xFFFF;
+				c3 = (c1 >> 16) & 0x7FFF;
+				//fprintf(stderr,"%c",   param->read_structure->type[c2] );
+				if(param->read_structure->type[c2] == 'F'){
+					//	required_finger_len += (int) strlen(param->read_structure->sequence_matrix[c2][0]);
+					fingerlen++;
+					key = (key << 2 )|  (ri->seq[j+offset] & 0x3);
+				}
+				if(param->read_structure->type[c2] == 'B'){
+					hmm_has_barcode = 1;
+					bar = c3;
+					mem = c2;
+				}
+				if(param->read_structure->type[c2] == 'R'){
+					out_seq[s_pos] = alpha[(int)ri->seq[j+offset]];
+					s_pos++;
+					if(ri->qual){
+						out_qual[q_pos] =  ri->qual[j+offset] ;
+						
+					}else{
+						out_qual[q_pos] = '.';
+					}
+					q_pos++;
+					
+					//fprintf(out,"%c",  );
+					//key = (key << 2 )|  (ri->seq[j] & 0x3);
+				}
 			}
-			if(param->read_structure->type[c2] == 'B'){
-				hmm_has_barcode = 1;
-				bar = c3;
-				mem = c2;
-			}
-			if(param->read_structure->type[c2] == 'R'){
+			for(j = len; j < ri->len;j++){
 				out_seq[s_pos] = alpha[(int)ri->seq[j+offset]];
 				s_pos++;
 				if(ri->qual){
@@ -276,79 +291,64 @@ int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  stru
 				}
 				q_pos++;
 				
-				//fprintf(out,"%c",  );
-				//key = (key << 2 )|  (ri->seq[j] & 0x3);
-			}			
-		}
-		for(j = len; j < ri->len;j++){
-			out_seq[s_pos] = alpha[(int)ri->seq[j+offset]];
-			s_pos++;
-			if(ri->qual){
-				out_qual[q_pos] =  ri->qual[j+offset] ;
-				
-			}else{
-				out_qual[q_pos] = '.';
 			}
-			q_pos++;
 			
-		}
-		
-		
-		out_seq[s_pos] = 0;
-		out_qual[q_pos] = 0;
-		
-		// can add to loop above... 
-		
-		//for(j = 0; j < len;j++){
-		//	c1 = mb->label[(int)ri->labels[j+1]];
-		//	c2 = c1 & 0xFFFF;
-		//	c3 = (c1 >> 16) & 0x7FFF;
+			
+			out_seq[s_pos] = 0;
+			out_qual[q_pos] = 0;
+			
+			// can add to loop above...
+			
+			//for(j = 0; j < len;j++){
+			//	c1 = mb->label[(int)ri->labels[j+1]];
+			//	c2 = c1 & 0xFFFF;
+			//	c3 = (c1 >> 16) & 0x7FFF;
 			//fprintf(stderr,"%d", c3   );
 			
-		//}
-		
-		//check - has barcode
-		
-		//fprintf(stderr,"%d	%d	%d	%d\n",hmm_has_barcode,required_finger_len, bar,fingerlen );
-		if(s_pos >= param->minlen){
+			//}
 			
-			if(hmm_has_barcode && required_finger_len){
-				if(fingerlen == required_finger_len && bar != -1){
-					ret = 1;
-					fprintf(out,"@%s;BC:%s;FP:%d\n",ri->name,param->read_structure->sequence_matrix[mem][bar],key);
-					fprintf(out,"%s\n+\n%s\n", out_seq,out_qual);
-				}else{
-					ret = -3; // something wrong with the architecture
-				}
-			}else if(hmm_has_barcode){
-				if(bar != -1){
-					ret = 1;
-					fprintf(out,"@%s;BC:%s\n",ri->name,param->read_structure->sequence_matrix[mem][bar]);
-					fprintf(out,"%s\n+\n%s\n", out_seq,out_qual);
-				}else{
-					ret = -3; // something wrong with the architecture
-				}
+			//check - has barcode
+			
+			//fprintf(stderr,"%d	%d	%d	%d\n",hmm_has_barcode,required_finger_len, bar,fingerlen );
+			if(s_pos >= param->minlen){
 				
-			}else if(required_finger_len){
-				if(fingerlen == required_finger_len){
-					ret = 1;
-					fprintf(out,"@%s;FP:%d\n",ri->name,key);
-					fprintf(out,"%s\n+\n%s\n", out_seq,out_qual);
+				if(hmm_has_barcode && required_finger_len){
+					if(fingerlen == required_finger_len && bar != -1){
+						ret = 1;
+						fprintf(out,"@%s;BC:%s;FP:%d\n",ri->name,param->read_structure->sequence_matrix[mem][bar],key);
+						fprintf(out,"%s\n+\n%s\n", out_seq,out_qual);
+					}else{
+						ret = -3; // something wrong with the architecture
+					}
+				}else if(hmm_has_barcode){
+					if(bar != -1){
+						ret = 1;
+						fprintf(out,"@%s;BC:%s\n",ri->name,param->read_structure->sequence_matrix[mem][bar]);
+						fprintf(out,"%s\n+\n%s\n", out_seq,out_qual);
+					}else{
+						ret = -3; // something wrong with the architecture
+					}
+					
+				}else if(required_finger_len){
+					if(fingerlen == required_finger_len){
+						ret = 1;
+						fprintf(out,"@%s;FP:%d\n",ri->name,key);
+						fprintf(out,"%s\n+\n%s\n", out_seq,out_qual);
+					}else{
+						ret = -3; // something wrong with the architecture
+					}
 				}else{
-					ret = -3; // something wrong with the architecture
+					ret = 1;
+					fprintf(out,"@%s\n",ri->name);
+					fprintf(out,"%s\n+\n%s\n", out_seq,out_qual);
 				}
 			}else{
-				ret = 1;
-				fprintf(out,"@%s\n",ri->name);
-				fprintf(out,"%s\n+\n%s\n", out_seq,out_qual);
+				ret = -2; //read to short
 			}
 		}else{
-			ret = -2; //read to short
+			ret = -1; // probability not acceptable
+			//discard....
 		}
-	}else{
-		ret = -1; // probability not acceptable
-		//discard....
-	}
 	}else{
 		ret = -3;
 	}
