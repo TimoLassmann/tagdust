@@ -47,6 +47,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->num_query = 1000000;
 	param->format = 0;
 	param->gzipped = 0;
+	param->bzipped = 0;
 	param->sam = 0;
 	param->train = 0;
 	param->fasta = 0;

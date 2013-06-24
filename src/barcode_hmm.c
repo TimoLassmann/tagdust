@@ -457,7 +457,7 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		//param->confidence_threshold = 0.0;
 		
 		for(i = 0; i < numseq;i++){
-			
+			ri[i]->bar_prob =  scaledprob2prob(ri[i]->bar_prob);
 			ri[i]->prob = ri[i]->prob + log (0.9 / 0.1);
 			ri[i]->prob = expf( ri[i]->prob) / (1.0f + expf(ri[i]->prob ));
 			//ri[i]->prob = ri[i]->prob / max_prob;
@@ -466,7 +466,7 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 			
 			//ri[i]->prob = ri[i]->prob+mb->model_multiplier + log (0.9 / 0.1);// )mb->model_multiplier;
 			//float tmp = 1- exp(-1 * exp(-1 * mb->lambda *(ri[i]->prob- mb->mu)));
-			//fprintf(stderr,"LL:%f E-Value:%e P-Value:%e\n", ri[i]->prob, 1000000 * tmp,   1 - exp(-1000000 *tmp)        );
+			//fprintf(stderr,"LL:%f bar:%f\n", ri[i]->prob , ri[i]->bar_prob   );
 			
 			//ri[i]->prob = expf( ri[i]->prob) / (1.0f + expf(ri[i]->prob ));
 			//fprintf(stdout," %f   %f\n",ri[i]->prob ,ri[i]->bar_prob);
@@ -605,7 +605,7 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 }
 
 
-
+/*
 double pi0_bootstrap(struct read_info** ri, int numseq)
 {
 	double* lambda = 0;
@@ -639,13 +639,7 @@ double pi0_bootstrap(struct read_info** ri, int numseq)
 		j = (int)(ri[i]->prob * accuracy);
 			pi0[j] += 1;
 		
-		/*if(i < 1000){
-		fprintf(stderr,"%f	%d\n",  ri[i]->prob, (int)(ri[i]->prob * accuracy));
-		}
 		
-		if(i < 1000){
-			fprintf(stderr,"%f	%d\n",  ri[i]->prob, (int)(ri[i]->prob * accuracy));
-		}*/
 		
 		//number of p >= lambda;
 		
@@ -782,7 +776,7 @@ double get_min_pi0(double* x, double* y, int n_points)
 	
 	return min_p0;
 }
-
+*/
 
 struct model_bag* run_pHMM(struct model_bag* mb,struct read_info** ri,struct parameters* param,int numseq, int mode)
 {
@@ -1827,10 +1821,11 @@ struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct re
 	
 	// get barcode score....
 	hmm_counter = 0;
+	g = 1;
 	next_silent[0] = prob2scaledprob(0.0);
 	for(j = 0; j < mb->num_models;j++){
 		if(mb->model[j]->num_hmms > 1){
-			
+			g = 0;
 			for(f = 0;f < mb->model[j]->num_hmms;f++){
 				if(total_prob[hmm_counter] > next_silent[0]){
 					next_silent[0] = total_prob[hmm_counter];
@@ -1844,7 +1839,11 @@ struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct re
 		}
 	}
 	
-	ri->bar_prob = next_silent[0];
+	if(g){
+		ri->bar_prob = prob2scaledprob(1.0);
+	}else{
+		ri->bar_prob  = next_silent[0];
+	}
 	
 	for(i = 0; i <= len;i++){
 	//	fprintf(stderr,"%d ",i);

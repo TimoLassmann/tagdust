@@ -65,6 +65,7 @@ struct parameters {
 	char* train;
 	char* exact5; 
 	int gzipped;
+	int bzipped;
 	int sam;
 	int fasta;
 	float sequencer_error_rate;

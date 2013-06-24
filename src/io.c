@@ -115,7 +115,22 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 	}else{
 		if(param->sam == 2){
 			command[0] = 0;
-			if(param->gzipped){
+			
+			if(param->bzipped){
+				strcat ( command, "bzcat ");
+				if(!param->filter){
+					i = sprintf (tmp, "%s | samtools view -F 768 - ", param->infile[file_num]);
+					strcat ( command, tmp);
+				}else{
+					i = sprintf (tmp, "%s | samtools view -F  ", param->infile[file_num]);
+					strcat ( command, tmp);
+					i = sprintf (tmp, "%s - ",param->filter);
+					//strcat ( command, "samtools view -F ");
+					//i = sprintf (tmp, "%s ",param->filter);
+					strcat ( command, tmp);
+				}
+				
+			}else if(param->gzipped){
 				if(gzcat == 1){
 					strcat ( command, "gzcat "); 
 				}else{
@@ -187,7 +202,10 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 			}
 		}else{
 			command[0] = 0;
-			if(param->gzipped){
+			if(param->bzipped){
+				strcat ( command, "bzcat ");
+				
+			}else if(param->gzipped){
 				if(gzcat == 1){
 					strcat ( command, "gzcat ");
 				}else{
