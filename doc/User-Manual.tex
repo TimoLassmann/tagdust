@@ -1052,7 +1052,7 @@ If barcodes are present TagDust calculated an additional confidence score. At ev
 
 where $m_j$ and $I$ are the first match and insert states of a barcode HMM model. In essence this probability reflects how confident we are in selecting one barcode over any other. 
 
-As a default TagDust only extracts reads if both $V$ and $P(M | x)$ is greater than 0.99. 
+As a default TagDust only extracts reads if $V$ is greater than 0.5 and $P(M | x)$ is greater than 0.99. 
 
 \section{Implementation} 
 

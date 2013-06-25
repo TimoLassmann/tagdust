@@ -28,10 +28,10 @@
 #include <pthread.h>
 #include <assert.h>
 #include <float.h>
-#include "cmath.h"
+//#include "cmath.h"
 #include "barcode_hmm.h"
 
-#include "fly.h"
+//#include "fly.h"
 
 void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ),int file_num)
 {

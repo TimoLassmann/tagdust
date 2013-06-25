@@ -182,17 +182,12 @@ int main (int argc,char * argv[]) {
 				}else{
 					hmm_controller(param,&read_fasta_fastq,i);
 				}
-				//pst_tree (param,&read_fasta_fastq,i);
-
-				//pst_controller (param,&read_fasta_fastq,i);
 			}else{
 				if(param->exact5){
 					exact_controller(param,&read_sam_chunk,i);
 				}else{
 					hmm_controller(param,&read_sam_chunk,i);
 				}
-				//pst_tree(param,&read_sam_chunk,i);
-				//pst_controller(param,&read_sam_chunk,i);
 			}
 		
 		}
