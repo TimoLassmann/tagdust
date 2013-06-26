@@ -21,6 +21,7 @@
 
 
 unsigned int nuc_code[255];
+unsigned int rev_nuc_code[5];
 
 void init_nuc_code(void);
 

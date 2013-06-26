@@ -44,6 +44,8 @@
 #define OPT_EXACT5 17
 #define OPT_SIM 18
 #define OPT_NUMBARCODE 19
+#define OPT_FILTER_ERROR 20
+#define OPT_FILTER_REFERENCE 21
 
 
 struct read_structure{
@@ -57,6 +59,7 @@ struct parameters {
 	char** infile;
 	struct read_structure* read_structure;
 	char* outfile;
+	char* reference_fasta;
 	int infiles;
 	int quiet_flag;
 	int num_query;
@@ -78,6 +81,8 @@ struct parameters {
 	int minlen;
 	int sim;
 	int numbarcode;
+	int filter_error; 
+	
 };
 
 struct parameters* interface(struct parameters* param,int argc, char *argv[]);

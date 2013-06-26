@@ -20,6 +20,13 @@
  */
 
 
+
+
+
+#ifndef tagdust2_barcode_hmm_h
+#define tagdust2_barcode_hmm_h
+
+
 #ifndef _MM_ALIGN16
 #ifdef __GNUC__
 #define _MM_ALIGN16 __attribute__((aligned (16)))
@@ -29,11 +36,6 @@
 #endif
 #endif
 
-
-
-
-#ifndef tagdust2_barcode_hmm_h
-#define tagdust2_barcode_hmm_h
 
 
 #define COMPARE(a, b) (((a) > (b)) - ((a) < (b)))
@@ -63,6 +65,13 @@
 #define MODE_RUN_RANDOM 3
 #define NUM_RANDOM_SCORES 500000
 
+
+#define EXTRACT_SUCCESS 0
+#define EXTRACT_FAIL_BAR_FINGER_NOT_FOUND 1 
+#define EXTRACT_FAIL_READ_TOO_SHORT 2
+#define EXTRACT_FAIL_AMBIGIOUS_BARCODE 3
+#define EXTRACT_FAIL_ARCHITECTURE_MISMATCH 4 
+#define EXTRACT_FAIL_MATCHES_ARTIFACTS 5 
 
 struct hmm_column{
 	float M_foward[MAX_HMM_SEQ_LEN];
@@ -129,6 +138,7 @@ struct thread_data{
 	struct model_bag* mb;
 	struct parameters* param;
 	struct read_info** ri;
+	struct fasta* fasta;
 	int numseq;
 	int start;
 	int end;
@@ -181,6 +191,9 @@ void* do_run_random_sequences(void *threadarg);
 
 double pi0_bootstrap(struct read_info** ri, int numseq);
 double get_min_pi0(double* x, double* y, int n_points);
+
+struct read_info*  extract_reads(struct model_bag* mb, struct parameters* param,  struct read_info* ri);
+struct read_info** match_to_reference(struct thread_data *data);
 
 #endif
 

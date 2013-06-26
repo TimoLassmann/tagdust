@@ -24,7 +24,8 @@
 #define tagdust2_misc_h
 
 #include <stdio.h>
-
+#include <emmintrin.h>
+#include <mmintrin.h>
 #include <stdlib.h>
 #include <string.h>
 #include "math.h"
@@ -44,6 +45,18 @@
 
 #define SQRT2M_PI 2.506628274631
 #define INV_SQRT_2PI 0.3989422804014327
+
+
+
+
+#ifndef _MM_ALIGN16
+#ifdef __GNUC__
+#define _MM_ALIGN16 __attribute__((aligned (16)))
+#endif
+#ifdef __MSVC__
+#define _MM_ALIGN16 __declspec(align(16))
+#endif
+#endif
 
 
 #endif
@@ -76,7 +89,9 @@ int count_string(const char*p,const char** suffix,int h,int len);
 double log_pdf(double x, double mean,double stdev);
 double gaussian_pdf(double x, double m,double s);
 
-
+int validate_bpm_sse(unsigned char**  query, int* query_lengths,unsigned char* t,int n,int num);
+int bpm_check_error(const unsigned char* t,const unsigned char* p,int n,int m,int limit);
+unsigned char* reverse_complement2(unsigned char* p,int len);
 
 
 

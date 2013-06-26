@@ -64,6 +64,8 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->confidence_threshold = 0.99;//ence
 	
 	param->read_structure = 0;
+	param->filter_error = 2;
+	param->reference_fasta  = 0;
 	
 	param->read_structure = malloc(sizeof(struct read_structure));
 	assert(param->read_structure !=0);
@@ -107,6 +109,8 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			{"numbarcode",required_argument,0, OPT_NUMBARCODE},
 			{"end",required_argument,0, OPT_END},
 			{"threshold",required_argument,0, OPT_THRESHOLD},
+			{"fe",required_argument,0,OPT_FILTER_ERROR},
+			{"ref",required_argument,0,OPT_FILTER_REFERENCE},
 			{"out",required_argument,0, 'o'},
 			//{"format",required_argument,0, OPT_SIM},
 			
@@ -177,8 +181,16 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 				break;
 			case OPT_SIM:
 				param->sim = atoi(optarg);
+				break;
 			case OPT_NUMBARCODE:
 				param->numbarcode = atoi(optarg);
+				break;
+			case OPT_FILTER_ERROR:
+				param->filter_error = atoi(optarg);
+				break;
+			case OPT_FILTER_REFERENCE:
+				param->reference_fasta = optarg;
+				break;
 			case 'f':
 				param->filter = optarg;
 				break;

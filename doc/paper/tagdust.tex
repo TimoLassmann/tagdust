@@ -11,7 +11,7 @@
 
 \begin{document}
 
-\title{TagDust2 - a program to extract and correctly label next generation sequencing reads.}
+\title{TagDust2 - a program to extract, filter and correctly label next generation sequencing reads.}
 
 \author{%
 Timo Lassmann\,$^{1}$%
@@ -39,7 +39,7 @@ Accepted March 1, 2013}
 
 Arguably the most basic step basic step in the processing of next generation sequence (NGS) involves extracting mappable reads from raw reads produced by the sequencer. The presence of barcodes, fingerprints and artifacts such as adapter dimers makes this step non-trivial. 
 
-TagDust allows users to specify the expected architecture of a read and converts it into a hidden Markov model. The latter can assign sequences to a particular barcode (or index) even in the presence of sequencing errors. Artifactual sequences, which by definition do not not match the architecture are automatically discarded.
+TagDust allows users to specify the expected architecture of a read and converts it into a hidden Markov model. The latter can assign sequences to a particular barcode even in the presence of sequencing errors. Artifactual sequences, which by definition do not not match the architecture are automatically discarded.
 
 \end{abstract}
 
@@ -48,12 +48,13 @@ TagDust allows users to specify the expected architecture of a read and converts
 
 Next generation sequencing has greatly accelerated the accumulation of genomics data. Different protocols targeting the genome, dpi-genome and transcriptions are commonly used. In essence all protocols capture biological sequences of interest, add sequences to make the library subject able to NGS sequencing. The great increase in sequencing depth allows for the sequencing of multiple samples one channel. In this case additional sequences or barcodes are added to the reads allowing for the identification of the original samples after sequencing. A key research area where such multiplexing is essential is single cell sequencing. In addition to this recent protocols have added random sequences of a specific length to the reads allowing to identify PCR duplicates [STEN]. 
 
+We previously released TagDust to remove artifactual reads. While useful the previous version discards whole reads, rather than trimming them.  
 
 Increasing the length of the accessory sequences also increases the chances of sequencing errors occurring within them. In the best case this leads to some sequences being lost to the downstream analysis, but in the worse case sequences can be mixed up between experiments leading to analytical noise. 
 
-Recently, I introduced TagDust to remove artifactual sequences.
+Recently, we introduced TagDust to remove artifactual sequences.
 
-Luckily this problem is very similar to many problems in biological sequence analysis. Here I address this problem by using hidden Markov models. The program TagDust2 allows users to specify the expected order of stuff in the reads. As a by product all sequences not matching the expected sequence of read segments can be easily identified and discarded. 
+Luckily this problem is very similar to many problems in biological sequence analysis. Here I address this problem by using user defined hidden Markov models. The program TagDust2 allows users to specify the expected order of stuff in the reads. As a by product all sequences not matching the expected sequence of read segments can be easily identified and discarded. 
 % **************************************************************
 % Keep this command to avoid text of first page running into the
 % first page footnotes
@@ -118,7 +119,7 @@ Text \cite{4}.
 \label{figure1}
 \end{figure}
 
-TagDust implements a small library of HMMs which we will refer to as segments. Each segment contains a silent start and end state which are used to connect multiple segments. Segments are hand-designed to capture commonly occurring features in raw sequences such as barcode combinations, variable length sequences and so on. For a complete list see table 1. Users can use a simple command line interface to specify the expected sequence of segments in their reads. TagDust automatically constructs a global HMMs from the segments and starts scoring the individual reads (see Figure \ref{figure1}). 
+TagDust implements a small library of HMMs which we will refer to as segments. Each segment contains a silent start and end state which are used to connect multiple segments. Segments are hand-designed to capture commonly occurring features in raw sequences such as the combination of barcodes, variable length sequences and so on. For a complete list see table 1. Users can use a simple command line interface to specify the expected sequence of segments in their reads. TagDust automatically constructs a global HMMs from the segments and starts scoring the individual reads (see Figure \ref{figure1}). 
 
 Parameterization... 
 

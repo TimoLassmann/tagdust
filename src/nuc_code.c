@@ -19,7 +19,8 @@
  
  */
 
-
+#include <stdlib.h>
+#include "tagdust2.h"
 #include "nuc_code.h"
 
 void init_nuc_code()
@@ -40,6 +41,11 @@ void init_nuc_code()
 	nuc_code[71+32] = 2;//G	Guanine
 	nuc_code[84+32] = 3;//T	Thymine
 	nuc_code[85+32] = 3;//U	Uracil
+	
+	rev_nuc_code[0] = 3;//A Adenine
+	rev_nuc_code[1] = 2;//C	Cytosine
+	rev_nuc_code[2] = 1;//G	Guanine
+	rev_nuc_code[3] = 0;//T	Thymine
+	rev_nuc_code[4] = 4;//U	Uracil
 
 }
-

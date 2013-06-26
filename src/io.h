@@ -23,6 +23,22 @@
 
 #include "barcode_hmm.h"
 
+#define SEEK_START 0
+#define SEEK_END 2
+
+struct fasta{
+	unsigned char** sn;
+	unsigned char* string;
+	int* mer_hash;
+	int* boost;
+	int* s_index;
+	int* suffix;
+	int numseq;
+	int max_len;
+	int string_len;
+};
+
+
 struct read_info{
 	char* name;
 	char* qual;
@@ -52,6 +68,13 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file);
 
 int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  struct read_info* ri,FILE* out);
 int qsort_ri_prob_compare(const void *a, const void *b);
+
+
+struct fasta* read_fasta(struct fasta* f);
+struct fasta* get_fasta(struct fasta* p,char *infile);
+unsigned char* get_input_into_string(unsigned char* string,char* infile);
+void free_fasta(struct fasta*f);
+
 
 
 

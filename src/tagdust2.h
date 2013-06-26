@@ -44,7 +44,7 @@ __LINE__, __func__, __VA_ARGS__); } while (0)
 #include <unistd.h>
 #include <time.h>
 #include <assert.h>
-#define MAX_SEQ_LEN 5000
+#define MAX_SEQ_LEN 500
 #define MAX_LINE 50000
 
 //#define MAXERROR 100

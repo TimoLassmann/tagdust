@@ -798,3 +798,157 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
 	return size;
 }
 
+
+
+struct fasta* get_fasta(struct fasta* p,char *infile)
+{
+	p = (struct fasta*) malloc(sizeof(struct fasta));
+	assert(p != 0);
+	p->string = 0;
+	p->string =  get_input_into_string(p->string,infile);
+	if(!p->string){
+		fprintf(stderr,"Analysing input %s ... nothing\n",infile);
+		exit(-1);
+	}
+	
+	p = read_fasta(p);
+	
+	return p;
+}
+
+
+unsigned char* get_input_into_string(unsigned char* string,char* infile)
+{
+	long int i = 0;
+	
+	
+	FILE *file = 0;
+	if (!(file = fopen( infile, "r" ))){
+		return 0;
+		fprintf(stderr,"Cannot open file '%s'\n", infile);
+		exit(-1);
+	}
+	if (fseek(file,0,SEEK_END) != 0){
+		(void)fprintf(stderr, "ERROR: fseek failed\n");
+		(void)exit(EXIT_FAILURE);
+	}
+	i= ftell (file);
+	if (fseek(file,0,SEEK_START) != 0){
+		(void)fprintf(stderr, "ERROR: fseek failed\n");
+		(void)exit(EXIT_FAILURE);
+	}
+	if(!string){
+		string = malloc ((i+1+18)* sizeof(unsigned char));
+		assert(string != 0);
+	}
+	fread(string,sizeof(unsigned char), i, file);
+	string[i] = 0;
+	fclose(file);
+	
+	return string;
+}
+
+
+struct fasta* read_fasta(struct fasta* f)
+{
+	int c = 0;
+	int n = 0;
+	int i = 0;
+	int j = 0;
+	int len = 0;
+	int stop = 0;
+	int nbytes;
+	
+	nbytes = (int) strlen((char*) f->string);
+	f->numseq = 0;
+	f->max_len = -1;
+	//aln->org_seq = 0;
+	stop = 0;
+	
+	//count filenames....
+	for (i =0;i < nbytes;i++){
+		if (f->string[i] == '>'&& stop == 0){
+			f->numseq++;
+			stop = 1;
+		}else if (f->string[i] == '\n'){
+			stop = 0;
+		}else if(f->string[i] == '\r'){
+			f->string[i] = '\n';
+		}
+	}
+	
+	f->suffix = 0;
+	f->sn = malloc(sizeof(unsigned char*)*f->numseq);
+	assert(f->sn  !=0);
+	//aln->c = 0;
+	
+	f->s_index = malloc(sizeof(int)*(f->numseq+1));
+	assert(f->s_index != 0);
+	for (i =0;i < nbytes;i++){
+		if (f->string[i] == '>'){
+			if(f->max_len < len){
+				f->max_len = len;
+			}
+			
+			len = 0;
+			j = i+1;
+			while(f->string[j] != '\n'){
+				//	fprintf(stderr,"%c",aln->string[j]);
+				j++;
+			}
+			//fprintf(stderr,"	%d\n",j-i);
+			f->sn[c] = malloc(sizeof(char)*(j-i));
+			assert(f->sn[c] != 0);
+			f->s_index[c] = n;
+			j = i+1;
+			len = 0;
+			while(f->string[j] != '\n'){
+				if(isspace((int)f->string[j])){
+					f->sn[c][len] = '_';
+				}else{
+					f->sn[c][len] = f->string[j];
+				}
+				len++;
+				j++;
+			}
+			f->sn[c][len] = 0;
+			f->string[n] = 'X';
+			n++;
+			i+= j-i;
+			c++;
+		}else if(isalnum((int)f->string[i])){// if (aln->string[i] != '\n' && aln->string[i] != 0 ){
+			f->string[n] =   nuc_code[(int)f->string[i]];//  toupper(aln->string[i]);
+			n++;
+			len++;
+		}
+		//}
+	}
+	
+	
+	f->s_index[c] = n;
+	f->string[n] = 'X';
+	f->string[n+1] = 0;
+	
+	f->string_len = n+1;
+	return f;
+}
+
+
+void free_fasta(struct fasta*f)
+{
+	int i;
+	for (i =0;i < f->numseq;i++){
+		free(f->sn[i]);
+	}
+	free(f->mer_hash);
+	if(f->suffix){
+		free(f->suffix);
+	}
+	
+	//free(aln->mer_hash);
+	free(f->s_index);
+	free(f->string);
+	free(f->sn);
+	
+	free(f);
+}

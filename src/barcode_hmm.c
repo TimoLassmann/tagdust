@@ -457,10 +457,7 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		//param->confidence_threshold = 0.0;
 		
 		for(i = 0; i < numseq;i++){
-			ri[i]->bar_prob =  scaledprob2prob(ri[i]->bar_prob);
-			ri[i]->prob = ri[i]->prob + log (0.9 / 0.1);
-			ri[i]->prob = expf( ri[i]->prob) / (1.0f + expf(ri[i]->prob ));
-			//ri[i]->prob = ri[i]->prob / max_prob;
+						//ri[i]->prob = ri[i]->prob / max_prob;
 			
 			//ri[i]->bar_prob = ri[i]->bar_prob / max_bar;
 			
@@ -781,6 +778,8 @@ double get_min_pi0(double* x, double* y, int n_points)
 struct model_bag* run_pHMM(struct model_bag* mb,struct read_info** ri,struct parameters* param,int numseq, int mode)
 {
 	struct thread_data* thread_data = 0;
+	
+	
 	thread_data = malloc(sizeof(struct thread_data)* param->num_threads);
 	pthread_t threads[param->num_threads];
 	pthread_attr_t attr;
@@ -788,9 +787,18 @@ struct model_bag* run_pHMM(struct model_bag* mb,struct read_info** ri,struct par
 	int interval = 0;
 	int rc;
 	
+	
+	struct fasta* reference_fasta = 0;
+	
+	if(param->reference_fasta){
+		reference_fasta = get_fasta(reference_fasta,param->reference_fasta);
+	}
+
+	
 	interval =  (int)((double)numseq /(double)param->num_threads);
 	
 	for(t = 0;t < param->num_threads ;t++) {
+		thread_data[t].fasta = reference_fasta;
 		thread_data[t].ri = ri;
 		thread_data[t].mb = copy_model_bag(mb);
 		thread_data[t].start = t*interval;
@@ -890,6 +898,11 @@ struct model_bag* run_pHMM(struct model_bag* mb,struct read_info** ri,struct par
 	}
 	
 	free(thread_data);
+	
+	if(reference_fasta){
+		free_fasta(reference_fasta);
+	}
+	
 	return mb;
 }
 
@@ -932,12 +945,321 @@ void* do_label_thread(void *threadarg)
 		}
 	}
 	
-	//for(i = start; i < end;i++){
-	//	fprintf(stdout,"%f	%f\n",ri[i]->prob,ri[i]->bar_prob);
-	//}
-	//exit(0);
+#if DEBUG
+
+	for(i = start; i < end;i++){
+		ri[i]->bar_prob =  scaledprob2prob(ri[i]->bar_prob);
+		ri[i]->prob = ri[i]->prob + log (0.9 / 0.1);
+		ri[i]->prob = expf( ri[i]->prob) / (1.0f + expf(ri[i]->prob ));
+		
+		ri[i] = extract_reads(mb,data->param,ri[i]);
+		/*char alpha[5] = "ACGTN";
+		fprintf(stderr,"%s",ri[i]->name);
+		int j;
+		for(j = 0; j < ri[i]->len;j++){
+			fprintf(stderr,"%c", alpha[(int) ri[i]->seq[j]]);
+		}
+		fprintf(stderr,"\n+\n%s\n" ,ri[i]->qual);*/
+	}
+	
+	if(data->param->reference_fasta){
+		ri = match_to_reference(data);
+	}
+	
+	for(i = start; i < end;i++){
+		
+		char alpha[5] = "ACGTN";
+		
+		switch ((int) ri[i]->prob) {
+				
+			case EXTRACT_SUCCESS:
+				fprintf(stderr,"Success!!!\n");
+				break;
+			case EXTRACT_FAIL_BAR_FINGER_NOT_FOUND:
+				fprintf(stderr,"FAIL: barcode not found!!!\n");
+				break;
+			case  EXTRACT_FAIL_READ_TOO_SHORT:
+				fprintf(stderr,"FAIL: read too short !!!\n");
+				break;
+			case  EXTRACT_FAIL_AMBIGIOUS_BARCODE:
+				fprintf(stderr,"FAIL: ambigious barcode  !!!\n");
+				break;
+			case  EXTRACT_FAIL_ARCHITECTURE_MISMATCH:
+				fprintf(stderr,"FAIL: architecture does not match  !!!\n");
+				break;
+			case  EXTRACT_FAIL_MATCHES_ARTIFACTS:
+				fprintf(stderr,"FAIL: matches user supplied artifact  !!!\n");
+				break;
+		}
+		
+		fprintf(stderr,"%s\n",ri[i]->name);
+		int j;
+		for(j = 0; j < ri[i]->len;j++){
+			fprintf(stderr,"%c", alpha[(int) ri[i]->seq[j]]);
+		}
+		fprintf(stderr,"\n+\n%s\n" ,ri[i]->qual);
+	}
+	
+#endif
 	
 	pthread_exit((void *) 0);
+}
+
+
+ struct read_info** match_to_reference(struct thread_data *data)
+{
+	struct read_info** ri = data->ri;
+	struct fasta* reference = data->fasta ;
+	const int start = data->start;
+	const int end = data->end;
+	
+	int error_cut = data->param->filter_error ;
+	
+	int i,j,c;
+	int test = 1;
+	int reverse = 0;
+	unsigned char* seq[4];
+	
+	int _MM_ALIGN16 lengths[4];
+	int _MM_ALIGN16 errors[4];
+	
+	//fprintf(stderr,"%d	%d\n",start,end);
+	for(i = start; i <= end-4;i+=4){
+		test = 1;
+		reverse = 0;
+		for(c = 0;c < 4;c++){
+			errors[c] = 100000;
+			
+		}
+		for(j =0; j < reference->numseq;j++){
+			seq[0] = (unsigned char* ) ri[i]->seq;
+			seq[1] = (unsigned char* ) ri[i+1]->seq;
+			seq[2] = (unsigned char* ) ri[i+2]->seq;
+			seq[3] = (unsigned char* ) ri[i+3]->seq;
+			lengths[0] =  ri[i]->len;
+			lengths[1] =  ri[i+1]->len;
+			lengths[2] =  ri[i+2]->len;
+			lengths[3] =  ri[i+3]->len;
+			validate_bpm_sse(seq,lengths,reference->string +  reference->s_index[j],reference->s_index[j+1] - reference->s_index[j],4);
+			for(c = 0;c < 4;c++){
+				if(lengths[c] < errors[c]){
+					errors[c] = lengths[c];
+				}
+			}
+			
+			
+			seq[0] = reverse_complement2((unsigned char* ) ri[i]->seq,ri[i]->len);
+			seq[1] = reverse_complement2((unsigned char* ) ri[i+1]->seq,ri[i+1]->len);
+			seq[2] = reverse_complement2((unsigned char* ) ri[i+2]->seq,ri[i+2]->len);
+			seq[3] = reverse_complement2((unsigned char* ) ri[i+3]->seq,ri[i+3]->len);
+			lengths[0] =  ri[i]->len;
+			lengths[1] =  ri[i+1]->len;
+			lengths[2] =  ri[i+2]->len;
+			lengths[3] =  ri[i+3]->len;
+			validate_bpm_sse(seq,lengths,reference->string +  reference->s_index[j],reference->s_index[j+1] - reference->s_index[j],4);
+			for(c = 0;c < 4;c++){
+				if(lengths[c] < errors[c]){
+					errors[c] = lengths[c];
+				}
+			}
+			
+			seq[0] = reverse_complement2((unsigned char* ) ri[i]->seq,ri[i]->len);
+			seq[1] = reverse_complement2((unsigned char* ) ri[i+1]->seq,ri[i+1]->len);
+			seq[2] = reverse_complement2((unsigned char* ) ri[i+2]->seq,ri[i+2]->len);
+			seq[3] = reverse_complement2((unsigned char* ) ri[i+3]->seq,ri[i+3]->len);
+		}
+		for(c = 0;c < 4;c++){
+			if(errors[c] <= error_cut){
+				if(ri[i+c]->prob == EXTRACT_SUCCESS){
+					ri[i+c]->prob  =  EXTRACT_FAIL_MATCHES_ARTIFACTS;
+				}
+			}
+		}
+	}
+	
+	while(i < end){
+		//fprintf(stderr,"Looking at %d	%d	%d\n",i,start,end);
+		test = 1;
+		reverse = 0;
+		for(j =0; j < reference->numseq;j++){
+			//fprintf(stderr,"%s	%d\n",reference->sn[j],reference->s_index[j+1] - reference->s_index[j]);
+			c = bpm_check_error(reference->string +  reference->s_index[j], (unsigned char* )ri[i]->seq,reference->s_index[j+1] - reference->s_index[j] , ri[i]->len, error_cut);
+			if(c <= error_cut){
+				test = 0;
+				break;
+			}
+			//if(test){
+			ri[i]->seq = (char* )reverse_complement2((unsigned char* ) ri[i]->seq,   ri[i]->len);
+			c = bpm_check_error(reference->string +  reference->s_index[j], (unsigned char* )ri[i]->seq,reference->s_index[j+1] - reference->s_index[j] , ri[i]->len,error_cut);
+			reverse = 1;
+			if(c <= error_cut){
+				ri[i]->seq =(char* ) reverse_complement2( (unsigned char* )ri[i]->seq,   ri[i]->len);
+				test = 0;
+				break;
+			}
+			ri[i]->seq = (char* )reverse_complement2((unsigned char* ) ri[i]->seq,   ri[i]->len);
+			//}
+			
+			
+		}
+		if(!test){
+			if(ri[i]->prob == EXTRACT_SUCCESS){
+				ri[i]->prob  =  EXTRACT_FAIL_MATCHES_ARTIFACTS;
+			}
+			//ri[i]->a = 1;
+		}
+		i++;
+	}
+
+	
+	return ri;
+}
+
+ struct read_info*  extract_reads(struct model_bag* mb, struct parameters* param,  struct read_info* ri)
+{
+	int j,c1,c2,c3,key,bar,mem,fingerlen,required_finger_len,ret;
+	char buffer[MAX_HMM_SEQ_LEN];
+	int s_pos = 0;
+	key = 0;
+	bar = -1;
+	mem = -1;
+	ret = 0;
+	int offset = 0;
+	int len;
+	int hmm_has_barcode = 0;
+	int read_start = -1;
+	
+	len = ri->len;
+	if(param->matchstart != -1 || param->matchend != -1){
+		offset = param->matchstart;
+		len = param->matchend - param->matchstart;
+	}
+	required_finger_len = 0;
+	for(j = 0; j < param->read_structure->num_segments;j++){
+		if(param->read_structure->type[j] == 'F'){
+			required_finger_len += (int) strlen(param->read_structure->sequence_matrix[j][0]);
+		}
+	}
+	
+	//ri[i]->prob = expf( ri[i]->prob) / (1.0f + expf(ri[i]->prob ));
+	
+	if(param->confidence_threshold <=  ri->prob ){
+		
+		if(0.5 <=  ri->bar_prob){
+			fingerlen = 0;
+			//required_finger_len = 0;
+			
+			for(j = 0; j < len;j++){
+				c1 = mb->label[(int)ri->labels[j+1]];
+				c2 = c1 & 0xFFFF;
+				c3 = (c1 >> 16) & 0x7FFF;
+				//fprintf(stderr,"%c",   param->read_structure->type[c2] );
+				if(param->read_structure->type[c2] == 'F'){
+					//	required_finger_len += (int) strlen(param->read_structure->sequence_matrix[c2][0]);
+					fingerlen++;
+					key = (key << 2 )|  (ri->seq[j+offset] & 0x3);
+				}
+				if(param->read_structure->type[c2] == 'B'){
+					hmm_has_barcode = 1;
+					bar = c3;
+					mem = c2;
+				}
+				if(param->read_structure->type[c2] == 'R'){
+					if(read_start == -1){
+						read_start = j+offset;
+					}
+					s_pos++;
+				}
+			}
+			for(j = len; j < ri->len;j++){
+				s_pos++;
+			}
+			
+			if(s_pos >= param->minlen){
+				
+				if(hmm_has_barcode && required_finger_len){
+					if(fingerlen == required_finger_len && bar != -1){
+						buffer[0] = 0;
+						sprintf (buffer, "@%s;BC:%s;FP:%d",ri->name,param->read_structure->sequence_matrix[mem][bar],key);
+						//strcat (buffer, tmp);
+						ri->name = realloc(ri->name, sizeof(char) * (strlen(buffer) + 1) );
+						
+						strcpy(ri->name, buffer);
+						for(j = 0; j < s_pos;j++){
+							ri->seq[j] = ri->seq[read_start+j];
+							ri->qual[j] = ri->qual[read_start+j];
+						}
+						ri->len = s_pos;
+						ri->prob = EXTRACT_SUCCESS;
+						//ret = 1;
+						//fprintf(out,"@%s;BC:%s;FP:%d\n",ri->name,param->read_structure->sequence_matrix[mem][bar],key);
+						//fprintf(out,"%s\n+\n%s\n", out_seq,out_qual);
+					}else{
+						ri->prob  = EXTRACT_FAIL_BAR_FINGER_NOT_FOUND; // something wrong with the architecture
+					}
+				}else if(hmm_has_barcode){
+					if(bar != -1){
+						
+						buffer[0] = 0;
+						sprintf (buffer, "@%s;BC:%s",ri->name,param->read_structure->sequence_matrix[mem][bar]);
+						//strcat (buffer, tmp);
+						ri->name = realloc(ri->name, sizeof(char) * (strlen(buffer) + 1) );
+						
+						strcpy(ri->name, buffer);
+						for(j = 0; j < s_pos;j++){
+							ri->seq[j] = ri->seq[read_start+j];
+							ri->qual[j] = ri->qual[read_start+j];
+						}
+						ri->len = s_pos;
+						ri->prob = EXTRACT_SUCCESS;
+					}else{
+						ri->prob  = EXTRACT_FAIL_BAR_FINGER_NOT_FOUND;
+					}
+					
+				}else if(required_finger_len){
+					if(fingerlen == required_finger_len){
+						buffer[0] = 0;
+						sprintf (buffer, "@%s;FP:%d",ri->name,key);
+						//strcat (buffer, tmp);
+						ri->name = realloc(ri->name, sizeof(char) * (strlen(buffer) + 1) );
+						
+						strcpy(ri->name, buffer);
+						for(j = 0; j < s_pos;j++){
+							ri->seq[j] = ri->seq[read_start+j];
+							ri->qual[j] = ri->qual[read_start+j];
+						}
+						ri->len = s_pos;
+						ri->prob = EXTRACT_SUCCESS;
+					}else{
+						ri->prob  = EXTRACT_FAIL_BAR_FINGER_NOT_FOUND;
+					}
+				}else{
+					buffer[0] = 0;
+					sprintf (buffer, "@%s",ri->name);
+					//strcat (buffer, tmp);
+					ri->name = realloc(ri->name, sizeof(char) * (strlen(buffer) + 1) );
+					
+					strcpy(ri->name, buffer);
+					for(j = 0; j < s_pos;j++){
+						ri->seq[j] = ri->seq[read_start+j];
+						ri->qual[j] = ri->qual[read_start+j];
+					}
+					ri->len = s_pos;
+					ri->prob = EXTRACT_SUCCESS;
+				}
+			}else{
+				ri->prob = EXTRACT_FAIL_READ_TOO_SHORT;
+			}
+		}else{
+			ri->prob = EXTRACT_FAIL_AMBIGIOUS_BARCODE;
+		}
+	}else{
+		ri->prob = EXTRACT_FAIL_ARCHITECTURE_MISMATCH;
+	}
+	
+	ri->qual[ri->len] = 0;
+	
+	return ri;
 }
 
 
@@ -3087,20 +3409,22 @@ struct model_bag* init_model_bag(struct parameters* param,double* back)
 	mb->num_models = param->read_structure->num_segments;
 	// get read length estimate...
 	read_length = param->average_read_length;
+	//fprintf(stderr,"READlength: %d\n",read_length);
 	for(i = 0; i < mb->num_models;i++){
 		//mb->model[i] = malloc_model_according_to_read_structure(param->read_structure,i);
 		//fprintf(stderr," %d\n",read_length );
 		if(param->read_structure->type[i] == 'G'){
 			read_length = read_length -2;
-			
+		}else if(param->read_structure->type[i] == 'R'){
 		}else{
+		//	fprintf(stderr,"%s : %d \n", param->read_structure->sequence_matrix[i][0], (int)strlen(param->read_structure->sequence_matrix[i][0]));
 			read_length = read_length - (int)strlen(param->read_structure->sequence_matrix[i][0]);
 		}
 		
-		
+		//fprintf(stderr,"READlength: %d\n",read_length);
 		
 	}
-	fprintf(stderr,"READlength: %d\n",read_length);
+	//fprintf(stderr,"READlength: %d\n",read_length);
 	
 	mb->total_hmm_num = 0;
 	
