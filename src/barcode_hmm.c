@@ -410,14 +410,16 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	
 	li = malloc(sizeof(struct log_information));
 	
+	
 	li->total_read = 0;
-	li->success = 0;
-	li->len_failure = 0;
-	li->prob_failure = 0;
-	li->arch_failure = 0;
-	for(i = 0;i < 1001;i++){
-		li->probability_distribution[i] = 0;
-	}
+
+	li->num_EXTRACT_SUCCESS = 0;
+	li->num_EXTRACT_FAIL_BAR_FINGER_NOT_FOUND = 0;
+	li->num_EXTRACT_FAIL_READ_TOO_SHORT = 0;
+	li->num_EXTRACT_FAIL_AMBIGIOUS_BARCODE = 0;
+	li->num_EXTRACT_FAIL_ARCHITECTURE_MISMATCH = 0;
+	li->num_EXTRACT_FAIL_MATCHES_ARTIFACTS = 0;
+		
 	//int c1,c2,c3,key,bar,mem,fingerlen,required_finger_len,ret;
 	//char alpha[5] = "ACGTN";
 	
@@ -429,50 +431,39 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		
 		max_bar = -FLT_MAX;
 		max_prob = -FLT_MAX;
-				
-		
-		
-		
-		/*
-		for(i = 0; i < numseq;i++){
-			
-			
-			
-			if(ri[i]->prob > max_prob){
-				max_prob = ri[i]->prob;
-			}
-			ri[i]->bar_prob =  scaledprob2prob(ri[i]->bar_prob);
-			if(ri[i]->bar_prob > max_bar ){
-				max_bar =  ri[i]->bar_prob ;
-			}
-			
-			
-		}
-		
-		
-		
-		fprintf(stderr,"Max:%f	%f\n",max_prob , max_bar );
-		*/
-		
-		//param->confidence_threshold = 0.0;
 		
 		for(i = 0; i < numseq;i++){
-						//ri[i]->prob = ri[i]->prob / max_prob;
+			//li->total_read++;
+			switch ((int) ri[i]->prob) {
+					
+				case EXTRACT_SUCCESS:
+					
+					li->num_EXTRACT_SUCCESS++;
+					//fprintf(stderr,"Success!!!\n");
+					break;
+				case EXTRACT_FAIL_BAR_FINGER_NOT_FOUND:
+					li->num_EXTRACT_FAIL_BAR_FINGER_NOT_FOUND++;
+					break;
+				case  EXTRACT_FAIL_READ_TOO_SHORT:
+					li->num_EXTRACT_FAIL_READ_TOO_SHORT++;
+					break;
+				case  EXTRACT_FAIL_AMBIGIOUS_BARCODE:
+					li->num_EXTRACT_FAIL_AMBIGIOUS_BARCODE++;
+					break;
+				case  EXTRACT_FAIL_ARCHITECTURE_MISMATCH:
+					li->num_EXTRACT_FAIL_ARCHITECTURE_MISMATCH++;
+					break;
+				case  EXTRACT_FAIL_MATCHES_ARTIFACTS:
+					li->num_EXTRACT_FAIL_MATCHES_ARTIFACTS++;
+					break;
+			}
+			print_sequence(ri[i],outfile);
 			
-			//ri[i]->bar_prob = ri[i]->bar_prob / max_bar;
+			/*ri[i]->bar_prob =  scaledprob2prob(ri[i]->bar_prob);
+			ri[i]->prob = ri[i]->prob + log (0.9 / 0.1);
+			ri[i]->prob = expf( ri[i]->prob) / (1.0f + expf(ri[i]->prob ));
 			
-			//ri[i]->prob = ri[i]->prob+mb->model_multiplier + log (0.9 / 0.1);// )mb->model_multiplier;
-			//float tmp = 1- exp(-1 * exp(-1 * mb->lambda *(ri[i]->prob- mb->mu)));
-			//fprintf(stderr,"LL:%f bar:%f\n", ri[i]->prob , ri[i]->bar_prob   );
-			
-			//ri[i]->prob = expf( ri[i]->prob) / (1.0f + expf(ri[i]->prob ));
-			//fprintf(stdout," %f   %f\n",ri[i]->prob ,ri[i]->bar_prob);
-			//ri[i]->prob =  1000000 * (1- exp(-1 * exp(-1 * mb->lambda *(ri[i]->prob- mb->mu))));
-			
-			
-
-			//li->probability_distribution[  (int) floor(ri[i]->prob* 1000.0     + 0.5)]+= 1;
-					c = print_trimmed_sequence(mb, param,  ri[i],outfile);
+			c = print_trimmed_sequence(mb, param,  ri[i],outfile);
 	
 			switch (c) {
 				case 1:
@@ -489,78 +480,19 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 					break;
 				default:
 					break;
-			}
-			
-			/*key = 0;
-			bar = -1;
-			mem = -1;
-			//if( expf( ri[i]->prob) / (1.0 + expf(ri[i]->prob )) < 0.5){
-			fprintf(stderr,"%f	%f\n",  expf( ri[i]->prob) / (1.0 + expf(ri[i]->prob )) ,ri[i]->prob);
-			
-			
-			fprintf(stderr,"%s\n", ri[i]->name);
-			for(j = 0; j < ri[i]->len;j++){
-				c1 = mb->label[(int)ri[i]->labels[j+1]];
-				c2 = c1 & 0xFFFF;
-				c3 = (c1 >> 16) & 0x7FFF;
-				fprintf(stderr,"%c",  alpha[(int)ri[i]->seq[j]] );
-			}
-			fprintf(stderr,"\n");
-			for(j = 0; j < ri[i]->len;j++){
-				c1 = mb->label[(int)ri[i]->labels[j+1]];
-				c2 = c1 & 0xFFFF;
-				c3 = (c1 >> 16) & 0x7FFF;
-				fprintf(stderr,"%c",   param->read_structure->type[c2] );
-				if(param->read_structure->type[c2] == 'F'){
-					key = (key << 2 )|  (ri[i]->seq[j] & 0x3);
-				}
-				
-			}
-			fprintf(stderr,"	key = %d\n",key);
-			
-			for(j = 0; j < ri[i]->len;j++){
-				c1 = mb->label[(int)ri[i]->labels[j+1]];
-				c2 = c1 & 0xFFFF;
-				c3 = (c1 >> 16) & 0x7FFF;
-				fprintf(stderr,"%d", c3   );
-				if(param->read_structure->type[c2] == 'B'){
-					bar = c3;
-					mem = c2;
-				}
-			}
-				fprintf(stderr,"\n");
-			//	bar = 1;
-			//fprintf(stderr,"	bar= %d (%s)\n",bar,   param->read_structure->sequence_matrix[mem][bar] );
-			//}
-			if(i == 1000){
-				exit(0);
 			}*/
 		}
-		//fprintf(stderr,"%0.1f%% extracted (%d read so far...)\n",  (float) success / (float) total_read  *100.0f,total_read);
-		//fprintf(stderr,"%d	successfully extracted\n" , success);
-		//fprintf(stderr,"%d	low probability\n" , prob_failure);
-		//fprintf(stderr,"%d	too short\n" , len_failure);
-		//fprintf(stderr,"%d	problems with architecture\n" , arch_failure);
 	}
-	
-	//for(i = 0; i < mb->num_models;i++){
-	//	print_model(mb->model[i]);
-	
-	//}
-	
-	//for(i = 0;i < 1001;i++){
-	//	fprintf(stderr,"%f	%d\n",(float) i / 1000.0f,li->probability_distribution[i]);
-	//}
-	
-	
-	//fprintf(stderr,"%f multiplier\n", mb->model_multiplier);
 	fprintf(stderr,"%d\n", li->total_read);
-	fprintf(stderr,"%d	successfully extracted\n" ,li->success);
-	fprintf(stderr,"%d	low probability\n" , li->prob_failure);
-	fprintf(stderr,"%d	too short\n" , li->len_failure);
-	fprintf(stderr,"%d	problems with architecture\n" , li->arch_failure);
 	
-	fprintf(stderr,"%0.1f%% extracted\n",  (float) li->success / (float) li->total_read  *100.0f);
+	fprintf(stderr,"%d	successfully extracted\n" ,li->num_EXTRACT_SUCCESS);
+	fprintf(stderr,"%d	barcode / UMI not found\n" ,li->num_EXTRACT_FAIL_BAR_FINGER_NOT_FOUND);
+	fprintf(stderr,"%d	too short\n" , li->num_EXTRACT_FAIL_READ_TOO_SHORT);
+	fprintf(stderr,"%d	ambigious barcode\n" , li->num_EXTRACT_FAIL_AMBIGIOUS_BARCODE);
+	fprintf(stderr,"%d	problems with architecture\n" , li->num_EXTRACT_FAIL_ARCHITECTURE_MISMATCH);
+	fprintf(stderr,"%d	matches artifacts\n" , li->num_EXTRACT_FAIL_MATCHES_ARTIFACTS);
+	
+	fprintf(stderr,"%0.1f%% extracted\n",  (float) li->num_EXTRACT_SUCCESS / (float) li->total_read  *100.0f);
 	
 	
 	
@@ -819,23 +751,10 @@ struct model_bag* run_pHMM(struct model_bag* mb,struct read_info** ri,struct par
 				l = ri[c]->seq[j];
 				ri[c]->seq[j] = ri[i]->seq[j];
 				ri[i]->seq[j] = l;
-				
-				
 			}
 		}
-		
-		
-						
-		
 	}
 	
-	//for(i = 0; i < mb->num_models;i++){
-	//	print_model(thread_data[0].mb->model[i]);
-	//}
-	
-	
-	//fprintf(stderr,"got here...\n");
-	//exit(0);
 	rc = pthread_attr_init(&attr);
 	if(rc){
 		fprintf(stderr,"ERROR; return code from pthread_attr_init() is %d\n", rc);
@@ -855,10 +774,7 @@ struct model_bag* run_pHMM(struct model_bag* mb,struct read_info** ri,struct par
 			case MODE_RUN_RANDOM:
 				rc = pthread_create(&threads[t], &attr, do_run_random_sequences, (void *) &thread_data[t]);
 				break;
-
 		}
-		
-		
 		
 		if (rc) {
 			fprintf(stderr,"ERROR; return code from pthread_create() is %d\n", rc);
@@ -889,9 +805,6 @@ struct model_bag* run_pHMM(struct model_bag* mb,struct read_info** ri,struct par
 			}
 		}
 	}
-	
-	
-	//fprintf(stderr,"got here...\n");
 	
 	for(t = 0;t < param->num_threads;t++) {
 		free_model_bag(thread_data[t].mb);
@@ -928,24 +841,17 @@ void* do_label_thread(void *threadarg)
 	if(matchstart != -1 || matchend != -1){
 		for(i = start; i < end;i++){
 			tmp = matchend - matchstart ;
-			
-			
-			
 			mb = backward(mb, ri[i]->seq + matchstart , tmp);
-			//mb = forward(mb,  ri[i]->seq ,ri[i]->len);
 			mb = forward_max_posterior_decoding(mb, ri[i] , ri[i]->seq+matchstart ,tmp );
 		}
 	}else{
 		for(i = start; i < end;i++){
-			//fprintf(stderr," %s\n", ri[i]->name);
 			mb = backward(mb, ri[i]->seq ,ri[i]->len);
-			//fprintf(stderr,"%f reverse \n", mb->f_score);
 			mb = forward_max_posterior_decoding(mb, ri[i], ri[i]->seq ,ri[i]->len);
-						
 		}
 	}
 	
-#if DEBUG
+///
 
 	for(i = start; i < end;i++){
 		ri[i]->bar_prob =  scaledprob2prob(ri[i]->bar_prob);
@@ -953,19 +859,12 @@ void* do_label_thread(void *threadarg)
 		ri[i]->prob = expf( ri[i]->prob) / (1.0f + expf(ri[i]->prob ));
 		
 		ri[i] = extract_reads(mb,data->param,ri[i]);
-		/*char alpha[5] = "ACGTN";
-		fprintf(stderr,"%s",ri[i]->name);
-		int j;
-		for(j = 0; j < ri[i]->len;j++){
-			fprintf(stderr,"%c", alpha[(int) ri[i]->seq[j]]);
-		}
-		fprintf(stderr,"\n+\n%s\n" ,ri[i]->qual);*/
 	}
 	
 	if(data->param->reference_fasta){
 		ri = match_to_reference(data);
 	}
-	
+#if DEBUG	
 	for(i = start; i < end;i++){
 		
 		char alpha[5] = "ACGTN";
@@ -1023,7 +922,6 @@ void* do_label_thread(void *threadarg)
 	int _MM_ALIGN16 lengths[4];
 	int _MM_ALIGN16 errors[4];
 	
-	//fprintf(stderr,"%d	%d\n",start,end);
 	for(i = start; i <= end-4;i+=4){
 		test = 1;
 		reverse = 0;
@@ -1082,13 +980,11 @@ void* do_label_thread(void *threadarg)
 		test = 1;
 		reverse = 0;
 		for(j =0; j < reference->numseq;j++){
-			//fprintf(stderr,"%s	%d\n",reference->sn[j],reference->s_index[j+1] - reference->s_index[j]);
 			c = bpm_check_error(reference->string +  reference->s_index[j], (unsigned char* )ri[i]->seq,reference->s_index[j+1] - reference->s_index[j] , ri[i]->len, error_cut);
 			if(c <= error_cut){
 				test = 0;
 				break;
 			}
-			//if(test){
 			ri[i]->seq = (char* )reverse_complement2((unsigned char* ) ri[i]->seq,   ri[i]->len);
 			c = bpm_check_error(reference->string +  reference->s_index[j], (unsigned char* )ri[i]->seq,reference->s_index[j+1] - reference->s_index[j] , ri[i]->len,error_cut);
 			reverse = 1;
@@ -1098,15 +994,11 @@ void* do_label_thread(void *threadarg)
 				break;
 			}
 			ri[i]->seq = (char* )reverse_complement2((unsigned char* ) ri[i]->seq,   ri[i]->len);
-			//}
-			
-			
 		}
 		if(!test){
 			if(ri[i]->prob == EXTRACT_SUCCESS){
 				ri[i]->prob  =  EXTRACT_FAIL_MATCHES_ARTIFACTS;
 			}
-			//ri[i]->a = 1;
 		}
 		i++;
 	}

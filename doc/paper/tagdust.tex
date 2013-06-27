@@ -37,16 +37,17 @@ Accepted March 1, 2013}
 
 \begin{abstract}
 
-Arguably the most basic step basic step in the processing of next generation sequence (NGS) involves extracting mappable reads from raw reads produced by the sequencer. The presence of barcodes, fingerprints and artifacts such as adapter dimers makes this step non-trivial. 
+Arguably the most basic step basic step in the processing of next generation sequence (NGS) involves extracting mappable reads from the raw reads produced by the sequencer. The presence of indices used for multiplexing, fingerprints adaptors and artifacts makes this step non-trivial. 
+
+Tagdust2 is designed as a one stop tool to perform all steps necessary to go from raw to mappable reads. This includes de-multiplexing libraries, removing adaptors, identifying UMI sequences and discarding artifacts. A user specified HMM is 
 
 TagDust allows users to specify the expected architecture of a read and converts it into a hidden Markov model. The latter can assign sequences to a particular barcode even in the presence of sequencing errors. Artifactual sequences, which by definition do not not match the architecture are automatically discarded.
 
 \end{abstract}
 
-
 \section{Introduction}
 
-Next generation sequencing has greatly accelerated the accumulation of genomics data. Different protocols targeting the genome, dpi-genome and transcriptions are commonly used. In essence all protocols capture biological sequences of interest, add sequences to make the library subject able to NGS sequencing. The great increase in sequencing depth allows for the sequencing of multiple samples one channel. In this case additional sequences or barcodes are added to the reads allowing for the identification of the original samples after sequencing. A key research area where such multiplexing is essential is single cell sequencing. In addition to this recent protocols have added random sequences of a specific length to the reads allowing to identify PCR duplicates [STEN]. 
+Next generation sequencing has greatly accelerated the accumulation of genomics data. Different protocols targeting the genome, dpi-genome and transcriptions are commonly used. In essence all protocols capture biological sequences of interest and add adaptor and other sequences for sequencing. The great increase in sequencing depth allows for the sequencing of multiple samples one channel. In this case additional sequences or barcodes are added to the reads allowing for the identification of the original samples after sequencing. A key research area where such multiplexing is essential is single cell sequencing. In addition to this recent protocols have added random sequences of a specific length to the reads allowing to identify PCR duplicates [STEN]. 
 
 We previously released TagDust to remove artifactual reads. While useful the previous version discards whole reads, rather than trimming them.  
 
@@ -211,6 +212,9 @@ Internally, TagDust uses a full profile HMM for each segment. To emulate differe
 
 This is fairly inefficient as the dynamic programming code still needs to evaluate all possible transitions, even those we know in advance have a probability of zero. In future I might do something about this. 
 
+\subsection{Further read filtering}
+
+TagDust allows users to specify a fasta file containing known sequences the user wishes to exclude from mapping. For example in transcriptome sequencing one commonly wants to remove ribosomal sequences from the downstream analysis. To address this issue in a general we globally align all reads to the target reference sequences and discard all reads with less then X mismatches. For efficiency we implemented the Myers bit parallel algorithm using SIMD instructions as well as using thread level parallelism. 
 
 \section{RESULTS}
 
@@ -218,10 +222,7 @@ This is fairly inefficient as the dynamic programming code still needs to evalua
 
 To assess the accuracy of TagDust in a wide range of possible applications, we simulate datasets containing barcodes of different length and varying sequencer error rates. In all experiments we simulated 900k barcode containing sequences and 100k random sequences which should not be extracted. We compared our results to the program fastx barcode splitter from the fastX package. This program allows for sequencing errors in the barcodes and performs much better than using exact pattern matching approaches. 
 
-In all our simulated test cases, Tagdust mis-aligns less than half a percent of the reads to the wrong library. As expected, in noisy datasets fewer reads are extracted. In contrast, this percentage is usually higher in fastx. In addition, the simple strategy using one mismatch leads fasts to assign between 25 - 100\% of the random sequences to a library. Using default parameters, Tagdust does not extract any reads when using many short barcodes. 
-
- 
-
+In all our simulated test cases, TagDust mis-aligns less than half a percent of the reads to the wrong library. As expected, in noisy datasets fewer reads are extracted. In contrast, this percentage is usually higher in fastx. In addition, the simple strategy using one mismatch leads fasts to assign between 25 - 100\% of the random sequences to a library. Using default parameters, Tagdust does not extract any reads when using many short barcodes. 
 
 \begin{figure*}[t]
 \begin{center}

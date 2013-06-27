@@ -231,6 +231,18 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 }
 
 
+void print_sequence(struct read_info* ri,FILE* out)
+{
+	int i;
+	char alpha[5] = "ACGTN";
+	fprintf(out,"%s\n",ri->name);
+	//int j;
+	for(i = 0; i < ri->len;i++){
+		fprintf(out,"%c", alpha[(int) ri->seq[i]]);
+	}
+	fprintf(out,"\n+\n%s\n" ,ri->qual);
+}
+
 int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  struct read_info* ri,FILE* out)
 {
 	int j,c1,c2,c3,key,bar,mem,fingerlen,required_finger_len,ret;

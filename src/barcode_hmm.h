@@ -146,14 +146,13 @@ struct thread_data{
 
 
 struct log_information{
-	int probability_distribution[1001];
-	
 	int total_read;
-	int success;
-	int prob_failure;
-	int len_failure;
-	int arch_failure;
-
+	int num_EXTRACT_SUCCESS;
+	int num_EXTRACT_FAIL_BAR_FINGER_NOT_FOUND;
+	int num_EXTRACT_FAIL_READ_TOO_SHORT;
+	int num_EXTRACT_FAIL_AMBIGIOUS_BARCODE;
+	int num_EXTRACT_FAIL_ARCHITECTURE_MISMATCH;
+	int num_EXTRACT_FAIL_MATCHES_ARTIFACTS;
 };
 
 void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ),int file_num);

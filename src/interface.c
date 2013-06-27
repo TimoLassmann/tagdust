@@ -64,7 +64,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->confidence_threshold = 0.99;//ence
 	
 	param->read_structure = 0;
-	param->filter_error = 2;
+	param->filter_error = 1;
 	param->reference_fasta  = 0;
 	
 	param->read_structure = malloc(sizeof(struct read_structure));
@@ -328,6 +328,9 @@ void usage()
 	fprintf(stdout, "         -start     INT     start of search area [0].\n");
 	fprintf(stdout, "         -end       INT     end of search area [length of sequence].\n");
 	fprintf(stdout, "         -format    STR     format of input sequence file.\n");
+	fprintf(stdout, "         -minlen    INT     minimal accepted read length [16].\n");
+	fprintf(stdout, "         -ref       STR     reference fasta file to be compared against[].\n");
+	fprintf(stdout, "         -fe        INT     number of errors allowed when comparing to reference[1].\n");
 	fprintf(stdout, "         -minlen    INT     minimal accepted read length [16].\n");
 	fprintf(stdout, "         -e         FLT     expected sequencer error rate [0.05].\n");
 	fprintf(stdout, "         -o         STR     output file name.\n");

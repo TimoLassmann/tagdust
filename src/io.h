@@ -65,7 +65,7 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param);
 void print_seq(struct read_info* ri,FILE* out);
 int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file);
 int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file);
-
+void print_sequence(struct read_info* ri,FILE* out);
 int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  struct read_info* ri,FILE* out);
 int qsort_ri_prob_compare(const void *a, const void *b);
 
