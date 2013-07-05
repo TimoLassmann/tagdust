@@ -194,6 +194,9 @@ double get_min_pi0(double* x, double* y, int n_points);
 struct read_info*  extract_reads(struct model_bag* mb, struct parameters* param,  struct read_info* ri);
 struct read_info** match_to_reference(struct thread_data *data);
 
+struct model_bag* estimate_length_distribution_of_partial_segments(struct model_bag*mb,struct read_info** ri,struct parameters* param, int numseq);
+
+
 #endif
 
 

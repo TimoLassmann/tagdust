@@ -128,7 +128,7 @@ void simulate(struct parameters* param)
 	}
 	sprintf (outfile, "%s_read_extracted.fq",param->outfile);
 	
-	fprintf(file," -2 R:N -o %s -threshold 0.9 -e 0.05 \n", outfile);
+	fprintf(file," -2 R:N -o %s  \n", outfile);
 	
 	//fprintf(file,"echo -n %d\t%d\t%f\t;\t",param->numbarcode, param->sim,param->sequencer_error_rate);
 	fprintf(file,"grep READ  %s  |  awk -v numbarcode=%d -v sim=%d -v errorrate=%f  -v indelrate=%f 'BEGIN{p=0;n=0}{x = split($0,a,\"[;,:]\");if(a[x] == a[3]){p++}else{n++}}END{printf \"%%d\\t%%d\\t%%f\\t%%f\\t%%d\\t%%d\\t%%d\\n\",numbarcode,sim,errorrate,indelrate,p,1000000 - (p + n),n}'  >> tagdust_benchmark.csv &\n", outfile,param->numbarcode, param->sim,param->sequencer_error_rate, param->indel_frequency );

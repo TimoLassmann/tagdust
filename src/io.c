@@ -75,7 +75,7 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 		fprintf(stderr,"Cannot find gzcat / zcat on your system. Try gzcat <infile> | samstat -f sam/bam/fa/fq\n");
 		exit(-1);
 	}
-	//fprintf(stderr,"%d	%d	%d	%s\n",param->sam,param->gzipped ,file_num,param->infile[file_num]);
+	
 	if(file_num == -1){
 		if(param->sam == 2){
 			command[0] = 0;
@@ -101,8 +101,6 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 				i = sprintf (tmp, "%s ",param->filter);
 				strcat ( command, tmp);
 			}
-			
-			//strcat ( command, "samtools view -SF 768 ");     // Copy name into full name
 			i = sprintf (tmp, "%s ", "-");
 			strcat ( command, tmp);
 			if (!(file = popen(command, "r"))) {
@@ -125,8 +123,6 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 					i = sprintf (tmp, "%s | samtools view -F  ", param->infile[file_num]);
 					strcat ( command, tmp);
 					i = sprintf (tmp, "%s - ",param->filter);
-					//strcat ( command, "samtools view -F ");
-					//i = sprintf (tmp, "%s ",param->filter);
 					strcat ( command, tmp);
 				}
 				
@@ -143,12 +139,8 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 					i = sprintf (tmp, "%s | samtools view -F  ", param->infile[file_num]);
 					strcat ( command, tmp);
 					i = sprintf (tmp, "%s - ",param->filter);
-					//strcat ( command, "samtools view -F "); 
-					//i = sprintf (tmp, "%s ",param->filter);
 					strcat ( command, tmp);
 				}
-				//i = sprintf (tmp, "%s | samtools view -F 768 - ", param->infile[file_num]);
-				//strcat ( command, tmp);
 			}else{
 				if(!param->filter){
 					strcat ( command, "samtools view -F 768 "); 
@@ -157,7 +149,6 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 					i = sprintf (tmp, "%s ",param->filter);
 					strcat ( command, tmp);
 				}
-				//strcat ( command, "samtools view -F 768 ");     // Copy name into full name
 				i = sprintf (tmp, "%s ", param->infile[file_num]);
 				strcat ( command, tmp);
 			}
@@ -180,8 +171,6 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 					i = sprintf (tmp, "%s | samtools view -SF  ", param->infile[file_num]);
 					strcat ( command, tmp);
 					i = sprintf (tmp, "%s - ",param->filter);
-					//strcat ( command, "samtools view -F "); 
-					//i = sprintf (tmp, "%s ",param->filter);
 					strcat ( command, tmp);
 				}
 			}else{
@@ -192,7 +181,6 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 					i = sprintf (tmp, "%s ",param->filter);
 					strcat ( command, tmp);
 				}
-				//strcat ( command, "samtools view -SF 768 ");     // Copy name into full name
 				i = sprintf (tmp, "%s ", param->infile[file_num]);
 				strcat ( command, tmp);
 			}
@@ -216,15 +204,10 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 			}
 			i = sprintf (tmp, "%s ", param->infile[file_num]);
 			strcat ( command, tmp);
-			//fprintf(stderr,"%s\n", command);
 			if (!(file = popen(command, "r"))) {
 				fprintf(stderr,"Cannot open bam file '%s' with command:%s\n",param->infile[file_num],command);
 				exit(-1);
 			}
-			//if (!(file = fopen(param->infile[file_num] , "r" ))){
-			//	fprintf(stderr,"Cannot open sam file '%s'\n",param->infile[file_num]);
-			//	exit(-1);
-			//}
 		}
 	}
 	return file;
@@ -236,7 +219,6 @@ void print_sequence(struct read_info* ri,FILE* out)
 	int i;
 	char alpha[5] = "ACGTN";
 	fprintf(out,"%s\n",ri->name);
-	//int j;
 	for(i = 0; i < ri->len;i++){
 		fprintf(out,"%c", alpha[(int) ri->seq[i]]);
 	}

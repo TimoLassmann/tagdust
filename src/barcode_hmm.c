@@ -344,6 +344,15 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	*/
 	
 	file =  io_handler(file, file_num,param);
+	
+	numseq = fp(ri, param,file);
+	mb = estimate_length_distribution_of_partial_segments(mb,ri, param,  numseq);
+
+	pclose(file);
+	
+	
+	
+	file =  io_handler(file, file_num,param);
 
 	if(!param->train ){
 	
@@ -438,6 +447,7 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 					
 				case EXTRACT_SUCCESS:
 					
+					print_sequence(ri[i],outfile);
 					li->num_EXTRACT_SUCCESS++;
 					//fprintf(stderr,"Success!!!\n");
 					break;
@@ -457,7 +467,7 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 					li->num_EXTRACT_FAIL_MATCHES_ARTIFACTS++;
 					break;
 			}
-			print_sequence(ri[i],outfile);
+			
 			
 			/*ri[i]->bar_prob =  scaledprob2prob(ri[i]->bar_prob);
 			ri[i]->prob = ri[i]->prob + log (0.9 / 0.1);
@@ -531,6 +541,210 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		fclose(outfile);
 	}
 	
+}
+
+
+struct model_bag* estimate_length_distribution_of_partial_segments(struct model_bag*mb,struct read_info** ri,struct parameters* param, int numseq)
+{
+	int i,j,c;
+	char* test_sequence = 0;
+	
+	struct model* model = 0;
+	struct hmm_column* col = 0;
+	
+	double mean;
+	double stdev;
+	
+	double sum_prob = 0;
+	double s0,s1,s2;
+	int len = 0;
+	
+	float base_error = param->sequencer_error_rate;
+	float indel_freq = param->indel_frequency;
+	
+	//5'
+	if(param->read_structure->type[0] == 'P'){
+		test_sequence = param->read_structure->sequence_matrix[0][0];
+		len = (int) strlen(test_sequence);
+		
+		for(i = 0; i < len;i++){
+			test_sequence[i] = nuc_code[(int) test_sequence[i]];
+		}
+		//for(c = 0;c < len;c++){
+		//	fprintf(stderr,"%c",*(test_sequence +c) + 65);
+		//
+		//}
+		//fprintf(stderr,"\n");
+		
+		mean = 0;
+		s0 = 0;
+		s1 = 0;
+		s2 = 0;
+		
+		
+		for(i = 0; i < numseq;i++){
+			for(j = 0;j <= len ;j++){
+				/*for(c = 0;c < len-j;c++){
+					fprintf(stderr,"%c",ri[i]->seq[c] + 65);
+					
+				}
+				fprintf(stderr,"\n");
+				for(c = 0;c < len-j;c++){
+					fprintf(stderr,"%c",*(test_sequence+j +c) + 65);
+					
+				}
+				fprintf(stderr,"	%d	%d\n",strncmp(ri[i]->seq, test_sequence+j, len -j) ,len -j);
+				*/
+				for(c = 0;c < len-j;c++){
+					if(ri[i]->seq[c] != test_sequence[j +c]){
+						break;
+					}
+				}
+				//fprintf(stderr,"C:%d\n",c);
+				if(c == len-j ){
+				//	fprintf(stderr,"MATCH\n");
+					
+					s0++;
+					s1 += len -j;
+					s2 += (len-j) * (len-j);
+					break;
+				}
+				
+			}
+		}
+		mean = s1 / s0;
+		stdev = sqrt(  (s0 * s2 - pow(s1,2.0))   /  (  s0 *(s0-1.0) )) ;
+		
+//#if DEBUG
+		fprintf(stderr,"5'linker_length: %f	stdev%f\n",mean,stdev);
+		for(i = 0; i< 10;i++){
+			fprintf(stderr,"%d	%f\n",i,gaussian_pdf(i , mean ,stdev));
+		}
+		
+		sum_prob = 0;
+		
+		for(i = 0; i <  len;i++){
+			sum_prob +=gaussian_pdf(i , mean ,stdev);
+		}
+		
+		
+		
+		//Init model ....
+		model = mb->model[0];
+		
+		//if(rs->type[key] == 'P'){// Partial - can skip and exit at every M / I state....
+			len = model->hmms[0]->num_columns;
+			for(i = 0 ; i < model->num_hmms;i++){
+				model->silent_to_M[i] = prob2scaledprob(1.0 / (float) model->num_hmms) + prob2scaledprob(1.0 - 0.01);
+				//model->M_to_silent[i] = prob2scaledprob(1.0);
+				
+				for(j = 0; j < len;j++){
+					col = model->hmms[i]->hmm_column[j];
+					col->transition[MM] = prob2scaledprob( 1.0 - base_error * indel_freq ) + prob2scaledprob(0.99f);
+					col->transition[MI] = prob2scaledprob(base_error * indel_freq) +  prob2scaledprob(0.5)+ prob2scaledprob(0.99f);
+					col->transition[MD] = prob2scaledprob(base_error * indel_freq) +  prob2scaledprob(0.5)+ prob2scaledprob(0.99f);
+					col->transition[MSKIP] = prob2scaledprob(0.01f);
+					
+					col->transition[II] = prob2scaledprob(1.0 - 0.999)+ prob2scaledprob(0.99f);
+					col->transition[IM] = prob2scaledprob(0.999)+ prob2scaledprob(0.99f);
+					col->transition[ISKIP] = prob2scaledprob(0.01f);
+					
+				}
+				
+			}
+			
+			model->skip = prob2scaledprob(0.01);
+		//}
+		
+
+	
+		
+//#endif
+		
+	}
+	
+	//3'
+	if(param->read_structure->type[mb->num_models-1] == 'P'){
+		test_sequence = param->read_structure->sequence_matrix[ mb->num_models-1][0];
+		len = (int) strlen(test_sequence);
+		for(i = 0; i < len;i++){
+			test_sequence[i] = nuc_code[(int) test_sequence[i]];
+		}
+		
+		mean = 0;
+		s0 = 0;
+		s1 = 0;
+		s2 = 0;
+		
+		for(i = 0; i < numseq;i++){
+			/*
+			for(c = 0;c < ri[i]->len;c++){
+				fprintf(stderr,"%c",ri[i]->seq[c]+ 65);
+				
+			}
+			fprintf(stderr,"\n");
+			*/
+			for(j = 0;j <= len ;j++){
+				/*fprintf(stderr,"3prime:sequence %d\n",i);
+				for(c = 0;c < len-j;c++){
+					fprintf(stderr,"%c",ri[i]->seq[ri[i]->len - (len-j -c)]+ 65);
+					
+				}
+				fprintf(stderr,"\n");
+				for(c = 0;c < len-j;c++){
+					fprintf(stderr,"%c",*(test_sequence+c) + 65);
+					
+				}
+				fprintf(stderr,"	%d	%d\n",strncmp(ri[i]->seq, test_sequence+j, len -j) ,len -j);
+*/
+				
+				
+				for(c = 0;c < len-j;c++){
+					if(ri[i]->seq[ri[i]->len - (len-j -c)] != test_sequence[c]){
+						break;
+					}
+				}
+				if(c == len-j ){
+				//	fprintf(stderr,"MATCH\n");
+					
+					s0++;
+					s1 += len -j;
+					s2 += (len-j) * (len-j);
+					break;
+				}
+				
+				/*if(strncmp(ri[i]->seq + ri[i]->len - (len +j) , test_sequence, len -j)){
+					s0++;
+					s1 += len -j;
+					s2 += (len-j) * (len-j);
+ 				}*/
+			}
+		}
+		mean = s1 / s0;
+		stdev = sqrt(  (s0 * s2 - pow(s1,2.0))   /  (  s0 *(s0-1.0) )) ;
+		
+//#if DEBUG
+		fprintf(stderr,"3'linker_length: %f	stdev%f\n",mean,stdev);
+		for(i = 0; i< 10;i++){
+			fprintf(stderr,"%d	%f\n",i,gaussian_pdf(i , mean ,stdev));
+		}
+
+		
+		
+		
+		
+		
+		
+		
+//#endif
+		
+	}
+		
+	
+	
+	exit(0);
+	
+	return mb;
 }
 
 
@@ -821,6 +1035,7 @@ struct model_bag* run_pHMM(struct model_bag* mb,struct read_info** ri,struct par
 
 
 
+
 void* do_label_thread(void *threadarg)
 {
 	struct thread_data *data;
@@ -855,9 +1070,9 @@ void* do_label_thread(void *threadarg)
 
 	for(i = start; i < end;i++){
 		ri[i]->bar_prob =  scaledprob2prob(ri[i]->bar_prob);
-		ri[i]->prob = ri[i]->prob + log (0.9 / 0.1);
+		ri[i]->prob = ri[i]->prob + log (0.9f / 0.1f);
 		ri[i]->prob = expf( ri[i]->prob) / (1.0f + expf(ri[i]->prob ));
-		
+		//fprintf(stdout,"%f	%f\n",ri[i]->bar_prob,ri[i]->prob);
 		ri[i] = extract_reads(mb,data->param,ri[i]);
 	}
 	

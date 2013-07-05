@@ -112,10 +112,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			{"fe",required_argument,0,OPT_FILTER_ERROR},
 			{"ref",required_argument,0,OPT_FILTER_REFERENCE},
 			{"out",required_argument,0, 'o'},
-			//{"format",required_argument,0, OPT_SIM},
-			
 			{"filter",required_argument,0, 'f'},
-			
 			{"quiet",0,0,'q'},
 			{"help",0,0,'h'},
 			{0, 0, 0, 0}
@@ -240,13 +237,8 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 						free_param(param);
 						exit(-1);
 					}
-					//assert(strlen(param->read_structure->sequence_matrix[i][g]) == strlen(param->read_structure->sequence_matrix[i][f]));
-					//fprintf(stderr,"\t%s\n",param->read_structure->sequence_matrix[i][g] );
 				}
-				//fprintf(stderr,"\t%s\n",param->read_structure->sequence_matrix[i][g] );
 			}
-			
-			
 			
 			fprintf(stderr,"Found %c segment %d with %d sequences\n",param->read_structure->type[i] ,i, param->read_structure->numseq_in_segment[i] );
 			for(g = 0;g < param->read_structure->numseq_in_segment[i];g++){
@@ -256,8 +248,6 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			
 		}
 	}
-	
-	//exit(0);
 	
 	if(help){
 		usage();
