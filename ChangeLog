@@ -1,0 +1,8 @@
+
+Version 2.01:
+
+- added simple read filtering by matching to a reference, 
+- added better support for partial segments ( 5' and 3' adapters)
+- more input checking...
+
+

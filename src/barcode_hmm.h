@@ -103,10 +103,10 @@ struct hmm{
 struct model{
 	struct hmm** hmms;
 	float background_nuc_frequency[5];
-	float* silent_to_M;
-	float* silent_to_I;
-	float* silent_to_M_e;
-	float* silent_to_I_e;
+	float** silent_to_M;
+	float** silent_to_I;
+	float** silent_to_M_e;
+	float** silent_to_I_e;
 	float silent_forward[MAX_HMM_SEQ_LEN];
 	float silent_backward[MAX_HMM_SEQ_LEN];
 	float skip;
@@ -159,9 +159,6 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 
 struct model* malloc_model(int main_length, int sub_length, int number_sub_models);
 
-//struct model* init_model(struct model* model);
-//struct model* copy_and_malloc_model(struct model* org);
-//struct model* add_estimates_to_model(struct model* target, struct model* source);
 void free_model(struct model* model);
 
 //struct model* malloc_model_according_to_read_structure(struct read_structure* rs, int key);

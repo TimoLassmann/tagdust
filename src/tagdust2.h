@@ -48,7 +48,7 @@ __LINE__, __func__, __VA_ARGS__); } while (0)
 #define MAX_LINE 50000
 
 //#define MAXERROR 100
-#define VERSION 2.0
+#define VERSION 2.01
 //#define KMERLEN 10
 
 

@@ -70,6 +70,8 @@
 		A17B7B6817557D3000E58E88 /* fitspl.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fitspl.c; path = src/fitspl.c; sourceTree = "<group>"; };
 		A17B7B6917557D3000E58E88 /* conjgg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = conjgg.c; path = src/conjgg.c; sourceTree = "<group>"; };
 		A17B7B6D17557D4600E58E88 /* cmath.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = cmath.h; path = src/cmath.h; sourceTree = "<group>"; };
+		A1E17141178A8B28006F393D /* README */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = README; sourceTree = "<group>"; };
+		A1E17142178A8B34006F393D /* ChangeLog */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = ChangeLog; sourceTree = "<group>"; };
 		A1E3055116DB316B00FDAA86 /* gmm.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = gmm.c; path = src/gmm.c; sourceTree = "<group>"; };
 		A1E3055316DB317C00FDAA86 /* gmm.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = gmm.h; path = src/gmm.h; sourceTree = "<group>"; };
 		A1E919D516C38FBE00739ACC /* pst.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pst.c; path = src/pst.c; sourceTree = "<group>"; };
@@ -104,6 +106,8 @@
 		A10B992416C09ED500AF1A1E = {
 			isa = PBXGroup;
 			children = (
+				A1E17142178A8B34006F393D /* ChangeLog */,
+				A1E17141178A8B28006F393D /* README */,
 				A14F589B17783085003A7B1A /* Makefile.am */,
 				A14F589D177835CF003A7B1A /* configure.ac */,
 				A14F589C17783093003A7B1A /* src */,

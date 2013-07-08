@@ -64,7 +64,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->confidence_threshold = 0.99;//ence
 	
 	param->read_structure = 0;
-	param->filter_error = 1;
+	param->filter_error = 2;
 	param->reference_fasta  = 0;
 	
 	param->read_structure = malloc(sizeof(struct read_structure));
@@ -221,7 +221,12 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	//if(param->matchstart)
 	//fprintf(stderr,"Viterbi: %d\n",param->viterbi);
 	last = -1;
-	for(i = 0; i < 10;i++){
+	c = 0;
+	for(i = 0; i < param->read_structure->num_segments;i++){
+		if(param->read_structure->type[i] == 'R'){
+			c = 1;
+		}
+		
 		if(param->read_structure->sequence_matrix[i]){
 			if(last +1 != i){
 				fprintf(stderr,"ERROR: a hmm building lock was skipped??\n");
@@ -249,10 +254,16 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 		}
 	}
 	
+	if(!c){
+		fprintf(stderr,"ERROR: no read segment specified!\n");
+		free(param);
+		exit(EXIT_FAILURE);
+	}
+	
 	if(help){
 		usage();
 		free(param);
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 	param->infile = malloc(sizeof(char*)* (argc-optind));
 	
@@ -271,7 +282,7 @@ struct parameters* assign_segment_sequences(struct parameters* param, char* tmp,
 	int count;
 	//tmp = optarg;
 	count = byg_count(",", tmp);
-	fprintf(stderr,"Segment %d: %d	sequences\n",segment,count+1);
+	//fprintf(stderr,"Segment %d: %d	sequences\n",segment,count+1);
 	param->read_structure->numseq_in_segment[segment] = count+1;
 	param->read_structure->sequence_matrix[segment] = malloc(sizeof(char*) * (count+1));
 	assert(param->read_structure->sequence_matrix[segment] !=0);
@@ -320,7 +331,7 @@ void usage()
 	fprintf(stdout, "         -format    STR     format of input sequence file.\n");
 	fprintf(stdout, "         -minlen    INT     minimal accepted read length [16].\n");
 	fprintf(stdout, "         -ref       STR     reference fasta file to be compared against[].\n");
-	fprintf(stdout, "         -fe        INT     number of errors allowed when comparing to reference[1].\n");
+	fprintf(stdout, "         -fe        INT     number of errors allowed when comparing to reference[2].\n");
 	fprintf(stdout, "         -minlen    INT     minimal accepted read length [16].\n");
 	fprintf(stdout, "         -e         FLT     expected sequencer error rate [0.05].\n");
 	fprintf(stdout, "         -o         STR     output file name.\n");

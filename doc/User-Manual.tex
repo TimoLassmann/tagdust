@@ -447,7 +447,7 @@ TagDust allows users to specify the expected architecture of a read and converts
 Unpack the tarball:
 
 \begin{verbatim}
-bash-3.1$ tar -zxvf tagdust.tgz 
+bash-3.1$ tar -zxvf tagdust-2.0.tar.gz 
 \end{verbatim}
 
 \begin{verbatim}
@@ -485,8 +485,9 @@ bash-3.1$ tagdust [-options] <input file>
 -end & INT & end of  search area [length of sequence].\\
 -format & STR & format of input sequence file.\\
 -minlen & INT & minimal accepted read length [16].\\
+-ref     &  STR &    reference fasta file to be compared against[].\\
+-fe &       INT &    number of errors allowed when comparing to reference[2].\\
 -e & FLT & expected sequencer error rate [0.05].\\ 
-
 -o & STR & output file name.\\
 -t & INT & number of threads [8].\\
 -1 & STR & type of the first HMM building block. \\
@@ -495,7 +496,9 @@ bash-3.1$ tagdust [-options] <input file>
 \hline
 \end{tabular}
 \end{center}
-The {\tt -threshold} option sets the minimum acceptable probability of a read to belong to the specified architecture. If barcodes are present, this option is reused to set the minimum acceptable probability of a read belonging to any barcode sequence. If the reads are very short or the model very simple (e.g. 3 nucleotide barcode followed by the read) this threshold might have to be lowered.
+The {\tt -threshold} option sets the minimum acceptable probability of a read to belong to the specified architecture. If the reads are very short or the model very simple (e.g. 3 nucleotide barcode followed by the read) this threshold might have to be lowered.
+
+Known contaminants or unwanted reads can be filtered from the output by pointing TagDust to a reference fasta to be matched against ({\tt -ref <filename>} ). The maximum number of errors allowed for a match to reference is set with the {\tt -fe} option.
 
 
 As a default, TagDust attempts to match the entire sequence to the HMM (global). The options {\tt -start} and {\tt -end} restricts the matching to region specified. TagDust assumes that all residues upstream of 'start' do not belong to the read while all residues following 'end' are read residues.
@@ -868,16 +871,16 @@ Segment modeling a pre-defined sequence.
 
 
 \subsection{Partial}
-This segment is used to model sequences that may only be partially present at the end of the read.\\
+This segment is used to model sequences that may only be partially present at the 5` or 3` end of the read. The transition probabilities (orange and blue) are set automatically based on the length distribution of exactly matching adapters.\\
 
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}
  \tiny
-  \node  at (-1,-2)  [font=\Large,style={align=center}] () {{\bf Code: -[1-9] P:CCTTAA}};
+  \node  at (-2.5,1)  [font=\Large,style={align=center}] () {{\bf Code: -[1-9] P:CCTTAA}};
  
- \node[Dstate,fill=orange] (START) at (-1,0){$S$};
-\begin{scope}[shift={(3,2)}];
+ \node[Dstate,fill=orange] (START) at (-1,-2){$S$};
+\begin{scope}[shift={(1.5,2)}];
 
 %CCTTAAGG
 \node[Dstate] (dl1) at (0,1){$D$};
@@ -912,7 +915,7 @@ This segment is used to model sequences that may only be partially present at th
 
  \path
 
-(START)  edge [lightedge] (ml1)
+%(START)  edge [lightedge] (ml1)
 (ml1) edge [lightedge] (ml2) 
 (ml1) edge [lightedge] (dl2) 
 (ml1) edge [lightedge] (il1)
@@ -968,12 +971,20 @@ This segment is used to model sequences that may only be partially present at th
 (dl5) edge  [lightedge,->] (ml6)
 
 
-(ml1.south)edge [lightedge] (END)
-(ml2.south)edge [lightedge] (END)
-(ml3.south)edge [lightedge] (END)
-(ml4.south)edge [lightedge] (END)
-(ml5.south)edge [lightedge] (END)
-(ml6.south)edge [lightedge] (END)
+(ml1.south)edge [blue,lightedge] (END)
+(ml2.south)edge [blue,lightedge] (END)
+(ml3.south)edge [blue,lightedge] (END)
+(ml4.south)edge [blue,lightedge] (END)
+(ml5.south)edge [blue,lightedge] (END)
+(ml6.south)edge [blue,lightedge] (END)
+
+(START)edge [orange,lightedge] (ml1.south)
+(START)edge [orange,lightedge] (ml2.south)
+(START)edge [orange,lightedge] (ml3.south)
+(START)edge [orange,lightedge] (ml4.south)
+(START)edge [orange,lightedge] (ml5.south)
+(START)edge [orange,lightedge] (ml6.south)
+
 ;
 
 \end{tikzpicture}
@@ -1000,7 +1011,18 @@ bash-3.1$ tagdust test.fq.gz   -1 O:N -2 :ACAGAT,ATCGTG,CACGAT,CACTGA,CTGACG,GAG
 \end{verbatim}
 }
 
-Note that we added an optional state at the beginning of the read in case extra nucleotides were added before the barcode.  
+Note that we added an optional state at the beginning of the read in case extra nucleotides were added before the barcode.  \\ 
+
+To remove ribosomal reads simply add the -ref and -fe options:
+
+{\small
+\begin{verbatim}
+bash-3.1$ tagdust test.fq.gz   -1 O:N -2 :ACAGAT,ATCGTG,CACGAT,CACTGA,CTGACG,GAGTGA,GTATAC,TCGAGC
+-3 F:NNNNNNNN -4 S:TATA -5 R:N  -o output.fq -ref U13369.1.fa -fe 2 
+\end{verbatim}
+}
+
+
 
 
 \section{A RNA-seq library with a 'spaced' fingerprint.}

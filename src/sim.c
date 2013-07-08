@@ -242,7 +242,7 @@ void simulate(struct parameters* param)
 		
 	}
 	
-	for(i = 0; i < 1000000*0.9;i++){
+	for(i = 1000000*0.1; i < 1000000;i++){
 		//construct fake read
 		c = (int) (rand_r(&seed) % (int) (num_barcode)) ;
 		

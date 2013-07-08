@@ -1,13 +1,15 @@
 Installation: 
 
 Unpack the tarball:
-tar -zxvf tagdust.tgz
+tar -zxvf tagdust-2.0.tar.gz
 cd tagdust
 ./configure
 
-make
+ make
 
-At this point the tagdust executable appears in the tagdust directory. You can copy it to any directory in your path. To install it system wide type:
+At this point the TagDust executable appears in the TagDust directory. You can copy it to any directory in your path. To install it system wide type:
 
-make install
+bash-3.1$ make install
+
+
 
