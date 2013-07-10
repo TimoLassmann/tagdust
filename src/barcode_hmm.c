@@ -28,6 +28,7 @@
 #include <pthread.h>
 #include <assert.h>
 #include <float.h>
+#include <time.h>
 //#include "cmath.h"
 #include "barcode_hmm.h"
 
@@ -261,6 +262,7 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	li->num_EXTRACT_FAIL_AMBIGIOUS_BARCODE = 0;
 	li->num_EXTRACT_FAIL_ARCHITECTURE_MISMATCH = 0;
 	li->num_EXTRACT_FAIL_MATCHES_ARTIFACTS = 0;
+	li->num_EXTRACT_FAIL_LOW_COMPLEXITY= 0;
 		
 	//int c1,c2,c3,key,bar,mem,fingerlen,required_finger_len,ret;
 	//char alpha[5] = "ACGTN";
@@ -298,22 +300,60 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 					break;
 				case  EXTRACT_FAIL_MATCHES_ARTIFACTS:
 					li->num_EXTRACT_FAIL_MATCHES_ARTIFACTS++;
+				case  EXTRACT_FAIL_LOW_COMPLEXITY:
+					li->num_EXTRACT_FAIL_LOW_COMPLEXITY++;
 					break;
 			}
 		}
 	}
-	fprintf(stderr,"%d\n", li->total_read);
-	
-	fprintf(stderr,"%d	successfully extracted\n" ,li->num_EXTRACT_SUCCESS);
-	fprintf(stderr,"%d	barcode / UMI not found\n" ,li->num_EXTRACT_FAIL_BAR_FINGER_NOT_FOUND);
-	fprintf(stderr,"%d	too short\n" , li->num_EXTRACT_FAIL_READ_TOO_SHORT);
-	fprintf(stderr,"%d	ambigious barcode\n" , li->num_EXTRACT_FAIL_AMBIGIOUS_BARCODE);
-	fprintf(stderr,"%d	problems with architecture\n" , li->num_EXTRACT_FAIL_ARCHITECTURE_MISMATCH);
-	fprintf(stderr,"%d	matches artifacts\n" , li->num_EXTRACT_FAIL_MATCHES_ARTIFACTS);
-	
-	fprintf(stderr,"%0.1f%% extracted\n",  (float) li->num_EXTRACT_SUCCESS / (float) li->total_read  *100.0f);
 	
 	
+	if(param->outfile){
+		fclose(outfile);
+	}
+	
+	//param->infile[file_num]
+	
+	struct tm *ptr;
+	int hour;
+	char am_or_pm;
+	char logfile[100];
+
+	time_t current = time(NULL);
+	ptr = localtime(&current);
+	hour = ptr->tm_hour;
+	if (hour <= 11)
+		am_or_pm = 'a';
+	else {
+		hour -= 12;
+		am_or_pm = 'p';
+	}
+	if (hour == 0){
+		hour = 12;
+	}
+	
+	
+	sprintf (logfile, "%s_tagdust_log.txt",shorten_pathname(param->infile[file_num]));
+
+	if ((outfile = fopen( logfile, "w")) == NULL){
+		fprintf(stderr,"can't open output\n");
+		exit(-1);
+	}
+	
+	fprintf(outfile,"%s	%.2d-%.2d-%d	%2d:%.2d%cm\n",param->infile[file_num],ptr->tm_mon + 1,ptr->tm_mday, ptr->tm_year + 1900,hour,ptr->tm_min, am_or_pm );
+	fprintf(outfile,"%d	total input reads\n", li->total_read);
+	
+	fprintf(outfile,"%d	successfully extracted\n" ,li->num_EXTRACT_SUCCESS);
+	fprintf(outfile,"%d	barcode / UMI not found\n" ,li->num_EXTRACT_FAIL_BAR_FINGER_NOT_FOUND);
+	fprintf(outfile,"%d	too short\n" , li->num_EXTRACT_FAIL_READ_TOO_SHORT);
+	fprintf(outfile,"%d	ambigious barcode\n" , li->num_EXTRACT_FAIL_AMBIGIOUS_BARCODE);
+	fprintf(outfile,"%d	problems with architecture\n" , li->num_EXTRACT_FAIL_ARCHITECTURE_MISMATCH);
+	fprintf(outfile,"%d	matches artifacts\n" , li->num_EXTRACT_FAIL_MATCHES_ARTIFACTS);
+	fprintf(outfile,"%d	low complexity\n" , li->num_EXTRACT_FAIL_LOW_COMPLEXITY);
+	
+	fprintf(outfile,"%0.1f%%	extracted\n",  (float) li->num_EXTRACT_SUCCESS / (float) li->total_read  *100.0f);
+	
+	fclose(outfile);
 	
 	free_model_bag(mb);
 	free(li);
@@ -346,9 +386,7 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	}else{
 		fclose(file);
 	}
-	if(param->outfile){
-		fclose(outfile);
-	}
+	
 	
 }
 
@@ -1004,6 +1042,11 @@ void* do_label_thread(void *threadarg)
 	if(data->param->reference_fasta){
 		ri = match_to_reference(data);
 	}
+	
+	if(data->param->dust){
+		ri = dust_sequences(data);
+	}
+	
 #if DEBUG	
 	for(i = start; i < end;i++){
 		
@@ -1029,6 +1072,9 @@ void* do_label_thread(void *threadarg)
 			case  EXTRACT_FAIL_MATCHES_ARTIFACTS:
 				fprintf(stderr,"FAIL: matches user supplied artifact  !!!\n");
 				break;
+			case  EXTRACT_FAIL_LOW_COMPLEXITY:
+				fprintf(stderr,"FAIL: matches user supplied artifact  !!!\n");
+				break;
 		}
 		
 		fprintf(stderr,"%s\n",ri[i]->name);
@@ -1044,6 +1090,58 @@ void* do_label_thread(void *threadarg)
 	pthread_exit((void *) 0);
 }
 
+ struct read_info** dust_sequences(struct thread_data *data)
+{
+	struct read_info** ri = data->ri;
+	const int start = data->start;
+	const int end = data->end;
+	
+	int dust_cut = data->param->dust ;
+	
+	int i,j;
+	int key = 0;
+	double triplet[64];
+	double s = 0.0;
+	int len;
+	for(j = 0;j < 64;j++){
+		triplet[j] = 0.0;
+	}
+//	
+
+	
+	for(i = start; i < end;i++){
+		key = ((ri[i]->seq[0] & 0x3 ) << 2 )|  (ri[i]->seq[1] & 0x3 );
+		
+		len = ri[i]->len;
+		if(len > 64){
+			len = 64;
+		}
+		
+		for(j = 2;j < len;j++){
+			key = key << 2 | (ri[i]->seq[j] & 0x3 );
+			triplet[key & 0x3F]++;
+		}
+		s = 0.0;
+		for(j = 0;j < 64;j++){
+			
+			s+= triplet[j] * (triplet[j] -1.0) / 2.0;
+			triplet[j] = 0.0;
+		}
+		s = s / (double)(len-3) *10.0; //should be number of triplets -2 : i.e. len -2 triples -1 = len -3;
+	
+		if(s > dust_cut){
+#if DEBUG
+			char alphabet[] = "ACGTN";
+			for(j = 0;j < len;j++){
+				fprintf(stderr,"%c",alphabet[(int)ri[i]->seq[j]]);
+			}
+			fprintf(stderr,"\tLOW:%f\n",s);
+#endif
+			ri[i]->prob = EXTRACT_FAIL_LOW_COMPLEXITY;
+		}
+	}
+	return ri;
+}
 
  struct read_info** match_to_reference(struct thread_data *data)
 {

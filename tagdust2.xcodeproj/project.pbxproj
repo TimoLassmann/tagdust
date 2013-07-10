@@ -57,6 +57,7 @@
 		A10B994216C09F2900AF1A1E /* tagdust2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tagdust2.h; path = src/tagdust2.h; sourceTree = "<group>"; };
 		A10B994C16C0C7FF00AF1A1E /* barcode_hmm.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = barcode_hmm.c; path = src/barcode_hmm.c; sourceTree = "<group>"; };
 		A10B994F16C0E65B00AF1A1E /* barcode_hmm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = barcode_hmm.h; path = src/barcode_hmm.h; sourceTree = "<group>"; };
+		A117B363178BE7E100014093 /* run_bwa.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; name = run_bwa.sh; path = scripts/run_bwa.sh; sourceTree = "<group>"; };
 		A14F589B17783085003A7B1A /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Makefile.am; sourceTree = "<group>"; };
 		A14F589D177835CF003A7B1A /* configure.ac */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = configure.ac; sourceTree = "<group>"; };
 		A16115CB1741BAC40077DEFD /* exact.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = exact.c; path = src/exact.c; sourceTree = "<group>"; };
@@ -94,6 +95,7 @@
 		A1022D4C174AF66C003978B4 /* scripts */ = {
 			isa = PBXGroup;
 			children = (
+				A117B363178BE7E100014093 /* run_bwa.sh */,
 				A16C7B3F1779240700EAC2AF /* UMI_benchmark_run.sh */,
 				A16115D2174229BD0077DEFD /* start_tagdust_runs.sh */,
 				A16115D117421A6D0077DEFD /* make_benchmark_dataset.sh */,

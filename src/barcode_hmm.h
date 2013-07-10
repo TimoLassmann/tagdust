@@ -72,6 +72,7 @@
 #define EXTRACT_FAIL_AMBIGIOUS_BARCODE 3
 #define EXTRACT_FAIL_ARCHITECTURE_MISMATCH 4 
 #define EXTRACT_FAIL_MATCHES_ARTIFACTS 5 
+#define EXTRACT_FAIL_LOW_COMPLEXITY 6
 
 struct hmm_column{
 	float M_foward[MAX_HMM_SEQ_LEN];
@@ -153,6 +154,7 @@ struct log_information{
 	int num_EXTRACT_FAIL_AMBIGIOUS_BARCODE;
 	int num_EXTRACT_FAIL_ARCHITECTURE_MISMATCH;
 	int num_EXTRACT_FAIL_MATCHES_ARTIFACTS;
+	int num_EXTRACT_FAIL_LOW_COMPLEXITY;
 };
 
 void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ),int file_num);
@@ -190,6 +192,8 @@ double get_min_pi0(double* x, double* y, int n_points);
 
 struct read_info*  extract_reads(struct model_bag* mb, struct parameters* param,  struct read_info* ri);
 struct read_info** match_to_reference(struct thread_data *data);
+
+struct read_info** dust_sequences(struct thread_data *data);
 
 struct model_bag* estimate_length_distribution_of_partial_segments(struct model_bag*mb,struct read_info** ri,struct parameters* param, int numseq);
 

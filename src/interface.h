@@ -24,6 +24,7 @@
 #include <getopt.h>
 #include <stdlib.h>
 #include <string.h>
+#include "config.h"
 
 #define OPT_SEG1 1
 #define OPT_SEG2 2
@@ -46,6 +47,7 @@
 #define OPT_NUMBARCODE 19
 #define OPT_FILTER_ERROR 20
 #define OPT_FILTER_REFERENCE 21
+#define OPT_DUST 22
 
 
 struct read_structure{
@@ -69,6 +71,7 @@ struct parameters {
 	char* exact5; 
 	int gzipped;
 	int bzipped;
+	int dust;
 	int sam;
 	int fasta;
 	float sequencer_error_rate;

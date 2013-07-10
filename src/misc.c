@@ -535,6 +535,17 @@ int validate_bpm_sse(unsigned char**  query, int* query_lengths,unsigned char* t
 
 
 
+char* shorten_pathname(char* p)
+{
+	int i;
+	char* tmp = p;
+	for(i = 0; i< strlen(p);i++){
+		if(p[i] == '/'){
+			tmp = p+i +1;
+		}
+	}
+	return tmp;
+}
 
 
 unsigned char* reverse_complement2(unsigned char* p,int len)

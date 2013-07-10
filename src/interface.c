@@ -111,6 +111,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			{"threshold",required_argument,0, OPT_THRESHOLD},
 			{"fe",required_argument,0,OPT_FILTER_ERROR},
 			{"ref",required_argument,0,OPT_FILTER_REFERENCE},
+			{"dust",required_argument,0,OPT_DUST},
 			{"out",required_argument,0, 'o'},
 			{"filter",required_argument,0, 'f'},
 			{"quiet",0,0,'q'},
@@ -188,6 +189,9 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			case OPT_FILTER_REFERENCE:
 				param->reference_fasta = optarg;
 				break;
+			case OPT_DUST:
+				param->dust = atoi(optarg);
+				break;
 			case 'f':
 				param->filter = optarg;
 				break;
@@ -247,8 +251,9 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			
 			fprintf(stderr,"Found %c segment %d with %d sequences\n",param->read_structure->type[i] ,i, param->read_structure->numseq_in_segment[i] );
 			for(g = 0;g < param->read_structure->numseq_in_segment[i];g++){
-				fprintf(stderr,"\t%s\n",param->read_structure->sequence_matrix[i][g] );
+				fprintf(stderr,"%s, ",param->read_structure->sequence_matrix[i][g] );
 			}
+			fprintf(stderr,"\n" );
 			last = i;
 			
 		}
@@ -320,7 +325,7 @@ struct parameters* assign_segment_sequences(struct parameters* param, char* tmp,
 
 void usage()
 {
-	fprintf(stdout, "\nTagDust %0.2f, Copyright (C) 2013 Timo Lassmann <timolassmann@gmail.com>\n", VERSION);
+	fprintf(stdout, "\n%s %s, Copyright (C) 2013 Timo Lassmann <%s>\n",PACKAGE_NAME, PACKAGE_VERSION,PACKAGE_BUGREPORT);
 	fprintf(stdout, "\n");
 	fprintf(stdout, "Usage:   tagdust [options] <file>  .... \n\n");
 	fprintf(stdout, "Options:\n");
@@ -332,6 +337,7 @@ void usage()
 	fprintf(stdout, "         -minlen    INT     minimal accepted read length [16].\n");
 	fprintf(stdout, "         -ref       STR     reference fasta file to be compared against[].\n");
 	fprintf(stdout, "         -fe        INT     number of errors allowed when comparing to reference[2].\n");
+	fprintf(stdout, "         -dust      INT     remove low complexity sequences. [20].\n");
 	fprintf(stdout, "         -minlen    INT     minimal accepted read length [16].\n");
 	fprintf(stdout, "         -e         FLT     expected sequencer error rate [0.05].\n");
 	fprintf(stdout, "         -o         STR     output file name.\n");
@@ -339,20 +345,8 @@ void usage()
 	fprintf(stdout, "         -1         STR     type of the first HMM building block.\n");
 	fprintf(stdout, "         -2         STR     type of the second HMM building block.\n");
 	fprintf(stdout, "         -...       STR     type of the . . . HMM building block.\n");
-	
-	
-	//fprintf(stdout, "         -s             STR    prints summary statistics of multiple libraries into one FILE [NA].\n");
-	//fprintf(stdout, "         -k             INT    treat all reads mapping more than k errors as unmapped [off].\n");
-	//fprintf(stdout, "         -n             STR    name of library and output file when reading from stdin\n");
-	//fprintf(stdout, "         -f             STR    specifies the format when reading from stdin.\n");
-	//fprintf(stdout, "         -F             INT    filter used in samtools [768].\n");
-	//fprintf(stdout, "Options: -unmapped      STR    print unmapped reads to Length of simulated reads [30]\n");
 	fprintf(stdout, "\n");
-	//fprintf(stdout, "Example: Reading from standard input:\n\n");
-	//fprintf(stdout, "	cat library.sam | samstat -f sam -n library_one\n");
-	//fprintf(stdout, "	or:\n");
-	//fprintf(stdout, "	samtools view -ub  ~/tmp/small.bam   | ./samstat -f bam -n library_one\n\n");
-	//fprintf(stdout, "	In both cases SAMStat will list the stats in the file \"library_one.html\"\n");
+
 }
 
 

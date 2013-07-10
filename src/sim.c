@@ -30,7 +30,7 @@ void simulate(struct parameters* param)
 	assert(outfile != 0);
 	
 
-	sprintf (outfile, "%s_tagdust_command.sh",param->outfile);
+	//sprintf (outfile, "%s_tagdust_command.sh",param->outfile);
 	
 	
 	//char seq_a[1000];

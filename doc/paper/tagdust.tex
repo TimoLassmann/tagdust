@@ -20,7 +20,7 @@ Tel: +44 000 0000000; Fax: +44 000 0000000; Email: xxx@yyyy.ac.zz}}
 
 \address{%
 $^{1}$Division of Genomic Technologies, Center for Life Science Technologies,
-RIKEN Yokohama Institute
+RIKEN Yokohama Institute`
 1-7-22 Suehiro-cho, Tsurumi-ku, Yokohama
 230-0045 Kanagawa, Japan 
 }
@@ -37,9 +37,9 @@ Accepted March 1, 2013}
 
 \begin{abstract}
 
-Arguably the most basic step basic step in the processing of next generation sequence (NGS) involves extracting mappable reads from the raw reads produced by the sequencer. The presence of indices used for multiplexing, fingerprints adaptors and artifacts makes this step non-trivial. 
+Arguably the most basic step basic step in the processing of next generation sequence (NGS) involves extracting mappable reads from the raw reads produced by the sequencer. The presence of indices used for multiplexing, fingerprints, adaptors and artifacts makes this step non-trivial. 
 
-Tagdust2 is designed as a one stop tool to perform all steps necessary to go from raw to mappable reads. This includes de-multiplexing libraries, removing adaptors, identifying UMI sequences and discarding artifacts. A user specified HMM is 
+Tagdust2 is designed to carry out all steps required to go from raw to mappable reads. This includes de-multiplexing libraries, removing adaptors, identifying UMI sequences and discarding artifacts. 
 
 TagDust allows users to specify the expected architecture of a read and converts it into a hidden Markov model. The latter can assign sequences to a particular barcode even in the presence of sequencing errors. Artifactual sequences, which by definition do not not match the architecture are automatically discarded.
 

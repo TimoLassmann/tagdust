@@ -92,6 +92,6 @@ double gaussian_pdf(double x, double m,double s);
 int validate_bpm_sse(unsigned char**  query, int* query_lengths,unsigned char* t,int n,int num);
 int bpm_check_error(const unsigned char* t,const unsigned char* p,int n,int m,int limit);
 unsigned char* reverse_complement2(unsigned char* p,int len);
-
+char* shorten_pathname(char* p);
 
 

@@ -1,7 +1,11 @@
+Have a look at the user manual:
+
+doc/User-Manual.pdf 
+
 Installation: 
 
 Unpack the tarball:
-tar -zxvf tagdust-2.0.tar.gz
+tar -zxvf tagdust-XXX.tar.gz
 cd tagdust
 ./configure
 

@@ -155,9 +155,9 @@ Copyright \copyright 2013 Timo Lassmann (timolassmann@gmail.com)
 
  %\addcontentsline{toc}{chapter}{Introduction}
 
-Raw sequences produced by next generation sequencing (NGS) machines contain linker sequences and barcode sequenced used to label samples. TagDust2 is a program to extract and label the sequences to be analyzed in downstream pipelines.
+Raw sequences produced by next generation sequencing (NGS) machines may contain adapter, linker, barcode and fingerprint sequences. TagDust2 is a program to extract and correctly label the sequences to be mapped in downstream pipelines.
 
-TagDust allows users to specify the expected architecture of a read and converts it into a hidden Markov model. The latter can assign sequences to a particular barcode (or index) even in the presence of sequencing errors. Sequences not matching the architecture (primer dimers, contaminants etc.) are automatically discarded.
+TagDust allows users to specify the expected architecture of a read and converts it into a hidden Markov model. The latter can assign sequences to a particular barcode (or index) even in the presence of sequencing errors. Sequences not matching the architecture (primer dimers, contaminants etc.) are automatically discarded (see Figure \ref{figure1}).
 
 
 %\begin{wrapfigure}{l}{1\textwidth}
@@ -200,8 +200,8 @@ TagDust allows users to specify the expected architecture of a read and converts
         postaction={draw, line width=0.5cm, shorten >=0.5cm, -}
     ] (6,-6.5) -- node[right=0.5,font =\Large] {{\bf Output}} (6,-7.5) ;
   
-  \node[style={align=left},text width=20em,draw=white, thick,font=\Large] at (0,-8)  {\bf  $>$READ X, {\color{lightred}Barcode GTA}  } ;
-   \node[style={align=left},text width=20em,draw=white, thick,font=\Large] at (0,-8.5)  {\bf   {\color{blue}GGGGAACCCCGCCTGTTTACCAAAAACATCA}} ;
+  \node[style={align=left},text width=20em,draw=white, thick,font=\Large] at (2,-8)  {\bf  $>$READ X, {\color{lightred}Barcode GTA}  } ;
+   \node[style={align=left},text width=20em,draw=white, thick,font=\Large] at (2,-8.5)  {\bf   {\color{blue}GGGGAACCCCGCCTGTTTACCAAAAACATCA}} ;
   
   
 \begin{scope}[shift={(-1.5,0)}];
@@ -431,6 +431,7 @@ TagDust allows users to specify the expected architecture of a read and converts
 
 \end{tikzpicture}
 \caption{A HMM specifies the expected architecture of the raw sequence. After decoding sequences are segmented into the components of the architecture. Based on the segmentation, a barcode is assigned to each read and remaining sequences are trimmed.}
+\label{figure1}
 \end{figure}
 
 
@@ -468,6 +469,7 @@ bash-3.1$ make install
 %\let\clearpage\relax
 \chapter{Usage}
 
+\section{Command Line}
 TagDust requires an input file containing sequences and a user specified HMM architecture used to extract the reads. For the architecture all that TagDust needs to know is the sequence of pre-defined building blocks. Options '{\tt -1,-2, ...}' are used to specify the first, second, etc. building block.
 
 \begin{verbatim}
@@ -487,6 +489,7 @@ bash-3.1$ tagdust [-options] <input file>
 -minlen & INT & minimal accepted read length [16].\\
 -ref     &  STR &    reference fasta file to be compared against[].\\
 -fe &       INT &    number of errors allowed when comparing to reference[2].\\
+-dust &	INT &	remove low complexity sequences[].\\
 -e & FLT & expected sequencer error rate [0.05].\\ 
 -o & STR & output file name.\\
 -t & INT & number of threads [8].\\
@@ -496,11 +499,17 @@ bash-3.1$ tagdust [-options] <input file>
 \hline
 \end{tabular}
 \end{center}
+\section{Notes}
+\subsection{Threshold}
 The {\tt -threshold} option sets the minimum acceptable probability of a read to belong to the specified architecture. If the reads are very short or the model very simple (e.g. 3 nucleotide barcode followed by the read) this threshold might have to be lowered.
 
+\subsection{Removing Known Contaminants (e.g. ribosomal RNA sequences).}
 Known contaminants or unwanted reads can be filtered from the output by pointing TagDust to a reference fasta to be matched against ({\tt -ref <filename>} ). The maximum number of errors allowed for a match to reference is set with the {\tt -fe} option.
+\subsection{Removing Low Complexity Sequences}
+Tagdust implements a simplified version of the DUST module (R. Tatusov and D.J. Lipman, unpublished data) to filter out low complexity reads. While this is not strictly necessary for NGS reads I implemented it to remove poly-A and other "very" low complexity sequences. The algorithm is only applied to the first 64 nucleotides of the reads. The {\tt -dust} option both enables and sets the threshold for the low complexity filtering. I recommend using a relaxed threshold of 100 and leave the rest to the downstream mapping algorithm. 
 
 
+\subsection{Efficiency}
 As a default, TagDust attempts to match the entire sequence to the HMM (global). The options {\tt -start} and {\tt -end} restricts the matching to region specified. TagDust assumes that all residues upstream of 'start' do not belong to the read while all residues following 'end' are read residues.
 
 In the presence of barcodes or fingerprints, TagDust will recognize the most likely code and append it to the name of the read. 
@@ -522,8 +531,8 @@ bBS`cceegggggiiiiiiiiiiiiiiiiiiiihhihhhiihhhiiihiiihiiiiggg
 \end{verbatim}
 }
 
-BC:[A,C,G,T]+ is the sequence of the barcode. FP:[0-9]+ is the fingerprint sequence converted into a decimal number.
-
+Note that BC:[A,C,G,T]+ is the sequence of the barcode and FP:[0-9]+ is the fingerprint sequence converted into a unique decimal number.
+\newpage
 
 \section{HMM Building Blocks}
 TagDust comes with a set of pre-defined HMM building blocks. Each includes a silent state at the beginning and end used to link blocks together. Each block is specified by a unique letter following by a colon and some information about the sequence. 
@@ -583,7 +592,7 @@ Example code: O:N\\
 \end{tikzpicture}
 \end{figure}
 
-\newpage 
+
 \subsection{G addition}
 Segment modeling the occasional addition of guanines to the reads. (89.3\% chance of a single G , 19.5 \% chance of  2 Gs..).\\
 Example code: O:N\\
@@ -613,7 +622,7 @@ Example code: O:N\\
 \end{figure}
 
 
-
+\newpage 
 
 
 \subsection{Barcode or Index}
@@ -869,6 +878,7 @@ Segment modeling a pre-defined sequence.
 \end{tikzpicture}
 \end{figure}
 
+\newpage 
 
 \subsection{Partial}
 This segment is used to model sequences that may only be partially present at the 5` or 3` end of the read. The transition probabilities (orange and blue) are set automatically based on the length distribution of exactly matching adapters.\\
@@ -1074,7 +1084,7 @@ If barcodes are present TagDust calculated an additional confidence score. At ev
 
 where $m_j$ and $I$ are the first match and insert states of a barcode HMM model. In essence this probability reflects how confident we are in selecting one barcode over any other. 
 
-As a default TagDust only extracts reads if $V$ is greater than 0.5 and $P(M | x)$ is greater than 0.99. 
+As a default TagDust only extracts reads if $V$ is greater than 0.5 and $P(M | x)$ is greater than 0.99.
 
 \section{Implementation} 
 

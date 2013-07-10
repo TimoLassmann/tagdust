@@ -47,10 +47,6 @@ __LINE__, __func__, __VA_ARGS__); } while (0)
 #define MAX_SEQ_LEN 500
 #define MAX_LINE 50000
 
-//#define MAXERROR 100
-#define VERSION 2.01
-//#define KMERLEN 10
-
 
 
 #ifndef _MM_ALIGN16
@@ -61,8 +57,5 @@ __LINE__, __func__, __VA_ARGS__); } while (0)
 #define _MM_ALIGN16 __declspec(align(16))
 #endif
 #endif
-
-
-void test_spline(void);
 
 #endif
