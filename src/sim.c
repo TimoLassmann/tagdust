@@ -64,6 +64,7 @@ void simulate(struct parameters* param)
 	
 	while(n_dash){
 		n_dash = 0;
+		//fprintf(stderr,"Errors allowed: %d\n");
 		while(c != num_barcode){
 			for(i = 0; i < param->sim;i++){
 				r = (float)rand_r(&seed)/(float)RAND_MAX;
@@ -99,8 +100,31 @@ void simulate(struct parameters* param)
 		}
 		
 	}
+	//fprintf(stderr,"Edit Distance between barcodes: %d\n", errors_allowed);
+
+	if(errors_allowed == 0){// two identical barcodes were found.... I will simply pick the fist numbarcode sequences... 
+		for(i = 0; i < num_barcode ;i++){
+			for(j = 0; j < param->sim;j++){
+				barcode[i][j] = 0x3 & (i >> (j*2)) ;
+			}
+		}
+		
+		errors_allowed = 100;
+		for(i = 0; i < num_barcode-1 ;i++){
+
+			for(j= i+1; j < num_barcode ;j++){
+				c = bpm(barcode[i], barcode[j], param->sim, param->sim);
+				if(c < errors_allowed){
+					errors_allowed = c;
+				}
+			}
+		}
+
+		
+	}
 	fprintf(stderr,"Edit Distance between barcodes: %d\n", errors_allowed);
 
+	
 	
 	sprintf (outfile, "%s_tagdust_command.sh",param->outfile);
 	

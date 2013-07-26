@@ -56,12 +56,13 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->minlen = 16;
 	param->exact5 = 0;
 	param->sim = 0;
+	param->dust = 100;
 	
 	param->sequencer_error_rate = 0.05f;
 	param->indel_frequency = 0.1f;
 	param->average_read_length = 50;
 	param->numbarcode = 8;
-	param->confidence_threshold = 0.99;//ence
+	param->confidence_threshold = 20.0;//ence
 	
 	param->read_structure = 0;
 	param->filter_error = 2;
@@ -120,7 +121,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 		};
 		
 		int option_index = 0;
-		c = getopt_long_only (argc, argv,"e:o:p:qhf:t:i:",long_options, &option_index);
+		c = getopt_long_only (argc, argv,"e:o:p:q:hf:t:i:",long_options, &option_index);
 		
 		if (c == -1){
 			break;
@@ -177,6 +178,9 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			case OPT_EXACT5:
 				param->exact5 = optarg;
 				break;
+			case OPT_MINLEN:
+				param->minlen = atoi(optarg);
+				break;
 			case OPT_SIM:
 				param->sim = atoi(optarg);
 				break;
@@ -208,7 +212,8 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 				param->num_threads = atoi(optarg);
 				break;
 			case 'q':
-				param->quiet_flag = 1;
+				param->confidence_threshold = atof(optarg);
+				//param->quiet_flag = 1;
 				break;
 			case 'h':
 				help = 1;
@@ -259,7 +264,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 		}
 	}
 	
-	if(!c){
+	if(!c  && param->sim == 0){
 		fprintf(stderr,"ERROR: no read segment specified!\n");
 		free(param);
 		exit(EXIT_FAILURE);
@@ -337,8 +342,7 @@ void usage()
 	fprintf(stdout, "         -minlen    INT     minimal accepted read length [16].\n");
 	fprintf(stdout, "         -ref       STR     reference fasta file to be compared against[].\n");
 	fprintf(stdout, "         -fe        INT     number of errors allowed when comparing to reference[2].\n");
-	fprintf(stdout, "         -dust      INT     remove low complexity sequences. [20].\n");
-	fprintf(stdout, "         -minlen    INT     minimal accepted read length [16].\n");
+	fprintf(stdout, "         -dust      INT     remove low complexity sequences. [100].\n");
 	fprintf(stdout, "         -e         FLT     expected sequencer error rate [0.05].\n");
 	fprintf(stdout, "         -o         STR     output file name.\n");
 	fprintf(stdout, "         -t         INT     number of threads [8].\n");

@@ -48,14 +48,9 @@ struct read_info{
 	unsigned int* hits;
 	char* cigar;
 	char* md;
-	//char* xp;
 	float mapq;
 	double prob;
-	double bar_prob; 
-	//float* priors;
-	//float* identity;
-	//int read_start;
-	//int read_end;
+	double bar_prob;
 	int len;
 	int errors;
 };

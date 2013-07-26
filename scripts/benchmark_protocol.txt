@@ -53,7 +53,7 @@ pdf("8Barcodes1Indels.pdf",  height = 8,width = 10,bg="white",pointsize = 36)
 x$BarcodeLength <- factor(x$BarcodeLength, levels = c("Barcode Lenght 4", "Barcode Lenght 6", "Barcode Lenght 8", "Barcode Lenght 10"));
 
 p <- ggplot(x, aes((`Correctly Extracted` +`Incorrectly Assigned`) / 10000, `Incorrectly Assigned`/ (`Correctly Extracted` +`Incorrectly Assigned`) * 100, size= ErrorRate , label=Program,colour = Program))
-p+geom_point(aes(colour = Program) ) +geom_text(size=0)+  facet_wrap( ~ BarcodeLength,scales = "free") + scale_size(name = "Error Rate",range = c(1, 5))  +scale_y_continuous (name = "Percentage of misassigned reads")+scale_x_continuous (name = "Percentage of extracted reads")+ labs(title = "8 Barcodes 1% Indels") ;
+p+geom_point(aes(colour = Program) ) +geom_text(size=0)+  facet_wrap( ~ BarcodeLength,scales = "free") + scale_size(name = "Error Rate",range = c(1, 5))  +scale_y_continuous (name = "Percentage of misassigned reads")+scale_x_continuous (name = "Percentage of extracted reads")+ labs(title = "8 Barcodes 1% Indels") + geom_vline(xintercept = 90,colour="red", linetype = "longdash") ;
 dev.off();
 
 remove(x)
@@ -84,7 +84,8 @@ pdf("24Barcodes1Indels.pdf",   height = 8,width = 10,bg="white",pointsize = 36);
 x$BarcodeLength <- factor(x$BarcodeLength, levels = c("Barcode Lenght 4", "Barcode Lenght 6", "Barcode Lenght 8", "Barcode Lenght 10"));
 
 p <- ggplot(x, aes((`Correctly Extracted` +`Incorrectly Assigned`) / 10000, `Incorrectly Assigned`/ (`Correctly Extracted` +`Incorrectly Assigned`) * 100, size= ErrorRate , label=Program,colour = Program))
-p+geom_point(aes(colour = Program) ) +geom_text(size=0)+  facet_wrap( ~ BarcodeLength,scales = "free") + scale_size(name = "Error Rate",range = c(1, 5))  +scale_y_continuous (name = "Percentage of misassigned reads")+scale_x_continuous (name = "Percentage of extracted reads")+ labs(title = "24 Barcodes 1% Indels") ;
+p+geom_point(aes(colour = Program) ) +geom_text(size=0)+  facet_wrap( ~ BarcodeLength,scales = "free") + scale_size(name = "Error Rate",range = c(1, 5))  +scale_y_continuous (name = "Percentage of misassigned reads")+scale_x_continuous (name = "Percentage of extracted reads")+ labs(title = "24 Barcodes 1% Indels")  + geom_vline(xintercept = 90,colour="red", linetype = "longdash") ;
+
 dev.off()
 
 
@@ -118,7 +119,8 @@ x$BarcodeLength <- factor(x$BarcodeLength, levels = c("Barcode Lenght 4", "Barco
 pdf("96Barcodes1Indels.pdf",   height = 8,width = 10,bg="white",pointsize = 36);
 
 p <- ggplot(x, aes((`Correctly Extracted` +`Incorrectly Assigned`) / 10000, `Incorrectly Assigned`/ (`Correctly Extracted` +`Incorrectly Assigned`) * 100, size= ErrorRate , label=Program,colour = Program))
-p+geom_point(aes(colour = Program) ) +geom_text(size=0)+  facet_wrap( ~ BarcodeLength,scales = "free") + scale_size(name = "Error Rate",range = c(1, 5))  +scale_y_continuous (name = "Percentage of misassigned reads")+scale_x_continuous (name = "Percentage of extracted reads")+ labs(title = "96 Barcodes 1% Indels") ;
+p+geom_point(aes(colour = Program) ) +geom_text(size=0)+  facet_wrap( ~ BarcodeLength,scales = "free") + scale_size(name = "Error Rate",range = c(1, 5))  +scale_y_continuous (name = "Percentage of misassigned reads")+scale_x_continuous (name = "Percentage of extracted reads")+ labs(title = "96 Barcodes 1% Indels")  + geom_vline(xintercept = 90,colour="red", linetype = "longdash") ;
+
 
 dev.off();
 

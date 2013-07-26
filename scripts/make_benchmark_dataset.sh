@@ -14,7 +14,7 @@ RUNNAME=
 function usage()
 {
 cat <<EOF
-usage: $0 -b <numbarcode> -m <run_name> -i <indelfrequency...>
+usage: $0 -b <numbarcode> -n <run_name> -i <indelfrequency...>
 EOF
 exit 1;
 }
@@ -38,7 +38,7 @@ tmpfile=${foo##*/}
 base=${tmpfile%%.*}
 echo $base
 
-array=(0.01 0.02 0.03 0.04 0.05)
+array=(0.00 0.01 0.02 0.03 0.04 0.05)
 len=${#array[*]}
 
 for (( i=4; i <= 10; i+=2 )); do

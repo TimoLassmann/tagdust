@@ -63,6 +63,7 @@
 #define MODE_GET_LABEL 1
 #define MODE_TRAIN 2
 #define MODE_RUN_RANDOM 3
+#define MODE_GET_PROB 4
 #define NUM_RANDOM_SCORES 500000
 
 
@@ -121,6 +122,7 @@ struct model_bag{
 	int num_models;
 	float f_score;
 	float b_score;
+	float r_score;
 	float bar_score;
 	int** path;
 	float** dyn_prog_matrix;
@@ -130,6 +132,7 @@ struct model_bag{
 	int num_random_scores;
 	float lambda;
 	float mu;
+	
 	
 	int total_hmm_num;
 	float model_multiplier;
@@ -185,6 +188,7 @@ void free_model_bag(struct model_bag* mb);
 struct model_bag* run_pHMM(struct model_bag* mb,struct read_info** ri,struct parameters* param,int numseq, int mode);
 void* do_baum_welch_thread(void *threadarg);
 void* do_label_thread(void *threadarg);
+void* do_probability_estimation(void *threadarg);
 void* do_run_random_sequences(void *threadarg);
 
 double pi0_bootstrap(struct read_info** ri, int numseq);
@@ -198,6 +202,12 @@ struct read_info** dust_sequences(struct thread_data *data);
 struct model_bag* estimate_length_distribution_of_partial_segments(struct model_bag*mb,struct read_info** ri,struct parameters* param, int numseq);
 
 
+struct model_bag* estimate_model_from_labels(struct model_bag* mb, struct parameters* param,  struct read_info** ri,int numseq);
+struct model_bag* set_model_e_to_laplace(struct model_bag* mb);
+
+
+struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_length,unsigned int* seed );
+struct read_info* emit_random_sequence(struct model_bag* mb, struct read_info* ri,int average_length,unsigned int* seed );
 #endif
 
 
