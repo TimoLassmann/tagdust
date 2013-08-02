@@ -306,6 +306,7 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	}else if( !strcmp( param->train , "full")){
 		for(i = 0; i < 10;i++){
 			fprintf(stderr,"Iteration %d\n",i);
+			mb = set_model_e_to_laplace(mb);
 			while ((numseq = fp(ri, param,file)) != 0){
 				//	numseq = fp(ri, param,file);
 				mb =  run_pHMM(mb,ri,param,numseq,MODE_TRAIN);
@@ -314,9 +315,9 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 			file =  io_handler(file, file_num,param);
 			//rewind(file);
 			for(j = 0; j < mb->num_models;j++){
-				//print_model(mb->model[i]);
+				print_model(mb->model[j]);
 				mb->model[j] = reestimate(mb->model[j], 0);
-				//	print_model(mb->model[i]);
+				print_model(mb->model[j]);
 			}
 		}
 		
@@ -331,9 +332,9 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 			file =  io_handler(file, file_num,param);
 			//rewind(file);
 			for(j = 0; j < mb->num_models;j++){
-				//print_model(mb->model[i]);
+				print_model(mb->model[i]);
 				mb->model[j] = reestimate(mb->model[j], 2);
-				//	print_model(mb->model[i]);
+				print_model(mb->model[i]);
 			}
 		}
 	}
@@ -1013,22 +1014,52 @@ void* do_label_thread(void *threadarg)
 			tmp = matchend - matchstart ;
 			mb = backward(mb, ri[i]->seq + matchstart , tmp);
 			mb = forward_max_posterior_decoding(mb, ri[i] , ri[i]->seq+matchstart ,tmp );
+			
+			/*ri[i]->seq = reverse_sequence(ri[i]->seq+matchstart , tmp);
+			mb = backward(mb, ri[i]->seq ,ri[i]->len);
+			ri[i]->seq = reverse_sequence(ri[i]->seq+matchstart , tmp);*/
+			
 		}
 	}else{
 		for(i = start; i < end;i++){
 			mb = backward(mb, ri[i]->seq ,ri[i]->len);
 			mb = forward_max_posterior_decoding(mb, ri[i], ri[i]->seq ,ri[i]->len);
+			
+			//ri[i]->seq = reverse_sequence(ri[i]->seq, ri[i]->len);
+			//mb = backward(mb, ri[i]->seq ,ri[i]->len);
+			//ri[i]->seq = reverse_sequence(ri[i]->seq, ri[i]->len);
+			pbest = logsum(mb->f_score, mb->r_score);
+			
+			//fprintf(stderr,"%d	%f	%f	%f	%f\n",i, scaledprob2prob((ri[i]->bar_prob + mb->f_score) -  pbest),scaledprob2prob(mb->f_score - pbest),  scaledprob2prob(mb->b_score-pbest ),scaledprob2prob(mb->r_score- pbest));
+			
+			pbest = 1.0 - scaledprob2prob(  (ri[i]->bar_prob + mb->f_score) - pbest);
+			if(!pbest){
+				Q = 40.0;
+			}else if(pbest == 1.0){
+				Q = 0.0;
+				
+			}else{
+				Q = -10.0 * log10(pbest) ;
+			}
+			//ri[i]->prob = ri[i]->prob + log (0.9f / 0.1f);
+			ri[i]->prob = Q;
+			
+			
 		}
 	}
 	
 	// GET MAX scores...
 	
-	
+	//exit(0);
 	
 	
 ///
 
 	for(i = start; i < end;i++){
+		
+		/*pbest = logsum(mb->f_score, logsum(mb->b_score,mb->r_score));
+		
+		fprintf(stderr,"%d	%f	%f	%f	%f\n",i, scaledprob2prob((ri[i]->bar_prob + mb->f_score) -  pbest),scaledprob2prob(mb->f_score - pbest),  scaledprob2prob(mb->b_score-pbest ),scaledprob2prob(mb->r_score- pbest));
 		
 		pbest = 1.0 - scaledprob2prob(  (ri[i]->bar_prob + mb->f_score) - logsum(mb->f_score,  mb->r_score));
 		if(!pbest){
@@ -1043,7 +1074,7 @@ void* do_label_thread(void *threadarg)
 		ri[i]->prob = Q;
 		
 		//ri[i]->bar_prob =  scaledprob2prob(ri[i]->bar_prob);
-		
+		*/
 		ri[i]->bar_prob = 100;
 		
 		
@@ -1207,10 +1238,10 @@ void* do_label_thread(void *threadarg)
 			}
 			
 			
-			seq[0] = reverse_complement2((unsigned char* ) ri[i]->seq,ri[i]->len);
-			seq[1] = reverse_complement2((unsigned char* ) ri[i+1]->seq,ri[i+1]->len);
-			seq[2] = reverse_complement2((unsigned char* ) ri[i+2]->seq,ri[i+2]->len);
-			seq[3] = reverse_complement2((unsigned char* ) ri[i+3]->seq,ri[i+3]->len);
+			seq[0] = reverse_complement((unsigned char* ) ri[i]->seq,ri[i]->len);
+			seq[1] = reverse_complement((unsigned char* ) ri[i+1]->seq,ri[i+1]->len);
+			seq[2] = reverse_complement((unsigned char* ) ri[i+2]->seq,ri[i+2]->len);
+			seq[3] = reverse_complement((unsigned char* ) ri[i+3]->seq,ri[i+3]->len);
 			lengths[0] =  ri[i]->len;
 			lengths[1] =  ri[i+1]->len;
 			lengths[2] =  ri[i+2]->len;
@@ -1222,10 +1253,10 @@ void* do_label_thread(void *threadarg)
 				}
 			}
 			
-			seq[0] = reverse_complement2((unsigned char* ) ri[i]->seq,ri[i]->len);
-			seq[1] = reverse_complement2((unsigned char* ) ri[i+1]->seq,ri[i+1]->len);
-			seq[2] = reverse_complement2((unsigned char* ) ri[i+2]->seq,ri[i+2]->len);
-			seq[3] = reverse_complement2((unsigned char* ) ri[i+3]->seq,ri[i+3]->len);
+			seq[0] = reverse_complement((unsigned char* ) ri[i]->seq,ri[i]->len);
+			seq[1] = reverse_complement((unsigned char* ) ri[i+1]->seq,ri[i+1]->len);
+			seq[2] = reverse_complement((unsigned char* ) ri[i+2]->seq,ri[i+2]->len);
+			seq[3] = reverse_complement((unsigned char* ) ri[i+3]->seq,ri[i+3]->len);
 		}
 		for(c = 0;c < 4;c++){
 			if(errors[c] <= error_cut){
@@ -1241,20 +1272,20 @@ void* do_label_thread(void *threadarg)
 		test = 1;
 		reverse = 0;
 		for(j =0; j < reference->numseq;j++){
-			c = bpm_check_error(reference->string +  reference->s_index[j], (unsigned char* )ri[i]->seq,reference->s_index[j+1] - reference->s_index[j] , ri[i]->len, error_cut);
+			c = bpm_check_error(reference->string +  reference->s_index[j], (unsigned char* )ri[i]->seq,reference->s_index[j+1] - reference->s_index[j] , ri[i]->len);
 			if(c <= error_cut){
 				test = 0;
 				break;
 			}
-			ri[i]->seq = (char* )reverse_complement2((unsigned char* ) ri[i]->seq,   ri[i]->len);
-			c = bpm_check_error(reference->string +  reference->s_index[j], (unsigned char* )ri[i]->seq,reference->s_index[j+1] - reference->s_index[j] , ri[i]->len,error_cut);
+			ri[i]->seq = (char* )reverse_complement((unsigned char* ) ri[i]->seq,   ri[i]->len);
+			c = bpm_check_error(reference->string +  reference->s_index[j], (unsigned char* )ri[i]->seq,reference->s_index[j+1] - reference->s_index[j] , ri[i]->len);
 			reverse = 1;
 			if(c <= error_cut){
-				ri[i]->seq =(char* ) reverse_complement2( (unsigned char* )ri[i]->seq,   ri[i]->len);
+				ri[i]->seq =(char* ) reverse_complement( (unsigned char* )ri[i]->seq,   ri[i]->len);
 				test = 0;
 				break;
 			}
-			ri[i]->seq = (char* )reverse_complement2((unsigned char* ) ri[i]->seq,   ri[i]->len);
+			ri[i]->seq = (char* )reverse_complement((unsigned char* ) ri[i]->seq,   ri[i]->len);
 		}
 		if(!test){
 			if(ri[i]->prob == EXTRACT_SUCCESS){
@@ -1750,11 +1781,7 @@ struct model_bag* estimate_model_from_labels(struct model_bag* mb, struct parame
 	//				mem = c2;
 				}
 			}
-	//		fprintf(stderr,"	bar= %d (%s)\n",bar,   param->read_structure->sequence_matrix[mem][bar] );
-
-			
-			
-			
+	//		fprintf(stderr,"	bar= %d (%s)\n",bar,   param->read_structure->sequence_matrix[mem][bar] );			
 		}
 		
 		
@@ -1926,10 +1953,25 @@ void* do_baum_welch_thread(void *threadarg)
 	int start = data->start;
 	int end = data->end;
 	int i;
-	
+	float pbest;
+	float Q;
 	for(i = start; i < end;i++){
 		mb = backward(mb, ri[i]->seq ,ri[i]->len);
-		mb = forward_extract_posteriors(mb, ri[i]->seq ,ri[i]->len);
+		mb = forward_max_posterior_decoding(mb, ri[i], ri[i]->seq ,ri[i]->len);
+		
+		pbest = 1.0 - scaledprob2prob(  (ri[i]->bar_prob + mb->f_score) - logsum(mb->f_score,  mb->r_score));
+		if(!pbest){
+			Q = 40.0;
+		}else if(pbest == 1.0){
+			Q = 0.0;
+			
+		}else{
+			Q = -10.0 * log10(pbest) ;
+		}
+		if(Q >= 10){
+		
+			mb = forward_extract_posteriors(mb, ri[i]->seq,ri[i]->labels,ri[i]->len);
+		}
 	}
 	pthread_exit((void *) 0);
 }
@@ -2370,11 +2412,13 @@ struct model_bag* forward(struct model_bag* mb, char* a, int len)
 	return mb;
 }
 
-struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, int len)
+struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, char* label, int len)
 {
 	
 	int i,j,c;
 	int f,g;
+	
+	int hmm_counter = 0;
 	
 	struct hmm* hmm = 0;
 	struct hmm_column* c_hmm_column = 0;
@@ -2451,12 +2495,14 @@ struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, int 
 				c_hmm_column->M_foward[i] = psilent[i-1] + mb->model[j]->silent_to_M[f][0] + c_hmm_column->m_emit[c];
 				
 				//***************post
+				
+				//if(label[i] == hmm_counter){
+				
 				mb->model[j]->silent_to_M_e[f][0] = logsum(mb->model[j]->silent_to_M_e[f][0] ,psilent[i-1] + mb->model[j]->silent_to_M[f][0] + c_hmm_column->m_emit[c] + c_hmm_column->M_backward[i]  -mb->b_score);
 				
 				
-				
-				
 				c_hmm_column->m_emit_e[c] = logsum(c_hmm_column->m_emit_e[c] , c_hmm_column->M_foward[i]  + c_hmm_column->M_backward[i] -mb->b_score);
+				//}
 				//***************post
 				
 				
@@ -2473,6 +2519,7 @@ struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, int 
 				c_hmm_column->I_foward[i] = c_hmm_column->I_foward[i] + c_hmm_column->i_emit[c];
 				
 				//***************post
+				//if(label[i] == hmm_counter){
 				mb->model[j]->silent_to_I_e[f][0]  = logsum(mb->model[j]->silent_to_I_e[f][0] , psilent[i-1] + mb->model[j]->silent_to_I[f][0]  + c_hmm_column->i_emit[c] +  c_hmm_column->I_backward[i] -mb->b_score);
 				
 				c_hmm_column->transition_e[II] = logsum(c_hmm_column->transition_e[II],c_hmm_column->I_foward[i-1] + c_hmm_column->transition[II] + c_hmm_column->i_emit[c] +  c_hmm_column->I_backward[i]-mb->b_score);
@@ -2481,7 +2528,7 @@ struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, int 
 				
 				
 				c_hmm_column->i_emit_e[c] = logsum( c_hmm_column->i_emit_e[c] , c_hmm_column->I_foward[i] + c_hmm_column->I_backward[i] -mb->b_score);
-				
+				//}
 				//***************post
 				
 				
@@ -2495,10 +2542,11 @@ struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, int 
 				csilent[i] =  logsum(csilent[i],  c_hmm_column->I_foward[i] +c_hmm_column->transition[ISKIP]);
 				
 				//***************post
+				//if(label[i] == hmm_counter){
 				c_hmm_column->transition_e[MSKIP] = logsum(c_hmm_column->transition_e[MSKIP], c_hmm_column->M_foward[i] +c_hmm_column->transition[MSKIP] +  bsilent[i+1] -mb->b_score);
 				
 				c_hmm_column->transition_e[ISKIP] = logsum(c_hmm_column->transition_e[ISKIP], c_hmm_column->I_foward[i] +c_hmm_column->transition[ISKIP] +  bsilent[i+1] -mb->b_score);
-				
+				//}
 				
 				
 				//***************post
@@ -2525,7 +2573,7 @@ struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, int 
 					
 					
 					//***************post
-					
+					//if(label[i] == hmm_counter){
 					
 					///I HOPE THIS IS CORRECT.... 
 					mb->model[j]->silent_to_M_e[f][g] = logsum(mb->model[j]->silent_to_M_e[f][g] ,psilent[i-1] + mb->model[j]->silent_to_M[f][g] + c_hmm_column->m_emit[c] + c_hmm_column->M_backward[i]  -mb->b_score);
@@ -2540,6 +2588,7 @@ struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, int 
 					p_hmm_column->transition_e[DM] = logsum(p_hmm_column->transition_e[DM],p_hmm_column->D_foward[i] + p_hmm_column->transition[DM] + c_hmm_column->m_emit[c] +  c_hmm_column->M_backward[i] -mb->b_score);
 					
 					c_hmm_column->m_emit_e[c] = logsum(c_hmm_column->m_emit_e[c],  c_hmm_column->M_foward[i] + c_hmm_column->M_backward[i] -mb->b_score );
+					//}
 					//***************post
 					
 					
@@ -2560,7 +2609,7 @@ struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, int 
 					c_hmm_column->I_foward[i]  = c_hmm_column->I_foward[i]  + c_hmm_column->i_emit[c];
 					
 					//***************post
-					
+					//if(label[i] == hmm_counter){
 					///I HOPE THIS IS CORRECT....
 
 					mb->model[j]->silent_to_I_e[f][g]  = logsum(mb->model[j]->silent_to_I_e[f][g] , psilent[i-1] + mb->model[j]->silent_to_I[f][g]  + c_hmm_column->i_emit[c] +  c_hmm_column->I_backward[i] -mb->b_score);
@@ -2573,6 +2622,7 @@ struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, int 
 					c_hmm_column->transition_e[MI] = logsum(c_hmm_column->transition_e[MI] , c_hmm_column->M_foward[i-1] + c_hmm_column->transition[MI] + c_hmm_column->i_emit[c] + c_hmm_column->I_backward[i] - mb->b_score);
 					
 					c_hmm_column->i_emit_e[c] = logsum(c_hmm_column->i_emit_e[c] , c_hmm_column->I_foward[i]   + c_hmm_column->I_backward[i] - mb->b_score);
+					//}
 					//***************post
 
 					
@@ -2585,18 +2635,21 @@ struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, int 
 					c_hmm_column->D_foward[i] = logsum(c_hmm_column->D_foward[i], p_hmm_column->D_foward[i] + p_hmm_column->transition[DD] );
 					
 					//***************post
+					//if(label[i] == hmm_counter){
 					p_hmm_column->transition_e[MD] = logsum(p_hmm_column->transition_e[MD],  p_hmm_column->M_foward[i] + p_hmm_column->transition[MD] + c_hmm_column->D_backward[i] - mb->b_score);
 					
 					p_hmm_column->transition_e[DD] = logsum(p_hmm_column->transition_e[DD] ,p_hmm_column->D_foward[i] + p_hmm_column->transition[DD] + c_hmm_column->D_backward[i] - mb->b_score);
+					//}
 					//***************post
 					csilent[i] =  logsum(csilent[i],  c_hmm_column->M_foward[i] +c_hmm_column->transition[MSKIP]);
 					csilent[i] =  logsum(csilent[i],  c_hmm_column->I_foward[i] +c_hmm_column->transition[ISKIP]);
 					
 					//***************post
+					//if(label[i] == hmm_counter){
 					c_hmm_column->transition_e[MSKIP] = logsum(c_hmm_column->transition_e[MSKIP], c_hmm_column->M_foward[i] +c_hmm_column->transition[MSKIP] +  bsilent[i+1] -mb->b_score);
 					
 					c_hmm_column->transition_e[ISKIP] = logsum(c_hmm_column->transition_e[ISKIP], c_hmm_column->I_foward[i] +c_hmm_column->transition[ISKIP] +  bsilent[i+1] -mb->b_score);
-					
+					//}
 					
 					
 					//***************post
@@ -2618,15 +2671,15 @@ struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, int 
 				//fprintf(stderr,"ADDED TO M->S model: %d		%f %f %f %f %f\n", j , scaledprob2prob( mb->model[j]->M_to_silent_e[f]) ,scaledprob2prob(c_hmm_column->M_foward[i]) , scaledprob2prob(mb->model[j]->M_to_silent[f] ),scaledprob2prob( bsilent[i+1]) ,scaledprob2prob( mb->b_score));
 				
 				//mb->model[j]->I_to_silent_e[f] = logsum(mb->model[j]->I_to_silent_e[f] , c_hmm_column->I_foward[i] + mb->model[j]->I_to_silent[f] + bsilent[i+1] -mb->b_score);
-				
+				//if(label[i] == hmm_counter){
 				mb->model[j]->skip_e =logsum(mb->model[j]->skip_e , psilent[i-1] + mb->model[j]->skip + bsilent[i] -mb->b_score);
  				
-				
+				//}
 				
 				//***************post
 				
 			}
-			
+			hmm_counter++;
 		}
 	}
 	
@@ -2970,17 +3023,17 @@ struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct re
 		ri->labels[i-1] = move;
 	}
 
-	next_silent[0] = prob2scaledprob(1.0);
+	mb->r_score  = prob2scaledprob(1.0);
 	
 	for(i = 1; i <= len;i++){
 		c = seqa[i];
-		next_silent[0] = next_silent[0] + mb->model[0]->background_nuc_frequency[c] + prob2scaledprob(1.0 - (1.0 / (float)len));
+		mb->r_score  = mb->r_score  + mb->model[0]->background_nuc_frequency[c] + prob2scaledprob(1.0 - (1.0 / (float)len));
 		
 		//fprintf(stderr,"%d,%f	%e	%f	%f	%f\n",   i,scaledprob2prob(next_silent[0]),   scaledprob2prob(next_silent[0]),next_silent[0] , scaledprob2prob(mb->model[0]->background_nuc_frequency[c] ) , 1.0 - (1.0 / (float)len) );
 	}
-	next_silent[0] += prob2scaledprob(1.0 / (float)len);
+	mb->r_score  += prob2scaledprob(1.0 / (float)len);
 	
-	mb->r_score = next_silent[0];
+	//mb->r_score = next_silent[0];
 	/*for(i = 1; i <= len;i++){
 		c = seqa[i];
 		fprintf(stderr,"%d", c);
@@ -2990,7 +3043,7 @@ struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct re
 	fprintf(stderr,"\n");
 	*/
 	
-	ri->prob  = mb->f_score - next_silent[0];// Model probability divided by Random Model ....
+	//ri->prob  = mb->f_score - mb->r_score;// Model probability divided by Random Model ....
   	
 	//fprintf(stderr,"F:%f B:%f\n", mb->f_score,mb->b_score );
 	//fprintf(stderr,"SCORE:%f	%f	%f\n", mb->f_score,next_silent[0], scaledprob2prob(next_silent[0]) );
@@ -3019,9 +3072,6 @@ struct model* malloc_model(int main_length, int sub_length, int number_sub_model
 		model->hmms[i] = malloc(sizeof(struct hmm) );
 		assert(model->hmms[i]  != 0);
 	}
-	
-	
-		
 	
 	
 	model->hmms[0]->num_columns = main_length;
@@ -3237,6 +3287,7 @@ struct model* init_model_according_to_read_structure(struct model* model,struct 
 				col->transition[IM] = prob2scaledprob(0.999);
 				col->transition[ISKIP] = prob2scaledprob(0.0f);
 				
+				
 				col->transition[DD] = prob2scaledprob(1.0 - 0.999);
 				col->transition[DM] = prob2scaledprob(0.999);
 			}
@@ -3255,7 +3306,9 @@ struct model* init_model_according_to_read_structure(struct model* model,struct 
 			col->transition[ISKIP] = prob2scaledprob(0.0f);
 			
 			col->transition[DD] = prob2scaledprob(0.0);
-			col->transition[DM] = prob2scaledprob(0.0);
+			col->transition[DM] = prob2scaledprob(1.0);
+			//col->transition[DD] = prob2scaledprob(0.0);
+			//col->transition[DM] = prob2scaledprob(0.0);
 
 			col = model->hmms[i]->hmm_column[len -1];
 
@@ -3978,26 +4031,34 @@ struct model_bag* set_model_e_to_laplace(struct model_bag* mb)
 			for(j = 0; j < m->hmms[i]->num_columns;j++){
 				hmm_column = m->hmms[i]->hmm_column[j];
 				//copy->silent_to_I[i][j] = org->silent_to_I[i][j];
-				m->silent_to_I_e[i][j] = 1.0f; //org->silent_to_I_e[i][j];
+				if(m->silent_to_I[i][j] != prob2scaledprob(0.0)){
+					m->silent_to_I_e[i][j] = prob2scaledprob( 1.0f); //org->silent_to_I_e[i][j];
+				}
 				//copy->silent_to_M[i][j] = org->silent_to_M[i][j];
-				m->silent_to_M_e[i][j] = 1.0f; //org->silent_to_M_e[i][j];
+				if(m->silent_to_M[i][j] != prob2scaledprob(0.0)){
+					m->silent_to_M_e[i][j] = prob2scaledprob( 1.0f); //org->silent_to_M_e[i][j];
+				}
 				
 				for(c = 0; c< 5;c++){
 					//copy_col->i_emit[c] = org_col->i_emit[c];
-					hmm_column->i_emit_e[c] = 1.0f;
+					hmm_column->i_emit_e[c] = prob2scaledprob(1.0f);
 					
 					//copy_col->m_emit[c] = org_col->m_emit[c];
-					hmm_column->m_emit_e[c] = 1.0f;
+					hmm_column->m_emit_e[c] = prob2scaledprob(1.0f);
 				}
 				
 				for(c = 0; c < 9;c++){
 					//c/opy_col->transition[c] = org_col->transition[c];
-					hmm_column->transition_e[c] = 1.0f;
+					if(hmm_column->transition[c] != prob2scaledprob(0.0)){
+						hmm_column->transition_e[c] = prob2scaledprob(1.0f);
+					}
 				}
 			}
 		}
 		//copy->skip = org->skip;
-		m->skip_e = 1.0f;//?//?org->skip_e;
+		if(m->skip != prob2scaledprob(0.0)){
+			m->skip_e = prob2scaledprob( 1.0f);//?//?org->skip_e;
+		}
 		//copy->num_hmms = org->num_hmms;
 	}
 	return mb;
@@ -4081,11 +4142,11 @@ struct model* reestimate(struct model* m, int mode)
 			sum = prob2scaledprob(0.0f);
 			
 			for(c = 0; c< 5;c++){
-				sum = logsum(sum, logsum(m_col->i_emit_e[c] , prob2scaledprob(1.0f)));
+				sum = logsum(sum, m_col->i_emit_e[c]);
 			}
 			
 			for(c = 0; c< 5;c++){
-				m_col->i_emit[c] = logsum(m_col->i_emit_e[c] , prob2scaledprob(1.0f)) - sum;
+				m_col->i_emit[c] = m_col->i_emit_e[c] - sum;
 			}
 			
 			for(c = 0; c< 5;c++){
@@ -4096,11 +4157,11 @@ struct model* reestimate(struct model* m, int mode)
 			sum = prob2scaledprob(0.0f);
 			
 			for(c = 0; c< 5;c++){
-				sum = logsum(sum, logsum(m_col->m_emit_e[c] , prob2scaledprob(1.0f)));
+				sum = logsum(sum, m_col->m_emit_e[c] );
 			}
 			
 			for(c = 0; c< 5;c++){
-				m_col->m_emit[c] = logsum(m_col->m_emit_e[c] , prob2scaledprob(1.0f)) - sum;
+				m_col->m_emit[c] = m_col->m_emit_e[c] - sum;
 			}
 			
 			for(c = 0; c< 5;c++){
@@ -4112,7 +4173,42 @@ struct model* reestimate(struct model* m, int mode)
 				if(j != m->hmms[0]->num_columns-1){
 					sum = prob2scaledprob(0.0f);
 					
-					sum = logsum(sum, logsum(m_col->transition_e[MM] , prob2scaledprob(1.0)));
+					//detect &assign 
+					if(m_col->transition[MM] != prob2scaledprob(0.0)){
+						sum = logsum(sum, m_col->transition_e[MM]);
+					}
+					if(m_col->transition[MI] != prob2scaledprob(0.0)){
+						sum = logsum(sum, m_col->transition_e[MI]);
+					}
+					if(m_col->transition[MD] != prob2scaledprob(0.0)){
+						sum = logsum(sum, m_col->transition_e[MD]);
+					}
+					if(m_col->transition[MSKIP] != prob2scaledprob(0.0)){
+						sum = logsum(sum, m_col->transition_e[MSKIP]);
+					}
+					
+					//set new prob... 
+					if(m_col->transition[MM] != prob2scaledprob(0.0)){
+						m_col->transition[MM] = m_col->transition_e[MM]  - sum;
+					}
+					if(m_col->transition[MI] != prob2scaledprob(0.0)){
+						m_col->transition[MI] = m_col->transition_e[MI]  - sum;
+
+						//sum = logsum(sum, m_col->transition_e[MI]);
+					}
+					if(m_col->transition[MD] != prob2scaledprob(0.0)){
+						m_col->transition[MD] = m_col->transition_e[MD]  - sum;
+						//sum = logsum(sum, m_col->transition_e[MD]);
+					}
+					if(m_col->transition[MSKIP] != prob2scaledprob(0.0)){
+						m_col->transition[MSKIP] = m_col->transition_e[MSKIP]  - sum;
+						//sum = logsum(sum, m_col->transition_e[MSKIP]);
+					}
+					
+					
+					
+					
+					/*sum = logsum(sum, logsum(m_col->transition_e[MM] , prob2scaledprob(1.0)));
 					sum = logsum(sum, logsum(m_col->transition_e[MI] , prob2scaledprob(1.0)));
 					sum = logsum(sum, logsum(m_col->transition_e[MD] , prob2scaledprob(1.0)));
 					if(m_col->transition[MSKIP] != prob2scaledprob(0.0)){
@@ -4126,7 +4222,7 @@ struct model* reestimate(struct model* m, int mode)
 					if(m_col->transition[MSKIP] != prob2scaledprob(0.0)){
 						m_col->transition[MSKIP] =  logsum(m_col->transition_e[MSKIP], prob2scaledprob(1.0)) - sum;
 					}
-					
+					*/
 					
 					sum = prob2scaledprob(0.0f);
 					

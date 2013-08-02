@@ -20,6 +20,25 @@
  */
 
 
+
+/**
+ @mainpage TagDust 2
+ @author Timo Lassmann
+ 
+ 
+ Here you should tell us about how your project works. How to run, any special things you have, etc. Also, explain any non-trivial design decisions you make. If you are working with a partner, clearly State what is each person’s contribution. You should
+ also comment on the stability of your code. Any big bugs should be listed here. Basically, anything that you think we need to know in general about your project should go here.
+ Any additional comments you want to make can go here. Did you like the project? Was it too hard, too easy? My TA smells bad. Well, you get the idea.
+ This initial documentation here should be removed. Or else you loose points.
+ */
+
+/*! \file main.c 
+ \brief Figures out the nature of the input and calls the main functions. 
+ 
+ Initializes nucleotide alphabet needed to parse input. Calls parameter parser. Calls functions to process the data. \author Timo Lassmann \bug No known bugs.
+ */
+
+
 #include "interface.h"
 #include "nuc_code.h"
 #include "io.h"
@@ -28,22 +47,20 @@
 #include "barcode_hmm.h"
 #include "exact.h"
 #include "sim.h"
-//#include "pst.h"
 #include <math.h>
 
-//#include "cmath.h"
-///#include "fly.h"
 
-
+/*! \brief  Initializes nucleotide alphabet needed to parse input. Calls parameter parser. Calls functions to process the data. 
+ * \param argc number of command line parameters
+* \param argv command line parameters
+ * \return EXIT_SUCCESS */
 int main (int argc,char * argv[]) {
 	struct parameters* param = 0;
-	//struct seq_stats* seq_stats = 0;
-	//FILE* outfile =0;
+
 	int i;
 	
 	init_nuc_code();
-	
-	//test_spline();
+
 	
 	param = interface(param,argc,argv);
 	
@@ -52,110 +69,45 @@ int main (int argc,char * argv[]) {
 		simulate(param);
 	}
 	
-	debug_print("%d \n", param->num_threads);
 	
-	if(!param->infiles && !isatty(0)){
-		if(!param->format){
-			fprintf(stderr,"No format specified. Use -f <sam | bam | fa | fq > \n");
-			exit(-1);
-		}
-		if(!strcmp("sam", param->format)){
-			param->sam = 1;
-			//}else if (byg_end(".bam", param->infile[i])  == strlen(param->infile[i])){
-		}else if (!strcmp("bam",  param->format)){
-			param->sam = 2;
-			//}else if (byg_end(".fa", param->infile[i])  == strlen(param->infile[i])){
-		}else if (!strcmp("fa", param->format)){
-			param->sam = 0;
-			//}else if (byg_end(".fq", param->infile[i])  == strlen(param->infile[i])){
-		}else if (!strcmp("fq",  param->format)){
-			param->sam = 0;
-			//}else if (byg_end(".fastq", param->infile[i])  == strlen(param->infile[i])){
-		}else if (!strcmp("fastq",  param->format)){
-			param->sam = 0;
-			//}else if (byg_end(".fastaq", param->infile[i])  == strlen(param->infile[i])){
-		}else if (!strcmp("fastaq",  param->format)){
-			param->sam = 0;
-			//}else if (byg_end(".fasta", param->infile[i])  == strlen(param->infile[i])){
-		}else if (!strcmp("fasta",  param->format)){
-			param->sam = 0;
-		}else{
-			param->sam = -1;
-		}
-		if(param->sam != -1){
-		/*	fprintf(stdout,"Working on: stdin\n");
-			seq_stats = init_seq_stats(param->kmer_size);
-			seq_stats->sam = param->sam;
-			if(param->sam == 0){
-				seq_stats = collect_data(seq_stats,param,&read_fasta_fastq,-1);
-			}else if(param->sam == 2){
-				seq_stats = collect_data(seq_stats,param,&read_sam_chunk,-1);
-			}else{
-				seq_stats = collect_data(seq_stats,param,&read_sam_chunk,-1);
-			}
-			
-			if(sanity_check(seq_stats)){
-				if(param->summary){
-					print_summary(seq_stats,param,-1,outfile);
-				}else{
-					print_html_page(seq_stats,param,-1);
-				}
-			}
-			free_seq_stats(seq_stats);*/
-		}
-	}
 	
 	for(i = 0; i < param->infiles;i++){
 		param->sam = 0;
-		//if(byg_end(".sam", param->infile[i])   == strlen(param->infile[i])){
 		if(!strcmp(".sam", param->infile[i] + (strlen(param->infile[i] ) - 4))){
 			param->sam = 1;
-		//}else if (byg_end(".bam", param->infile[i])  == strlen(param->infile[i])){
 		}else if (!strcmp(".bam", param->infile[i] + (strlen(param->infile[i] ) - 4))){
 			param->sam = 2;
-		//}else if (byg_end(".fa", param->infile[i])  == strlen(param->infile[i])){
 		}else if (!strcmp(".fa", param->infile[i] + (strlen(param->infile[i] ) - 3))){
 			param->sam = 0;
 			param->fasta = 1;
-			//fprintf(stderr,"Fasta format no longer supported... ");
-		//}else if (byg_end(".fq", param->infile[i])  == strlen(param->infile[i])){
 		}else if (!strcmp(".fq", param->infile[i] + (strlen(param->infile[i] ) - 3))){
 			param->sam = 0;
-		//}else if (byg_end(".fastq", param->infile[i])  == strlen(param->infile[i])){
 		}else if (!strcmp(".fastq", param->infile[i] + (strlen(param->infile[i] ) - 6))){
 			param->sam = 0;
-		//}else if (byg_end(".fastaq", param->infile[i])  == strlen(param->infile[i])){
 		}else if (!strcmp(".fastaq", param->infile[i] + (strlen(param->infile[i] ) - 7))){
 			param->sam = 0;
-		//}else if (byg_end(".fasta", param->infile[i])  == strlen(param->infile[i])){
 		}else if (!strcmp(".fasta", param->infile[i] + (strlen(param->infile[i] ) - 6))){
 			param->sam = 0;
 			param->fasta = 1;
 		}else if(!strcmp(".sam.gz", param->infile[i] + (strlen(param->infile[i] ) - 7))){
 			param->sam = 1;
 			param->gzipped  = 1;
-			//}else if (byg_end(".bam", param->infile[i])  == strlen(param->infile[i])){
 		}else if (!strcmp(".bam.gz", param->infile[i] + (strlen(param->infile[i] ) - 7))){
 			param->sam = 2;
 			param->gzipped  = 1;
-			//}else if (byg_end(".fa", param->infile[i])  == strlen(param->infile[i])){
 		}else if (!strcmp(".fa.gz", param->infile[i] + (strlen(param->infile[i] ) - 6))){
 			param->sam = 0;
 			param->fasta = 1;
 			param->gzipped  = 1;
-			//}else if (byg_end(".fq", param->infile[i])  == strlen(param->infile[i])){
 		}else if (!strcmp(".fq.gz", param->infile[i] + (strlen(param->infile[i] ) - 6))){
 			param->sam = 0;
 			param->gzipped  = 1;
-			//}else if (byg_end(".fastq", param->infile[i])  == strlen(param->infile[i])){
 		}else if (!strcmp(".fastq.gz", param->infile[i] + (strlen(param->infile[i] ) - 9))){
 			param->sam = 0;
 			param->gzipped  = 1;
-			//}else if (byg_end(".fastaq", param->infile[i])  == strlen(param->infile[i])){
 		}else if (!strcmp(".fastaq.gz", param->infile[i] + (strlen(param->infile[i] ) - 10))){
 			param->sam = 0;
 			param->gzipped  = 1;
-			//}else if (byg_end(".fasta", param->infile[i])  == strlen(param->infile[i])){
 		}else if (!strcmp(".fasta.gz", param->infile[i] + (strlen(param->infile[i] ) - 9))){
 			param->sam = 0;
 			param->gzipped  = 1;
@@ -173,9 +125,7 @@ int main (int argc,char * argv[]) {
 		
 		
 		
-		//fprintf(stdout,"Loking at on:%s	%d\n",param->infile[i],sam);
 		if(param->sam != -1){
-			//fprintf(stdout,"Working on:%s\n",param->infile[i]);
 			if(param->sam == 0){
 				if(param->exact5){
 					exact_controller(param,&read_fasta_fastq,i);
@@ -193,7 +143,7 @@ int main (int argc,char * argv[]) {
 		}
 	}
 	free_param(param);
-	return 0;
+	return EXIT_SUCCESS;
 }
 
 

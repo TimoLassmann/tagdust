@@ -11,7 +11,7 @@
 
 \begin{document}
 
-\title{TagDust2 - a program to extract, filter and correctly label next generation sequencing reads.}
+\title{TagDust version 2.0 - a program to extract, filter and correctly label next generation sequencing reads.}
 
 \author{%
 Timo Lassmann\,$^{1}$%
@@ -20,7 +20,7 @@ Tel: +44 000 0000000; Fax: +44 000 0000000; Email: xxx@yyyy.ac.zz}}
 
 \address{%
 $^{1}$Division of Genomic Technologies, Center for Life Science Technologies,
-RIKEN Yokohama Institute`
+RIKEN Yokohama Institute,
 1-7-22 Suehiro-cho, Tsurumi-ku, Yokohama
 230-0045 Kanagawa, Japan 
 }
@@ -37,7 +37,7 @@ Accepted March 1, 2013}
 
 \begin{abstract}
 
-Arguably the most basic step basic step in the analysis of next generation sequences (NGS) involves extracting mappable reads from the raw reads produced by the sequencing instrument. The presence of indices, fingerprints, adaptors and artifacts containing sequencing errors makes this step non-trivial. 
+Arguably the most basic step in the analysis of next generation sequences (NGS) involves extracting mappable reads from the raw reads produced by the various sequencing instruments. The presence of indices, fingerprints, adaptors and artifacts all of which containing sequencing errors makes this step non-trivial. 
 
 Tagdust2 is designed to carry out all steps required to go from raw- to mappable reads. This includes de-multiplexing libraries, removing adaptors, identifying unique molecular identifiers and discarding artifacts. Our method allows users to specify the expected architecture of a read and converts it into a hidden Markov model (HMM). The latter recognized different segments in the raw reads and assigns reads to a particular barcode even in the presence of sequencing errors. Artifactual sequences, which by definition do not not match the architecture are automatically discarded.
 
@@ -45,9 +45,11 @@ Tagdust2 is designed to carry out all steps required to go from raw- to mappable
 
 \section{Introduction}
 
-Next generation sequencing has greatly accelerated the accumulation of genomics data. Different protocols targeting the genome, epi-genome and transcriptions are widely used\cite{ENCODEINTEGRATION}. In essence, all protocols capture biological sequences of interest while adding adaptors and other sequences to facilitate cost effective sequencing. An obvious examples here is the use of indices or barcodes allowing researchers to profile multiple samples in a single lane\cite{Craig:2008,Kircher:2012}. In addition recent protocols have added stretches of random sequences in order to correct for PCR and other biases \cite{Kivioja:2012kg}. In summary, the number of nucleotides used to describe what is being sequenced is increasing. As this length increases so is the chance that sequencing errors occur in these key sequences. In the best case these errors lead to some sequences being lost to the downstream analysis, but in the worse case sequences can be mixed up between samples leading to analytical noise.
+Next generation sequencing has greatly accelerated the accumulation of genomics data. Different protocols targeting the genome, epi-genome and transcriptions are widely used\cite{ENCODEINTEGRATION}. In essence, all protocols capture biological sequences of interest while adding adaptors and other sequences to facilitate cost effective sequencing. An obvious examples here is the use of indices or barcodes allowing researchers to profile multiple samples in a single lane\cite{Craig:2008,Kircher:2012}. In addition recent protocols have added stretches of random sequences in order to correct for PCR and other biases \cite{Kivioja:2012kg}. In summary, the number of nucleotides used to describe what is being sequenced is increasing. As the length increases so is the chance that sequencing errors occur in these key sequences. In the best case these errors lead to some sequences being lost to the downstream analysis, but in the worse case sequences can be mixed up between samples leading to analytical noise.
 
-We previously released TagDust to remove artifactual reads\cite{Tagdust2009}. While being useful, the focus on identifying and discarding whole reads meant that most processing pipelines using TagDust required many additional programs and steps. Here I describe TagDust2 a program designed to carry out all steps required to go from raw reads to sequences ready to be mapped. The problem here is quite similar to many problems in biological sequence analysis: identifying domains TMM segments etc. Therefore I decided to approach this problem as a sequence labeling problem for which hidden Markov models (HMMs) are suitable. 
+Sequencers have different error rates.
+
+We previously released TagDust to remove artifactual reads\cite{Tagdust2009}. While being useful, the focus on identifying and discarding whole reads meant that most processing pipelines using TagDust required many additional programs and steps. Here I describe TagDust2 a program designed to carry out all steps required to go from raw reads to sequences ready to be mapped. The key part of finding the mappable read and annotating it based on barcodes is carried out by a user defined hidden Markov model.(HMM). problem here is quite similar to many problems in biological sequence analysis: identifying domains TMM segments etc. Therefore I decided to approach this problem as a sequence labeling problem for which hidden Markov models (HMMs) are suitable. 
 
  
 % **************************************************************
@@ -68,7 +70,7 @@ We previously released TagDust to remove artifactual reads\cite{Tagdust2009}. Wh
 \label{figure1}
 \end{figure}
 
-TagDust implements a small library of HMMs which we will refer to as segments. Each segment contains a silent start and end state which are used to connect multiple segments. Segments are hand-designed to capture commonly occurring features in raw sequences such as the combination of barcodes, variable length sequences and so on. For a complete list see table 1. Users can use a simple command line interface to specify the expected sequence of segments in their reads. TagDust automatically constructs a global HMMs from the segments and starts scoring the individual reads (see Figure \ref{figure1}). 
+TagDust implements a small library of HMMs which I will refer to as segments. Each segment contains a silent start and end state which are used to connect multiple segments. Segments are hand-designed to capture commonly occurring features in raw sequences such as the combination of barcodes, variable length sequences and so on. For a complete list see table 1. Users can use a simple command line interface to specify the expected sequence of segments in their reads. TagDust automatically constructs a global HMMs from the segments and starts scoring the individual reads (see Figure \ref{figure1}). 
 
 Parameterization... 
 
@@ -99,10 +101,9 @@ As a default TagDust only extracts reads if $V$ is greater than 0.5 and $P(M | x
 
 \subsection{Optimal accuracy decoding} 
 
-To obtain the most probably labeling of the sequence, we employ the optimal accuracy decoding algorithm as described in \citep{Kall:2005vg}. To apply this algorithm to our problem define the label probability of a nucleotide by the summed posterior label probabilities of states belonging to a particular HMM segment. A secondary dynamic programming algorithm is used to determine the path with the maximal label probability, constrained by the global HMM architecture. The label probabilities are essentially used as a substitution matrix while the architecture is enforced by the equivalent of gap penalties. 
+To obtain the most probable labeling of the sequence, I employ the optimal accuracy decoding algorithm as described in \citep{Kall:2005vg}. To apply this algorithm to our problem define the label probability of a nucleotide by the summed posterior label probabilities of all states belonging to a particular HMM segment. A secondary dynamic programming algorithm is used to determine the path with the maximal label probability, constrained by the global HMM architecture. The label probabilities are essentially used as a substitution matrix while the architecture is enforced by the equivalent of gap penalties. 
 
 If fingerprints are present TagDust checks at this stage if the length after decoding matches the users input. If not the read is discarded. 
-
 
 \subsection{Implementation} 
 
@@ -112,7 +113,7 @@ Internally, TagDust uses full profile HMMs for each segment. To emulate differen
 
 \subsection{Further read filtering}
 
-TagDust allows users to specify a fasta file containing known sequences the user wishes to exclude from mapping. For example in transcriptome sequencing one commonly wants to remove ribosomal sequences from the downstream analysis. To address this issue in a general manner we exhaustively align all reads to the target reference sequences and discard all reads with less then X mismatches. For efficiency we implemented the Myers bit parallel algorithm using SIMD instructions as well as using thread level parallelism. 
+TagDust allows users to specify a fasta file containing known sequences the user wishes to exclude from mapping. For example in transcriptome sequencing one commonly wants to remove ribosomal sequences from the downstream analysis. To address this issue in a general manner Tagdust exhaustively align all reads to the target reference sequences and discard all reads with less than X mismatches. For efficiency we implemented the Myers bit parallel algorithm\cite{MyersDYN} using SIMD instructions as well as using thread level parallelism. 
 
 \subsection{Filtering low complexity sequences.}
 Tagdust implements a simplified version of the DUST module (R. Tatusov and D.J. Lipman, unpublished data) to filter out low complexity reads. While this is not strictly necessary for NGS reads I implemented it to remove poly-A and other "very" low complexity sequences. The algorithm is only applied to the first sixty-four nucleotides of the reads. 
@@ -254,10 +255,18 @@ Text.
 
 \subsection{Discussion subsection three}
 
+Tagdust2 is both accurate and versitile. 
 Text. text. 
-
+Compared to other is wins. 
 
 \section{CONCLUSION}
+
+As wet protocols become more sophisticated and take full advantage of longer read lengths the architecture of raw reads is becoming ever more complex. Tagdust2 can be used to correctly annotate reads in one step. 
+
+The present version requires users to specify the expected error frequency of the sequencer. In future I plan to estimate these parameters directly for ever segment using simple learning from labelled sequences. Quality values... .
+
+
+In future we may consider learning the architecture from the sequencing data directly. However, at the moment investigators usually know what should be there and wherer. 
 
 
 
@@ -297,7 +306,13 @@ Counting absolute numbers of molecules using unique molecular identifiers.
 Lassmann, T., Hayashizaki, Y., and Daub, C. O. (2009).
 
 TagDust - a program to eliminate artifacts from next generation sequencing data.
-\textit{Bioinformatics}, \textbf{25}(21), 2839Ð2840. 
+\textit{Bioinformatics}, \textbf{25}(21), 2839-2840. 
+
+\bibitem{MyersDYN}
+Myers, G. (1999).
+A fast bit-vector algorithm for approximate string matching based on dynamic programming.
+\textit{Journal of the ACM}, \textbf{46}, 1Ð13.
+
 
 % Format for book
 \bibitem{2}

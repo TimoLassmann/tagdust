@@ -19,6 +19,12 @@
  
  */
 
+/*! \file interface.h 
+ \brief 
+ 
+ Initializes nucleotide alphabet needed to parse input. Calls parameter parser. Calls functions to process the data. \author Timo Lassmann \bug No known bugs.
+ */
+
 
 #include <stdio.h>
 #include <getopt.h>
@@ -49,22 +55,32 @@
 #define OPT_FILTER_REFERENCE 21
 #define OPT_DUST 22
 
-
+/**
+ * @brief Contains user specified read structure.
+ *
+ * This structure is used to hold the read architecture as specified by the user. 
+ */
 struct read_structure{
-	char*** sequence_matrix;
-	int* numseq_in_segment;
-	char* type;
-	int num_segments;
+	char*** sequence_matrix; /**<  Three dimensional character array containing all user specified segments. */
+	int* numseq_in_segment;/**<  Number of sequences in each segment. */
+	char* type; /**<  Type of each segment. */
+	int num_segments; /**<  Number of segments. */
+
 };
 
+/**
+ * @brief All user specified parameters. 
+ *
+ * This structure is used to hold all command line parameters. 
+ */
 struct parameters {
-	char** infile;
-	struct read_structure* read_structure;
-	char* outfile;
-	char* reference_fasta;
-	int infiles;
+	char** infile; /**<  Names of input files. */
+	struct read_structure* read_structure; 
+	char* outfile;/**<  Output file name. */
+	char* reference_fasta;/**<  Name of fasta file containing known artifacts ti be matched against. . */
+	int infiles;/**<  Number of input files. */
 	int quiet_flag;
-	int num_query;
+	int num_query;/**<  Number of sequences to read at one time. */
 	char* format;
 	char* filter;
 	char* train;
@@ -74,14 +90,14 @@ struct parameters {
 	int dust;
 	int sam;
 	int fasta;
-	float sequencer_error_rate;
-	float indel_frequency;
-	int average_read_length;
-	int num_threads;
+	float sequencer_error_rate;/**<  Expected error rate of sequencer.  */
+	float indel_frequency;/**<  Fraction of insertions and deletions among sequencer_error_rate. */
+	int average_read_length;/**<  Average read length. */
+	int num_threads;/**<  Number of threads. */
 	float confidence_threshold;
 	int matchstart;
 	int matchend;
-	int minlen;
+	int minlen;/**<  Minium accepted read length.  */
 	int sim;
 	int numbarcode;
 	int filter_error; 

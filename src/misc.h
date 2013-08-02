@@ -19,6 +19,11 @@
  
  */
 
+/*! \file misc.h
+ \brief Header for misc.c 
+ */
+
+
 
 #ifndef tagdust2_misc_h
 #define tagdust2_misc_h
@@ -31,19 +36,44 @@
 #include "math.h"
 
 
-#define ALPHABET_LEN 255
-#define max(a, b) ((a < b) ? b : a)
 
+/** \def LOGSUM_SIZE
+ \brief Precision of the lookup table.
+ 
+ */
 #define LOGSUM_SIZE 16000
+
+/** \def SCALE
+ \brief defines the precision of the calculation; the
+ default of 1000.0 means rounding differences to the nearest 0.001
+  nat
+ 
+ */
 #define SCALE 1000.0f
 
+/** \def HMMER3_MIN(a,b) 
+ \brief Computes the minimum of \a a and \a b.
+ 
+ */
+
 #define HMMER3_MIN(a,b)          (((a)<(b))?(a):(b))
+
+/** \def HMMER3_MAX(a,b)
+ \brief Computes the maximum of \a a and \a b.
+ 
+ */
 #define HMMER3_MAX(a,b)          (((a)>(b))?(a):(b))
 #ifdef HUGE_VAL
 #define SCALEINFTY HUGE_VAL
 #endif
 
+/** \def SQRT2M_PI
+ \brief Square root of 2* pi .
+ 
+ */
 #define SQRT2M_PI 2.506628274631
+
+
 #define INV_SQRT_2PI 0.3989422804014327
 
 
@@ -70,7 +100,6 @@ void init_logsum();
 float logsum(float a,float b);
 
 float logsum_print(float a,float b);
-int bindoublesearch_up(double x ,double* y,int h);
 unsigned int pop(int x);
 float prob2scaledprob(float p);
 float scaledprob2prob(float p);
@@ -86,12 +115,12 @@ int binsearch_up(const char*p,const char** suffix,int h,int len);
 
 int count_string(const char*p,const char** suffix,int h,int len);
 
-double log_pdf(double x, double mean,double stdev);
 double gaussian_pdf(double x, double m,double s);
 
 int validate_bpm_sse(unsigned char**  query, int* query_lengths,unsigned char* t,int n,int num);
-int bpm_check_error(const unsigned char* t,const unsigned char* p,int n,int m,int limit);
-unsigned char* reverse_complement2(unsigned char* p,int len);
+int bpm_check_error(const unsigned char* t,const unsigned char* p,int n,int m);
+unsigned char* reverse_complement(unsigned char* p,int len);
+char* reverse_sequence(char* p,int len);
 char* shorten_pathname(char* p);
 
 

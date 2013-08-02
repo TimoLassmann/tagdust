@@ -18,24 +18,47 @@
  along with Tagdust.  If not, see <http://www.gnu.org/licenses/>.
  
  */
-
+/*! \file misc.c
+ \brief Miscellaneous Functions
+ 
+ A collection of functions used to:
+ - parse strings
+ - compare strings 
+ - add probabilities in logspace
+ */
 
 #include "tagdust2.h"
 #include "nuc_code.h"
 #include "misc.h"
 #include <ctype.h>
 
+/** \var float logsum_lookup
+ \brief Lookup table.
+ */
 float logsum_lookup[LOGSUM_SIZE];
 
+
+/** \fn void init_logsum()
+ \brief Initializes lookup table.
+
+ 
+ \warning Remember to call before using the logsum() function.
+ */
 void init_logsum()
 {
 	int i;
 	for(i = 0; i < LOGSUM_SIZE;i++){
-		//logsum_lookup[i] = SCALE * 1.442695041f * (log(1.0f + exp(0.693147181f*(float)-i/SCALE)));
 		logsum_lookup[i] =  log(1. + exp((double) -i / SCALE));
 	}
 }
 
+
+/** \fn float logsum(float a,float b)
+ \brief Sums two probabilities in log space.
+ 
+   \return  log(exp(a) + exp(b)
+ \warning Remember to call init_logsum() before using logsum().
+ */
 float logsum(float a,float b)
 {
 	
@@ -45,29 +68,41 @@ float logsum(float a,float b)
 }
 
 
-
+/** \fn float prob2scaledprob(float p)
+\brief Returns log(p).
+  \return log(p) 
+*/
 float prob2scaledprob(float p)
 {
 	if(p == 0.0){
 		return -SCALEINFTY;
 	}else{
 		return  log(p);
-		//return SCALE * sreLOG2(p);
 	}
 }
 
-
+/** \fn float scaledprob2prob(float p)
+ \brief Returns exp(p).
+ \return exp(p)
+ */
 float scaledprob2prob(float p)
 {
 	if(p == -SCALEINFTY){
 		return 0.0;
 	}else{
 		return exp(p);
-		//return sreEXP2(p / SCALE);
 	}
 }
 
 
+/** \fn int byg_count(char* pattern,char*text)
+ \brief Counts occurance of pattern text. 
+ \param pattern string containing pattern.
+ \param text string containing text.
+ \exception Input strings must be 0 terminated. 
+ 
+ \return number of occurences.
+ */
 int byg_count(char* pattern,char*text)
 {
 	int Tc;
@@ -104,6 +139,13 @@ int byg_count(char* pattern,char*text)
 }
 
 
+/** \fn int byg_end(const char* pattern,const char*text)
+ \brief Finds pattern in text and returns the end coordinate of match.
+ \param pattern string containing pattern.
+ \param text string containing text.
+ \exception Input strings must be 0 terminated.
+ \return index.
+ */
 
 int byg_end(const char* pattern,const char*text)
 {
@@ -148,7 +190,14 @@ int byg_end(const char* pattern,const char*text)
 	return 0;
 }
 
-
+/** \fn int count_string(const char*p,const char** suffix,int h,int len)
+ \brief Counts occurance of p in a suffix array.
+ \param p string containing pattern.
+ \param suffix suffix array. 
+ \param h size of suffix array.
+ \param len length of pattern.
+ \return index.
+ */
 
 int count_string(const char*p,const char** suffix,int h,int len)
 {
@@ -159,7 +208,14 @@ int count_string(const char*p,const char** suffix,int h,int len)
 	return b-a;
 }
 
-
+/** \fn int binsearch_down(const char*p,const char** suffix,int h,int len)
+ \brief finds first occurance of p in suffix array.
+ \param p string containing pattern.
+ \param suffix suffix array.
+ \param h size of suffix array.
+ \param len length of pattern.
+ \return index.
+ */
 int binsearch_down(const char*p,const char** suffix,int h,int len)
 {
 	int m = 0;
@@ -183,6 +239,14 @@ int binsearch_down(const char*p,const char** suffix,int h,int len)
 	return l+1;
 }
 
+/** \fn int binsearch_up(const char*p,const char** suffix,int h,int len)
+ \brief finds last occurance of p in suffix array.
+ \param p string containing pattern.
+ \param suffix suffix array.
+ \param h size of suffix array.
+ \param len length of pattern.
+ \return index.
+ */
 int binsearch_up(const char*p,const char** suffix,int h,int len)
 {
 	int m = 0;
@@ -208,31 +272,12 @@ int binsearch_up(const char*p,const char** suffix,int h,int len)
 
 
 
-int bindoublesearch_up(double x ,double* y,int h)
-{
-	int m = 0;
-	int l = 0;
-	/*if (t_long_strncmp(p,text+suffix[l],len)<= 0){
-	 l = l;
-	 }else*/
-	if(x < y[h]){
-		return h+1;
-	}else{
-		while(h-l > 1){
-			//m = (l+h)/2;
-			m = (l + h) >> 1;
-			
-			if(x <= y[m]){
-				l =m;
-			}else{
-				h = m;
-			}
-		}
-	}
-	return l+1;
-}
-
-
+/** \fn int qsort_string_cmp(const void *a, const void *b)
+ \brief Compares two strings. 
+ Used to sort arrays of string using qsort.   
+ \param a void pointer to first string. 
+ \param b void pointer to second string. 
+ */
 
 int qsort_string_cmp(const void *a, const void *b)
 {
@@ -241,6 +286,12 @@ int qsort_string_cmp(const void *a, const void *b)
 	return strcmp(*one, *two);
 }
 
+/** \fn int qsort_flt_cmp(const void *a, const void *b)
+ \brief Compares two floats.
+ Used to sort arrays of floats.
+ \param a void pointer to first float.
+ \param b void pointer to second float.
+ */
 int qsort_flt_cmp(const void * a, const void * b)
 {
 	//const float a  = (float) *elem1;
@@ -252,34 +303,24 @@ int qsort_flt_cmp(const void * a, const void * b)
 }
 
 
-
+/** \fn double gaussian_pdf(double x, double m,double s)
+ Calculates the gaussian probability density function $P(X=x)$ for a normal distribution.
+ \param x value.
+ \param m mean.
+ \param s standard deviation.
+ */
 double gaussian_pdf(double x, double m,double s)
 {
 	double a = (x-m) / s;
 	return INV_SQRT_2PI / s *exp(-0.5 * a * a);
 }
 
-double log_pdf(double x, double mean,double stdev)
-{
-	double out;
-	
-	//out = 1.0 / sqrt (2 * M_PI * pow( stdev,2) ) * exp(-1.0 *( (pow(x - mean,2)) / ( 2* pow( stdev,2)   )));
-	
-	
-	out = log(1.0 / (stdev * SQRT2M_PI)) +  (-1.0 *( (x - mean) * (x - mean) / ( 2.0 * stdev * stdev)   ));
-	//if(out < FLT_MIN){
-	//	return FLT_MIN;
-	//}
-	
-	
-	if(isnan(out)){
-		fprintf(stderr,"logpdf problem.... \n");
-	}
-	
-	return out;
-}
 
-
+/** \fn unsigned int pop(int x)
+ \brief Counts bits in x.
+ \param x value.
+ \return number of bits in \a x
+ */
 unsigned int pop(int x)
 {
 	unsigned int n = 0;
@@ -290,6 +331,14 @@ unsigned int pop(int x)
 	return n;
 }
 
+/** \fn int bpm(const  char* t,const  char* p,int n,int m)
+ \brief Calculates edit distance between two strings. 
+ \param t string1.
+  \param p string 2.
+  \param n length of t.
+  \param m length of p.
+ \return exit distance.
+ */
 int bpm(const  char* t,const  char* p,int n,int m)
 {
 	register unsigned long int i;//,c;
@@ -344,8 +393,15 @@ int bpm(const  char* t,const  char* p,int n,int m)
 }
 
 
-
-int bpm_check_error(const unsigned char* t,const unsigned char* p,int n,int m,int limit)
+/** \fn int bpm_check_error(const unsigned char* t,const unsigned char* p,int n,int m)
+ \brief Calculates edit distance between two strings.
+ \param t string1.
+ \param p string 2.
+ \param n length of t.
+ \param m length of p.
+ \return exit distance.
+ */
+int bpm_check_error(const unsigned char* t,const unsigned char* p,int n,int m)
 {
 	register unsigned long int i;//,c;
 	unsigned long int diff;
@@ -400,31 +456,33 @@ int bpm_check_error(const unsigned char* t,const unsigned char* p,int n,int m,in
 
 
 
-
+/** \fn int validate_bpm_sse(unsigned char**  query, int* query_lengths,unsigned char* t,int n,int num)
+ \brief Calculates edit distance between four queries and one target. 
+ \param query array of four strings.
+ \param query_lengths lengths of query strings.
+ \param t target sequence.
+ \param n length of t.
+ \param number of queries. 
+ */
 
 int validate_bpm_sse(unsigned char**  query, int* query_lengths,unsigned char* t,int n,int num)
 {
 	int i,j;
 	int len = 0;
-	//struct seq_info* si = 0;
-	//unsigned long int new;
+	
 	unsigned int _MM_ALIGN16 nuc[16];
-	//int _MM_ALIGN16 positions[4];
-	//int _MM_ALIGN16 errors[4];
 	
 	unsigned int _MM_ALIGN16 lengths[4];
 	
 	__m128i VP,VN,D0,HN,HP,X,MASK,K,NOTONE,POS,diff,zero,one;
 	__m128i* nuc_p;
 	__m128i xmm1,xmm2;
-	//long int MASK = 0;
 	
 	for(i = 0; i < 16;i++){
 		nuc[i] = 0ul;
 	}
 	
 	for(i = 0; i < num;i++){
-		//si = qs->seq_info[abs(assignment[i])];
 		len = query_lengths[i];
 		if(len > 31){
 			len = 31;
@@ -436,18 +494,9 @@ int validate_bpm_sse(unsigned char**  query, int* query_lengths,unsigned char* t
 		
 		for(j = 0; j < len;j++){
 			nuc[((int)(query[i][j] & 0x3u) << 2) + i] |=  (1ul << j);// (unsigned long int)(len-1-j));
-			//			fprintf(stderr,"%c",si->seq[j]+65);
 		}
-		//}else{
-		//	for(j = 0; j < len;j++){
-		//		nuc[((int)(si->reverse_seq[j] & 0x3u) << 2) + i] |=  (1ul << (unsigned long int)(len-1-j));
-		//		//			fprintf(stderr,"%c",si->reverse_seq[j] + 65);
-		//	}
-		//}
-		//	fprintf(stderr,"\n" );
 	}
 	nuc_p = (__m128i*) nuc;
-	//S = _mm_set1_epi32(0);
 	zero = _mm_set1_epi32(0);
 	one = _mm_set1_epi32(1);
 	diff =  _mm_load_si128 ( (__m128i*) lengths );  // _mm_set1_epi32(m);
@@ -457,17 +506,13 @@ int validate_bpm_sse(unsigned char**  query, int* query_lengths,unsigned char* t
 	K =  _mm_set1_epi32(0x7FFFFFFF);
 	POS = _mm_set1_epi32(0);
 	
-	//VP = 0xFFFFFFFFFFFFFFFFul;
-	//VN = 0ul;
-	
 	for(i = 0; i< 4;i++){
 		lengths[i]--;
 		lengths[i] = 1 << lengths[i];
-		//	fprintf(stderr,"%d	%d	LEN:%d\n",i,num,lengths[i]);
 	}
 	
-	// m--;
 	MASK =  _mm_load_si128 ( (__m128i*) lengths ); //  _mm_set1_epi32(1ul << m);
+	
 	for(i = 0; i < n ;i++){
 		//fprintf(stderr,"%c",*t + 65);
 		X = _mm_or_si128 (*(nuc_p +( (int)(*t)  & 0x3u) ) , VN);
@@ -503,36 +548,21 @@ int validate_bpm_sse(unsigned char**  query, int* query_lengths,unsigned char* t
 		xmm1 = _mm_cmplt_epi32(diff, K);
 		xmm2 = _mm_and_si128(xmm1, diff);
 		K = _mm_or_si128(xmm2, _mm_andnot_si128  (xmm1,K));
-		//xmm2 = _mm_and_si128(xmm1, _mm_set1_epi32(i));
-		//POS = _mm_or_si128(xmm2, _mm_andnot_si128  (xmm1,POS));
 		t++;
 	}
-	//fprintf(stderr,"\n");
-	//_mm_store_si128 ((__m128i*) positions, POS);
-	//fprintf(stderr,"%d	%d	%d	%d	",positions[0],positions[1],positions[2],positions[3]);
-	_mm_store_si128 ((__m128i*) query_lengths, K);
-	//fprintf(stderr,"%d	%d	%d	%d\n",query_lengths[0],query_lengths[1],query_lengths[2],query_lengths[3]);
 	
-	/*for(i = 0; i < num;i++){
-	 si = qs->seq_info[abs(assignment[i])];
-	 //len = si->len;
-	 //lengths[i] = len;
-	 //	fprintf(stderr,"%d	%d	%d	%d	%d\n",  assignment[i] , si->len,num,out2[i],out1[i] + offset);
-	 if(assignment[i] >= 0){
-	 new = ((unsigned long int)(si->len - errors[i])) << 56ul;
-	 new |= ((unsigned long int) ((unsigned long int)offset - (unsigned long int) positions[i]) << 1ul);
-	 BinaryInsertionSortOne(si->match_units,LIST_STORE_SIZE ,new);
-	 }else{
-	 new = ((unsigned long int)(si->len - errors[i])) << 56ul;
-	 new |= ((unsigned long int) ((unsigned long int) offset - (unsigned long int) positions[i]) << 1ul);
-	 new |= 1ul ;
-	 BinaryInsertionSortOne(si->match_units,LIST_STORE_SIZE ,new);
-	 }
-	 
-	 }*/
+	_mm_store_si128 ((__m128i*) query_lengths, K);
+	
 	return 1;
 }
 
+
+/** \fn char* shorten_pathname(char* p)
+ \brief Moves string pointer to character after first backslash. 
+ 
+ \param p file name including path. 
+ \return pointer to character after last backslash.
+ */
 
 
 char* shorten_pathname(char* p)
@@ -548,7 +578,16 @@ char* shorten_pathname(char* p)
 }
 
 
-unsigned char* reverse_complement2(unsigned char* p,int len)
+/** \fn unsigned char* reverse_complement(unsigned char* p,int len)
+ \brief Reverses and complements nucleotide sequences. 
+ 
+ \param p nucleotide sequence.
+ \param len length.
+ */
+
+
+
+unsigned char* reverse_complement(unsigned char* p,int len)
 {
 	unsigned char* tmp = malloc(sizeof(unsigned char)*MAX_SEQ_LEN);
 	int i,c;
@@ -564,4 +603,30 @@ unsigned char* reverse_complement2(unsigned char* p,int len)
 	free(tmp);
 	return p;
 }
+
+/** \fn char* reverse_sequence(char* p,int len)
+ \brief Reverses sequences.
+ 
+ \param p nucleotide sequence.
+ \param len length.
+ */
+
+
+char* reverse_sequence(char* p,int len)
+{
+	char* tmp = malloc(sizeof(char)*MAX_SEQ_LEN);
+	int i,c;
+	c = 0;
+	for(i =len-1; i >= 0;i--){
+		tmp[c] = (int)p[i];
+		c++;
+	}
+	tmp[c] = 0;
+	for(i= 0; i < len;i++){
+		p[i] = tmp[i];
+	}
+	free(tmp);
+	return p;
+}
+
 

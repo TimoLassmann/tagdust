@@ -20,6 +20,12 @@
  */
 
 
+/*! \file tagdust2.h
+ \brief Defines some global macros 
+*/
+
+
+
 #ifndef tagdust2_tagdust2_h
 
 #ifdef DEBUG
@@ -44,7 +50,15 @@ __LINE__, __func__, __VA_ARGS__); } while (0)
 #include <unistd.h>
 #include <time.h>
 #include <assert.h>
+
+
+/** \def MAX_SEQ_LEN 
+ \brief Maximum length of sequences;
+ */
 #define MAX_SEQ_LEN 500
+/** \def MAX_LINE 
+ \brief Maximum length of input line. 
+ */
 #define MAX_LINE 50000
 
 

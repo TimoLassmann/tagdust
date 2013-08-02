@@ -174,7 +174,8 @@ void print_model(struct model* model);
 
 struct model_bag* forward(struct model_bag* mb, char* a, int len);
 struct model_bag* backward (struct model_bag* mb, char* a, int len);
-struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, int len);
+struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, char* label, int len);
+//struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, int len);
 //struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, char* a, int len);
 struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct read_info* ri, char* a, int len);
 
