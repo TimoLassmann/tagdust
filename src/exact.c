@@ -6,6 +6,16 @@
 //  Copyright (c) 2013 lassmann. All rights reserved.
 //
 
+/*! \file exact.c
+ \brief Functions to extract sequences without using errors.
+ 
+ Appears to only use a single barcode sequence. 
+ 
+ \deprecated For comparison fastx_barcode_splitter can be used.  
+ \author Timo Lassmann
+ \bug No known bugs.
+ */
+
 #include <stdio.h>
 #include "tagdust2.h"
 #include "interface.h"
@@ -16,6 +26,17 @@
 
 #include "exact.h"
 
+
+
+/** \fn void exact_controller(struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ),int file_num)
+ \brief Wrapper function for exact extraction of reads. 
+ 
+ \param param @parameters.
+ 
+  \param fp Pointer to function used to read sequences (either SAM or fastq).
+ \param filenum Number of input files.
+ 
+ */
 void exact_controller(struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ),int file_num)
 {
 	struct read_info** ri = 0;
@@ -161,6 +182,14 @@ void exact_controller(struct parameters* param,int (*fp)(struct read_info** ,str
 }
 
 
+/** \fn void print_seq_from_position_x(struct read_info* ri,FILE* out,int x)
+ \brief Prots sequences excluding the Barcode. 
+ 
+ \param x Position of printed sequence in read. 
+ \param ri @ref read_info - hols sequence. .
+ \param out Output file pointer. 
+ 
+ */
 void print_seq_from_position_x(struct read_info* ri,FILE* out,int x)
 {
 	char alphabet[] = "ACGTN";
@@ -183,6 +212,16 @@ void print_seq_from_position_x(struct read_info* ri,FILE* out,int x)
 	}
 	fprintf(out,"\n");
 }
+
+/** \fn int byg_end_barcode(const char* pattern,const char*text, int m, int n)
+ \brief Finds end of barcode in reads. 
+ 
+ \param pattern Barcode sequence. 
+ \param text Read sequence. 
+ \param m Barcode Length. 
+ \param n Read length
+ 
+ */
 
 
 int byg_end_barcode(const char* pattern,const char*text, int m, int n)// m is pattern length , n is text length....

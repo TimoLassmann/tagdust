@@ -6,6 +6,13 @@
 //  Copyright (c) 2013 lassmann. All rights reserved.
 //
 
+/*! \file sim.c
+ \brief Functions to simulate sequences.
+ 
+ \author Timo Lassmann
+ \bug No known bugs.
+ */
+
 #include <stdio.h>
 #include <time.h>
 #include "interface.h"
@@ -17,6 +24,17 @@
 //function = (int) (rand_r(split->seed) % (int) (stp->feather)) ;
 
 
+/** \fn void simulate(struct parameters* param)
+ \brief Prints out simulates sequences.
+ 
+ Prints out simulated sequences containing a barcode at the 5' end. Parameters are the length of the barcode, number of barcodes and error rates. The function attempts to find a set of bacodes with a maximum pairwise edit distance. All parameters are passed to the function via the @ref parameters struct. In total 900000 sequence are simulated and 100000 random sequences are added. 
+ 
+ In addition this function prints out a shell script to run Tagdust2 and fastx_barcode_splitter on the simulated data. 
+ 
+ \param param @parameters.
+ 
+ 
+ */
 void simulate(struct parameters* param)
 {
 	int i,j,c,n,n_dash,read_pos, mismatches, indel;

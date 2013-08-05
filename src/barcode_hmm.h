@@ -19,6 +19,14 @@
  
  */
 
+/*! \file barcode_hmm.h
+ \brief Functions build and search with user specified HMMs.
+ 
+ Contains all functions for HMM construction, initialization, training and searching. 
+ 
+ \author Timo Lassmann
+ \bug No known bugs.
+ */
 
 
 
@@ -38,9 +46,49 @@
 
 
 
-#define COMPARE(a, b) (((a) > (b)) - ((a) < (b)))
+//#define COMPARE(a, b) (((a) > (b)) - ((a) < (b)))
+/** \def MM
+ \brief Index of Match to Match transition.
+ 
+ */
 
-#define MM 0
+/** \def MI
+ \brief Index of Match to Insert transition.
+ 
+ */
+/** \def MD
+ \brief Index of Match to Delete transition.
+ 
+ */
+/** \def II
+ \brief Index of Insert to Insert transition.
+ 
+ */
+/** \def IM
+ \brief Index of Insert to Match transition.
+ 
+ */
+
+/** \def DD
+ \brief Index of delete to Delete transition.
+ 
+ */
+
+/** \def DM
+ \brief Index of Delete to Match  transition.
+ 
+ */
+
+/** \def MSKIP
+ \brief Index of Match to silent transition.
+ 
+ */
+/** \def ISKIP
+ \brief Index of Insert to silent transition.
+ 
+ */
+
+#define MM 0 
 #define MI 1
 #define MD 2
 #define II 3
@@ -51,15 +99,38 @@
 #define MSKIP 7
 #define ISKIP 8
 
-
-#define SELF 0
-#define NEXT 1
-
-
+/** \def MAX_HMM_SEQ_LEN
+ \brief Maximum Length of sequences in each HMM.
+ 
+ */
 #define MAX_HMM_SEQ_LEN 150
 
+/** \def MAX_NUM_SUB_MODELS
+ \brief Maximum Number of HMM segments. 
+ 
+ */
 #define MAX_NUM_SUB_MODELS 64
 
+
+/** \def MODE_GET_LABEL
+ \brief Run sequence labeling in threads. 
+ 
+ */
+
+/** \def MODE_TRAIN
+ \brief Run HMM training in threads.
+ 
+ */
+
+/** \def MODE_RUN_RANDOM
+ \brief Shuffle Sequences and get probabilities .
+ 
+ */
+
+/** \def MODE_GET_PROB
+ \brief Get sequence probabilities but no labels in threads. 
+ 
+ */
 #define MODE_GET_LABEL 1
 #define MODE_TRAIN 2
 #define MODE_RUN_RANDOM 3
@@ -67,6 +138,35 @@
 #define NUM_RANDOM_SCORES 500000
 
 
+/** \def EXTRACT_SUCCESS
+ \brief Index for counting successful extractions. 
+ 
+ */
+
+/** \def EXTRACT_FAIL_BAR_FINGER_NOT_FOUND
+ \brief Index for counting reads where barcode / fingerprint was not found.  
+ */
+
+
+/** \def EXTRACT_FAIL_READ_TOO_SHORT
+ \brief Index for counting reads which are too short after extraction. 
+ */
+
+/** \def EXTRACT_FAIL_AMBIGIOUS_BARCODE
+ \brief Index for counting reads can match multiple barcodes. 
+ */
+
+/** \def EXTRACT_FAIL_ARCHITECTURE_MISMATCH
+ \brief Index for counting reads not matching the given read architecture. 
+ */
+
+/** \def EXTRACT_FAIL_MATCHES_ARTIFACTS
+ \brief Index for counting reads matching given artifactual reads. 
+ */
+
+/** \def EXTRACT_FAIL_LOW_COMPLEXITY
+ \brief Index for counting low-complexity reads.
+ */
 #define EXTRACT_SUCCESS 0
 #define EXTRACT_FAIL_BAR_FINGER_NOT_FOUND 1 
 #define EXTRACT_FAIL_READ_TOO_SHORT 2
@@ -75,80 +175,108 @@
 #define EXTRACT_FAIL_MATCHES_ARTIFACTS 5 
 #define EXTRACT_FAIL_LOW_COMPLEXITY 6
 
+/**
+ @brief Stores HMM parameters and slices of the dyn. programming matrix.
+ Instead of having two-dimentional dynamic programming matrices as usual, I decides to give each HMM column (Match, Delete and Insert state) it's own slice. This makes writing the actual code a litte easier because we can have pointers for current and previous column. 
+ 
+ */
 struct hmm_column{
-	float M_foward[MAX_HMM_SEQ_LEN];
-	float M_backward[MAX_HMM_SEQ_LEN];
+	float M_foward[MAX_HMM_SEQ_LEN]; /**< @brief  Holds forward probabilities for Match states.*/
+	float M_backward[MAX_HMM_SEQ_LEN]; /**<@brief  Holds backward probabilities for Match states.*/
 	
-	float I_foward[MAX_HMM_SEQ_LEN];
-	float I_backward[MAX_HMM_SEQ_LEN];
+	float I_foward[MAX_HMM_SEQ_LEN]; /**<@brief  Holds backward probabilities for Insert states.*/
+	float I_backward[MAX_HMM_SEQ_LEN]; /**<@brief  Holds backward probabilities for Insert states.*/
 	
-	float D_foward[MAX_HMM_SEQ_LEN];
-	float D_backward[MAX_HMM_SEQ_LEN];
+	float D_foward[MAX_HMM_SEQ_LEN]; /**<@brief  Holds backward probabilities for Delete states.*/
+	float D_backward[MAX_HMM_SEQ_LEN]; /**<@brief  Holds backward probabilities for Delete states.*/
 	
-	float transition[9];
-	float transition_e[9];
+	float transition[9]; /**<@brief Transition probabilities. */
+	float transition_e[9];/**<@brief Estimated transition probabilities. */
+
 	
-	float m_emit[5];
-	float i_emit[5];
-	float m_emit_e[5];
-	float i_emit_e[5];
+	float m_emit[5]; /**<@brief Match emision probabilities. */
+	float i_emit[5];/**<@brief Insert emision probabilities. */
+	float m_emit_e[5];/**<@brief Estimated Match emision probabilities. */
+	float i_emit_e[5];/**<@brief Estimated Insert  emision probabilities. */
 	
-	int identifier;
+	int identifier;  /**< @brief currently unused. */
 }_MM_ALIGN16;
 
+
+
+/**
+ @brief Collects @ref hmm_column (s) to make a HMM. 
+ 
+ */
 struct hmm{
-	struct hmm_column** hmm_column;
-	int num_columns;
+	struct hmm_column** hmm_column;/**<@brief Pointers to @ref hmm_column. */
+	int num_columns;/**<@brief Number of columns - HMM length. */
 	
 }_MM_ALIGN16;
 
+
+
+/**
+ @brief Collects multiple @ref hmm(s) into a HMM segment. 
+ Includes the for silent states connecting multiple segments. 
+ 
+ */
 struct model{
-	struct hmm** hmms;
-	float background_nuc_frequency[5];
-	float** silent_to_M;
-	float** silent_to_I;
-	float** silent_to_M_e;
-	float** silent_to_I_e;
-	float silent_forward[MAX_HMM_SEQ_LEN];
-	float silent_backward[MAX_HMM_SEQ_LEN];
-	float skip;
-	float skip_e;
-	int average_length;
-	int num_hmms;
+	struct hmm** hmms;/**< @brief Pointers to HMMs. */
+	float background_nuc_frequency[5];/**<@brief Background nulceotide frequency. */
+	float** silent_to_M;/**<@brief  Silent to Match transition probability.  */
+	float** silent_to_I;/**<@brief  Silent to Insert transition probability.  */
+	float** silent_to_M_e;/**<@brief Estimated Silent to Match transition probability.  */
+	float** silent_to_I_e;/**<@brief Estimated Silent to Insert transition probability.  */
+	float silent_forward[MAX_HMM_SEQ_LEN]; /**<@brief Dyn. Prog. Matrix for forward silent state. */
+	float silent_backward[MAX_HMM_SEQ_LEN]; /**<@brief Dyn. Prog. Matrix for backward silent state. */
+	float skip; /**<@brief Probability to skip segment*/
+	float skip_e;/**<@brief Estimated probability to skip segment*/
+	int average_length; /**<@brief Not used.... */
+	int num_hmms;/**<@brief Number of HMMs in segment.*/
 }_MM_ALIGN16;
 
+/**
+ @brief Collects multiple @ref model (s) into the complete HMM.
+ Includes variables to hold the results.  
+ */
 struct model_bag{
 	struct model** model;
-	int num_models;
-	float f_score;
-	float b_score;
-	float r_score;
-	float bar_score;
-	int** path;
-	float** dyn_prog_matrix;
-	float** transition_matrix;
-	int* label;
-	double* random_scores;
-	int num_random_scores;
-	float lambda;
-	float mu;
+	int num_models; /**<@brief Number of segments.*/
+	float f_score;/**<@brief Probability of sequence by forward algorithm. */
+	float b_score;/**< @brief Probability of sequence by backward algorithm. */
+	float r_score;/**<@brief Probability of random model. */
+	float bar_score;/**< @brief Max probability of paths going through one barcode HMM. */
+	int** path;/**< @brief Matrix to hold viterbi path. */
+	float** dyn_prog_matrix;/**<@brief Dyn. Prog. Matrix - used to find consistent max posterior path. */
+	float** transition_matrix;/**<@brief Transition scores - used to find consistent max posterior path. */
+	int* label; /**<@brief Hold information about HMMs.*/
+	double* random_scores;/**<@brief Holds probabilities of random / shuffled sequences. */
+	int num_random_scores;/**<@brief Number of random probabilities.*/
+	//float lambda;
+	//float mu;
 	
 	
-	int total_hmm_num;
-	float model_multiplier;
+	int total_hmm_num; /**<@brief Total number of profile HMMs in complete HMM.*/
+	float model_multiplier; /**< @brief Number of different profile HMM combinations. */
 }_MM_ALIGN16;
 
+/**
+ @brief Passes data to threads. 
+ */
 struct thread_data{
 	struct model_bag* mb;
 	struct parameters* param;
 	struct read_info** ri;
 	struct fasta* fasta;
-	int numseq;
-	int start;
-	int end;
+	int numseq; /** Number of sequences.*/
+	int start; /** @brief  Starting index of sequences for a particular thread.*/
+	int end;; /** @brief Endoing index of sequences for a particular thread.*/
 };
 
-
+/**
+ @brief Collects Summary Statistics. 
+ */
 struct log_information{
 	int total_read;
 	int num_EXTRACT_SUCCESS;

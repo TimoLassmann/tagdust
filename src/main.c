@@ -30,12 +30,15 @@
  also comment on the stability of your code. Any big bugs should be listed here. Basically, anything that you think we need to know in general about your project should go here.
  Any additional comments you want to make can go here. Did you like the project? Was it too hard, too easy? My TA smells bad. Well, you get the idea.
  This initial documentation here should be removed. Or else you loose points.
+ 
  */
+
+
 
 /*! \file main.c 
  \brief Figures out the nature of the input and calls the main functions. 
- 
- Initializes nucleotide alphabet needed to parse input. Calls parameter parser. Calls functions to process the data. \author Timo Lassmann \bug No known bugs.
+
+ Calls parameter parser. Calls functions to process the data. \author Timo Lassmann \bug No known bugs.
  */
 
 
@@ -61,15 +64,12 @@ int main (int argc,char * argv[]) {
 	
 	init_nuc_code();
 
-	
 	param = interface(param,argc,argv);
 	
 	
 	if(param->sim){
 		simulate(param);
 	}
-	
-	
 	
 	for(i = 0; i < param->infiles;i++){
 		param->sam = 0;

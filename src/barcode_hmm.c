@@ -19,6 +19,18 @@
  
  */
 
+
+/*! \file barcode_hmm.c
+ \brief Functions build and search with user specified HMMs.
+ 
+ Contains all functions for HMM construction, initialization, training and searching.
+ 
+ \author Timo Lassmann
+ \bug No known bugs.
+ */
+
+
+
 #include <stdio.h>
 #include "tagdust2.h"
 #include "interface.h"
@@ -29,11 +41,19 @@
 #include <assert.h>
 #include <float.h>
 #include <time.h>
-//#include "cmath.h"
 #include "barcode_hmm.h"
 
-//#include "fly.h"
 
+/** \fn void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ),int file_num)
+ \brief Runs all functions.
+ 
+ Constructs HMM, runs it on sequences.
+ 
+ \param param @ref parameters.
+ \param fp Pointer to function used to read sequences (either SAM or fastq).
+ \param filenum Number of input files.
+ 
+ */
 void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ),int file_num)
 {
 	struct read_info** ri = 0;
@@ -49,17 +69,10 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	double max_bar;
 	double max_prob;
 		
-	
-	//double* out = 0;
-	
 	init_logsum();
-	
-	//float* randomscores;
 	
 	double* back = 0;
 	int average_length = 0;
-	
-	//double pi0;
 	
 	back = malloc(sizeof(double)*5);
 	
@@ -90,11 +103,8 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		ri[i]->cigar = 0;
 		ri[i]->bar_prob = 0;
 		ri[i]->md = 0;
-		//ri[i]->xp = 0;
 		ri[i]->strand = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 		ri[i]->hits = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
-		//ri[i]->read_start = -1;
-		//ri[i]->read_end = -1;
 	}
 	file =  io_handler(file, file_num,param);
 	
@@ -154,17 +164,16 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	}
 	//exit(0);
 	pclose(file);
-	//file =  io_handler(file, file_num,param);
 	
 	
-	//rewind(file);
+	// Inits model.
 	
 	struct model_bag* mb = init_model_bag(param, back);
 		
-	/// Let's check the hamming distance between barcodes...
+	// Let's check the hamming distance between barcodes...
 	
 	g = 0;
-	min_distance = 1000; /// hamming distance.
+	min_distance = 1000; // hamming distance.
 	for(i = 0; i < mb->num_models;i++){
 		if(param->read_structure->type[i] == 'B'){
 			barcode_length = (int)strlen(param->read_structure->sequence_matrix[i][0]);
@@ -188,6 +197,8 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	}
 	
 	
+	// Estimates lengths of partial segments by using exact matching + normal distribution. 
+	
 	file =  io_handler(file, file_num,param);
 	
 	numseq = fp(ri, param,file);
@@ -208,18 +219,7 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	}
 	fprintf(stderr,"SiM done\n");
 	
-	//exit(0);
 
-	/*fprintf(stderr,"%d\n",numseq);
-	for(i = 0; i < numseq ;i++){
-		fprintf(stderr,"%p\n",ri[i]);
-		fprintf(stderr,"%s	%f	%d\n",ri[i]->name,0.0,ri[i]->len);
-		for(j = 0;j < ri[i]->len;j++){
-			fprintf(stderr,"%d",ri[i]->seq[j]);
-		}
-		fprintf(stderr,"\n");
-	}*/
-	//exit(0);
 	mb =  run_pHMM(mb,ri,param,numseq,MODE_GET_PROB);
 	fprintf(stderr,"run done\n");
 	float P[10001];
@@ -299,6 +299,8 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	param->confidence_threshold = cut;
 #endif	
 	
+	// HMM training - not used in this version.. 
+	
 	file =  io_handler(file, file_num,param);
 
 	if(!param->train ){
@@ -366,31 +368,22 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	li->num_EXTRACT_FAIL_MATCHES_ARTIFACTS = 0;
 	li->num_EXTRACT_FAIL_LOW_COMPLEXITY= 0;
 		
-	//int c1,c2,c3,key,bar,mem,fingerlen,required_finger_len,ret;
-	//char alpha[5] = "ACGTN";
-	
 	total_read = 0;
 	while ((numseq = fp(ri, param,file)) != 0){
 		//	numseq = fp(ri, param,file);
 		mb =  run_pHMM(mb,ri,param,numseq,MODE_GET_LABEL);
 		li->total_read += numseq;
 		
-		
-		//mb =  estimate_model_from_labels(mb, param, ri, numseq);
-
-		//exit(0);
 		max_bar = -FLT_MAX;
 		max_prob = -FLT_MAX;
 		
 		for(i = 0; i < numseq;i++){
-			//li->total_read++;
 			switch ((int) ri[i]->prob) {
 					
 				case EXTRACT_SUCCESS:
 					
 					print_sequence(ri[i],outfile);
 					li->num_EXTRACT_SUCCESS++;
-					//fprintf(stderr,"Success!!!\n");
 					break;
 				case EXTRACT_FAIL_BAR_FINGER_NOT_FOUND:
 					li->num_EXTRACT_FAIL_BAR_FINGER_NOT_FOUND++;
@@ -417,8 +410,6 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	if(param->outfile){
 		fclose(outfile);
 	}
-	
-	//param->infile[file_num]
 	
 	struct tm *ptr;
 	int hour;
@@ -492,10 +483,22 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	}else{
 		fclose(file);
 	}
-	
-	
 }
 
+
+
+/** \fn struct model_bag* estimate_length_distribution_of_partial_segments(struct model_bag*mb,struct read_info** ri,struct parameters* param, int numseq)
+ 
+ \brief Initialized length related probabilities for partial segments.
+ 
+ This function matches partial sequences to reads exactly. Based on the exact hits HMM parameters are derived using a normal distribution.
+ \param mb  @ref model_bag - contains the HMM model.
+ \param ri @ref read_info - contains the sequences.
+ \param param @ref parameters - contain the parameters. 
+ \param numseq number of sequences.
+ 
+ \bug Seems to set some probabilities to dead states at the end of HMMs... 
+ */
 
 struct model_bag* estimate_length_distribution_of_partial_segments(struct model_bag*mb,struct read_info** ri,struct parameters* param, int numseq)
 {
@@ -537,26 +540,12 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 		
 		for(i = 0; i < numseq;i++){
 			for(j = 0;j <= len ;j++){
-				/*for(c = 0;c < len-j;c++){
-					fprintf(stderr,"%c",ri[i]->seq[c] + 65);
-					
-				}
-				fprintf(stderr,"\n");
-				for(c = 0;c < len-j;c++){
-					fprintf(stderr,"%c",*(test_sequence+j +c) + 65);
-					
-				}
-				fprintf(stderr,"	%d	%d\n",strncmp(ri[i]->seq, test_sequence+j, len -j) ,len -j);
-				*/
 				for(c = 0;c < len-j;c++){
 					if(ri[i]->seq[c] != test_sequence[j +c]){
 						break;
 					}
 				}
-				//fprintf(stderr,"C:%d\n",c);
 				if(c == len-j ){
-				//	fprintf(stderr,"MATCH\n");
-					
 					s0++;
 					s1 += len -j;
 					s2 += (len-j) * (len-j);
@@ -567,18 +556,11 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 		}
 		mean = s1 / s0;
 		stdev = sqrt(  (s0 * s2 - pow(s1,2.0))   /  (  s0 *(s0-1.0) )) ;
-		
-		//mean = mean + 5;
-		//stdev = 0.5;
-		
-//#if DEBUG
+
 		if(mean <= 1){
 			fprintf(stderr,"WARNING: 5' partial segment seems not to be present in the data (length < 1).\n");
 		}
-				//for(i = 0; i< 10;i++){
-		//	fprintf(stderr,"%d	%f\n",i,gaussian_pdf(i , mean ,stdev));
-		//}
-		
+
 		sum_prob = 0;
 		
 		for(i = 0; i <  len;i++){
@@ -698,27 +680,7 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 		s2 = 0;
 		
 		for(i = 0; i < numseq;i++){
-			/*
-			for(c = 0;c < ri[i]->len;c++){
-				fprintf(stderr,"%c",ri[i]->seq[c]+ 65);
-				
-			}
-			fprintf(stderr,"\n");
-			*/
 			for(j = 0;j <= len ;j++){
-				/*fprintf(stderr,"3prime:sequence %d\n",i);
-				for(c = 0;c < len-j;c++){
-					fprintf(stderr,"%c",ri[i]->seq[ri[i]->len - (len-j -c)]+ 65);
-					
-				}
-				fprintf(stderr,"\n");
-				for(c = 0;c < len-j;c++){
-					fprintf(stderr,"%c",*(test_sequence+c) + 65);
-					
-				}
-				fprintf(stderr,"	%d	%d\n",strncmp(ri[i]->seq, test_sequence+j, len -j) ,len -j);
-*/
-				
 				
 				for(c = 0;c < len-j;c++){
 					if(ri[i]->seq[ri[i]->len - (len-j -c)] != test_sequence[c]){
@@ -726,44 +688,27 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 					}
 				}
 				if(c == len-j ){
-				//	fprintf(stderr,"MATCH\n");
 					
 					s0++;
 					s1 += len -j;
 					s2 += (len-j) * (len-j);
 					break;
 				}
-				
-				/*if(strncmp(ri[i]->seq + ri[i]->len - (len +j) , test_sequence, len -j)){
-					s0++;
-					s1 += len -j;
-					s2 += (len-j) * (len-j);
- 				}*/
-			}
+							}
 		}
 		mean = s1 / s0;
 		stdev = sqrt(  (s0 * s2 - pow(s1,2.0))   /  (  s0 *(s0-1.0) )) ;
-		
-//#if DEBUG
-		
-		//mean = mean + 5;
-		//stdev = 0.5;
+
 		if(mean <= 1){
 			fprintf(stderr,"WARNING: 3' partial segment seems not to be present in the data (length < 1).\n");
 		}
-		//fprintf(stderr,"3'linker_length: %f	stdev%f\n",mean,stdev);
-		//for(i = 0; i< 10;i++){
-		//	fprintf(stderr,"%d	%f\n",i,gaussian_pdf(i , mean ,stdev));
-		//}
-
+		
 		sum_prob = 0;
 		
 		for(i = 0; i <  len;i++){
 			sum_prob +=gaussian_pdf(i , mean ,stdev);
 		}
-		
-		
-		
+
 		//Init model ....
 		model = mb->model[mb->num_models-1];
 		model->skip = prob2scaledprob(  gaussian_pdf(0 , mean ,stdev) / sum_prob    );
@@ -798,18 +743,22 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 			
 		}
 		
-		//fprintf(stderr,"%f	skip\n", scaledprob2prob(model->skip));
-		//for(j = 0; j < len;j++){
-		//	col = model->hmms[0]->hmm_column[j];
-		//	fprintf(stderr,"%f	%f	%f	%f	%d len \n",scaledprob2prob( col->transition[MM] ), scaledprob2prob(col->transition[MI] ), scaledprob2prob(col->transition[MD]), scaledprob2prob(col->transition[MSKIP]),j);
-		//}
-//#endif
 	}
-	//exit(0);
 	return mb;
 }
 
 
+/** \fn struct model_bag* run_pHMM(struct model_bag* mb,struct read_info** ri,struct parameters* param,int numseq, int mode)
+ \brief Starts threads to run HMM functions on subsets of sequences.
+ Depending on the specifies mode, this function startes threads with different function pointers. 
+ 
+ 
+ \param ri @ref read_info.
+ \param param @ref parameters.
+ \param numseq Number of sequences. 
+ \param mode Determines which function to run.
+ 
+ */
 struct model_bag* run_pHMM(struct model_bag* mb,struct read_info** ri,struct parameters* param,int numseq, int mode)
 {
 	struct thread_data* thread_data = 0;
@@ -839,7 +788,6 @@ struct model_bag* run_pHMM(struct model_bag* mb,struct read_info** ri,struct par
 		thread_data[t].start = t*interval;
 		thread_data[t].end = t*interval + interval;
 		thread_data[t].param = param;
-	//m	fprintf(stderr,"%d %d %d %d\n",t,thread_data[t].start,thread_data[t].end,numseq );
 	}
 	thread_data[param->num_threads-1].end = numseq;
 	unsigned int seed = (unsigned int) (time(NULL) * ( 42));
@@ -926,6 +874,25 @@ struct model_bag* run_pHMM(struct model_bag* mb,struct read_info** ri,struct par
 }
 
 
+/** \fn void* do_probability_estimation(void *threadarg)
+ \brief Estimates the probability of a sequence but without labelling it.
+ 
+ This function calculates the equivalent of a mapping Q value to reflext the confidence we have in a match to the user specified read architecture. 
+ 
+
+ \f[
+ 
+ P_{wrong} = 1 - \frac{P(x|M_i) }{P(x|M) + P(x | R)}
+ \f]
+
+ where \f$P(x|M_i)\f$ is the probability of selecing one particular barcode, \f$P(x|M)\f$ is the total probability of the model and \f$P(x|R)\f$ is the probability of the random model. The resulting probability is converted into a phred scaled quality value:
+ 
+ \f[
+ Q = -10 * log_{10}( P_{wrong})
+ \f]
+ 
+ \param threadarg  A @ref thread_data object used to pass data / parameters to function.
+ */
 void* do_probability_estimation(void *threadarg)
 {
 	struct thread_data *data;
@@ -958,8 +925,7 @@ void* do_probability_estimation(void *threadarg)
 			}else{
 				Q = -10.0 * log10(pbest) ;
 			}
-			//ri[i]->prob = ri[i]->prob + log (0.9f / 0.1f);
-			ri[i]->prob = Q;//expf( ri[i]->prob) / (1.0f + expf(ri[i]->prob ));
+			ri[i]->prob = Q;
 		}
 	}else{
 		for(i = start; i < end;i++){
@@ -967,7 +933,7 @@ void* do_probability_estimation(void *threadarg)
 			
 			mb = backward(mb, ri[i]->seq ,ri[i]->len);			
 			mb = forward_max_posterior_decoding(mb, ri[i], ri[i]->seq ,ri[i]->len);
-			//ri[i]->prob = ri[i]->prob + log (0.9f / 0.1f);
+			
 			pbest = 1.0 - scaledprob2prob(  (ri[i]->bar_prob + mb->f_score) - logsum(mb->f_score,  mb->r_score));
 			if(!pbest){
 				Q = 40.0;
@@ -977,13 +943,8 @@ void* do_probability_estimation(void *threadarg)
 			}else{
 				Q = -10.0 * log10(pbest) ;
 			}
-			fprintf(stderr,"prob:    %f	Q:%f	%s\n", pbest,Q,ri[i]->name);
 			    				     
-			ri[i]->prob = Q;//expf( ri[i]->prob) / (1.0f + expf(ri[i]->prob ));
-			
-			
-			//fprintf(stderr,"%f	forward	%f back.... \n",mb->f_score  ,mb->b_score);
-			
+			ri[i]->prob = Q;			
 		}
 	}
 		
@@ -991,6 +952,27 @@ void* do_probability_estimation(void *threadarg)
 }
 
 
+
+/** \fn void* do_label_thread(void *threadarg)
+ \brief Estimates the probability of a sequence and labels it. 
+
+ This function rund the forward and backward algorithm on each sequence, obtails posterior label probabilities for each residue and calculates the optimal sequence labeling based on the posteriors. In addition the quality value to reflext the confidence we have in a matchis calculated:
+ 
+ \f[
+ 
+ P_{wrong} = 1 - \frac{P(x|M_i) }{P(x|M) + P(x | R)}
+ \f]
+ 
+ where \f$P(x|M_i)\f$ is the probability of selecing one particular barcode, \f$P(x|M)\f$ is the total probability of the model and \f$P(x|R)\f$ is the probability of the random model. The resulting probability is converted into a phred scaled quality value:
+ 
+ \f[
+ Q = -10 * log_{10}( P_{wrong})
+ \f]
+ 
+ After labelling each sequence is compared against user defined artifact sequences and low comlexity sequences are filtered out. 
+ 
+ \param threadarg  A @ref thread_data object used to pass data / parameters to function.
+ */
 void* do_label_thread(void *threadarg)
 {
 	struct thread_data *data;
@@ -1007,7 +989,6 @@ void* do_label_thread(void *threadarg)
 	int i;
 	int tmp = 0;
 	float pbest,Q;
-	//int len;
 	
 	if(matchstart != -1 || matchend != -1){
 		for(i = start; i < end;i++){
@@ -1015,22 +996,24 @@ void* do_label_thread(void *threadarg)
 			mb = backward(mb, ri[i]->seq + matchstart , tmp);
 			mb = forward_max_posterior_decoding(mb, ri[i] , ri[i]->seq+matchstart ,tmp );
 			
-			/*ri[i]->seq = reverse_sequence(ri[i]->seq+matchstart , tmp);
-			mb = backward(mb, ri[i]->seq ,ri[i]->len);
-			ri[i]->seq = reverse_sequence(ri[i]->seq+matchstart , tmp);*/
+			pbest = logsum(mb->f_score, mb->r_score);
+			pbest = 1.0 - scaledprob2prob(  (ri[i]->bar_prob + mb->f_score) - pbest);
+			if(!pbest){
+				Q = 40.0;
+			}else if(pbest == 1.0){
+				Q = 0.0;
+				
+			}else{
+				Q = -10.0 * log10(pbest) ;
+			}
+			ri[i]->prob = Q;
 			
 		}
 	}else{
 		for(i = start; i < end;i++){
 			mb = backward(mb, ri[i]->seq ,ri[i]->len);
 			mb = forward_max_posterior_decoding(mb, ri[i], ri[i]->seq ,ri[i]->len);
-			
-			//ri[i]->seq = reverse_sequence(ri[i]->seq, ri[i]->len);
-			//mb = backward(mb, ri[i]->seq ,ri[i]->len);
-			//ri[i]->seq = reverse_sequence(ri[i]->seq, ri[i]->len);
 			pbest = logsum(mb->f_score, mb->r_score);
-			
-			//fprintf(stderr,"%d	%f	%f	%f	%f\n",i, scaledprob2prob((ri[i]->bar_prob + mb->f_score) -  pbest),scaledprob2prob(mb->f_score - pbest),  scaledprob2prob(mb->b_score-pbest ),scaledprob2prob(mb->r_score- pbest));
 			
 			pbest = 1.0 - scaledprob2prob(  (ri[i]->bar_prob + mb->f_score) - pbest);
 			if(!pbest){
@@ -1041,54 +1024,18 @@ void* do_label_thread(void *threadarg)
 			}else{
 				Q = -10.0 * log10(pbest) ;
 			}
-			//ri[i]->prob = ri[i]->prob + log (0.9f / 0.1f);
 			ri[i]->prob = Q;
 			
 			
 		}
 	}
 	
-	// GET MAX scores...
-	
-	//exit(0);
-	
-	
-///
-
 	for(i = start; i < end;i++){
 		
-		/*pbest = logsum(mb->f_score, logsum(mb->b_score,mb->r_score));
-		
-		fprintf(stderr,"%d	%f	%f	%f	%f\n",i, scaledprob2prob((ri[i]->bar_prob + mb->f_score) -  pbest),scaledprob2prob(mb->f_score - pbest),  scaledprob2prob(mb->b_score-pbest ),scaledprob2prob(mb->r_score- pbest));
-		
-		pbest = 1.0 - scaledprob2prob(  (ri[i]->bar_prob + mb->f_score) - logsum(mb->f_score,  mb->r_score));
-		if(!pbest){
-			Q = 40.0;
-		}else if(pbest == 1.0){
-			Q = 0.0;
-			
-		}else{
-			Q = -10.0 * log10(pbest) ;
-		}
-		//ri[i]->prob = ri[i]->prob + log (0.9f / 0.1f);
-		ri[i]->prob = Q;
-		
-		//ri[i]->bar_prob =  scaledprob2prob(ri[i]->bar_prob);
-		*/
 		ri[i]->bar_prob = 100;
 		
-		
-		//fprintf(stderr,"%f	%f\n",ri[i]->bar_prob,ri[i]->prob);
-		//ri[i]->prob = ri[i]->prob + log (0.9f / 0.1f);
-		//ri[i]->prob = expf( ri[i]->prob) / (1.0f + expf(ri[i]->prob ));
-		//fprintf(stderr,"%f	%f\n",ri[i]->bar_prob,ri[i]->prob);
 		ri[i] = extract_reads(mb,data->param,ri[i]);
 		
-		//print_sequence(ri[i],stderr);
-
-		//if(i == 10){
-		//	exit(0);
-		//}
 	}
 	
 	if(data->param->reference_fasta){
@@ -1141,6 +1088,15 @@ void* do_label_thread(void *threadarg)
 	
 	pthread_exit((void *) 0);
 }
+
+
+
+/** \fn struct read_info** dust_sequences(struct thread_data *data)
+ \brief Removel low complexity sequences.
+ 
+ Runs the DUST algorithm on the first 64 nucleotides of a read. 
+ \param threadarg  A @ref thread_data object used to pass data / parameters to function.
+ */
 
  struct read_info** dust_sequences(struct thread_data *data)
 {
@@ -1196,6 +1152,13 @@ void* do_label_thread(void *threadarg)
 }
 
 
+/** \fn struct read_info** match_to_reference(struct thread_data *data)
+ \brief Matches reads to artifactual sequences.
+ 
+Exhaustively compares reads to a fasta file of known artifact sequences. Uses a SSE version of the Myers bit-parallel dynamic programming algorithm.
+ 
+ \param threadarg  A @ref thread_data object used to pass data / parameters to function.
+ */
 
  struct read_info** match_to_reference(struct thread_data *data)
 {
@@ -1300,6 +1263,17 @@ void* do_label_thread(void *threadarg)
 }
 
 
+/** \fn struct read_info* emit_random_sequence(struct model_bag* mb, struct read_info* ri,int average_length,unsigned int* seed )
+ \brief Emits sequences from random HMM model. 
+ 
+ \param mb  The model @ref model_bag . 
+ \param ri  @ref read_info - emitted sequences are written here. 
+ \param average_length Average length of the sequences. 
+ \param seed Seed used for randomization.
+ 
+ */
+
+
 struct read_info* emit_random_sequence(struct model_bag* mb, struct read_info* ri,int average_length,unsigned int* seed )
 {
 	
@@ -1380,6 +1354,16 @@ struct read_info* emit_random_sequence(struct model_bag* mb, struct read_info* r
 	return ri;
 }
 
+
+/** \fn struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_length,unsigned int* seed )
+ \brief Emits sequences from read HMM model.
+ 
+ \param mb  The model @ref model_bag .
+ \param ri  @ref read_info - emitted sequences are written here.
+ \param average_length Average length of the sequences.
+ \param seed Seed used for randomization.
+ 
+ */
 
 
 struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_length,unsigned int* seed )
@@ -1691,6 +1675,14 @@ struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,
 	return ri;
 }
 
+
+/** \fn struct model_bag* estimate_model_from_labels(struct model_bag* mb, struct parameters* param,  struct read_info** ri,int numseq)
+ \brief Estimate model based on labelled sequences 
+
+ \bug not complete - is very buggy. 
+\deprecated not used.
+ */
+
 struct model_bag* estimate_model_from_labels(struct model_bag* mb, struct parameters* param,  struct read_info** ri,int numseq)
 {
 	int i,j,c1,c2,c3,g;//,bar,mem;
@@ -1777,7 +1769,7 @@ struct model_bag* estimate_model_from_labels(struct model_bag* mb, struct parame
 				c3 = (c1 >> 16) & 0x7FFF;
 				fprintf(stderr,"%d", c3   );
 				if(param->read_structure->type[c2] == 'B'){
-	///				bar = c3;
+	//				bar = c3;
 	//				mem = c2;
 				}
 			}
@@ -1792,6 +1784,19 @@ struct model_bag* estimate_model_from_labels(struct model_bag* mb, struct parame
 	
 	return mb;
 }
+
+
+
+/** \fn  struct read_info*  extract_reads(struct model_bag* mb, struct parameters* param,  struct read_info* ri)
+ \brief Extracts reads from labelled raw sequences.
+ 
+This function extracts the mappable reads from the raw sequences. Barcodes and Fingerprint sequences are decoded and appended to re read names using the BC and FP tag.  
+ 
+\param mb The HMM model @ref model_bag.
+ \param param @ref parameters .
+ \param ri The reads.
+ 
+ */
 
 
  struct read_info*  extract_reads(struct model_bag* mb, struct parameters* param,  struct read_info* ri)
@@ -1942,6 +1947,14 @@ struct model_bag* estimate_model_from_labels(struct model_bag* mb, struct parame
 }
 
 
+
+/** \fn void* do_baum_welch_thread(void *threadarg)
+ \brief Runs Baum-Welch procedure. 
+ 
+We implemented the HMM training procedure to verify that the forward and backward recursion work as expected. In other words this is only used for testing. 
+ 
+ \param threadarg  A @ref thread_data object used to pass data / parameters to function.
+ */
 void* do_baum_welch_thread(void *threadarg)
 {
 	struct thread_data *data;
@@ -1969,13 +1982,23 @@ void* do_baum_welch_thread(void *threadarg)
 			Q = -10.0 * log10(pbest) ;
 		}
 		if(Q >= 10){
-		
 			mb = forward_extract_posteriors(mb, ri[i]->seq,ri[i]->labels,ri[i]->len);
 		}
 	}
 	pthread_exit((void *) 0);
 }
 
+
+/** \fn void* do_run_random_sequences(void *threadarg)
+ \brief Runs Forward and BAckward oin random sequences. 
+ The read probabilities are stored in @ref model_bag. 
+ 
+ 
+ 
+ \param threadarg  A @ref thread_data object used to pass data / parameters to function.
+ \deprecated We do not need this anymore. 
+ 
+ */
 
 void* do_run_random_sequences(void *threadarg)
 {
@@ -2042,6 +2065,20 @@ void* do_run_random_sequences(void *threadarg)
 		
 	pthread_exit((void *) 0);
 }
+
+
+
+
+/** \fn struct model_bag* backward(struct model_bag* mb, char* a, int len)
+ \brief Runs the backard algorithm .
+ 
+ 
+ 
+ 
+ \param mb The HMM model. 
+ \param a The seuqence.
+ \param len Sequence length. 
+ */
 
 
 struct model_bag* backward(struct model_bag* mb, char* a, int len)
@@ -2169,7 +2206,7 @@ struct model_bag* backward(struct model_bag* mb, char* a, int len)
 					//from previous match state....
 					
 					c_hmm_column->I_backward[i] = logsum( c_hmm_column->I_backward[i],p_hmm_column->M_backward[i+1] + c_hmm_column->transition[IM] + p_hmm_column->m_emit[c]);
-					///GRERRRRRRR 
+					//GRERRRRRRR
 					
 					//delete state
 					
@@ -2242,6 +2279,19 @@ struct model_bag* backward(struct model_bag* mb, char* a, int len)
 	//exit(0);
 	return mb;
 }
+
+
+
+/** \fn struct model_bag* backward(struct model_bag* mb, char* a, int len)
+ \brief Runs the forward algorithm .
+ 
+ 
+ 
+ 
+ \param mb The HMM model.
+ \param a The seuqence.
+ \param len Sequence length.
+ */
 
 struct model_bag* forward(struct model_bag* mb, char* a, int len)
 {
@@ -2412,6 +2462,20 @@ struct model_bag* forward(struct model_bag* mb, char* a, int len)
 	return mb;
 }
 
+
+
+/** \fn struct model_bag* backward(struct model_bag* mb, char* a, int len)
+ \brief Runs the forward algorithm and extracts estimated transition and emission probabilities.
+ \warning Need to run @ref backward first!
+ 
+ 
+ 
+ \param mb The HMM model.
+ \param label The label of the sequence.
+ \param a The seuqence.
+ \param len Sequence length.
+ */
+
 struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, char* label, int len)
 {
 	
@@ -2575,10 +2639,10 @@ struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, char
 					//***************post
 					//if(label[i] == hmm_counter){
 					
-					///I HOPE THIS IS CORRECT.... 
+					//I HOPE THIS IS CORRECT....
 					mb->model[j]->silent_to_M_e[f][g] = logsum(mb->model[j]->silent_to_M_e[f][g] ,psilent[i-1] + mb->model[j]->silent_to_M[f][g] + c_hmm_column->m_emit[c] + c_hmm_column->M_backward[i]  -mb->b_score);
 					
-					///I HOPE THIS IS CORRECT.... 
+					//I HOPE THIS IS CORRECT.... 
 					
 					
 					p_hmm_column->transition_e[MM] = logsum(p_hmm_column->transition_e[MM] , p_hmm_column->M_foward[i-1] + p_hmm_column->transition[MM] +  c_hmm_column->m_emit[c] +  c_hmm_column->M_backward[i] -mb->b_score );
@@ -2610,11 +2674,11 @@ struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, char
 					
 					//***************post
 					//if(label[i] == hmm_counter){
-					///I HOPE THIS IS CORRECT....
+					//I HOPE THIS IS CORRECT....
 
 					mb->model[j]->silent_to_I_e[f][g]  = logsum(mb->model[j]->silent_to_I_e[f][g] , psilent[i-1] + mb->model[j]->silent_to_I[f][g]  + c_hmm_column->i_emit[c] +  c_hmm_column->I_backward[i] -mb->b_score);
 					
-					///I HOPE THIS IS CORRECT....
+					//I HOPE THIS IS CORRECT....
 
 					
 					c_hmm_column->transition_e[II] = logsum(c_hmm_column->transition_e[II] ,  c_hmm_column->I_foward[i-1] + c_hmm_column->transition[II] + c_hmm_column->i_emit[c] + c_hmm_column->I_backward[i] - mb->b_score);
@@ -2690,6 +2754,21 @@ struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, char
 	return mb;
 }
 
+
+/** \fn struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct read_info* ri, char* a, int len)
+ \brief Runs the forward algorithm and labels sequences.
+ 
+ Main function in tagdust2. Runs the forward algorithm and estimates posterior label probabilities of all residures. Then runs normal dynamic programming algorithm to obtain the most likely path given the posteriors. Gap penalties ensure that the resulting labeling matches the user specified architecture.
+ 
+ \warning Need to run @ref backward first!
+ 
+ 
+ 
+ \param mb The HMM model.
+ \param label The label of the sequence.
+ \param a The seuqence.
+ \param len Sequence length.
+ */
 
 
 struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct read_info* ri, char* a, int len)
@@ -3032,25 +3111,20 @@ struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct re
 		//fprintf(stderr,"%d,%f	%e	%f	%f	%f\n",   i,scaledprob2prob(next_silent[0]),   scaledprob2prob(next_silent[0]),next_silent[0] , scaledprob2prob(mb->model[0]->background_nuc_frequency[c] ) , 1.0 - (1.0 / (float)len) );
 	}
 	mb->r_score  += prob2scaledprob(1.0 / (float)len);
-	
-	//mb->r_score = next_silent[0];
-	/*for(i = 1; i <= len;i++){
-		c = seqa[i];
-		fprintf(stderr,"%d", c);
-	
-		
-	}
-	fprintf(stderr,"\n");
-	*/
-	
-	//ri->prob  = mb->f_score - mb->r_score;// Model probability divided by Random Model ....
-  	
-	//fprintf(stderr,"F:%f B:%f\n", mb->f_score,mb->b_score );
-	//fprintf(stderr,"SCORE:%f	%f	%f\n", mb->f_score,next_silent[0], scaledprob2prob(next_silent[0]) );
-	///exit(0);
 	return mb;
 }
 
+
+
+
+/** \fn struct model* malloc_model(int main_length, int sub_length, int number_sub_models)
+ \brief Allocates a HMM segment. 
+ 
+ \param main_length Length of the first HMM. 
+ \param sub_length Length of second... N HMM.
+ \param number_sub_models Number of HMMs. 
+ \deprecated Not used anymore. 
+ */
 
 
 struct model* malloc_model(int main_length, int sub_length, int number_sub_models)
@@ -3099,6 +3173,14 @@ struct model* malloc_model(int main_length, int sub_length, int number_sub_model
 	return model;
 }
 
+
+
+/** \fn struct model* malloc_model_according_to_read_structure(int num_hmm, int length)
+ \brief Allocates a HMM segment.
+ 
+ \param length Length of all HMMs.
+ \param num_hmm Number of HMMs.
+ */
 
 struct model* malloc_model_according_to_read_structure(int num_hmm, int length)
 {
@@ -3153,6 +3235,19 @@ struct model* malloc_model_according_to_read_structure(int num_hmm, int length)
 	}
 	return model;
 }
+
+
+/** \fn struct model* init_model_according_to_read_structure(struct model* model,struct parameters* param , int key, double* background,int assumed_length)
+
+ \brief Initialized whole HMM.
+ 
+ \param model The model to be initialized.
+ \param param @ref parameters.
+ \param key The key to the HMM type. 
+ \param background Background nucleotide probabilities.
+ \param assumed_length Length of the HMM.
+ */
+
 
 struct model* init_model_according_to_read_structure(struct model* model,struct parameters* param , int key, double* background,int assumed_length)
 {
@@ -3546,6 +3641,16 @@ struct model* init_model_according_to_read_structure(struct model* model,struct 
 	return model;
 }
 
+
+/** \fn void print_model(struct model* model)
+ 
+ \brief Prints out all parameters of a HMM. 
+ 
+ \param model The model to be printed out.
+
+ */
+
+
 void print_model(struct model* model)
 {
 	int i,j,c;
@@ -3636,6 +3741,14 @@ void print_model(struct model* model)
 }
 
 
+/** \fn void free_model(struct model* model)
+ 
+ \brief Frees model.
+ 
+ \param model The model to be freed .
+ 
+ */
+
 
 
 void free_model(struct model* model)
@@ -3665,7 +3778,7 @@ void free_model(struct model* model)
 	//free(model->hmms[0]->hmm_column);// = malloc(sizeof(struct hmm_column*) * main_length);
 	//assert(model->hmms[0]->hmm_column !=0);
 	
-	///assert(model->hmms !=0);
+	//assert(model->hmms !=0);
 	
 
 	for(i = 0; i < model->num_hmms;i++){
@@ -3695,216 +3808,18 @@ void free_model(struct model* model)
 }
 
 
-/*
 
 
-struct model* copy_and_malloc_model(struct model* org)
-{
-	struct model* model = NULL;
-	int i = 0;
-	int j = 0;
-	int len = 0;
-	int c = 0;
+/** \fn struct model_bag* copy_model_bag(struct model_bag* org)
+ 
+ \brief Copies HMM into new HMM. 
+ Used to copy HMM for each thread. 
+ 
+ \param org  The @ref model_bag to be copied.
+ 
+ */
 
-	struct hmm_column* col =0;
 
-	
-	
-	model = malloc(sizeof(struct model));
-	assert(model != 0);
-	
-	model->num_hmms = org->num_hmms;
-	model->hmms = malloc(sizeof(struct hmm*) * org->num_hmms);
-	assert(model->hmms !=0);
-	for(i = 0; i < model->num_hmms;i++){
-		model->hmms[i] = malloc(sizeof(struct hmm) );
-		assert(model->hmms[i]  != 0);
-	}
-	
-	
-	
-	
-	
-	model->hmms[0]->num_columns = org->hmms[0]->num_columns;
-	model->hmms[0]->hmm_column = malloc(sizeof(struct hmm_column*) * model->hmms[0]->num_columns );
-	assert(model->hmms[0]->hmm_column !=0);
-	
-	for(j = 0; j < model->hmms[0]->num_columns ;j++){
-		model->hmms[0]->hmm_column[j] = malloc(sizeof(struct hmm_column));
-		assert(model->hmms[0]->hmm_column[j] !=0);
-	}
-	
-	for(i = 1; i < model->num_hmms;i++){
-		model->hmms[i]->num_columns = org->hmms[i]->num_columns;
-		model->hmms[i]->hmm_column = malloc(sizeof(struct hmm_column*) * model->hmms[i]->num_columns);
-		assert(model->hmms[i]->hmm_column !=0);
-		for(j = 0; j < model->hmms[i]->num_columns;j++){
-			model->hmms[i]->hmm_column[j] = malloc(sizeof(struct hmm_column));
-			assert(model->hmms[i]->hmm_column[j] !=0);
-			//model->hmms[i]->hmm_column[j]->identifier = -1;
-		}
-	}
-	
-	len = model->hmms[0]->num_columns;
-	
-	for(i = 0; i < len;i++){
-		col = model->hmms[0]->hmm_column[i];
-		
-		//col->identifier = -1;
-		for(j = 0; j < 5;j++){
-			col->i_emit[j] =  org->hmms[0]->hmm_column[i]->i_emit[j];// background[j];
-			col->m_emit[j] =  org->hmms[0]->hmm_column[i]->m_emit[j];
-			col->i_emit_e[j] = org->hmms[0]->hmm_column[i]->i_emit_e[j];
-			col->m_emit_e[j] = org->hmms[0]->hmm_column[i]->m_emit_e[j];
-		}
-		col->transition[NEXT] = org->hmms[0]->hmm_column[i]->transition[NEXT]; //  prob2scaledprob( max);
-		col->transition[SELF] =  org->hmms[0]->hmm_column[i]->transition[SELF];// prob2scaledprob(1.0 - max) +  prob2scaledprob(0.5);
-		
-		col->transition_e[NEXT] = org->hmms[0]->hmm_column[i]->transition_e[NEXT]; //  prob2scaledprob( max);
-		col->transition_e[SELF] =  org->hmms[0]->hmm_column[i]->transition_e[SELF];// prob2scaledprob(1.0 - max) +  prob2scaledprob(0.5);
-		
-		
-		for(j = 0; j< model->num_hmms-1;j++){
-			col->long_transition[j] = org->hmms[0]->hmm_column[i]->long_transition[j];// prob2scaledprob(1.0 - max) +  prob2scaledprob(0.5  /  (float) (model->num_hmms-1));
-			col->long_transition_e[j] = org->hmms[0]->hmm_column[i]->long_transition_e[j];
-		}
-		
-		
-	}
-	
-
-	len = model->hmms[1]->num_columns;
-	for(i = 1; i< model->num_hmms;i++){
-		for(j = 0; j < len;j++){
-			col = model->hmms[i]->hmm_column[j];
-			///col->identifier = -1;
-			for(c = 0; c < 5;c++){
-				col->i_emit[c] = org->hmms[i]->hmm_column[j]->i_emit[c];
-				col->m_emit[c] = org->hmms[i]->hmm_column[j]->m_emit[c];
-				
-				col->i_emit_e[c] = org->hmms[i]->hmm_column[j]->i_emit_e[c];
-				col->m_emit_e[c] =  org->hmms[i]->hmm_column[j]->m_emit_e[c];
-			}
-			
-			
-			
-			
-			col->transition[MM] =   org->hmms[i]->hmm_column[j]->transition[MM];//  prob2scaledprob( 0.999);
-			col->transition[MI] = org->hmms[i]->hmm_column[j]->transition[MI];// prob2scaledprob(1.0 - 0.999) +  prob2scaledprob(0.5);
-			col->transition[MD] = org->hmms[i]->hmm_column[j]->transition[MD];// prob2scaledprob(1.0 - 0.999) +  prob2scaledprob(0.5);
-			
-			col->transition[II] = org->hmms[i]->hmm_column[j]->transition[II];// prob2scaledprob(1.0 - 0.999);
-			col->transition[IM] = org->hmms[i]->hmm_column[j]->transition[IM];// prob2scaledprob(0.999);
-			
-			col->transition[DD] = org->hmms[i]->hmm_column[j]->transition[DD];// prob2scaledprob(1.0 - 0.999);
-			col->transition[DM] = org->hmms[i]->hmm_column[j]->transition[DM];// prob2scaledprob(0.999);
-			
-			col->transition_e[MM] =   org->hmms[i]->hmm_column[j]->transition_e[MM];//  prob2scaledprob( 0.999);
-			col->transition_e[MI] = org->hmms[i]->hmm_column[j]->transition_e[MI];// prob2scaledprob(1.0 - 0.999) +  prob2scaledprob(0.5);
-			col->transition_e[MD] = org->hmms[i]->hmm_column[j]->transition_e[MD];// prob2scaledprob(1.0 - 0.999) +  prob2scaledprob(0.5);
-			
-			col->transition_e[II] = org->hmms[i]->hmm_column[j]->transition_e[II];// prob2scaledprob(1.0 - 0.999);
-			col->transition_e[IM] = org->hmms[i]->hmm_column[j]->transition_e[IM];// prob2scaledprob(0.999);
-			
-			col->transition_e[DD] = org->hmms[i]->hmm_column[j]->transition_e[DD];// prob2scaledprob(1.0 - 0.999);
-			col->transition_e[DM] = org->hmms[i]->hmm_column[j]->transition_e[DM];// prob2scaledprob(0.999);
-			
-			
-			
-			for(c = 0;c <  (model->num_hmms-1);c++){
-				col->long_transition[c] = org->hmms[i]->hmm_column[j]->long_transition[c];
-				col->long_transition_e[c] = org->hmms[i]->hmm_column[j]->long_transition_e[c];
-			}
-			
-			
-			
-		}
-		
-	}
-	
-	return model;
-}
-*/
-/*
-struct model* add_estimates_to_model(struct model* target, struct model* source)
-{
-	
-	int i = 0;
-	int j = 0;
-	int len = 0;
-	int c = 0;
-	
-	struct hmm_column* col_target =0;
-	struct hmm_column* col_source =0;
-	len = target->hmms[0]->num_columns;
-	
-	for(i = 0; i < len;i++){
-		col_target = target->hmms[0]->hmm_column[i];
-		col_source = source->hmms[0]->hmm_column[i];
-		
-		//col->identifier = -1;
-		for(j = 0; j < 5;j++){
-			col_target->i_emit_e[j] = logsum(col_target->m_emit_e[j] ,col_source->m_emit[j] ); /// org->hmms[0]->hmm_column[i]->i_emit_e[j];
-			col_target->i_emit_e[j] = logsum(col_target->i_emit_e[j] ,col_source->i_emit[j] ); ///  org->hmms[0]->hmm_column[i]->m_emit_e[j];
-		}
-		col_target->transition_e[NEXT] = logsum(col_target->transition_e[NEXT] ,col_source->transition_e[NEXT] );
-		col_target->transition_e[SELF] = logsum(col_target->transition_e[SELF] ,col_source->transition_e[SELF] );
-
-		for(j = 0; j < target->num_hmms-1;j++){
-			//col_target->long_transition[j] = org->hmms[0]->hmm_column[i]->long_transition[j];// prob2scaledprob(1.0 - max) +  prob2scaledprob(0.5  /  (float) (model->num_hmms-1));
-			col_target->long_transition_e[j] = logsum(col_target->long_transition_e[j], col_source->long_transition_e[j]);// org->hmms[0]->hmm_column[i]->long_transition_e[j];
-		}
-		
-		
-	}
-	
-	
-	len = target->hmms[1]->num_columns;
-	for(i = 1; i< target->num_hmms;i++){
-		for(j = 0; j < len;j++){
-			col_target = target->hmms[i]->hmm_column[i];
-			col_source = source->hmms[i]->hmm_column[i];
-			//col = model->hmms[i]->hmm_column[j];
-			//col->identifier = -1;
-			for(c = 0; c < 5;c++){
-				//col->i_emit[c] = org->hmms[i]->hmm_column[j]->i_emit[c];
-				//col->m_emit[c] = org->hmms[i]->hmm_column[j]->m_emit[c];
-				
-				col_target->i_emit_e[c] = logsum(col_target->i_emit_e[c] , col_source->i_emit_e[c] ); //  org->hmms[i]->hmm_column[j]->i_emit_e[c];
-				col_target->m_emit_e[c] =  logsum(col_target->m_emit_e[c] , col_source->m_emit_e[c] );/// org->hmms[i]->hmm_column[j]->m_emit_e[c];
-			}
-			
-			
-			
-			
-						
-			col_target->transition_e[MM] = logsum(col_target->transition_e[MM] ,col_source->transition_e[MM] );//
-			col_target->transition_e[MI] = logsum(col_target->transition_e[MI] ,col_source->transition_e[MI] );//
-			col_target->transition_e[MD] = logsum(col_target->transition_e[MD] ,col_source->transition_e[MD] );//
-			
-			col_target->transition_e[II] = logsum(col_target->transition_e[II] ,col_source->transition_e[II] );//
-			col_target->transition_e[IM] = logsum(col_target->transition_e[IM] ,col_source->transition_e[IM] );//
-			
-			col_target->transition_e[DD] = logsum(col_target->transition_e[DD] ,col_source->transition_e[DD] );//
-			col_target->transition_e[DM] = logsum(col_target->transition_e[DM] ,col_source->transition_e[DM] );//
-		
-			
-			
-			
-			for(c = 0;c <  (target->num_hmms-1);c++){
-
-				col_target->long_transition_e[c] = logsum(col_target->long_transition_e[c],col_source->long_transition_e[c] ); //  org->hmms[i]->hmm_column[j]->long_transition_e[c];
-			}
-			
-			
-			
-		}
-		
-	}
-	return target;
-}
-
-*/
 
 struct model_bag* copy_model_bag(struct model_bag* org)
 {
@@ -3969,6 +3884,16 @@ struct model_bag* copy_model_bag(struct model_bag* org)
 	return copy;
 }
 
+
+/** \fn struct model* copy_model_parameters(struct model* org, struct model* copy )
+ 
+ \brief Copies HMM parametes into new HMM.
+
+ \param org  The original @ref model.
+  \param copy  The copy @ref model to be copied.
+ 
+ */
+
 struct model* copy_model_parameters(struct model* org, struct model* copy )
 {
 	int i,j,c;
@@ -4012,6 +3937,15 @@ struct model* copy_model_parameters(struct model* org, struct model* copy )
 }
 
 
+
+
+/** \fn struct model_bag* set_model_e_to_laplace(struct model_bag* mb)
+ 
+ \brief Sets all estiamted probabilities to 1.
+ 
+ \param mb  The model.
+ 
+ */
 
 struct model_bag* set_model_e_to_laplace(struct model_bag* mb)
 {
@@ -4066,6 +4000,15 @@ struct model_bag* set_model_e_to_laplace(struct model_bag* mb)
 
 
 
+
+/** \fn struct model* reestimate(struct model* m, int mode)
+ 
+ \brief Sets new model parameters based on estiamted probabilities from data.
+ 
+ \param mb  The model.
+  \param mode Sets which parameters should be optimized. 
+ 
+ */
 
 
 struct model* reestimate(struct model* m, int mode)
@@ -4291,6 +4234,18 @@ struct model* reestimate(struct model* m, int mode)
 }
 
 
+
+
+/** \fn struct model* copy_estimated_parameter(struct model* target, struct model* source )
+ 
+ \brief Sums eatimated parameters from different models. 
+ Used to merge results from multiple threads.
+ 
+ \param target  Model to hold the sums. 
+ \param source Model from which to copy parameters.
+ 
+ */
+
 struct model* copy_estimated_parameter(struct model* target, struct model* source )
 {
 	int i,j,c;
@@ -4344,6 +4299,18 @@ struct model* copy_estimated_parameter(struct model* target, struct model* sourc
 }
 
 
+
+
+
+/** \fn struct model_bag* init_model_bag(struct parameters* param,double* back)
+ 
+ \brief Initializes whole HMM model based on user input.
+ 
+  
+ \param param @ref parameters   Model to hold the sums.
+ \param back Backgound nucleotide probabilities. 
+ 
+ */
 
 struct model_bag* init_model_bag(struct parameters* param,double* back)
 {
@@ -4501,6 +4468,16 @@ struct model_bag* init_model_bag(struct parameters* param,double* back)
 	return mb;
 }
 
+
+
+/** \fn void free_model_bag(struct model_bag* mb)
+ 
+ \brief Frees whole HMM model.
+ 
+ 
+ \param mb @ref model_bag. 
+ 
+ */
 
 void free_model_bag(struct model_bag* mb)
 {

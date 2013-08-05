@@ -19,39 +19,55 @@
  
  */
 
+/*! \file io.h
+ \brief functions for reading sequences.
+ 
+ */
+
+/** \def LIST_STORE_SIZE
+ \brief Sets maximum number of read mappings. 
+ */
 #define LIST_STORE_SIZE 1
 
 #include "barcode_hmm.h"
 
 #define SEEK_START 0
 #define SEEK_END 2
-
+/**
+ * @brief Deals with fasta files. 
+ *
+ *  Stores sequences in one big string. 
+ */
 struct fasta{
-	unsigned char** sn;
-	unsigned char* string;
+	unsigned char** sn;/**<  @brief Sequence names.*/
+	unsigned char* string;/**< @brief Holds sequence information.*/
 	int* mer_hash;
 	int* boost;
 	int* s_index;
 	int* suffix;
-	int numseq;
+	int numseq;/**< @brief  Number of sequences.*/
 	int max_len;
 	int string_len;
 };
 
-
+/**
+ * @brief Stores reads from SAM/ fastq formatted files.  
+ *
+ *  
+ */
 struct read_info{
-	char* name;
-	char* qual;
-	char* seq;
-	char* labels;
+	char* name;/**<  @brief  Name of read.*/
+	char* qual;/**<  @brief Base qualities. */
+	char* seq;/**<  @brief Sequence.*/
+	char* labels;/**<  @brief Labeling according to HMM.*/
 	unsigned int* strand;
 	unsigned int* hits;
 	char* cigar;
 	char* md;
-	float mapq;
-	double prob;
-	double bar_prob;
-	int len;
+	float mapq;/**<  @brief Mapping Quality.*/
+	double prob;/**<  @brief Quality of read.*/
+	double bar_prob;/**< @brief Ambiguity */
+	int len;/**<  @brief Sequence length.*/
 	int errors;
 };
 

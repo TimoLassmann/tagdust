@@ -19,10 +19,22 @@
  
  */
 
+/*! \file nuc_code.c
+ \brief Initializes nucleotide conversion arrays. 
+ 
+ Initializes nucleotide arrays.
+ \author Timo Lassmann
+ \bug No known bugs.
+ */
 #include <stdlib.h>
 #include "tagdust2.h"
 #include "nuc_code.h"
 
+
+/** \fn void init_nuc_code()
+ \brief Initializes nucleotide conversion arrays. 
+ 
+ */
 void init_nuc_code()
 {
 	int i;
@@ -47,5 +59,6 @@ void init_nuc_code()
 	rev_nuc_code[2] = 1;//G	Guanine
 	rev_nuc_code[3] = 0;//T	Thymine
 	rev_nuc_code[4] = 4;//U	Uracil
-
 }
+
+

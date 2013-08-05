@@ -6,6 +6,14 @@
 //  Copyright (c) 2013 lassmann. All rights reserved.
 //
 
+
+/*! \file exact.h
+ \brief Functions to extract sequences without using errors.
+
+ \author Timo Lassmann
+ \bug No known bugs.
+ */
+
 #ifndef tagdust2_exact_h
 #define tagdust2_exact_h
 void exact_controller(struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ),int file_num);

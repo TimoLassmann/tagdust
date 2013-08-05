@@ -19,8 +19,26 @@
  
  */
 
+/*! \file nuc_code.h
+ \brief Declares arrays to convert nucleotide sequences. 
+ 
+ Initializes nucleotide alphabet needed to parse input.
+ \author Timo Lassmann
+ \bug No known bugs.
+ */
 
+/**
+ * @brief Converts nucleotides in ASCII to 0-5. 
+ *
+ *
+ */
 unsigned int nuc_code[255];
+
+/**
+ * @brief Converts 0-5 nucleotides into printable ASCII to.
+ *
+ *
+ */
 unsigned int rev_nuc_code[5];
 
 void init_nuc_code(void);

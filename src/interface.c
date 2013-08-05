@@ -19,13 +19,25 @@
  
  */
 
+
+/*! \file interface.c
+ \brief Functions to deal with user inputs.
+ */
+
+
 #include "tagdust2.h"
 #include "interface.h"
 #include "io.h"
 #include "misc.h"
 
 
-
+/** \fn struct parameters* interface(struct parameters* param,int argc, char *argv[])
+ \brief Read command line options into @ref parameters.
+ 
+ \param param nucleotide sequence.
+ \param argc number of command line arguments.
+  \param argv command line arguments.
+ */
 struct parameters* interface(struct parameters* param,int argc, char *argv[])
 {
 	int i,c,f,g;
@@ -286,6 +298,13 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	return param;
 }
 
+/** \fn struct parameters* assign_segment_sequences(struct parameters* param, char* tmp, int segment)
+ \brief Assigns sequences to segments.
+ 
+ \param param @ref parameters 
+ \param tmp sequences from user input.
+ \param segment number of segment.
+ */
 struct parameters* assign_segment_sequences(struct parameters* param, char* tmp, int segment)
 {
 	int i,f,g;
@@ -328,6 +347,9 @@ struct parameters* assign_segment_sequences(struct parameters* param, char* tmp,
 }
 
 
+/** \fn void usage()
+ \brief Prints usage.
+ */
 void usage()
 {
 	fprintf(stdout, "\n%s %s, Copyright (C) 2013 Timo Lassmann <%s>\n",PACKAGE_NAME, PACKAGE_VERSION,PACKAGE_BUGREPORT);
@@ -354,10 +376,13 @@ void usage()
 }
 
 
+/** \fn void free_param(struct parameters* param)
+ \brief free @ref parameters.
+ */
 void free_param(struct parameters* param)
 {
 	int i,j;
-	for(i = 0; i < 5;i++){
+	for(i = 0; i < 10;i++){
 		if(param->read_structure->sequence_matrix[i]){
 			for(j = 0; j < param->read_structure->numseq_in_segment[i];j++){
 				free(param->read_structure->sequence_matrix[i][j]);

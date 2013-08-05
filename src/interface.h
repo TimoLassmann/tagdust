@@ -61,10 +61,10 @@
  * This structure is used to hold the read architecture as specified by the user. 
  */
 struct read_structure{
-	char*** sequence_matrix; /**<  Three dimensional character array containing all user specified segments. */
-	int* numseq_in_segment;/**<  Number of sequences in each segment. */
-	char* type; /**<  Type of each segment. */
-	int num_segments; /**<  Number of segments. */
+	char*** sequence_matrix; /**<  @brief Three dimensional character array containing all user specified segments. */
+	int* numseq_in_segment;/**< @brief Number of sequences in each segment. */
+	char* type; /**<  @brief Type of each segment. */
+	int num_segments; /**< @brief Number of segments. */
 
 };
 
@@ -74,13 +74,13 @@ struct read_structure{
  * This structure is used to hold all command line parameters. 
  */
 struct parameters {
-	char** infile; /**<  Names of input files. */
+	char** infile; /**< @brief Names of input files. */
 	struct read_structure* read_structure; 
-	char* outfile;/**<  Output file name. */
-	char* reference_fasta;/**<  Name of fasta file containing known artifacts ti be matched against. . */
-	int infiles;/**<  Number of input files. */
+	char* outfile;/**< @brief Output file name. */
+	char* reference_fasta;/**< @brief Name of fasta file containing known artifacts to be matched against. . */
+	int infiles;/**<  @brief Number of input files. */
 	int quiet_flag;
-	int num_query;/**<  Number of sequences to read at one time. */
+	int num_query;/**< @brief Number of sequences to read at one time. */
 	char* format;
 	char* filter;
 	char* train;
@@ -90,14 +90,14 @@ struct parameters {
 	int dust;
 	int sam;
 	int fasta;
-	float sequencer_error_rate;/**<  Expected error rate of sequencer.  */
-	float indel_frequency;/**<  Fraction of insertions and deletions among sequencer_error_rate. */
-	int average_read_length;/**<  Average read length. */
-	int num_threads;/**<  Number of threads. */
+	float sequencer_error_rate;/**<  @brief Expected error rate of sequencer.  */
+	float indel_frequency;/**< @brief Fraction of insertions and deletions among sequencer_error_rate. */
+	int average_read_length;/**< @brief Average read length. */
+	int num_threads;/**< @brief Number of threads. */
 	float confidence_threshold;
 	int matchstart;
 	int matchend;
-	int minlen;/**<  Minium accepted read length.  */
+	int minlen;/**< @brief Minium accepted read length.  */
 	int sim;
 	int numbarcode;
 	int filter_error; 

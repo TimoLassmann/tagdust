@@ -19,6 +19,11 @@
  
  */
 
+/*! \file io.c
+ \brief functions for reading sequences.
+ 
+ Initializes nucleotide alphabet needed to parse input. Calls parameter parser. Calls functions to process the data. \author Timo Lassmann \bug No known bugs.
+ */
 
 #include <ctype.h>
 
@@ -32,7 +37,12 @@
 
 
 
-	
+/** \fn int qsort_ri_prob_compare(const void *a, const void *b)
+ \brief Compares reads based their probability.
+ Used to sort arrays of string using qsort.
+ \param a void pointer to first @ref read_info.
+ \param b void pointer to second @ref read_info.
+ */
 int qsort_ri_prob_compare(const void *a, const void *b)
 {
 	
@@ -54,6 +64,18 @@ int qsort_ri_prob_compare(const void *a, const void *b)
 		return 0;
 }
 
+
+/** \fn FILE* io_handler(FILE* file, int file_num,struct parameters* param)
+ \brief Opens stream to files. 
+ 
+ Recognizes file types by prefix. 
+ 
+ Used to sort arrays of string using qsort.
+ \param file empty file pointer.
+  \param file_num index of input file.
+ \param param @ref parameters.
+
+ */
 
 FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 {
@@ -214,6 +236,16 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 }
 
 
+
+/** \fn void print_sequence(struct read_info* ri,FILE* out)
+ \brief Prints sequence and quality string to file.  
+
+ \param ri @ref read_info containing the sequence.
+ \param out Pointer to output file. 
+ \deprecated use @ref print_seq instead. 
+
+ */
+
 void print_sequence(struct read_info* ri,FILE* out)
 {
 	int i;
@@ -225,6 +257,14 @@ void print_sequence(struct read_info* ri,FILE* out)
 	fprintf(out,"\n+\n%s\n" ,ri->qual);
 }
 
+
+/** \fn int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  struct read_info* ri,FILE* out)
+ \brief Prints out read based on labels.
+ 
+ This function compared the sequence labels to the specification of the users and prints out the extracted read sequence.
+ \deprecated Not used anymore - everything is done within threads. 
+ 
+ */
 int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  struct read_info* ri,FILE* out)
 {
 	int j,c1,c2,c3,key,bar,mem,fingerlen,required_finger_len,ret;
@@ -403,26 +443,14 @@ int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  stru
 }
 
 
-void print_just_seq(struct read_info* ri,FILE* out)
-{
-	char alphabet[] = "ACGTN";
-	int i;
-	fprintf(out,"@%s\n",ri->name);
-	for(i =0;i < ri->len;i++){
-		fprintf(out,"%c",alphabet[(int) ri->seq[i]]);
-	}
-	fprintf(out,"\n+\n");
-	if(ri->qual){
-		fprintf(out,"%s",ri->qual);
-	}else{
-		for(i =0;i < ri->len;i++){
-			fprintf(out,".");
-		}
-	}
-	fprintf(out,"\n");
-}
 
-
+/** \fn void print_seq(struct read_info* ri,FILE* out)
+ \brief Prints sequence and quality string to file.
+ If the quality string is empty it is replaced by '.' characters. 
+ \param ri @ref read_info containing the sequence.
+ \param out Pointer to output file.
+ 
+ */
 void print_seq(struct read_info* ri,FILE* out)
 {
 	char alphabet[] = "ACGTN";
@@ -443,6 +471,15 @@ void print_seq(struct read_info* ri,FILE* out)
 }
 
 
+/** \fn int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file)
+ \brief Reads sequences from SAM / BAM file. 
+Sequences are converted to 0-4 strings. 
+ 
+ \param ri Array of @ref read_info to hold the sequences.
+ \param param @ref parameters .  
+ \param file Pointer to input file.
+ 
+ */
 int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file)
 {
 	char line[MAX_LINE];
@@ -474,8 +511,6 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file)
 		ri[i]->errors = -1;
 		ri[i]->cigar = 0;
 		ri[i]->md = 0;
-		//ri[i]->read_start = -1;
-		//ri[i]->read_end = -1;
 		
 	}
 	
@@ -615,11 +650,7 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file)
 			}
 			tmp = byg_end("NM:i:", line  );
 			if(tmp){
-				ri[c]->errors = atoi(line+tmp);
-				//if(ri[c]->errors > 20){
-				///fprintf(stderr,"%s\n,%c,%c,%c,%d\n",line, *(line +tmp), *(line +tmp+1),*(line +tmp+2), ri[c]->errors); 
-				//}
-				
+				ri[c]->errors = atoi(line+tmp);				
 			}else{
 				ri[c]->errors = -1;								
 			}	
@@ -660,6 +691,17 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file)
 	}
 	return c;
 }
+
+
+/** \fn int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
+ \brief Reads sequences from fasta / fastq file.
+ Sequences are converted to 0-4 strings.
+ 
+ \param ri Array of @ref read_info to hold the sequences.
+ \param param @ref parameters .
+ \param file Pointer to input file.
+ 
+ */
 
 int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file) 
 {
@@ -792,7 +834,14 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
 	return size;
 }
 
+/** \fn struct fasta* get_fasta(struct fasta* p,char *infile)
+ \brief Old Kalign function to read in fasta sequences.
+ All sequences are read into one array indexed by pointers. 
+ \param p @ref fasta struct to hold sequences.
 
+ \param infile Pointer to input file.
+ 
+ */
 
 struct fasta* get_fasta(struct fasta* p,char *infile)
 {
@@ -810,6 +859,15 @@ struct fasta* get_fasta(struct fasta* p,char *infile)
 	return p;
 }
 
+
+
+/** \fn unsigned char* get_input_into_string(unsigned char* string,char* infile)
+ \brief Old Kalign function to copy file content into a string. 
+ All sequences are read into one array indexed by pointers.
+ \param string target string.
+ \param infile Pointer to input file.
+ 
+ */
 
 unsigned char* get_input_into_string(unsigned char* string,char* infile)
 {
@@ -841,6 +899,16 @@ unsigned char* get_input_into_string(unsigned char* string,char* infile)
 	
 	return string;
 }
+
+
+/** \fn struct fasta* read_fasta(struct fasta* f)
+ \brief Old Kalign function to set pointers to start of sequence names, sequences ...
+ 
+ Also sets the sequence lengths. 
+ \param string target string.
+ \param f @ref fasta .
+ 
+ */
 
 
 struct fasta* read_fasta(struct fasta* f)
@@ -928,6 +996,11 @@ struct fasta* read_fasta(struct fasta* f)
 }
 
 
+/** \fn void free_fasta(struct fasta*f)
+ 
+ \brief frees @ref fasta .
+ \param f @ref fasta.
+ */
 void free_fasta(struct fasta*f)
 {
 	int i;
