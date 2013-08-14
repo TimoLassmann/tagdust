@@ -74,7 +74,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->indel_frequency = 0.1f;
 	param->average_read_length = 50;
 	param->numbarcode = 8;
-	param->confidence_threshold = 20.0;//ence
+	param->confidence_threshold = 10.0;//ence
 	
 	param->read_structure = 0;
 	param->filter_error = 2;
@@ -99,7 +99,6 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	}
 	
 	param->read_structure->num_segments = 0;
-	
 		
 	while (1){	 
 		static struct option long_options[] ={

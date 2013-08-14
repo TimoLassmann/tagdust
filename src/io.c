@@ -924,6 +924,7 @@ struct fasta* read_fasta(struct fasta* f)
 	nbytes = (int) strlen((char*) f->string);
 	f->numseq = 0;
 	f->max_len = -1;
+	f->mer_hash = 0;
 	//aln->org_seq = 0;
 	stop = 0;
 	
@@ -983,9 +984,7 @@ struct fasta* read_fasta(struct fasta* f)
 			n++;
 			len++;
 		}
-		//}
 	}
-	
 	
 	f->s_index[c] = n;
 	f->string[n] = 'X';
@@ -1000,6 +999,7 @@ struct fasta* read_fasta(struct fasta* f)
  
  \brief frees @ref fasta .
  \param f @ref fasta.
+ \warning I used to free f->mer_hash even though it is allocated / used in this project.... 
  */
 void free_fasta(struct fasta*f)
 {
@@ -1007,7 +1007,9 @@ void free_fasta(struct fasta*f)
 	for (i =0;i < f->numseq;i++){
 		free(f->sn[i]);
 	}
-	free(f->mer_hash);
+	if(f->mer_hash){
+		free(f->mer_hash);
+	}
 	if(f->suffix){
 		free(f->suffix);
 	}

@@ -30,9 +30,6 @@
 \tikzstyle{mainstate}=[state,thick]
 \tikzstyle{mainedge}=[->,thick]
 
-%\renewcommand{\chaptername}{}
-%\renewcommand{\thechapter}{}
-
 \definecolor{black}{RGB}{0,0,0}
 \definecolor{darkgrey}{RGB}{64,64,64}
 \definecolor{grey}{RGB}{127,127,127}
@@ -163,273 +160,10 @@ TagDust allows users to specify the expected architecture of a read and converts
 %\begin{wrapfigure}{l}{1\textwidth}
 
 \begin{figure}[h]
- \begin{tikzpicture}[]
- \tiny
 
-\draw[rounded corners=4pt,draw=lightgrey, fill=lightgrey] (-0.75,4.5)	rectangle (0.75,-4);
 
-\draw[rounded corners=4pt,draw=lightred, fill=lightred] (1.5,4.5)	rectangle (4.5,-4);
- 
+\includegraphics[scale = 0.9]{figures/figure1.pdf}
 
-\draw[rounded corners=4pt,draw=blue, fill=blue] (5.25,4.5)	rectangle (6.75,-4);
-  
-\draw[rounded corners=4pt,draw=lightgrey, fill=lightgrey] (7.5,4.5)	rectangle (13.5,-4);
-
- \node  at (0,4)  [font=\Large,style={align=center}] () {{\bf Opt}};
- 
- \node  at (3,4)  [font=\Large,style={align=center}] () {{\bf Barcode}};
- 
-%  \node  at (3,2+1.75)  [font=\Large,style={align=center}] () {{\bf 1}};
-  
- %   \node  at (3,-2+ 1.75)  [font=\Large,style={align=center}] () {{\bf 2}};
-  \node  at (6,4)  [font=\Large,style={align=center}] () {{\bf Read}};
-  
-    \node  at (10.5,4)  [font=\Large,style={align=center}] () {{\bf Linker}};
-    
-\draw[
-        -triangle 90,
-        line width=2mm,
-        postaction={draw, line width=0.5cm, shorten >=0.5cm, -}
-    ] (6,-4.5) -- node[right=0.5,font =\Large] {{\bf Decoding}} (6,-5.5) ;
-    
-  \node[draw=white, thick,font=\Large] at (6,-6)  {\bf {\color{lightgrey}C}{\color{lightred}GTA}{\color{blue}GGGGAACCCCGCCTGTTTACCAAAAACATCA}{\color{lightgrey}CCTTA}} ;
-  
-  \draw[
-        -triangle 90,
-        line width=2mm,
-        postaction={draw, line width=0.5cm, shorten >=0.5cm, -}
-    ] (6,-6.5) -- node[right=0.5,font =\Large] {{\bf Output}} (6,-7.5) ;
-  
-  \node[style={align=left},text width=20em,draw=white, thick,font=\Large] at (2,-8)  {\bf  $>$READ X, {\color{lightred}Barcode GTA}  } ;
-   \node[style={align=left},text width=20em,draw=white, thick,font=\Large] at (2,-8.5)  {\bf   {\color{blue}GGGGAACCCCGCCTGTTTACCAAAAACATCA}} ;
-  
-  
-\begin{scope}[shift={(-1.5,0)}];
-\node[Dstate] (START) at (0,0){$S$};
-\end{scope}
-
-\begin{scope}[shift={(0,1.5)}];
-\node[Mstate] (O1) at (0,0){\shortstack{ A\\  C\\  G\\ T} };
-\end{scope}
-
-\begin{scope}[shift={(2,2)}];
-\node[Dstate] (d1) at (0,1){$D$};
-\node[Istate] (i1) at (0,0){$I$};
-\node[Mstate] (m1) at (0,-1.2){\shortstack{ {\color{black!40}A}\\   {\color{black!40}C}\\  {\bf G}\\   {\color{black!40}T}} };
-
-
-
-\node[Dstate] (d2) at (1,1){$D$};
-\node[Istate] (i2) at (1,0){$I$};
-\node[Mstate] (m2) at (1,-1.2){\shortstack{ {\color{black!40}A}\\   {\color{black!40}C}\\   {\color{black!40}G}\\   {\bf T}} };
-
-
-\node[Dstate] (d3) at (2,1){$D$};
-\node[Istate] (i3) at (2,-0){$I$};
-\node[Mstate] (m3) at (2,-1.2){\shortstack{ {\bf A}\\   {\color{black!40}C}\\   {\color{black!40}G}\\   {\color{black!40}T}} };
-\end{scope}
-
-
-\begin{scope}[shift={(2,-2)}];
-
-\node[Dstate] (d4) at (0,1){$D$};
-\node[Istate] (i4) at (0,0){$I$};
-\node[Mstate] (m4) at (0,-1.2){\shortstack{ {\bf A}\\   {\color{black!40}C}\\   {\color{black!40}G}\\   {\color{black!40}T}} };
-
-
-
-\node[Dstate] (d5) at (1,1){$D$};
-\node[Istate] (i5) at (1,0){$I$};
-\node[Mstate] (m5) at (1,-1.2){\shortstack{ {\bf A}\\   {\color{black!40}C}\\   {\color{black!40}G}\\   {\color{black!40}T}} };
-
-
-\node[Dstate] (d6) at (2,1){$D$};
-\node[Istate] (i6) at (2,-0){$I$};
-\node[Mstate] (m6) at (2,-1.2){\shortstack{ {\color{black!40}A}\\   {\bf C}\\   {\color{black!40}G}\\   {\color{black!40}T}} };
-\end{scope}
-
-
-
-\begin{scope}[shift={(6,0)}];
-
-
-
-\node[Mstate] (R1) at (0,0){\shortstack{ A\\  C \\ G \\   T} };
-\end{scope}
-
-
-
-\begin{scope}[shift={(8,2)}];
-
-%CCTTAAGG
-\node[Dstate] (dl1) at (0,1){$D$};
-\node[Istate] (il1) at (0,0){$I$};
-\node[Mstate] (ml1) at (0,-1.2){\shortstack{ {\color{black!40}A}\\  {\bf C} \\   {\color{black!40}G}\\ {\color{black!40}T}} };
-
-
-
-\node[Dstate] (dl2) at (1,1){$D$};
-\node[Istate] (il2) at (1,0){$I$};
-\node[Mstate] (ml2) at (1,-1.2){\shortstack{ {\color{black!40}A}\\   {\bf C}\\   {\color{black!40}G}\\   {\color{black!40}T}} };
-
-
-\node[Dstate] (dl3) at (2,1){$D$};
-\node[Istate] (il3) at (2,-0){$I$};
-\node[Mstate] (ml3) at (2,-1.2){\shortstack{ {\color{black!40}A}\\   {\color{black!40}C}\\   {\color{black!40}G}\\   {\bf T}} };
-
-\node[Dstate] (dl4) at (3,1){$D$};
-\node[Istate] (il4) at (3,0){$I$};
-\node[Mstate] (ml4) at (3,-1.2){\shortstack{ {\color{black!40}A}\\   {\color{black!40}C}\\   {\color{black!40}G}\\   {\bf T}} };
-
-\node[Dstate] (dl5) at (4,1){$D$};
-\node[Istate] (il5) at (4,0){$I$};
-\node[Mstate] (ml5) at (4,-1.2){\shortstack{ {\bf A}\\   {\color{black!40}C}\\   {\color{black!40}G}\\   {\color{black!40}T}} };
-\node[Dstate] (dl6) at (5,1){$D$};
-\node[Istate] (il6) at (5,-0){$I$};
-\node[Mstate] (ml6) at (5,-1.2){\shortstack{ {\bf A } \\   {\color{black!40}C}\\   {\color{black!40}G}\\   {\color{black!40}T}} };
-\end{scope}
-
-\begin{scope}[shift={(14,-2)}];
-\node[Dstate] (END) at (0,0){$E$};
-\end{scope}
-
- \path 
- 
-(START) edge [lightedge] (O1)
-
-(START) edge [lightedge] (m1)
-
-(START) edge [lightedge] (m4)
- 
-(O1) edge [lightedge, loop above] ()
-(R1) edge [lightedge, loop above] ()
-    
-(O1)edge [lightedge] (m1)
-(O1)edge [lightedge] (m4)
-(R1)edge [lightedge] (ml1)
-
-(ml1.south)edge [lightedge] (END)
-(ml2.south)edge [lightedge] (END)
-(ml3.south)edge [lightedge] (END)
-(ml4.south)edge [lightedge] (END)
-(ml5.south)edge [lightedge] (END)
-(ml6.south)edge [lightedge] (END)
-
-
-(m3)edge [lightedge] (R1)
-(m6)edge [lightedge] (R1)
-
-(m1) edge [lightedge] (m2) 
-(m1) edge [lightedge] (d2) 
-(m1) edge [lightedge] (i1)
-   
-(i1) edge [lightedge,loop above] ()
-(i1) edge  [lightedge] (m2)
-(i1) edge [lightedge, loop above] ()
-(d1) edge  [lightedge,->] (d2)
-(d1) edge  [lightedge,->] (m2)
-
-(m2) edge [lightedge] (m3) 
-(m2) edge [lightedge] (d3) 
-(m2) edge [lightedge] (i2)
-   
-(i2) edge [lightedge,loop above] ()
-(i2) edge  [lightedge] (m3)
-(i2) edge [lightedge, loop above] ()
-(d2) edge  [lightedge,->] (d3)
-(d2) edge  [lightedge,->] (m3)
-
-
-(m3) edge [lightedge] (i3)
-   
-(i3) edge [lightedge,loop above] ()
-
-(i3) edge [lightedge, loop above] ()
-
-
-(m4) edge [lightedge] (m5) 
-(m4) edge [lightedge] (d5) 
-(m4) edge [lightedge] (i4)
-   
-(i4) edge [lightedge,loop above] ()
-(i4) edge  [lightedge] (m5)
-(i4) edge [lightedge, loop above] ()
-(d4) edge  [lightedge,->] (d5)
-(d4) edge  [lightedge,->] (m5)
-
-(m5) edge [lightedge] (m6) 
-(m5) edge [lightedge] (d6) 
-(m5) edge [lightedge] (i5)
-   
-(i5) edge [lightedge,loop above] ()
-(i5) edge  [lightedge] (m6)
-(i5) edge [lightedge, loop above] ()
-(d5) edge  [lightedge,->] (d6)
-(d5) edge  [lightedge,->] (m6)
-
-
-(m6) edge [lightedge] (i6)
-   
-(i6) edge [lightedge,loop above] ()
-
-
- 
-(ml1) edge [lightedge] (ml2) 
-(ml1) edge [lightedge] (dl2) 
-(ml1) edge [lightedge] (il1)
-   
-(il1) edge [lightedge,loop above] ()
-(il1) edge  [lightedge] (ml2)
-(il1) edge [lightedge, loop above] ()
-(dl1) edge  [lightedge,->] (dl2)
-(dl1) edge  [lightedge,->] (ml2)
-
-(ml2) edge [lightedge] (ml3) 
-(ml2) edge [lightedge] (dl3) 
-(ml2) edge [lightedge] (il2)
-   
-(il2) edge [lightedge,loop above] ()
-(il2) edge  [lightedge] (ml3)
-(il2) edge [lightedge, loop above] ()
-(dl2) edge  [lightedge,->] (dl3)
-(dl2) edge  [lightedge,->] (ml3)
-
-
-(ml3) edge [lightedge] (ml4) 
-(ml3) edge [lightedge] (dl4) 
-(ml3) edge [lightedge] (il3)
-   
-(il3) edge [lightedge,loop above] ()
-(il3) edge  [lightedge] (ml4)
-(il3) edge [lightedge, loop above] ()
-(dl3) edge  [lightedge,->] (dl4)
-(dl3) edge  [lightedge,->] (ml4)
-
-
-(ml4) edge [lightedge] (ml5) 
-(ml4) edge [lightedge] (dl5) 
-(ml4) edge [lightedge] (il4)
-   
-(il4) edge [lightedge,loop above] ()
-(il4) edge  [lightedge] (ml5)
-(il4) edge [lightedge, loop above] ()
-(dl4) edge  [lightedge,->] (dl5)
-(dl4) edge  [lightedge,->] (ml5)
-
-
-
-(ml5) edge [lightedge] (ml6) 
-(ml5) edge [lightedge] (dl6) 
-(ml5) edge [lightedge] (il5)
-   
-(il5) edge [lightedge,loop above] ()
-(il5) edge  [lightedge] (ml6)
-(il5) edge [lightedge, loop above] ()
-(dl5) edge  [lightedge,->] (dl6)
-(dl5) edge  [lightedge,->] (ml6)
-;
-
-\end{tikzpicture}
 \caption{A HMM specifies the expected architecture of the raw sequence. After decoding sequences are segmented into the components of the architecture. Based on the segmentation, a barcode is assigned to each read and remaining sequences are trimmed.}
 \label{figure1}
 \end{figure}
@@ -448,7 +182,7 @@ TagDust allows users to specify the expected architecture of a read and converts
 Unpack the tarball:
 
 \begin{verbatim}
-bash-3.1$ tar -zxvf tagdust-2.0.tar.gz 
+bash-3.1$ tar -zxvf tagdust-2.02.tar.gz 
 \end{verbatim}
 
 \begin{verbatim}
@@ -482,7 +216,7 @@ bash-3.1$ tagdust [-options] <input file>
 \begin{tabular}{| l | l | p{12cm}|}
 \hline
 \rowcolor{blue} \textcolor{white}{\scshape Option}		&\textcolor{white}{\scshape Type}		&	\textcolor{white}{\scshape Description}\\ \hline
--threshold & FLT & confidence threshold [0.99].\\
+-threshold & FLT & read quality threshold [10].\\
 -start & INT & start of search area [0].\\
 -end & INT & end of  search area [length of sequence].\\
 -format & STR & format of input sequence file.\\
@@ -501,7 +235,7 @@ bash-3.1$ tagdust [-options] <input file>
 \end{center}
 \section{Notes}
 \subsection{Threshold}
-The {\tt -threshold} option sets the minimum acceptable probability of a read to belong to the specified architecture. If the reads are very short or the model very simple (e.g. 3 nucleotide barcode followed by the read) this threshold might have to be lowered.
+The {\tt -threshold} option sets the minimum acceptable read quality analogous to the mapping quality Q. If the reads are very short or the model very simple (e.g. 3 nucleotide barcode followed by the read) this threshold might have to be lowered.
 
 \subsection{Removing Known Contaminants (e.g. ribosomal RNA sequences).}
 Known contaminants or unwanted reads can be filtered from the output by pointing TagDust to a reference fasta to be matched against ({\tt -ref <filename>} ). The maximum number of errors allowed for a match to reference is set with the {\tt -fe} option.
@@ -1063,28 +797,21 @@ Note on the last line I restricted the search to the first 25 nucleotides for ef
 
 \section{Sequence scoring} 
 
-TagDust implements the basic forward and backward algorithm as described in \citep{durbin}. For each sequence the logs odds score is defined by the summed probability of all paths (forward score) divided by the probability of a background zero order Markov model. The latter is parameterized based on the length and nucleotide distribution in the input reads. 
+In short read mapping the mapping quality Q reflects the confidence we have in one particular mapping location over all others \cite{MAQ}. Analogously, TagDust2 compares the probability of each read matching to the user specified HMM to the total summed probability including a random model:
 
 \begin{equation}
-	S  = log \left(  \frac{P(M)}{P(R)} \right) + log \left(\frac{\sum\limits_{\pi} P(x,\pi | M )}{P(x | R ) } \right)
-\end{equation}
+P = 1 - \frac{P(x|M)*V}{P(x|M) + P(x|R)}
+\end{equation} 
 
-The prior probabilities $P(M)$ and  $P(R)$ are set to 0.9 and 0.1 respectively. Finally, the log odds score is converted into a probability using the logistic function:
-
-\begin{equation}
-	P(M | x) = \frac{e^S}{1-e^S}
-\end{equation}
-
-If barcodes are present TagDust calculated an additional confidence score. At every building block containing multiple transitions from the silent state to HMMs, TagDust calculates the maximum probability of selecting one particular transition:       
-
+where $P(x|M)$ is the total summed probability of a read matching the model derived by the forward algorithm and $P(x|R)$ is the probability of the read give a random zero order Markov model. $V$ represents the fraction of $P(x|M)$ corresponding to the most likely barcode sequence. It is derived by using the backward and forward algorithm at each mutual exclusive transition:
 
 \begin{equation}
-	V = \max_j \left( \frac{f_s(i)  ( a_{s,m_j} e_{m_j}(x+1) b_{m_j}(i+1)+  a_{s,I_j} e_{I_j}(x+1) b_{I_j}(i+1))}{\sum\limits_{\pi} P(x,\pi | M )}\right)
+	V = \max_j \left( \frac{f_s(i)   a_{s,m_j} e_{m_j}(x+1) b_{m_j}(i+1)}{\sum\limits_{\pi} P(x,\pi | M )}\right)
 \end{equation}
 
-where $m_j$ and $I$ are the first match and insert states of a barcode HMM model. In essence this probability reflects how confident we are in selecting one barcode over any other. 
+where $ a_{s,m_j}$ is the transition from a silent to the first match state $m_j$ of a HMM modeling a barcode.  
+ 
 
-As a default TagDust only extracts reads if $V$ is greater than 0.5 and $P(M | x)$ is greater than 0.99.
 
 \section{Implementation} 
 
@@ -1097,19 +824,6 @@ To obtain the most probably labeling of the sequence, we employ the optimal accu
 
 If fingerprints are present TagDust checks at this stage if the length after decoding matches the users input. If not the read is discarded. 
 
-\chapter{Benchmarks}
-
-We created a small program to simulate barcodes datasets. Parameters include the length of the barcodes, the number of barcodes / libraries, the expected error rate and index frequency. The program automatically maximizes the minimum hamming distance among barcodes. For each test we simulated 900k reads containing a 5' barcode followed by a 20nt read. In addition we added 100k random sequences. 
-We compared TagDust using default parameters (fairly strict) to the fastx\_barcode\_splitter.pl script of the FASTX package(http://hannonlab.cshl.edu/fastx\_toolkit/).  
-
-\begin{figure}[H]
-\includegraphics[scale = 0.65]{figures/8Barcodes1Indels.pdf}
-\caption{Number of extracted and correctly extracted reads as a function of error rate. The read line indicates the maximum number of reads that should be extracted. When the error rate is high or the barcode sequence is short TagDust is conservative and extract fewer reads. However, TagDust only mis-assigns a tiny fraction reads (here the maximum is 0.43\%)  compared to FASTX. Note that the axis are on different scales.}
-\end{figure}
-\begin{figure}
-\includegraphics[scale = 0.65]{figures/96Barcodes1Indels.pdf}
-\caption{Number of extracted and correctly extracted reads as a function of error rate. The read line indicates the maximum number of reads that should be extracted. In the case of short 4 nucleotide barcodes, TagDust does not extract any reads with default parameters. In this case FASTX extract 100\% of the reads but mis-assigns 13 - 25\%. The maximum error rate for TagDust is only 0.447\%. Note that the axis are on different scales.}
-\end{figure}
 
 
 %\chapter{Acknowledgements }

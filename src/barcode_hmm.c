@@ -381,7 +381,6 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 			switch ((int) ri[i]->prob) {
 					
 				case EXTRACT_SUCCESS:
-					
 					print_sequence(ri[i],outfile);
 					li->num_EXTRACT_SUCCESS++;
 					break;
@@ -600,6 +599,9 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 			col->transition[II] = prob2scaledprob(0.0f );// 1.0 - base_error * indel_freq);
 			col->transition[IM] = prob2scaledprob(0.0f );//(base_error * indel_freq) +  prob2scaledprob(0.5);
 			col->transition[ISKIP] = prob2scaledprob(1.0);
+			
+			
+			
 		}
 			
 		//fprintf(stderr,"%f	skip\n", scaledprob2prob(model->skip));

@@ -26,10 +26,31 @@
  @author Timo Lassmann
  
  
- Here you should tell us about how your project works. How to run, any special things you have, etc. Also, explain any non-trivial design decisions you make. If you are working with a partner, clearly State what is each person’s contribution. You should
- also comment on the stability of your code. Any big bugs should be listed here. Basically, anything that you think we need to know in general about your project should go here.
- Any additional comments you want to make can go here. Did you like the project? Was it too hard, too easy? My TA smells bad. Well, you get the idea.
- This initial documentation here should be removed. Or else you loose points.
+ Raw sequences produced by next generation sequencing (NGS) machines may contain adapter, linker, barcode and fingerprint sequences. TagDust2 is a program to extract and correctly label the sequences to be mapped in downstream pipelines.
+ 
+ TagDust allows users to specify the expected architecture of a read and converts it into a hidden Markov model. The latter can assign sequences to a particular barcode (or index) even in the presence of sequencing errors. Sequences not matching the architecture (primer dimers, contaminants etc.) are automatically discarded).
+
+ \image html figure1.jpg
+  \image latex figure1.eps "Overview of the TagDust workflow. Sequences are labelled according to the HMM architecture and relevant information written to the output." width=10cm
+ 
+ 
+Copyright 2013 Timo Lassmann (timolassmann@gmail.com)
+ 
+ This document is free;  you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ 
+ This document is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ 
+ You should have received a copy of the GNU General Public License
+ along with TagDust.
+ 
+ If not, see (http://www.gnu.org/licenses/).
+
  
  */
 
@@ -111,19 +132,15 @@ int main (int argc,char * argv[]) {
 		}else if (!strcmp(".fasta.gz", param->infile[i] + (strlen(param->infile[i] ) - 9))){
 			param->sam = 0;
 			param->gzipped  = 1;
-			
 		}else if (!strcmp(".fastq.bz2", param->infile[i] + (strlen(param->infile[i] ) - 10))){
 			param->sam = 0;
 			param->bzipped  = 1;
 		}else if (!strcmp(".fq.bz2", param->infile[i] + (strlen(param->infile[i] ) - 7))){
 			param->sam = 0;
 			param->bzipped  = 1;
-
 		}else{
 			param->sam = -1;
 		}
-		
-		
 		
 		if(param->sam != -1){
 			if(param->sam == 0){

@@ -1,5 +1,5 @@
 \documentclass{article}
-\usepackage[margin=0.0cm,  left=0.0cm, paperwidth=18cm, paperheight=14cm]{geometry}
+\usepackage[margin=0.2cm,  left=0.0cm, paperwidth=18.5cm, paperheight=17cm]{geometry}
 \usepackage{tikz}
 \usetikzlibrary{shapes}
 \usetikzlibrary{calc,backgrounds}
@@ -59,6 +59,29 @@
 \begin{document}
 \begin{tikzpicture}[]
  \tiny
+ 
+ 
+ \node[shape=circle,draw=black,thick,font =\Large] at (-3,6.5) {\bf 1};
+ \node[shape=circle,draw=black,thick,font =\Large] at (-3,0) {\bf 2};
+  \node[shape=circle,draw=black,thick,font =\Large] at (-3,-6) {\bf 3};
+   \node[shape=circle,draw=black,thick,font =\Large] at (-3,-8) {\bf 4};
+ 
+   \node[style={align=center},draw = black, thick,font=\large] at (6,6.5)  { \tt tagdust2 -1 O:N -2 B:GTA,AAC -3 R:N -4 L:CCTTAA  reads.fq} ;
+   
+   
+  \draw[
+        -triangle 90,
+        line width=2mm,
+        postaction={draw, line width=0.5cm, shorten >=0.5cm, -}
+    ] (6,6) -- node[right=1,font =\Large] {{\bf HMM construction}} (6,5) ;
+  
+
+   
+   
+ 
+\path[shade,top color=gray!5,bottom color=blue!10!white] (-0.65,-6.25)--  (12.25,-6.25) -- (12.5,-8.15) --  (-0.5,-8.25) -- (-0.65,-6.25);
+
+\path[top color=winered!80!white,bottom color=winered!30!white] (-1.75,-6.25)--  (-0.65,-6.25) -- (6,-7.7) --  (2.5,-7.7) -- (-1.75,-6.25);
 
 \draw[rounded corners=4pt,draw=lightgrey, fill=lightgrey] (-0.75,4.5)	rectangle (0.75,-4);
 
@@ -84,7 +107,7 @@
         -triangle 90,
         line width=2mm,
         postaction={draw, line width=0.5cm, shorten >=0.5cm, -}
-    ] (6,-4.5) -- node[right=0.5,font =\Large] {{\bf Decoding}} (6,-5.5) ;
+    ] (6,-4.5) -- node[right=1,font =\Large] {{\bf Decoding}} (6,-5.5) ;
     
   \node[draw=white, thick,font=\Large] at (6,-6)  {\bf {\color{lightgrey}C}{\color{lightred}GTA}{\color{blue}GGGGAACCCCGCCTGTTTACCAAAAACATCA}{\color{lightgrey}CCTTA}} ;
   
@@ -92,10 +115,10 @@
         -triangle 90,
         line width=2mm,
         postaction={draw, line width=0.5cm, shorten >=0.5cm, -}
-    ] (6,-6.5) -- node[right=0.5,font =\Large] {{\bf Output}} (6,-7.5) ;
+    ] (6,-6.5) -- node[right=1,font =\Large] {{\bf Output}} (6,-7.5) ;
   
-  \node[style={align=left},text width=20em,draw=white, thick,font=\Large] at (0,-8)  {\bf  $>$READ X, {\color{lightred}Barcode GTA}  } ;
-   \node[style={align=left},text width=20em,draw=white, thick,font=\Large] at (0,-8.5)  {\bf   {\color{blue}GGGGAACCCCGCCTGTTTACCAAAAACATCA}} ;
+  \node[style={align=left},text width=20em, thick,font=\Large] at (2,-8)  {\bf  $>$READ X, {\color{lightred}Barcode GTA}  } ;
+   \node[style={align=left},text width=20em,draw=white, thick,font=\Large] at (2,-8.5)  {\bf   {\color{blue}GGGGAACCCCGCCTGTTTACCAAAAACATCA}} ;
   
   
 \begin{scope}[shift={(-1.5,0)}];
@@ -107,7 +130,7 @@
 \end{scope}
 
 \begin{scope}[shift={(2,2)}];
-\node[Dstate] (d1) at (0,1){$D$};
+%\node[Dstate] (d1) at (0,1){$D$};
 \node[Istate] (i1) at (0,0){$I$};
 \node[Mstate] (m1) at (0,-1.2){\shortstack{ {\color{black!40}A}\\   {\color{black!40}C}\\  {\bf G}\\   {\color{black!40}T}} };
 
@@ -118,15 +141,15 @@
 \node[Mstate] (m2) at (1,-1.2){\shortstack{ {\color{black!40}A}\\   {\color{black!40}C}\\   {\color{black!40}G}\\   {\bf T}} };
 
 
-\node[Dstate] (d3) at (2,1){$D$};
-\node[Istate] (i3) at (2,-0){$I$};
+%\node[Dstate] (d3) at (2,1){$D$};
+%\node[Istate] (i3) at (2,-0){$I$};
 \node[Mstate] (m3) at (2,-1.2){\shortstack{ {\bf A}\\   {\color{black!40}C}\\   {\color{black!40}G}\\   {\color{black!40}T}} };
 \end{scope}
 
 
 \begin{scope}[shift={(2,-2)}];
 
-\node[Dstate] (d4) at (0,1){$D$};
+%\node[Dstate] (d4) at (0,1){$D$};
 \node[Istate] (i4) at (0,0){$I$};
 \node[Mstate] (m4) at (0,-1.2){\shortstack{ {\bf A}\\   {\color{black!40}C}\\   {\color{black!40}G}\\   {\color{black!40}T}} };
 
@@ -137,8 +160,8 @@
 \node[Mstate] (m5) at (1,-1.2){\shortstack{ {\bf A}\\   {\color{black!40}C}\\   {\color{black!40}G}\\   {\color{black!40}T}} };
 
 
-\node[Dstate] (d6) at (2,1){$D$};
-\node[Istate] (i6) at (2,-0){$I$};
+%\node[Dstate] (d6) at (2,1){$D$};
+%\node[Istate] (i6) at (2,-0){$I$};
 \node[Mstate] (m6) at (2,-1.2){\shortstack{ {\color{black!40}A}\\   {\bf C}\\   {\color{black!40}G}\\   {\color{black!40}T}} };
 \end{scope}
 
@@ -156,7 +179,7 @@
 \begin{scope}[shift={(8,2)}];
 
 %CCTTAAGG
-\node[Dstate] (dl1) at (0,1){$D$};
+%\node[Dstate] (dl1) at (0,1){$D$};
 \node[Istate] (il1) at (0,0){$I$};
 \node[Mstate] (ml1) at (0,-1.2){\shortstack{ {\color{black!40}A}\\  {\bf C} \\   {\color{black!40}G}\\ {\color{black!40}T}} };
 
@@ -178,8 +201,8 @@
 \node[Dstate] (dl5) at (4,1){$D$};
 \node[Istate] (il5) at (4,0){$I$};
 \node[Mstate] (ml5) at (4,-1.2){\shortstack{ {\bf A}\\   {\color{black!40}C}\\   {\color{black!40}G}\\   {\color{black!40}T}} };
-\node[Dstate] (dl6) at (5,1){$D$};
-\node[Istate] (il6) at (5,-0){$I$};
+%\node[Dstate] (dl6) at (5,1){$D$};
+%\node[Istate] (il6) at (5,-0){$I$};
 \node[Mstate] (ml6) at (5,-1.2){\shortstack{ {\bf A } \\   {\color{black!40}C}\\   {\color{black!40}G}\\   {\color{black!40}T}} };
 \end{scope}
 
@@ -220,25 +243,24 @@
 (i1) edge [lightedge,loop above] ()
 (i1) edge  [lightedge] (m2)
 (i1) edge [lightedge, loop above] ()
-(d1) edge  [lightedge,->] (d2)
-(d1) edge  [lightedge,->] (m2)
+%(d1) edge  [lightedge,->] (d2)
+%(d1) edge  [lightedge,->] (m2)
 
 (m2) edge [lightedge] (m3) 
-(m2) edge [lightedge] (d3) 
+%(m2) edge [lightedge] (d3) 
 (m2) edge [lightedge] (i2)
    
 (i2) edge [lightedge,loop above] ()
 (i2) edge  [lightedge] (m3)
 (i2) edge [lightedge, loop above] ()
-(d2) edge  [lightedge,->] (d3)
+%(d2) edge  [lightedge,->] (d3)
 (d2) edge  [lightedge,->] (m3)
 
 
-(m3) edge [lightedge] (i3)
+%(m3) edge [lightedge] (i3)
    
-(i3) edge [lightedge,loop above] ()
+%(i3) edge [lightedge,loop above] ()
 
-(i3) edge [lightedge, loop above] ()
 
 
 (m4) edge [lightedge] (m5) 
@@ -248,23 +270,23 @@
 (i4) edge [lightedge,loop above] ()
 (i4) edge  [lightedge] (m5)
 (i4) edge [lightedge, loop above] ()
-(d4) edge  [lightedge,->] (d5)
-(d4) edge  [lightedge,->] (m5)
+%(d4) edge  [lightedge,->] (d5)
+%(d4) edge  [lightedge,->] (m5)
 
 (m5) edge [lightedge] (m6) 
-(m5) edge [lightedge] (d6) 
+%(m5) edge [lightedge] (d6) 
 (m5) edge [lightedge] (i5)
    
 (i5) edge [lightedge,loop above] ()
 (i5) edge  [lightedge] (m6)
 (i5) edge [lightedge, loop above] ()
-(d5) edge  [lightedge,->] (d6)
+%(d5) edge  [lightedge,->] (d6)
 (d5) edge  [lightedge,->] (m6)
 
 
-(m6) edge [lightedge] (i6)
+%(m6) edge [lightedge] (i6)
    
-(i6) edge [lightedge,loop above] ()
+%(i6) edge [lightedge,loop above] ()
 
 
  
@@ -275,8 +297,8 @@
 (il1) edge [lightedge,loop above] ()
 (il1) edge  [lightedge] (ml2)
 (il1) edge [lightedge, loop above] ()
-(dl1) edge  [lightedge,->] (dl2)
-(dl1) edge  [lightedge,->] (ml2)
+%(dl1) edge  [lightedge,->] (dl2)
+%(dl1) edge  [lightedge,->] (ml2)
 
 (ml2) edge [lightedge] (ml3) 
 (ml2) edge [lightedge] (dl3) 
@@ -313,13 +335,13 @@
 
 
 (ml5) edge [lightedge] (ml6) 
-(ml5) edge [lightedge] (dl6) 
+%(ml5) edge [lightedge] (dl6) 
 (ml5) edge [lightedge] (il5)
    
 (il5) edge [lightedge,loop above] ()
 (il5) edge  [lightedge] (ml6)
 (il5) edge [lightedge, loop above] ()
-(dl5) edge  [lightedge,->] (dl6)
+%(dl5) edge  [lightedge,->] (dl6)
 (dl5) edge  [lightedge,->] (ml6)
 ;
 

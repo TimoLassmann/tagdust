@@ -45,21 +45,28 @@ Tagdust2 is designed to carry out all steps required to go from raw- to mappable
 
 \section{Introduction}
 
-Next generation sequencing has greatly accelerated the accumulation of genomics data. Different protocols targeting the genome, epi-genome and transcriptions are widely used\cite{ENCODEINTEGRATION}. In essence, all protocols capture biological sequences of interest while adding adaptors and other sequences to facilitate cost effective sequencing. An obvious examples here is the use of indices or barcodes allowing researchers to profile multiple samples in a single lane\cite{Craig:2008,Kircher:2012}. In addition recent protocols have added stretches of random sequences in order to correct for PCR and other biases \cite{Kivioja:2012kg}. In summary, the number of nucleotides used to describe what is being sequenced is increasing. As the length increases so is the chance that sequencing errors occur in these key sequences. In the best case these errors lead to some sequences being lost to the downstream analysis, but in the worse case sequences can be mixed up between samples leading to analytical noise.
+Next generation sequencing has greatly accelerated the accumulation of genomics data. Different protocols targeting the genome, epi-genome and transcriptions are widely used\cite{ENCODEINTEGRATION}. In essence, all protocols capture biological sequences of interest while necessarily adding adaptors and other sequences to facilitate cost effective sequencing. An obvious examples here is the use of indices or barcodes allowing researchers to profile multiple samples in a single lane\cite{Craig:2008,Kircher:2012}. In addition recent protocols include the addition of random stretches of sequences in order to correct for PCR and other biases \cite{Kivioja:2012kg}. In summary, the number of nucleotides used to describe what is being sequenced is increasing.
 
-Sequencers have different error rates.
+As the length of informative nucleotides increases so is the chance that sequencing errors occur in these key sequences. In the best case these errors lead to some sequences being lost to the downstream analysis, but in the worse case sequences can be mixed up between samples leading to analytical noise. An additional complication is that the error rates of current sequencing instruments vary a lot and is not obvious to select an appropriate strategy to work with raw reads. 
 
-We previously released TagDust to remove artifactual reads\cite{Tagdust2009}. While being useful, the focus on identifying and discarding whole reads meant that most processing pipelines using TagDust required many additional programs and steps. Here I describe TagDust2 a program designed to carry out all steps required to go from raw reads to sequences ready to be mapped. The key part of finding the mappable read and annotating it based on barcodes is carried out by a user defined hidden Markov model.(HMM). problem here is quite similar to many problems in biological sequence analysis: identifying domains TMM segments etc. Therefore I decided to approach this problem as a sequence labeling problem for which hidden Markov models (HMMs) are suitable. 
+We previously released TagDust to remove artifactual reads\cite{Tagdust2009}. While being useful, the focus on identifying and discarding whole reads meant that most processing pipelines using TagDust required many additional programs and steps. Here I describe TagDust2 a program designed to carry out all steps required to go from raw reads to sequences ready to be mapped. The key part of finding the mappable read and annotating it based on barcodes is carried out by a user defined hidden Markov model (HMM). This approach tackles two problems: firstly, a user defined architecture gives great flexibility in respect to the different assays used and secondly HMMs themselves are well suited to work with sequences containing different types of sequencing errors. 
 
+safasf af a 
+af a
+a f 
+
+sf
+
+a
+
+f 
  
 % **************************************************************
 % Keep this command to avoid text of first page running into the
 % first page footnotes
+
 \enlargethispage{-65.1pt}
 % **************************************************************
-\section{MATERIALS AND METHODS}
-
-\subsection{General Approach}
 
 \begin{figure}[t]
 \begin{center}
@@ -70,34 +77,29 @@ We previously released TagDust to remove artifactual reads\cite{Tagdust2009}. Wh
 \label{figure1}
 \end{figure}
 
+
+\section{MATERIALS AND METHODS}
+
+\subsection{General Approach}
+
 TagDust implements a small library of HMMs which I will refer to as segments. Each segment contains a silent start and end state which are used to connect multiple segments. Segments are hand-designed to capture commonly occurring features in raw sequences such as the combination of barcodes, variable length sequences and so on. For a complete list see table 1. Users can use a simple command line interface to specify the expected sequence of segments in their reads. TagDust automatically constructs a global HMMs from the segments and starts scoring the individual reads (see Figure \ref{figure1}). 
 
 Parameterization... 
-
 \subsection{Sequence scoring} 
 
-TagDust implements the basic forward and backward algorithm as described in \citep{durbin}. For each sequence the logs odds score is defined by the summed probability of all paths (forward score) divided by the probability of a background zero order Markov model. The latter is parameterized based on the length and nucleotide distribution in the input reads. 
+In short read mapping the mapping quality reflects the confidence we have in one particular mapping location over all others. Analogously, TagDust compares the probability of each read matching to the user specified HMM to the total summed probability including a random model. forward.
 
 \begin{equation}
-	S  = log \left(  \frac{P(M)}{P(R)} \right) + log \left(\frac{\sum\limits_{\pi} P(x,\pi | M )}{P(x | R ) } \right)
-\end{equation}
+P = 1 - \frac{P(x|M)}{P(x|M) + P(x|R)}
+\end{equation} 
 
-The prior probabilities $P(M)$ and  $P(R)$ are set to 0.9 and 0.1 respectively. Finally, the log odds score is converted into a probability using the logistic function:
-
-\begin{equation}
-	P(M | x) = \frac{e^S}{1-e^S}
-\end{equation}
-
-If barcodes are present TagDust calculated an additional confidence score. At every building block containing multiple transitions from the silent state to HMMs, TagDust calculates the maximum probability of selecting one particular transition:       
-
+In the presence of barcodes $P(x|M)$ the forward algorithm includes the probabilities of matching multiple barcodes. To obtain the probability of the barcode with the highest probability I employ a simple trick: at each segment including 
 
 \begin{equation}
-	V = \max_j \left( \frac{f_s(i)  ( a_{s,m_j} e_{m_j}(x+1) b_{m_j}(i+1)+  a_{s,I_j} e_{I_j}(x+1) b_{I_j}(i+1))}{\sum\limits_{\pi} P(x,\pi | M )}\right)
+	V = \max_j \left( \frac{f_s(i)  ( a_{s,m_j} e_{m_j}(x+1) b_{m_j}(i+1)}{\sum\limits_{\pi} P(x,\pi | M )}\right)
 \end{equation}
-
-where $m_j$ and $I$ are the first match and insert states of a barcode HMM model. In essence this probability reflects how confident we are in selecting one barcode over any other. 
-
-As a default TagDust only extracts reads if $V$ is greater than 0.5 and $P(M | x)$ is greater than 0.99. 
+where $m_j$ is the first match states of a barcode HMM $j$.  
+ 
 
 \subsection{Optimal accuracy decoding} 
 
@@ -105,19 +107,18 @@ To obtain the most probable labeling of the sequence, I employ the optimal accur
 
 If fingerprints are present TagDust checks at this stage if the length after decoding matches the users input. If not the read is discarded. 
 
-\subsection{Implementation} 
-
-Internally, TagDust uses full profile HMMs for each segment. To emulate different segments we simply set some transition probabilities to zero. For example the read building block 'R' is implemented as a profile HMM with one column and transitions directly to and from the insertion state. We parallelized the most computationally demanding parts using threads. TagDust is written in C and the source code is freely available here: 
-
 
 
 \subsection{Further read filtering}
 
-TagDust allows users to specify a fasta file containing known sequences the user wishes to exclude from mapping. For example in transcriptome sequencing one commonly wants to remove ribosomal sequences from the downstream analysis. To address this issue in a general manner Tagdust exhaustively align all reads to the target reference sequences and discard all reads with less than X mismatches. For efficiency we implemented the Myers bit parallel algorithm\cite{MyersDYN} using SIMD instructions as well as using thread level parallelism. 
+TagDust allows users to specify a fasta file containing known sequences the user wishes to exclude from mapping. For example in transcriptome sequencing one commonly wants to remove ribosomal sequences from the downstream analysis. To address this issue in a general manner TagDust exhaustively align all reads to the target reference sequences and discard all reads with less than X mismatches. For efficiency we implemented the Myers bit parallel algorithm\cite{MyersDYN} using SIMD instructions as well as using thread level parallelism. 
 
 \subsection{Filtering low complexity sequences.}
 Tagdust implements a simplified version of the DUST module (R. Tatusov and D.J. Lipman, unpublished data) to filter out low complexity reads. While this is not strictly necessary for NGS reads I implemented it to remove poly-A and other "very" low complexity sequences. The algorithm is only applied to the first sixty-four nucleotides of the reads. 
 
+\subsection{Implementation} 
+
+Internally, TagDust uses full profile HMMs for each segment. To emulate different segments we simply set some transition probabilities to zero. For example the read building block 'R' is implemented as a profile HMM with one column and transitions directly to and from the insertion state. We parallelized the most computationally demanding parts using threads. TagDust is written in C, documented and the source code is freely available here: 
 
 
 
@@ -126,17 +127,17 @@ Tagdust implements a simplified version of the DUST module (R. Tatusov and D.J. 
 
 \subsection{Large benchmark}
 
-To assess the accuracy of TagDust in a wide range of possible applications, we simulate datasets containing barcodes of different length and varying sequencer error rates. In all experiments we simulated 900k barcode containing sequences and 100k random sequences which should not be extracted. We compared our results to the program fastx barcode splitter from the fastX package. This program allows for sequencing errors in the barcodes and performs much better than approaches using exact pattern matching. 
+To assess the accuracy of TagDust in a wide range of possible applications, we simulate datasets varying the number of barcodes used, the barcode lengths and the sequencer error rate and insertion and deletion (InDel) frequencies. In all experiments we simulated 900k sequences containing the barcode but added 100k random sequences which should not be extracted. We compared our results to the program fastx barcode splitter from the fastx package. This program allows for sequencing errors in the barcodes and performs much better than approaches using exact pattern matching. 
 
-In all our simulated test cases, TagDust mis-aligns less than half a percent of the reads to the wrong library. As expected, in noisy datasets fewer reads are extracted. In contrast, this percentage is usually higher in fastx. In addition, the simple strategy using one mismatch leads fastx to assign between 25 - 100\% of the random sequences to a library. Using default parameters, Tagdust does not extract any reads when using many short barcodes. 
+In all of the simulated test cases, TagDust mislabeled less than half a percent of the sequences (Figure \ref{figure2}). Regardless of which program is used it is clear that the barcode sequence has to be long to allow unambiugious identification especially when udon g 96 barcodes. 
+I recommend using long barcode umbent   When using 96 barcodes the  As expected, in noisy datasets fewer reads are extracted. In contrast, this percentage is usually higher in fastx. In addition, the simple strategy using one mismatch leads fastx to assign between 25 - 100\% of the random sequences to a library. Using default parameters, Tagdust does not extract any reads when using many short barcodes. 
 
-\begin{figure*}[t]
+\begin{figure*}[h]
 \begin{center}
-\includegraphics[scale = 0.2]{../figures/8Barcodes1Indels.pdf}
-\includegraphics[scale = 0.2]{../figures/24Barcodes1Indels.pdf}
-\includegraphics[scale = 0.2]{../figures/96Barcodes1Indels.pdf}
+\includegraphics[scale = 1]{../figures/figure2.pdf}
+
 \end{center}
-\caption{Performance of TagDust and Fastx at extracting reads containing 8 \textbf{(left)} and 96 \textbf{(right)} different barcodes. Different barcode lengths are shown in the different panels. The size of each datapoint represents the error rate ranging from 1 - 5\%. The read line indicates the maximum number of reads that should be extracted.
+\caption{Results on large datasets. Left and right plots show the percentage of extracted read and the percentage of mislabeled reads, while top and bottom plots correspond to a simulated insertion / deletion frequency of 10 and 50 percent respectively. Within each plot the number of barcodes (N) and their length (L) are shown on the x axis while the simulated error rate is shown on the y axis. Results for fastx\_barcode\_clipper and TagDust are shown in the top and bottom panel respectively. Red backgrounds indicate that too many reads were extracted (left) and a high rate of mislabeled reads (right). With default parameters Tagdust does not extract any reads in very difficult test cases (shaded in grey). 
 }
 \label{figure2}
 \end{figure*}
@@ -145,7 +146,7 @@ In all our simulated test cases, TagDust mis-aligns less than half a percent of 
 
 
 
-\begin{table}[b]
+\begin{table}[h]
 \tableparts{%
 \caption{Summary of single cell extracted reads.}
 \label{table:01}%
@@ -175,7 +176,7 @@ Extracted & 94830478 & 85.72\%\\
 
 
 
-\begin{table}[b]
+\begin{table}[h]
 \tableparts{%
 \caption{Summary of UMI extracted reads.}
 \label{table:01}%
@@ -223,25 +224,10 @@ Description & Number of Extracted Reads & Percentage
 
 \subsection{Discussion subsection one}
 
-Text. Text. Text. Text. Text. Text. Text. Text. Text. Text. Text.
-Text. Text. Text. Text. Text. Text. Text. Text. Text. Text. Text.
-Text. Text. Text. Text. Text. Text. Text. Text. Text. Text. Text.
-Text. Text. Text. Text. Text. Text. Text. Text. Text. Text. Text.
 
 
 \subsection{Discussion subsection two}
 
-Text. Text. Text. Text. Text. Text. Text. Text. Text. Text. Text.
-Text. Text. Text. Text. Text. Text. Text. Text. Text. Text. Text.
-Text. Text. Text. Text. Text. Text. Text. Text. Text. Text. Text.
-Text. Text. Text. Text. Text. Text. Text. Text. Text. Text. Text.
-Text. Text. Text. Text. Text. Text. Text. Text. Text. Text. Text.
-Text. Text. Text. Text. Text. Text. Text. Text. Text. Text. Text.
-Text. Text. Text. Text. Text. Text. Text. Text. Text. Text. Text.
-Text. Text. Text. Text. Text. Text. Text. Text. Text. Text. Text.
-Text. Text. Text. Text. Text. Text. Text. Text. Text. Text. Text.
-Text. Text. Text. Text. Text. Text. Text. Text. Text. Text. Text.
-Text.
 
 
 
@@ -255,18 +241,15 @@ Text.
 
 \subsection{Discussion subsection three}
 
-Tagdust2 is both accurate and versitile. 
+Tagdust2 is both accurate and versatile. 
 Text. text. 
 Compared to other is wins. 
 
 \section{CONCLUSION}
 
-As wet protocols become more sophisticated and take full advantage of longer read lengths the architecture of raw reads is becoming ever more complex. Tagdust2 can be used to correctly annotate reads in one step. 
+As wet protocols become more sophisticated and take full advantage of longer read lengths the architecture of raw reads is becoming ever more complex. Tagdust2 is a one stop solution to work with the ever increasing complexity of this step. The ability to support a wide variety of read architectures together with the power of HMMs in matching with errors makes it unique. 
 
-The present version requires users to specify the expected error frequency of the sequencer. In future I plan to estimate these parameters directly for ever segment using simple learning from labelled sequences. Quality values... .
-
-
-In future we may consider learning the architecture from the sequencing data directly. However, at the moment investigators usually know what should be there and wherer. 
+In future I may consider to implement learning from the reads directly. 
 
 
 

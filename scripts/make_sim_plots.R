@@ -1,157 +1,162 @@
  
 
 library(ggplot2)
-
-td10 = read.table ("tagdust_benchmark10.csv", header = F)
-td20 = read.table ("tagdust_benchmark20.csv", header = F)
-
-fx1 = read.table("fastx_benchmark_1.csv",header = F)
-
-fx0 = read.table("fastx_benchmark_0.csv",header = F)
-
-
-t10 = subset(td10,td10[,1] == 8 )
-t20 = subset(td20,td20[,1] == 8 )
-f1 = subset(fx1,fx1[,1] == 8 )
-f0 = subset(fx0,fx0[,1] == 8 )
-
-t10[,8] = "Tagdust10";
-t20[,8] = "Tagdust20";
-f1[,8] = "FastX1"
-f0[,8] = "FastX0"
-
-
-x =  rbind(t10,t20,f1,f0)
-
-x = x[ order(x[,2]), ]
-
-colnames(x)[8] = "Program"
-
-colnames(x)[2] = "BarcodeLength"
-colnames(x)[3] = "ErrorRate"
-colnames(x)[5] = "Correctly Extracted"
-colnames(x)[6] = "Not Extracted"
-colnames(x)[7] = "Incorrectly Assigned"
-
-
-x[,2] = paste("Barcode Lenght" ,x[,2])
-
-x$BarcodeLength <- factor(x$BarcodeLength, levels = c("Barcode Lenght 4", "Barcode Lenght 6", "Barcode Lenght 8", "Barcode Lenght 10"));
-
-
-pdf("8Barcodes10Indels.pdf",  height = 10,width = 12,bg="white",pointsize = 36)
-
-p <- ggplot(x, aes((`Correctly Extracted` +`Incorrectly Assigned`) / 10000, `Incorrectly Assigned`/ (`Correctly Extracted` +`Incorrectly Assigned`) * 100, size= ErrorRate , label=Program,colour = Program))
-p+geom_point(aes(colour = Program) ) +geom_text(size=0)+  facet_wrap( ~ BarcodeLength,scales = "free") + scale_size(name = "Error Rate",range = c(1, 5))  +scale_y_continuous (name = "Percentage of misassigned reads")+scale_x_continuous  (name = "Percentage of extracted reads",limits=c(75,100))+ labs(title = "8 Barcodes 1% Indels") + geom_vline(xintercept = 90,colour="red", linetype = "longdash") + geom_path(alpha = 0.1);
-
-dev.off();
-
-remove(x)
-
-
-p <- ggplot(x, aes(x=ErrorRate  , y=`Incorrectly Assigned`/ (`Correctly Extracted` +`Incorrectly Assigned`) * 100  , group=Program,color = Program))
-p + geom_line()+  facet_wrap( ~ BarcodeLength,scales = "free")
-
-p <- ggplot(x, aes((`Correctly Extracted` , `Incorrectly Assigned`, size= ErrorRate , label=Program,colour = Program))
-p+geom_point(aes(colour = Program) ) +geom_text(size=0)+  facet_wrap( ~ BarcodeLength,scales = "free") + scale_size(name = "Error Rate",range = c(1, 5))  +scale_y_continuous (name = "Percentage of misassigned reads")+scale_x_continuous  (name = "Percentage of extracted reads",limits=c(75,100))+ labs(title = "8 Barcodes 1% Indels") + geom_vline(xintercept = 90,colour="red", linetype = "longdash") + geom_path(alpha = 0.1);
-
-
-
 library(gplots)
-require(tikzDevice)
 
-td10 = read.table ("tagdust_benchmark10.csv", header = F)
+td10 = read.table ("tagdust_benchmark10_norm.csv", header = F)
+td10[,8] = sprintf("N:%2d L:%2d" ,td10[,1],td10[,2])
+#td10[,8] = paste(td10[,1],td10[,2])
+td10[,9] = 10000 * td10[,1] + td10[,2];
 
-#Mistakes...
 
-x = cbind(
-subset(td10, td10[,2] == 4 & td10[,1] == 8)[7],
-subset(td10, td10[,2] == 4 & td10[,1] == 24)[7],
-subset(td10, td10[,2] == 4 & td10[,1] == 96)[7],
-subset(td10, td10[,2] == 6& td10[,1] == 8)[7],
-subset(td10, td10[,2] == 6& td10[,1] == 24)[7],
-subset(td10, td10[,2] == 6& td10[,1] == 96)[7],
-subset(td10, td10[,2] == 8& td10[,1] == 8)[7],
-subset(td10, td10[,2] == 8& td10[,1] == 24)[7],
-subset(td10, td10[,2] == 8& td10[,1] == 96)[7],
-subset(td10, td10[,2] == 10& td10[,1] == 8)[7],
-subset(td10, td10[,2] == 10& td10[,1] == 24)[7],
-subset(td10, td10[,2] == 10& td10[,1] == 96)[7])
-td10 = read.table("fastx_benchmark_1.csv",header = F)
+td10[,10] ="TagDust"
 
-y = cbind(
-subset(td10, td10[,2] == 4 & td10[,1] == 8)[7],
-subset(td10, td10[,2] == 4 & td10[,1] == 24)[7],
-subset(td10, td10[,2] == 4 & td10[,1] == 96)[7],
-subset(td10, td10[,2] == 6& td10[,1] == 8)[7],
-subset(td10, td10[,2] == 6& td10[,1] == 24)[7],
-subset(td10, td10[,2] == 6& td10[,1] == 96)[7],
-subset(td10, td10[,2] == 8& td10[,1] == 8)[7],
-subset(td10, td10[,2] == 8& td10[,1] == 24)[7],
-subset(td10, td10[,2] == 8& td10[,1] == 96)[7],
-subset(td10, td10[,2] == 10& td10[,1] == 8)[7],
-subset(td10, td10[,2] == 10& td10[,1] == 24)[7],
-subset(td10, td10[,2] == 10& td10[,1] == 96)[7])
+f1 = read.table("fastx_benchmark_1_norm.csv",header = F)
+#f1[,8] = paste(f1[,1],f1[,2])
+f1[,8] = sprintf("N:%2d L:%2d" ,f1[,1],f1[,2])
+f1[,9] = 10000 * f1[,1] + f1[,2];
+
+f1[,10] ="Fastx"
+
+x = rbind(td10,f1)
+x[,11] = 0;
+
+x[,12] = 0;
+x[,13] = 0;
+colnames(x) = c("NumBar","BarLen","Error Rate","InDelRate","Extracted","Not","MisExtracted","Name","INDEXX","Program","Total","PrintedLabel","RANGE")
 
 
 
+for (i in 1:nrow(x)){
+	
+	x$Total[i] = x$Extracted[i] + x$MisExtracted[i] ;
+	
+	if(x$Total[i] == 0){
+		x$Total[i] = NA;
+		x$PrintedLabel[i] =  sprintf("%1.1f%%", 0 )
+	}else{
+		x$PrintedLabel[i] =  sprintf("%1.1f%%", x$Total[i] /10000)
+	}
+}
 
-z = rbind(x,y)
-
-z = as.matrix(z)
-
-heatmap.2(z/10000,dendrogram="none",Rowv=F,Colv = F,trace="none",cellnote=round(z/10000,digits = 1),breaks = c(0,0.5,1,3,7) ,col= c("lightblue","skyblue","steelblue","dodgerblue4"),notecol="black",key = F)
 
 
+x$RANGE <- cut(x$Total/10000,breaks = c(0,70,80,90.05,91,92,93,94,95,96,97,98,99,101 ),right = FALSE, label = c(1:13) )
 
-td10 = read.table ("tagdust_benchmark10.csv", header = F)
+
+p <- ggplot(x, aes(reorder(Name, INDEXX), `Error Rate`, label = PrintedLabel )) + geom_tile(aes(fill = RANGE))
+p+scale_fill_manual(breaks=c(1:13),values = union (colorRampPalette(c("white","lightgreen"))(3),colorRampPalette(c("white","firebrick3"))(10)) , na.value = "grey50") + theme(legend.position = "none", axis.ticks = element_blank(),strip.text.y = element_text(size = 15), axis.title.x = element_blank(), axis.text.x = element_text(size = 10 , angle = 310, hjust = 0, colour = "black"))+facet_grid( Program ~ . )+ geom_text(aes(size=10))+ scale_y_continuous(breaks=c(0.0,0.01,0.02,0.03,0.04,0.05), labels = expression("0%","1%","2%","3%","4%","5%"))
 
 
-td10[,8] = td10[,5] + td10[,7];
- #total extracted...
 
-x = cbind(
-subset(td10, td10[,2] == 4 & td10[,1] == 8)[8],
-subset(td10, td10[,2] == 4 & td10[,1] == 24)[8],
-subset(td10, td10[,2] == 4 & td10[,1] == 96)[8],
-subset(td10, td10[,2] == 6& td10[,1] == 8)[8],
-subset(td10, td10[,2] == 6& td10[,1] == 24)[8],
-subset(td10, td10[,2] == 6& td10[,1] == 96)[8],
-subset(td10, td10[,2] == 8& td10[,1] == 8)[8],
-subset(td10, td10[,2] == 8& td10[,1] == 24)[8],
-subset(td10, td10[,2] == 8& td10[,1] == 96)[8],
-subset(td10, td10[,2] == 10& td10[,1] == 8)[8],
-subset(td10, td10[,2] == 10& td10[,1] == 24)[8],
-subset(td10, td10[,2] == 10& td10[,1] == 96)[8])
-td10 = read.table("fastx_benchmark_1.csv",header = F)
-td10[,8] = td10[,5] + td10[,7];
-y = cbind(
-subset(td10, td10[,2] == 4 & td10[,1] == 8)[8],
-subset(td10, td10[,2] == 4 & td10[,1] == 24)[8],
-subset(td10, td10[,2] == 4 & td10[,1] == 96)[8],
-subset(td10, td10[,2] == 6& td10[,1] == 8)[8],
-subset(td10, td10[,2] == 6& td10[,1] == 24)[8],
-subset(td10, td10[,2] == 6& td10[,1] == 96)[8],
-subset(td10, td10[,2] == 8& td10[,1] == 8)[8],
-subset(td10, td10[,2] == 8& td10[,1] == 24)[8],
-subset(td10, td10[,2] == 8& td10[,1] == 96)[8],
-subset(td10, td10[,2] == 10& td10[,1] == 8)[8],
-subset(td10, td10[,2] == 10& td10[,1] == 24)[8],
-subset(td10, td10[,2] == 10& td10[,1] == 96)[8])
+ggsave("SimQ10F1NORMExtracted.pdf", width=8, height=5,dpi = 300);
+
+
+x$PrintedLabel =  sprintf("%1.1f%%", x$MisExtracted /10000)
+
+
+x$RANGE <- cut(x$MisExtracted /(x$Extracted[i] + x$MisExtracted[i]) *100,breaks = c(0.0,0.1,0.2,0.3,0.4,0.5,1,2,5,10,40),right = FALSE, label = c(1,2,3,4,5,6,7,8,9,10) )
+
+
+for (i in 1:nrow(x)){
+	
+	x$Total[i] = x$Extracted[i] + x$MisExtracted[i] ;
+	
+	if(x$Total[i] == 0){
+		x$RANGE[i] = NA;
+	}
+}
 
 
 
 
-z = rbind(x,y)
 
-z = as.matrix(z)
+p <- ggplot(x, aes(reorder(Name, INDEXX), `Error Rate`,  label = PrintedLabel )) + geom_tile(aes(fill = RANGE))
+p+scale_fill_manual(breaks=c(1,2,3,4,5,6,7,8,9,10),values =  colorRampPalette(c("white","firebrick3"))(10), na.value = "grey50") +  theme(legend.position = "none", axis.ticks = element_blank(),strip.text.y = element_text(size = 15), axis.title.x = element_blank(), axis.text.x = element_text(size = 10 , angle = 310, hjust = 0, colour = "black"))+facet_grid( Program ~ . )+ geom_text(aes(size=10))+ scale_y_continuous(breaks=c(0.0,0.01,0.02,0.03,0.04,0.05), labels = expression("0%","1%","2%","3%","4%","5%"))
 
-heatmap.2(z/10000,dendrogram="none",Rowv=F,Colv = F,trace="none",cellnote=round(z/10000,digits = 0),breaks = c(70,75,80,85,90) ,col= c("lightblue","skyblue","steelblue","dodgerblue4"),notecol="black",key = F)
+ggsave("SimQ10F1NORMErrors.pdf", width=8, height=5,dpi = 300);
 
 
 
-rownames(x) = c("2%","3%","4%","5%","6%","7%");
-colnames(x) = c("20nt","22nt","24nt","26nt","28nt","30nt","32nt","34nt","36nt","38nt","40nt");
+
+
+td10 = read.table ("tagdust_benchmark10_INDEL.csv", header = F)
+td10[,8] = sprintf("N:%2d L:%2d" ,td10[,1],td10[,2])
+#td10[,8] = paste(td10[,1],td10[,2])
+td10[,9] = 10000 * td10[,1] + td10[,2];
+
+
+td10[,10] ="TagDust"
+
+f1 = read.table("fastx_benchmark_1_INDEL.csv",header = F)
+#f1[,8] = paste(f1[,1],f1[,2])
+f1[,8] = sprintf("N:%2d L:%2d" ,f1[,1],f1[,2])
+f1[,9] = 10000 * f1[,1] + f1[,2];
+
+f1[,10] ="Fastx"
+
+
+x = rbind(td10,f1)
+x[,11] = 0;
+
+x[,12] = 0;
+x[,13] = 0;
+colnames(x) = c("NumBar","BarLen","Error Rate","InDelRate","Extracted","Not","MisExtracted","Name","INDEXX","Program","Total","PrintedLabel","RANGE")
+
+
+
+for (i in 1:nrow(x)){
+	
+	x$Total[i] = x$Extracted[i] + x$MisExtracted[i] ;
+	
+	if(x$Total[i] == 0){
+		x$Total[i] = NA;
+		x$PrintedLabel[i] =  sprintf("%1.1f%%", 0 )
+	}else{
+		x$PrintedLabel[i] =  sprintf("%1.1f%%", x$Total[i] /10000)
+	}
+}
+
+
+
+x$RANGE <- cut(x$Total/10000,breaks = c(0,70,80,90.05,91,92,93,94,95,96,97,98,99,101 ),right = FALSE, label = c(1:13) )
+
+
+p <- ggplot(x, aes(reorder(Name, INDEXX), `Error Rate`, label = PrintedLabel )) + geom_tile(aes(fill = RANGE))
+p+scale_fill_manual(breaks=c(1:13),values = union (colorRampPalette(c("white","lightgreen"))(3),colorRampPalette(c("white","firebrick3"))(10)) , na.value = "grey50") + theme(legend.position = "none",strip.text.y = element_text(size = 15), axis.ticks = element_blank(), axis.title.x = element_blank(), axis.text.x = element_text(size = 10 , angle = 310, hjust = 0, colour = "black"))+facet_grid( Program ~ . )+ geom_text(aes(size=10))+ scale_y_continuous(breaks=c(0.0,0.01,0.02,0.03,0.04,0.05), labels = expression("0%","1%","2%","3%","4%","5%"))
+
+
+
+ggsave("SimQ10F1INDELExtracted.pdf", width=8, height=5,dpi = 300);
+
+
+x$PrintedLabel =  sprintf("%1.1f%%", x$MisExtracted /10000)
+
+
+x$RANGE <- cut(x$MisExtracted /(x$Extracted[i] + x$MisExtracted[i]) *100,breaks = c(0.0,0.1,0.2,0.3,0.4,0.5,1,2,5,10,40),right = FALSE, label = c(1,2,3,4,5,6,7,8,9,10) )
+
+
+for (i in 1:nrow(x)){
+	
+	x$Total[i] = x$Extracted[i] + x$MisExtracted[i] ;
+	
+	if(x$Total[i] == 0){
+		x$RANGE[i] = NA;
+	}
+}
+
+
+
+
+
+p <- ggplot(x, aes(reorder(Name, INDEXX), `Error Rate`,  label = PrintedLabel )) + geom_tile(aes(fill = RANGE))
+p+scale_fill_manual(breaks=c(1,2,3,4,5,6,7,8,9,10),values =  colorRampPalette(c("white","firebrick3"))(10), na.value = "grey50") +  theme(legend.position = "none", axis.ticks = element_blank(),strip.text.y = element_text(size = 15), axis.title.x = element_blank(), axis.text.x = element_text(size = 10 , angle = 310, hjust = 0, colour = "black"))+facet_grid( Program ~ . )+ geom_text(aes(size=10)) + scale_y_continuous(breaks=c(0.0,0.01,0.02,0.03,0.04,0.05), labels = expression("0%","1%","2%","3%","4%","5%"))
+ggsave("SimQ10F1INDELErrors.pdf", width=8, height=5,dpi = 300);
+
+
+
+
+
 
 
 
