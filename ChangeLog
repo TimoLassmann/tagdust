@@ -1,4 +1,10 @@
 
+
+Version 2.03:
+- Several bugfixes:
+	- crashed when linkers were longer than 32 nucleotides. 
+	- nuc_code array was set to length 255 not 256 
+
 Version 2.01:
 
 - added simple read filtering by matching to a reference, 

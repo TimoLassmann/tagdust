@@ -308,6 +308,7 @@ struct parameters* assign_segment_sequences(struct parameters* param, char* tmp,
 {
 	int i,f,g;
 	int count;
+	int len;
 	//tmp = optarg;
 	count = byg_count(",", tmp);
 	//fprintf(stderr,"Segment %d: %d	sequences\n",segment,count+1);
@@ -315,7 +316,7 @@ struct parameters* assign_segment_sequences(struct parameters* param, char* tmp,
 	param->read_structure->sequence_matrix[segment] = malloc(sizeof(char*) * (count+1));
 	assert(param->read_structure->sequence_matrix[segment] !=0);
 	for(i = 0; i < count+1;i++){
-		param->read_structure->sequence_matrix[segment][i] = malloc(sizeof(char)* 32);
+		param->read_structure->sequence_matrix[segment][i] = malloc(sizeof(char)* 33);
 	}
 	param->read_structure->type[segment] = tmp[0];
 	
@@ -325,19 +326,21 @@ struct parameters* assign_segment_sequences(struct parameters* param, char* tmp,
 		
 	}else{
 	
-	f = 0;
-	g = 0;
-	for(i = 2;i < strlen(tmp);i++){
-		if(tmp[i] != ','){
-			param->read_structure->sequence_matrix[segment][f][g] = tmp[i];
-			g++;
-		}else{
-			param->read_structure->sequence_matrix[segment][f][g] = 0;
-			f++;
-			g = 0;
+		f = 0;
+		g = 0;
+		len = (int)strlen(tmp) > 34 ? 34 :  (int)strlen(tmp) ;
+		fprintf(stderr,"%d\n",len);
+		for(i = 2;i <  len;i++){
+			if(tmp[i] != ','){
+				param->read_structure->sequence_matrix[segment][f][g] = tmp[i];
+				g++;
+			}else{
+				param->read_structure->sequence_matrix[segment][f][g] = 0;
+				f++;
+				g = 0;
+			}
 		}
-	}
-	param->read_structure->sequence_matrix[segment][f][g] = 0;
+		param->read_structure->sequence_matrix[segment][f][g] = 0;
 	}
 	if(segment+1 >param->read_structure->num_segments  ){
 		param->read_structure->num_segments = segment+1;
