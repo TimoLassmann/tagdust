@@ -80,6 +80,23 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->filter_error = 2;
 	param->reference_fasta  = 0;
 	
+	
+	
+	param->sim_3seq = 0;
+	param->sim_5seq = 0;
+	param->sim_barlen = 0;
+	param->sim_barnum = 0;
+	param->sim_error_rate = 0.0f;
+	param->sim_InDel_frac = 0.0f;
+	param->sim_numseq = 0;
+	param->sim_random_frac = 0.0f;
+	param->sim_readlen =0;
+	param->sim_readlen_mod = 0;
+	param->sim_sequenced_len = 0;
+	
+	
+	
+	
 	param->read_structure = malloc(sizeof(struct read_structure));
 	assert(param->read_structure !=0);
 	param->read_structure->sequence_matrix = malloc(sizeof(char**) * 10 );
@@ -126,6 +143,17 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			{"dust",required_argument,0,OPT_DUST},
 			{"out",required_argument,0, 'o'},
 			{"filter",required_argument,0, 'f'},
+			{"sim_barlen",required_argument,0,OPT_sim_barlen},
+			{"sim_barnum",required_argument,0,OPT_sim_barnum},
+			{"sim_5seq",required_argument,0,OPT_sim_5seq},
+			{"sim_3seq",required_argument,0,OPT_sim_3seq},
+			{"sim_readlen",required_argument,0,OPT_sim_readlen},
+			{"sim_readlen_mod",required_argument,0,OPT_sim_readlen_mod},
+			{"sim_error_rate",required_argument,0,OPT_sim_error_rate},
+			{"sim_InDel_frac",required_argument,0,OPT_sim_InDel_frac},
+			{"sim_numseq",required_argument,0,OPT_sim_numseq},
+			{"sim_random_frac",required_argument,0,OPT_sim_random_frac},
+			{"sim_sequenced_len",required_argument,0,OPT_sim_sequenced_len},
 			{"quiet",0,0,'q'},
 			{"help",0,0,'h'},
 			{0, 0, 0, 0}
@@ -141,6 +169,41 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 		switch(c) {
 			case 0:
 				break;
+			case OPT_sim_sequenced_len:
+				param->sim_sequenced_len = atoi(optarg);
+				break;
+			case OPT_sim_barlen:
+				param->sim_barlen = atoi(optarg);
+				break;
+			case OPT_sim_barnum:
+				param->sim_barnum = atoi(optarg);
+				break;
+			case OPT_sim_5seq:
+				param->sim_5seq = optarg;
+				break;
+			case OPT_sim_3seq:
+				param->sim_3seq = optarg;
+				break;
+			case OPT_sim_readlen:
+				param->sim_readlen = atoi(optarg);
+				break;
+			case OPT_sim_readlen_mod:
+				param->sim_readlen_mod = atoi(optarg);
+				break;
+			case OPT_sim_error_rate:
+				param->sim_error_rate = atof(optarg);
+				break;
+			case OPT_sim_InDel_frac:
+				param->sim_InDel_frac = atof(optarg);
+				break;
+			case OPT_sim_numseq:
+				param->sim_numseq = atoi(optarg);
+				param->sim = 1;
+				break;
+			case OPT_sim_random_frac:
+				param->sim_random_frac = atof(optarg);
+				break;
+				
 			case OPT_SEG1:
 				param = assign_segment_sequences(param, optarg , 0 );
 				break;
@@ -259,6 +322,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 				for(f = g+1;f < param->read_structure->numseq_in_segment[i];f++){
 					if(strlen(param->read_structure->sequence_matrix[i][g]) != strlen(param->read_structure->sequence_matrix[i][f])){
 						fprintf(stderr,"ERROR: the sequences in the same segment have to have the same length\n");
+						fprintf(stderr,"%dseq\n%s	%d\n%s	%d\n",param->read_structure->numseq_in_segment[i],param->read_structure->sequence_matrix[i][g],g,param->read_structure->sequence_matrix[i][f],f );
 						free_param(param);
 						exit(-1);
 					}
@@ -316,7 +380,7 @@ struct parameters* assign_segment_sequences(struct parameters* param, char* tmp,
 	param->read_structure->sequence_matrix[segment] = malloc(sizeof(char*) * (count+1));
 	assert(param->read_structure->sequence_matrix[segment] !=0);
 	for(i = 0; i < count+1;i++){
-		param->read_structure->sequence_matrix[segment][i] = malloc(sizeof(char)* 33);
+		param->read_structure->sequence_matrix[segment][i] = malloc(sizeof(char)* strlen(tmp));
 	}
 	param->read_structure->type[segment] = tmp[0];
 	
@@ -328,8 +392,8 @@ struct parameters* assign_segment_sequences(struct parameters* param, char* tmp,
 	
 		f = 0;
 		g = 0;
-		len = (int)strlen(tmp) > 34 ? 34 :  (int)strlen(tmp) ;
-		fprintf(stderr,"%d\n",len);
+		len = (int)strlen(tmp) ;
+		//fprintf(stderr,"%d\n",len);
 		for(i = 2;i <  len;i++){
 			if(tmp[i] != ','){
 				param->read_structure->sequence_matrix[segment][f][g] = tmp[i];

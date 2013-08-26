@@ -55,6 +55,19 @@
 #define OPT_FILTER_REFERENCE 21
 #define OPT_DUST 22
 
+#define OPT_sim_barlen 23
+#define OPT_sim_barnum 24
+#define OPT_sim_5seq 25
+#define OPT_sim_3seq 26
+#define OPT_sim_readlen 27
+#define OPT_sim_readlen_mod 28
+#define OPT_sim_error_rate 29
+#define OPT_sim_InDel_frac 30
+#define OPT_sim_numseq 31
+#define OPT_sim_random_frac 32
+#define OPT_sim_sequenced_len 33
+
+
 /**
  * @brief Contains user specified read structure.
  *
@@ -100,8 +113,20 @@ struct parameters {
 	int minlen;/**< @brief Minium accepted read length.  */
 	int sim;
 	int numbarcode;
-	int filter_error; 
+	int filter_error;
 	
+	
+	int sim_barlen;
+	int sim_barnum;
+	char* sim_5seq;
+	char* sim_3seq;
+	int sim_readlen;
+	int sim_readlen_mod;
+	float sim_error_rate;
+	float sim_InDel_frac;
+	int sim_numseq;
+	float sim_random_frac;
+	int sim_sequenced_len;
 };
 
 struct parameters* interface(struct parameters* param,int argc, char *argv[]);

@@ -452,7 +452,7 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 						break;
 					}
 				}
-				if(c == len-j ){
+				if(c == len-j && c > 3 ){
 					s0++;
 					s1 += len -j;
 					s2 += (len-j) * (len-j);
@@ -463,6 +463,7 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 		}
 		mean = s1 / s0;
 		stdev = sqrt(  (s0 * s2 - pow(s1,2.0))   /  (  s0 *(s0-1.0) )) ;
+		fprintf(stderr,"5: %f %f	%f\n", mean,  stdev,s0);
 
 		if(mean <= 1){
 			fprintf(stderr,"WARNING: 5' partial segment seems not to be present in the data (length < 1).\n");
@@ -597,7 +598,7 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 						break;
 					}
 				}
-				if(c == len-j ){
+				if(c == len-j  && c > 3){
 					
 					s0++;
 					s1 += len -j;
@@ -608,7 +609,7 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 		}
 		mean = s1 / s0;
 		stdev = sqrt(  (s0 * s2 - pow(s1,2.0))   /  (  s0 *(s0-1.0) )) ;
-
+		fprintf(stderr,"3: %f %f\n", mean,  stdev);
 		if(mean <= 1){
 			fprintf(stderr,"WARNING: 3' partial segment seems not to be present in the data (length < 1).\n");
 		}
@@ -4258,16 +4259,21 @@ struct model_bag* init_model_bag(struct parameters* param,double* back)
 		if(param->read_structure->type[i] == 'G'){
 			read_length = read_length -2;
 		}else if(param->read_structure->type[i] == 'R'){
+		}else if(param->read_structure->type[i] == 'P'){
+			read_length = read_length - (int)strlen(param->read_structure->sequence_matrix[i][0])/2; // Initial guess - we don't know how much of the linker is present at this stage
 		}else{
 		//	fprintf(stderr,"%s : %d \n", param->read_structure->sequence_matrix[i][0], (int)strlen(param->read_structure->sequence_matrix[i][0]));
 			read_length = read_length - (int)strlen(param->read_structure->sequence_matrix[i][0]);
 		}
 		
-		//fprintf(stderr,"READlength: %d\n",read_length);
+	//	fprintf(stderr,"READlength: %d\n",read_length);
 		
 	}
 	//fprintf(stderr,"READlength: %d\n",read_length);
 	
+	if(read_length < 20){
+		read_length = 20; // the expected read length should never be lower than 20!
+	}
 	mb->total_hmm_num = 0;
 	
 	

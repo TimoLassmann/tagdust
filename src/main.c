@@ -87,7 +87,10 @@ int main (int argc,char * argv[]) {
 
 	param = interface(param,argc,argv);
 	
-	
+	if(param->sim_numseq){
+		simulation_for_benchmark(param);
+	}
+		
 	if(param->sim){
 		simulate(param);
 	}

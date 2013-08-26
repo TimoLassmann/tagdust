@@ -4,7 +4,7 @@
 AC_PREREQ(2.59)
 AC_INIT(Tagdust, 2.03, timolassmann@gmail.com)
 AC_CONFIG_HEADER([src/config.h])
-AM_INIT_AUTOMAKE([1.10 -Wall no-define])
+AM_INIT_AUTOMAKE([1.9.6 -Wall no-define])
 
 
 CXXFLAGS="$CXXFLAGS"

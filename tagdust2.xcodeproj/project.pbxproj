@@ -70,6 +70,7 @@
 		A17B7B6D17557D4600E58E88 /* cmath.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = cmath.h; path = src/cmath.h; sourceTree = "<group>"; };
 		A19956B717B4AAC1006A7F85 /* plot_scatter_plots.R */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.rez; name = plot_scatter_plots.R; path = scripts/plot_scatter_plots.R; sourceTree = "<group>"; };
 		A1D9CE1C17A73C9A00C6BBFD /* make_sim_plots.R */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.rez; name = make_sim_plots.R; path = scripts/make_sim_plots.R; sourceTree = "<group>"; };
+		A1DF436717C74CFE00FAC6DF /* make_bench.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; name = make_bench.sh; path = test/make_bench.sh; sourceTree = "<group>"; };
 		A1E17141178A8B28006F393D /* README */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = README; sourceTree = "<group>"; };
 		A1E17142178A8B34006F393D /* ChangeLog */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = ChangeLog; sourceTree = "<group>"; };
 		A1E3055116DB316B00FDAA86 /* gmm.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = gmm.c; path = src/gmm.c; sourceTree = "<group>"; };
@@ -130,6 +131,7 @@
 				A1E919D516C38FBE00739ACC /* pst.c */,
 				A1022D51174B53F8003978B4 /* fly.h */,
 				A1022D4F174B52F9003978B4 /* fly.c */,
+				A1DF436617C74CF100FAC6DF /* test */,
 				A1022D4C174AF66C003978B4 /* scripts */,
 				A10B992F16C09ED500AF1A1E /* tagdust2 */,
 				A10B992E16C09ED500AF1A1E /* Products */,
@@ -173,6 +175,14 @@
 				A10B994016C09F2900AF1A1E /* nuc_code.c */,
 			);
 			name = src;
+			sourceTree = "<group>";
+		};
+		A1DF436617C74CF100FAC6DF /* test */ = {
+			isa = PBXGroup;
+			children = (
+				A1DF436717C74CFE00FAC6DF /* make_bench.sh */,
+			);
+			name = test;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
