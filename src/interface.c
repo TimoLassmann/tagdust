@@ -79,6 +79,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->read_structure = 0;
 	param->filter_error = 2;
 	param->reference_fasta  = 0;
+	param->random_prior = 0;
 	
 	
 	

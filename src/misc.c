@@ -667,7 +667,7 @@ unsigned char* reverse_complement(unsigned char* p,int len)
 	return p;
 }
 
-/** \fn char* reverse_sequence(char* p,int len)
+/** \fn void reverse_sequence(char* p,int len)
  \brief Reverses sequences.
  
  \param p nucleotide sequence.
@@ -675,21 +675,17 @@ unsigned char* reverse_complement(unsigned char* p,int len)
  */
 
 
-char* reverse_sequence(char* p,int len)
+void reverse_sequence(char* p,int len)
 {
-	char* tmp = malloc(sizeof(char)*MAX_SEQ_LEN);
-	int i,c;
-	c = 0;
-	for(i =len-1; i >= 0;i--){
-		tmp[c] = (int)p[i];
-		c++;
+	int c, i, j;
+	
+	for (i = 0, j = len - 1; i < j; i++, j--)
+	{
+		c = p[i];
+		p[i] = p[j];
+		p[j] = c;
 	}
-	tmp[c] = 0;
-	for(i= 0; i < len;i++){
-		p[i] = tmp[i];
-	}
-	free(tmp);
-	return p;
 }
+
 
 

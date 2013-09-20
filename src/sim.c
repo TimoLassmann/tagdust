@@ -23,6 +23,7 @@
 #include "io.h"
 #include "sim.h"
 #include "nuc_code.h"
+#include <errno.h>
 #include <unistd.h>
 
 /** \fn void simulation_for_benchmark(struct parameters* param)
@@ -35,17 +36,20 @@
 void simulation_for_benchmark(struct parameters* param)
 {
 	struct read_info** ri = 0;
-
+	//char template[35], dirpath[22], *dp;
+	//int fd = -1;
 	//./tagdust -sim_numseq 10 -sim_5seq AAAAAA -sim_3seq TTTT -sim_readlen 10 -sim_readlen_mod 5 -sim_random_frac 0.001 -o fafa -sim_sequenced_len 100  -sim_barlen 6 -sim_barnum 4
 	//./tagdust -sim_numseq 10  -sim_5seq agggaggacgatgcgg   -sim_3seq gtgtcagtcacttccagcgg  -sim_readlen 25 -sim_readlen_mod 5 -sim_random_frac 0.5 -o ~/tmp  -sim_sequenced_len 100   -sim_error_rate 0.02 -sim_InDel_frac 0.1 -sim_sequenced_len 1098 -sim_barlen 10 -sim_barnum 24
-	
+		
 	int i,j,c,n,n_dash,barcode_used,numseq;//,no5,no3;
 	float r = 0.0;
 	FILE* file = 0;
 	FILE* file2 = 0;
 	int errors_allowed = 6;
 
-	char* runid; 
+	char* runid;
+	char* basedir;
+	char* dp;
 	char* read = 0;
 	char* sequenced_read = 0;
 	char* sequenced_read_mutated = 0;
@@ -105,19 +109,32 @@ void simulation_for_benchmark(struct parameters* param)
 	sequenced_read_mutated = malloc(sizeof(char)* 220);
 	
 	runid  = malloc(sizeof(char)* 220);
-
+	basedir =  malloc(sizeof(char)* 220);
 	int code = rand_r(&seed);
-	c = sprintf(runid, "%d%f%s%s%d%d%d%d%f%f%d",param->sim_numseq,
-	param->sim_random_frac,
-	param->sim_5seq,
-	param->sim_3seq,
-	param->sim_barnum,
-	param->sim_barlen,
-	param->sim_readlen,
-	param->sim_readlen_mod,
-	param->sim_error_rate,
-	param->sim_InDel_frac,
-		   param->sim_sequenced_len);
+	if(param->sim_5seq || param->sim_3seq){
+		c = sprintf(runid, "%d_%f_%s_%s_%d_%d_%d_%d_%f_%f_%d",param->sim_numseq,
+			   param->sim_random_frac,
+			   param->sim_5seq,
+			   param->sim_3seq,
+			   param->sim_barnum,
+			   param->sim_barlen,
+			   param->sim_readlen,
+			   param->sim_readlen_mod,
+			   param->sim_error_rate,
+			   param->sim_InDel_frac,
+			   param->sim_sequenced_len);
+	}else {
+		c = sprintf(runid, "%d_%f_%d_%d_%d_%d_%f_%f_%d",param->sim_numseq,
+			   param->sim_random_frac,
+			   param->sim_barnum,
+			   param->sim_barlen,
+			   param->sim_readlen,
+			   param->sim_readlen_mod,
+			   param->sim_error_rate,
+			   param->sim_InDel_frac,
+			   param->sim_sequenced_len);
+		
+	}
 
 	fprintf(stderr,"%s\n",runid);
 	
@@ -127,6 +144,32 @@ void simulation_for_benchmark(struct parameters* param)
 	
 	fprintf(stderr,"%d	%X\n",code,code);
 	c = sprintf(runid,"%X",code);
+	
+	sprintf (basedir, "%s%s%s",param->outfile,runid,"tmpXXXXXX");
+	if ((dp = mkdtemp(basedir)) != NULL) {
+		fprintf(stderr,"NEW TMP DIR:%s\n",dp);
+	}else{
+		fprintf(stderr, "Failed to create temp directory.\n%s	%s\n",strerror(errno),basedir);
+	}
+	//exit(0);
+	//if((param->outfile = )
+	/*param->outfile
+	strcpy(dirpath, "/tmp/tempdir.XXXXXXXX");
+	if ((dp = mkdtemp(dirpath)) != NULL) {
+		sprintf(template, "%s/%s", dp, "tempXXXXXXXX");
+		if ((fd = mkstemp(template)) != -1) {
+			unlink(template);
+			close(fd);
+		} else
+			fprintf(stderr, "Failed to create temp file.\n%s\n",
+			        strerror(errno));
+		rmdir(dirpath);
+	} else{
+		fprintf(stderr, "Failed to create temp directory.\n%s\n",
+		        strerror(errno));
+	}*/
+	
+
 	
 	
 	char** barcode = 0;
@@ -219,7 +262,9 @@ void simulation_for_benchmark(struct parameters* param)
 			fprintf(stderr,"%d: %s\n",i,barcode[i]);
 		}
 		
-		sprintf (outfile, "%s/%sfastxbarcodefile.txt",param->outfile,runid);
+		sprintf (outfile, "%s/%sfastxbarcodefile.txt",dp,runid);
+		
+		
 		if ((file = fopen(outfile, "w")) == NULL){
 			fprintf(stderr,"can't open output\n");
 			exit(-1);
@@ -233,7 +278,7 @@ void simulation_for_benchmark(struct parameters* param)
 
 	}
 	
-	sprintf (outfile, "%s/%sbtrim_pattern.txt",param->outfile,runid);
+	sprintf (outfile, "%s/%sbtrim_pattern.txt",dp,runid);
 	if ((file = fopen(outfile, "w")) == NULL){
 		fprintf(stderr,"can't open output\n");
 		exit(-1);
@@ -268,7 +313,7 @@ void simulation_for_benchmark(struct parameters* param)
 	
 	fclose(file);
 	
-	sprintf (outfile, "%s/%sread.fq",param->outfile,runid);
+	sprintf (outfile, "%s/%sread.fq",dp,runid);
 	if ((file = fopen(outfile, "w")) == NULL){
 		fprintf(stderr,"can't open output\n");
 		exit(-1);
@@ -415,8 +460,7 @@ void simulation_for_benchmark(struct parameters* param)
 
 	
 	
-	for(i = (int)((float) param->sim_numseq * param->sim_random_frac); i < param->sim_numseq   ;i++){
-		//fprintf(stderr,"%d\n",i);
+	for(i = (int)((float) param->sim_numseq * (1.0-param->sim_random_frac)); i < param->sim_numseq   ;i++){
 		if(param->sim_5seq){
 			strcat ( sequenced_read,  param->sim_5seq);
 		}
@@ -458,7 +502,7 @@ void simulation_for_benchmark(struct parameters* param)
 	
 	
 	//run tests:
-	command = malloc(sizeof(char) * 1000);
+	command = malloc(sizeof(char) * 10000);
 	ri = malloc(sizeof(struct read_info*) * param->num_query);
 	
 	assert(ri !=0);
@@ -487,7 +531,7 @@ void simulation_for_benchmark(struct parameters* param)
 	// btrim
 	
 	if(param->sim_3seq){
-		sprintf (outfile, "%s/%sbtrimout.fq",param->outfile,runid);
+		sprintf (outfile, "%s/%sbtrimout.fq",dp,runid);
 		if ((file2 = fopen(outfile, "w")) == NULL){
 			fprintf(stderr,"can't open output\n");
 			exit(-1);
@@ -495,11 +539,11 @@ void simulation_for_benchmark(struct parameters* param)
 		
 		
 		if(param->sim_barnum){
-			c = sprintf(command, "btrim -p %s/%sbtrim_pattern.txt -t %s/%sread.fq -o %s/%sbtrimout.fq -l %d -B", param->outfile,runid,param->outfile,runid,param->outfile,runid, param->sim_readlen - param->sim_readlen_mod - 2);
+			c = sprintf(command, "btrim -p %s/%sbtrim_pattern.txt -t %s/%sread.fq -o %s/%sbtrimout.fq -l %d -B", dp,runid,dp,runid,dp,runid, param->sim_readlen - param->sim_readlen_mod - 2);
 			fprintf(stderr,"%s\n",command);
 //btrim -p ~/tmp/testtag_btrim_pattern.txt  -t ~/tmp/testtag_read.fq -o  ~/tmp/btrimtest -s ~/tmp/btrimtestlog -l %d  -B
 		}else{
-			c = sprintf(command, "btrim -p %s/%sbtrim_pattern.txt -t %s/%sread.fq -o %s/%sbtrimout.fq -l %d ", param->outfile,runid,param->outfile,runid,param->outfile,runid, param->sim_readlen - param->sim_readlen_mod - 2);
+			c = sprintf(command, "btrim -p %s/%sbtrim_pattern.txt -t %s/%sread.fq -o %s/%sbtrimout.fq -l %d ", dp,runid,dp,runid,dp,runid, param->sim_readlen - param->sim_readlen_mod - 2);
 			fprintf(stderr,"%s\n",command);
 		}
 		//run btrim!!!
@@ -507,14 +551,15 @@ void simulation_for_benchmark(struct parameters* param)
 			fprintf(stderr,"Cannot execute btrim with command:%s\n",command);
 			exit(-1);
 		}
-		while ((c = fgetc (file)) != EOF)
+		while ((c = fgetc (file)) != EOF){
 			putchar (c);
+		}
 		pclose(file);
 		
 		//collect output in one file!
 		if(param->sim_barnum){
 			for(i = 0; i < param->sim_barnum;i++){
-				c = sprintf(command,"cat %s/%sbtrimout.fq.%d  ", param->outfile,runid,i);
+				c = sprintf(command,"cat %s/%sbtrimout.fq.%d  ", dp,runid,i);
 				if (!(file = popen(command, "r"))) {
 					fprintf(stderr,"Cannot execute command:%s\n",command);
 					exit(-1);
@@ -522,7 +567,7 @@ void simulation_for_benchmark(struct parameters* param)
 				while ((numseq = read_fasta_fastq(ri, param,file)) != 0){
 					for(j = 0; j < numseq;j++){
 						//fprintf(stderr,"%sBC:%s\n",ri[j]->name,   barcode[i]  );
-						fprintf(file2,"@%sBC:%s\n",ri[j]->name,   barcode[i] );
+						fprintf(file2,"@%s;BC:%s;\n",ri[j]->name,   barcode[i] );
 						//for(i = 0; i < ri->len;i++){
 						for(c = 0; c < ri[j]->len;c++){
 							fprintf(file2,"%c", alpha[(int) ri[j]->seq[c]]);
@@ -537,20 +582,19 @@ void simulation_for_benchmark(struct parameters* param)
 			}
 		}
 		fclose(file2);
-		//unlink(outfile);
-
-			
 	}
-	
-	
+		
 	//cutadapt!!!
 	
 	if(param->sim_5seq && param->sim_3seq){
-		c = sprintf(command, "cutadapt --discard-untrimmed -n 2 --front %s    --adapter=%s  %s/%sread.fq   -o %s/%scutadaptout.fq ", param->sim_5seq,param->sim_3seq,param->outfile,runid,param->outfile,runid);
+		c = sprintf(command, "cutadapt --discard-untrimmed -n 2 --front %s    --adapter=%s  %s/%sread.fq   -o %s/%scutadaptout.fq ", param->sim_5seq,param->sim_3seq,dp,runid,dp,runid);
 		fprintf(stderr,"%s\n",command);
 		if (!(file = popen(command, "r"))) {
 			fprintf(stderr,"Cannot execute cutadapt with command:%s\n",command);
 			exit(-1);
+		}
+		while ((c = fgetc (file)) != EOF){
+			putchar (c);
 		}
 		pclose(file);
 		
@@ -565,20 +609,23 @@ void simulation_for_benchmark(struct parameters* param)
 	
 	
 	if(param->sim_5seq && param->sim_3seq && param->sim_barnum){
-		sprintf (outfile, "%s/%scutadaptfastxout.fq",param->outfile,runid);
+		sprintf (outfile, "%s/%scutadaptfastxout.fq",dp,runid);
 		if ((file2 = fopen(outfile, "w")) == NULL){
 			fprintf(stderr,"can't open output\n");
 			exit(-1);
 		}
-		c = sprintf(command, "cat %s/%scutadaptout.fq | fastx_barcode_splitter.pl --bcfile %s/%sfastxbarcodefile.txt --prefix %s/%sfastx -bol", param->outfile,runid,param->outfile,runid,param->outfile,runid);
+		c = sprintf(command, "cat %s/%scutadaptout.fq | fastx_barcode_splitter.pl --bcfile %s/%sfastxbarcodefile.txt --prefix %s/%sfastx -bol", dp,runid,dp,runid,dp,runid);
 		fprintf(stderr,"%s\n",command);
 		if (!(file = popen(command, "r"))) {
 			fprintf(stderr,"Cannot execute cutadapt with command:%s\n",command);
 			exit(-1);
 		}
+		while ((c = fgetc (file)) != EOF){
+			putchar (c);
+		}
 		pclose(file);
 		for(i = 0; i < param->sim_barnum;i++){
-			c = sprintf(command,"cat %s/%sfastxBC%d  ", param->outfile,runid,i);
+			c = sprintf(command,"cat %s/%sfastxBC%d  ", dp,runid,i);
 			if (!(file = popen(command, "r"))) {
 				fprintf(stderr,"Cannot execute command:%s\n",command);
 				exit(-1);
@@ -586,7 +633,7 @@ void simulation_for_benchmark(struct parameters* param)
 			while ((numseq = read_fasta_fastq(ri, param,file)) != 0){
 				for(j = 0; j < numseq;j++){
 					//fprintf(stderr,"%sBC:%s\n",ri[j]->name,   barcode[i]  );
-					fprintf(file2,"@%sBC:%s\n",ri[j]->name,   barcode[i] );
+					fprintf(file2,"@%s;BC:%s;\n",ri[j]->name,   barcode[i] );
 					
 					//need to start from the position after barcode .... because fastX does not trim the barcode!
 					
@@ -611,20 +658,23 @@ void simulation_for_benchmark(struct parameters* param)
 	
 	
 	if(!param->sim_5seq && !param->sim_3seq && param->sim_barnum){
-		sprintf (outfile, "%s/%sfastxout.fq",param->outfile,runid);
+		sprintf (outfile, "%s/%sfastxout.fq",dp,runid);
 		if ((file2 = fopen(outfile, "w")) == NULL){
 			fprintf(stderr,"can't open output\n");
 			exit(-1);
 		}
-		c = sprintf(command, "cat %s/%sread.fq | fastx_barcode_splitter.pl --bcfile %s/%sfastxbarcodefile.txt --prefix %s/%sfastx -bol", param->outfile,runid,param->outfile,runid,param->outfile,runid);
+		c = sprintf(command, "cat %s/%sread.fq | fastx_barcode_splitter.pl --bcfile %s/%sfastxbarcodefile.txt --prefix %s/%sfastx -bol", dp,runid,dp,runid,dp,runid);
 		fprintf(stderr,"%s\n",command);
 		if (!(file = popen(command, "r"))) {
 			fprintf(stderr,"Cannot execute cutadapt with command:%s\n",command);
 			exit(-1);
 		}
+		while ((c = fgetc (file)) != EOF){
+			putchar (c);
+		}
 		pclose(file);
 		for(i = 0; i < param->sim_barnum;i++){
-			c = sprintf(command,"cat %s/%sfastxBC%d  ", param->outfile,runid,i);
+			c = sprintf(command,"cat %s/%sfastxBC%d  ", dp,runid,i);
 			if (!(file = popen(command, "r"))) {
 				fprintf(stderr,"Cannot execute command:%s\n",command);
 				exit(-1);
@@ -632,7 +682,7 @@ void simulation_for_benchmark(struct parameters* param)
 			while ((numseq = read_fasta_fastq(ri, param,file)) != 0){
 				for(j = 0; j < numseq;j++){
 					//fprintf(stderr,"%sBC:%s\n",ri[j]->name,   barcode[i]  );
-					fprintf(file2,"@%sBC:%s\n",ri[j]->name,   barcode[i] );
+					fprintf(file2,"@%s;BC:%s;\n",ri[j]->name,   barcode[i] );
 					
 					//need to start from the position after barcode .... because fastX does not trim the barcode!
 					
@@ -654,7 +704,7 @@ void simulation_for_benchmark(struct parameters* param)
 	
 	//TAGDUST !!!!!!
 	if(param->sim_5seq && param->sim_barnum && param->sim_3seq){
-		c = sprintf(command,"tagdust -1 P:%s -2 B:", param->sim_5seq);
+		c = sprintf(command,"tagdust -threshold %f -t 80 -1 P:%s -2 B:", param->confidence_threshold,param->sim_5seq);
 		for(i = 0; i < param->sim_barnum-1;i++){
 			c = sprintf (read, "%s,",barcode[i]);
 			strcat ( command, read);
@@ -666,19 +716,22 @@ void simulation_for_benchmark(struct parameters* param)
 		strcat ( command, read);
 		c = sprintf (read, "-4 P:%s ", param->sim_3seq);
 		strcat ( command, read);
-		c = sprintf (read, "%s/%sread.fq  -o %s/%stagdustout.fq ", param->outfile,runid,param->outfile,runid);
+		c = sprintf (read, "%s/%sread.fq  -o %s/%stagdustout.fq ",dp,runid,dp,runid);
 		strcat ( command, read);
 		fprintf(stderr,"%s\n",command);
 		if (!(file = popen(command, "r"))) {
 			fprintf(stderr,"Cannot execute tagdust with command:%s\n",command);
 			exit(-1);
 		}
+		while ((c = fgetc (file)) != EOF){
+			putchar (c);
+		}
 		pclose(file);
 
 	}
 	
 	if(!param->sim_5seq && param->sim_barnum && param->sim_3seq){
-		c = sprintf(command,"tagdust  -1 B:");
+		c = sprintf(command,"tagdust -threshold %f -t 80  -1 B:", param->confidence_threshold);
 		for(i = 0; i < param->sim_barnum-1;i++){
 			c = sprintf (read, "%s,",barcode[i]);
 			strcat ( command, read);
@@ -690,19 +743,22 @@ void simulation_for_benchmark(struct parameters* param)
 		strcat ( command, read);
 		c = sprintf (read, "-3 P:%s ", param->sim_3seq);
 		strcat ( command, read);
-		c = sprintf (read, "%s/%sread.fq  -o %s/%stagdustout.fq ", param->outfile,runid,param->outfile,runid);
+		c = sprintf (read, "%s/%sread.fq  -o %s/%stagdustout.fq ",dp,runid,dp,runid);
 		strcat ( command, read);
 		fprintf(stderr,"%s\n",command);
 		if (!(file = popen(command, "r"))) {
 			fprintf(stderr,"Cannot execute tagdust with command:%s\n",command);
 			exit(-1);
 		}
+		while ((c = fgetc (file)) != EOF){
+			putchar (c);
+		}
 		pclose(file);
 		
 	}
 	
 	if(param->sim_5seq && !param->sim_barnum && param->sim_3seq){
-		c = sprintf(command,"tagdust -1 P:%s ", param->sim_5seq);
+		c = sprintf(command,"tagdust -threshold %f -t 80 -1 P:%s ", param->confidence_threshold, param->sim_5seq);
 		/*for(i = 0; i < param->sim_barnum-1;i++){
 			c = sprintf (read, "%s,",barcode[i]);
 			strcat ( command, read);
@@ -714,19 +770,22 @@ void simulation_for_benchmark(struct parameters* param)
 		strcat ( command, read);
 		c = sprintf (read, "-3 P:%s ", param->sim_3seq);
 		strcat ( command, read);
-		c = sprintf (read, "%s/%sread.fq  -o %s/%stagdustout.fq ", param->outfile,runid,param->outfile,runid);
+		c = sprintf (read, "%s/%sread.fq  -o %s/%stagdustout.fq ", dp,runid,dp,runid);
 		strcat ( command, read);
 		fprintf(stderr,"%s\n",command);
 		if (!(file = popen(command, "r"))) {
 			fprintf(stderr,"Cannot execute tagdust with command:%s\n",command);
 			exit(-1);
 		}
+		while ((c = fgetc (file)) != EOF){
+			putchar (c);
+		}
 		pclose(file);
 		
 	}
 	
 	if(param->sim_5seq && param->sim_barnum && !param->sim_3seq){
-		c = sprintf(command,"tagdust -1 P:%s -2 B:", param->sim_5seq);
+		c = sprintf(command,"tagdust -threshold %f -t 80 -1 P:%s -2 B:", param->confidence_threshold, param->sim_5seq);
 		for(i = 0; i < param->sim_barnum-1;i++){
 			c = sprintf (read, "%s,",barcode[i]);
 			strcat ( command, read);
@@ -737,19 +796,22 @@ void simulation_for_benchmark(struct parameters* param)
 		c = sprintf (read, "-3 R:N ");
 		strcat ( command, read);
 		
-		c = sprintf (read, "%s/%sread.fq  -o %s/%stagdustout.fq ", param->outfile,runid,param->outfile,runid);
+		c = sprintf (read, "%s/%sread.fq  -o %s/%stagdustout.fq ", dp,runid,dp,runid);
 		strcat ( command, read);
 		fprintf(stderr,"%s\n",command);
 		if (!(file = popen(command, "r"))) {
 			fprintf(stderr,"Cannot execute tagdust with command:%s\n",command);
 			exit(-1);
 		}
+		while ((c = fgetc (file)) != EOF){
+			putchar (c);
+		}
 		pclose(file);
 		
 	}
 	
 	if(!param->sim_5seq && param->sim_barnum && !param->sim_3seq){
-		c = sprintf(command,"tagdust -1 B:");
+		c = sprintf(command,"tagdust -threshold %f -t 80  -1 B:", param->confidence_threshold);
 		for(i = 0; i < param->sim_barnum-1;i++){
 			c = sprintf (read, "%s,",barcode[i]);
 			strcat ( command, read);
@@ -760,12 +822,16 @@ void simulation_for_benchmark(struct parameters* param)
 		c = sprintf (read, "-2 R:N ");
 		strcat ( command, read);
 	
-		c = sprintf (read, "%s/%sread.fq  -o %s/%stagdustout.fq ", param->outfile,runid,param->outfile,runid);
+		c = sprintf (read, "%s/%sread.fq  -o %s/%stagdustout.fq ", dp,runid,dp,runid);
 		strcat ( command, read);
 		fprintf(stderr,"%s\n",command);
+	
 		if (!(file = popen(command, "r"))) {
 			fprintf(stderr,"Cannot execute tagdust with command:%s\n",command);
 			exit(-1);
+		}
+		while ((c = fgetc (file)) != EOF){
+			putchar (c);
 		}
 		pclose(file);
 		
@@ -778,38 +844,41 @@ void simulation_for_benchmark(struct parameters* param)
 	evalres = malloc(sizeof(struct eval_results));
 	
 	//sprintf (outfile, "%s/read.fq",param->outfile);
-	sprintf (outfile, "%s/%sbtrimout.fq",param->outfile,runid );
+	sprintf (outfile, "%s/%sbtrimout.fq",dp,runid );
 	if( access( outfile, F_OK ) != -1 ) {
 		evalres=  get_results(evalres, param, outfile, "BTRIM");
 		unlink(outfile);
 	}
+	//exit(0);
 	
-	sprintf (outfile, "%s/%stagdustout.fq",param->outfile,runid);
+	sprintf (outfile, "%s/%stagdustout.fq",dp,runid);
 	if( access( outfile, F_OK ) != -1 ) {
 		evalres=  get_results(evalres, param, outfile, "TagDust");
 		unlink(outfile);
 	}
 	
-	sprintf (outfile, "%s/%sfastxout.fq",param->outfile,runid);
+	sprintf (outfile, "%s/%sfastxout.fq",dp,runid);
 	if( access( outfile, F_OK ) != -1 ) {
 		evalres=  get_results(evalres, param, outfile, "FASTX");
 		unlink(outfile);
 	}
 	
-	sprintf (outfile, "%s/%scutadaptfastxout.fq",param->outfile,runid);
+	sprintf (outfile, "%s/%scutadaptfastxout.fq",dp,runid);
 	if( access( outfile, F_OK ) != -1 ) {
 		evalres=  get_results(evalres, param, outfile, "CUTADAPTFASTX");
 		unlink(outfile);
 	}
 	
-	sprintf (outfile, "%s/%scutadaptout.fq",param->outfile,runid);
+	sprintf (outfile, "%s/%scutadaptout.fq",dp,runid);
 	if( access( outfile, F_OK ) != -1 ) {
 		evalres=  get_results(evalres, param, outfile, "CUTADAPT");
 		unlink(outfile);
 	}
+	//exit(0);
+
 	
 	for(i = 0; i < param->sim_barnum;i++){
-		sprintf (outfile, "%s/%sbtrimout.fq.%d", param->outfile,runid,i);
+		sprintf (outfile, "%s/%sbtrimout.fq.%d", dp,runid,i);
 		
 		//fprintf(stderr,"DELETING: %s\n",outfile);
 		if( access( outfile, F_OK ) != -1 ) {
@@ -817,7 +886,7 @@ void simulation_for_benchmark(struct parameters* param)
 			c = unlink(outfile);
 		//	fprintf(stderr,"%d\n",c);
 		}
-		sprintf (outfile, "%s/%sfastxBC%d",param->outfile,runid,i);
+		sprintf (outfile, "%s/%sfastxBC%d",dp,runid,i);
 		
 		//fprintf(stderr,"DELETING: %s\n",outfile);
 		if( access( outfile, F_OK ) != -1 ) {
@@ -830,7 +899,7 @@ void simulation_for_benchmark(struct parameters* param)
 		
 	
 	}
-	sprintf (outfile, "%s/%sfastxunmatched",param->outfile,runid);
+	sprintf (outfile, "%s/%sfastxunmatched",dp,runid);
 	if( access( outfile, F_OK ) != -1 ) {
 		
 		//fprintf(stderr,"DELETING: %s\n",outfile);
@@ -839,22 +908,22 @@ void simulation_for_benchmark(struct parameters* param)
 	}
 	//54F01FF5fastxunmatched
 	
-	sprintf (outfile, "%s/%sread.fq",param->outfile,runid);
+	sprintf (outfile, "%s/%sread.fq",dp,runid);
 	if( access( outfile, F_OK ) != -1 ) {
 		c = unlink(outfile);
 	}
 	
-	sprintf (outfile, "%s/%sfastxbarcodefile.txt",param->outfile,runid);
+	sprintf (outfile, "%s/%sfastxbarcodefile.txt",dp,runid);
 	if( access( outfile, F_OK ) != -1 ) {
 		c = unlink(outfile);
 	}
 	
-	sprintf (outfile, "%s/%sbtrim_pattern.txt",param->outfile,runid);
+	sprintf (outfile, "%s/%sbtrim_pattern.txt",dp,runid);
 	if( access( outfile, F_OK ) != -1 ) {
 		c = unlink(outfile);
 	}
 
-
+	rmdir(basedir);
 
 	free(sequenced_read_mutated);
 	free(sequenced_read);
@@ -886,7 +955,7 @@ void simulation_for_benchmark(struct parameters* param)
 	}
 	
 	free(ri);
-	
+	free(basedir);
 	if(param->sim_barnum){
 		for(i = 0 ;i < param->sim_barnum;i++){
 			
@@ -894,6 +963,9 @@ void simulation_for_benchmark(struct parameters* param)
 		}
 		free(barcode);
 	}
+	
+	free_param(param);
+	
 	exit(EXIT_SUCCESS);
 }
 
@@ -945,6 +1017,7 @@ struct eval_results* get_results(struct eval_results* eval,struct parameters* pa
 	
 	while ((numseq = read_fasta_fastq(ri, param,file)) != 0){
 		for(i = 0; i < numseq;i++){
+			//fprintf(stderr,"@%s\n",ri[i]->name);
 			tmp = byg_end("SEQ:", ri[i]->name  );
 			if(tmp){
 				org_read_len = 0;
@@ -963,6 +1036,7 @@ struct eval_results* get_results(struct eval_results* eval,struct parameters* pa
 						orgread[org_read_len] = 0;
 						break;
 					}
+					
 					orgread[org_read_len] = nuc_code[(int)ri[i]->name[j]];
 					org_read_len++;
 				}
@@ -972,90 +1046,62 @@ struct eval_results* get_results(struct eval_results* eval,struct parameters* pa
 			if(tmp){
 				c = 0;
 				for(j = tmp ;j < (int)strlen(ri[i]->name);j++){
-					c++;
-					if(isspace((int) ri[i]->name[j]) ||  ri[i]->name[j]  == ';'){
-						break;
-					}
-					
-				}
-				//orgread = malloc(sizeof(unsigned char)* g);
-				c = 0;
-				for(j = tmp ;j < (int)strlen(ri[i]->name);j++){
-					
-					if(isspace((int) ri[i]->name[j]) ||  ri[i]->name[j]  == ';'){
+					if(ri[i]->name[j]  == ';' ){
 						orgbc[c] = 0;
 						break;
 					}
 					orgbc[c] = ri[i]->name[j];
 					c++;
 				}
+			}else{
+				orgbc[0] = 0;
 			}
+
 			
 			
-			tmp = byg_end("BC:", ri[i]->name  );
+			tmp = byg_end(";BC:", ri[i]->name  );
+			
 			if(tmp){
+				
 				c = 0;
 				for(j = tmp ;j < (int)strlen(ri[i]->name);j++){
-					c++;
-					if(isspace((int) ri[i]->name[j]) ||  ri[i]->name[j] == ';'){
-						break;
-					}
-					
-				}
-				//orgread = malloc(sizeof(unsigned char)* g);
-				c = 0;
-				for(j = tmp ;j < (int)strlen(ri[i]->name);j++){
-					
-					if(isspace((int) ri[i]->name[j]) ||  ri[i]->name[j]  == ';'){
+					if(ri[i]->name[j]  == ';' ){
 						bc[c] = 0;
 						break;
 					}
 					bc[c] = ri[i]->name[j];
 					c++;
 				}
+			}else{
+				bc[0] = 0;
 			}
 			
 			c =  byg_count("READ", ri[i]->name);
 			
 			if(c){
 				eval->num_extracted++;
+				
+
 				if(strcmp(orgbc, bc)){
 					eval->num_wrong_bc++;
-					//fprintf(stderr,"@%s\n",ri[j]->name);
-					//fprintf(stderr,"%s\tORGBC\n",orgbc);
-					//fprintf(stderr,"%s\tBC\n",bc);
-					
 				}
 				if(ri[i]->len < org_read_len){
-				
 					c = bpm_check_error_global((unsigned char*)ri[i]->seq,(unsigned char*) orgread, ri[i]->len, org_read_len);
 				}else{
 					c = bpm_check_error_global((unsigned char*) orgread,(unsigned char*)ri[i]->seq,org_read_len, ri[i]->len);
 				}
+				/*fprintf(stderr,"%s\t%d\n", program,c);
+				for(j = 0;  j < org_read_len;j++){
+					fprintf(stderr,"%c",  alpha[orgread[j]]);
+				}
+				fprintf(stderr,"\n");
 				
-				/*if(ri[i]->len != org_read_len){
-					fprintf(stderr,"%d error\n",c);
-					for(c = 0 ; c < ri[i]->len;c++){
-						fprintf(stderr,"%c", alpha[(int) ri[i]->seq[c]]);
-					}
-					fprintf(stderr,"\n");
-					for(c = 0 ; c < org_read_len;c++){
-						fprintf(stderr,"%c", alpha[(int) orgread[c]]);
-					}
-					fprintf(stderr,"\n");
-					
-					fprintf(stderr,"%d error\n",c);
-					for(c = 0 ; c < ri[i]->len;c++){
-						fprintf(stderr,"%c", alpha[(int) ri[i]->seq[c]]);
-					}
-					fprintf(stderr,"\n");
-					for(c = 0 ; c < org_read_len;c++){
-						fprintf(stderr,"%c", alpha[(int) orgread[c]]);
-					}
-					fprintf(stderr,"\n");
-					
-					//fprintf(stderr,"%d ")
-				}*/
+				for(j = 0;  j < ri[i]->len;j++){
+					fprintf(stderr,"%c",  alpha[ri[i]->seq[j]]);
+				}
+				fprintf(stderr,"\n");
+				
+				*/
 				j = (org_read_len > ri[i]->len) ?org_read_len : ri[i]->len ;
 				eval->average_read_similarity += (double) c / (double)j ;
 			}
@@ -1109,7 +1155,35 @@ struct eval_results* get_results(struct eval_results* eval,struct parameters* pa
 		hour = 12;
 	}
 	
-		
+	if(!param->sim_5seq){
+		param->sim_5seq = "NA";
+	}
+	
+	if(!param->sim_3seq){
+		param->sim_3seq = "NA";
+	}
+	if(!(eval->num_extracted +  eval->num_rand_extracted)){
+		fprintf(file,"%.2d-%.2d-%d;%d:%d%cm\t%s\t%d\t%d\t%d\t%f\t%d\t%f\t%s\t%s\t%d\t%d\t%d\t%d\t%f\t%f\t%d\n",
+		        ptr->tm_mon + 1,ptr->tm_mday, ptr->tm_year + 1900,hour,ptr->tm_min, am_or_pm,
+		        program,
+		        eval->num_extracted,
+		        eval->num_rand_extracted,
+		        eval->num_wrong_bc,
+		        -1.0,
+		        param->sim_numseq,
+		        param->sim_random_frac,
+		        param->sim_5seq,
+		        param->sim_3seq,
+		        param->sim_barnum,
+		        param->sim_barlen,
+		        param->sim_readlen,
+		        param->sim_readlen_mod,
+		        param->sim_error_rate,
+		        param->sim_InDel_frac,
+		        param->sim_sequenced_len
+		        );
+	}else{
+	
 	fprintf(file,"%.2d-%.2d-%d;%d:%d%cm\t%s\t%d\t%d\t%d\t%f\t%d\t%f\t%s\t%s\t%d\t%d\t%d\t%d\t%f\t%f\t%d\n",
 	        ptr->tm_mon + 1,ptr->tm_mday, ptr->tm_year + 1900,hour,ptr->tm_min, am_or_pm,
 	       program,
@@ -1129,7 +1203,7 @@ struct eval_results* get_results(struct eval_results* eval,struct parameters* pa
 	        param->sim_InDel_frac,
 	        param->sim_sequenced_len
 	        );
-	
+	}
 	
 	
 	

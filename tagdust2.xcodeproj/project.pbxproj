@@ -51,6 +51,7 @@
 		A10B994C16C0C7FF00AF1A1E /* barcode_hmm.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = barcode_hmm.c; path = src/barcode_hmm.c; sourceTree = "<group>"; };
 		A10B994F16C0E65B00AF1A1E /* barcode_hmm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = barcode_hmm.h; path = src/barcode_hmm.h; sourceTree = "<group>"; };
 		A117B363178BE7E100014093 /* run_bwa.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; name = run_bwa.sh; path = scripts/run_bwa.sh; sourceTree = "<group>"; };
+		A1359BCF17E9944200EA7432 /* new_sim_plots.R */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.rez; name = new_sim_plots.R; path = scripts/new_sim_plots.R; sourceTree = "<group>"; };
 		A14DAD9317B8710900D51E41 /* processBarcodeMapping.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = processBarcodeMapping.sh; path = scripts/processBarcodeMapping.sh; sourceTree = "<group>"; };
 		A14F589B17783085003A7B1A /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Makefile.am; sourceTree = "<group>"; };
 		A14F589D177835CF003A7B1A /* configure.ac */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = configure.ac; sourceTree = "<group>"; };
@@ -95,6 +96,7 @@
 		A1022D4C174AF66C003978B4 /* scripts */ = {
 			isa = PBXGroup;
 			children = (
+				A1359BCF17E9944200EA7432 /* new_sim_plots.R */,
 				A19956B717B4AAC1006A7F85 /* plot_scatter_plots.R */,
 				A1D9CE1C17A73C9A00C6BBFD /* make_sim_plots.R */,
 				A14DAD9317B8710900D51E41 /* processBarcodeMapping.sh */,
@@ -211,7 +213,7 @@
 		A10B992516C09ED500AF1A1E /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0460;
+				LastUpgradeCheck = 0500;
 				ORGANIZATIONNAME = lassmann;
 			};
 			buildConfigurationList = A10B992816C09ED500AF1A1E /* Build configuration list for PBXProject "tagdust2" */;
@@ -254,7 +256,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -287,7 +288,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;

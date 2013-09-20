@@ -72,7 +72,7 @@ int qsort_ri_prob_compare(const void *a, const void *b)
  
  Used to sort arrays of string using qsort.
  \param file empty file pointer.
-  \param file_num index of input file.
+\param file_num index of input file.
  \param param @ref parameters.
 
  */
@@ -226,6 +226,7 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 			}
 			i = sprintf (tmp, "%s ", param->infile[file_num]);
 			strcat ( command, tmp);
+			//fprintf(stderr,"%s\n",command);
 			if (!(file = popen(command, "r"))) {
 				fprintf(stderr,"Cannot open bam file '%s' with command:%s\n",param->infile[file_num],command);
 				exit(-1);
@@ -511,6 +512,7 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file)
 		ri[i]->errors = -1;
 		ri[i]->cigar = 0;
 		ri[i]->md = 0;
+		ri[i]->mapq = -1;
 		
 	}
 	
@@ -728,6 +730,7 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
 		//ri[i]->xp = 0;
 		ri[i]->cigar = 0;
 		ri[i]->errors = 0;
+		ri[i]->mapq = -1;
 		//ri[i]->read_start = -1;
 		//ri[i]->read_end = -1;
 		//ri[i]->strand = 0;

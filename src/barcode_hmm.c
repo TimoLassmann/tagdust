@@ -29,8 +29,6 @@
  \bug No known bugs.
  */
 
-
-
 #include <stdio.h>
 #include "tagdust2.h"
 #include "interface.h"
@@ -82,7 +80,6 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 #else
 	//printf("No Debug\n");
 	param->num_query = 1000000;
-
 #endif
 
 	//param->num_query = 500000;
@@ -103,6 +100,7 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		ri[i]->cigar = 0;
 		ri[i]->bar_prob = 0;
 		ri[i]->md = 0;
+		ri[i]->mapq = -1.0;
 		ri[i]->strand = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 		ri[i]->hits = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 	}
@@ -205,9 +203,35 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	mb = estimate_length_distribution_of_partial_segments(mb,ri, param,  numseq);
 
 	pclose(file);
+	//fprintf(stderr,"%f	%f\n", model_information_content(mb),   exp(model_information_content(mb) ) / (1 + exp(model_information_content(mb))) * 10 + 5) ;
+	/*
+	for(i = 1; i < 1000;i++){
+		sum = (double)i / 100.0;
+		fprintf(stderr,"%f	%f\n",sum,exp(sum ) / (1.0 + exp(sum)) * 10 + 5) ;
+	}
 	
+	exit(0);*/
+	//sum = model_information_content(mb) ;
+	//param->random_prior = 0.1 * 0.5  + 0.9 *( 1- exp(-1.0 * sum));
 	
-	// HMM training - not used in this version.. 
+	//fprintf(stderr,"%f	%f\n",param->random_prior, 1- exp(-1.0 * sum));
+	
+	//exit(0);
+	/*if(!param->confidence_threshold){
+		sum = model_information_content(mb) ;
+		param->confidence_threshold =  exp(sum ) / (1.0 + exp(sum)) * 20.0;
+		fprintf(stderr,"Setting Threshold to %f\n",param->confidence_threshold );
+	}*/
+	// HMM training - not used in this version..
+	
+	file =  io_handler(file, file_num,param);
+	numseq = fp(ri, param,file);
+	mb =  run_pHMM(mb,ri,param,numseq,MODE_GET_PROB);
+	//fprintf(stderr,"read: %d\n",numseq);
+	mb =  run_pHMM(mb,ri,param,numseq,MODE_RUN_RANDOM);
+	param->confidence_threshold =  set_Q_threshold(mb, ri,  numseq);
+	pclose(file);
+	
 	
 	file =  io_handler(file, file_num,param);
 
@@ -278,6 +302,9 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		
 	total_read = 0;
 	while ((numseq = fp(ri, param,file)) != 0){
+		
+		
+		
 		//	numseq = fp(ri, param,file);
 		mb =  run_pHMM(mb,ri,param,numseq,MODE_GET_LABEL);
 		li->total_read += numseq;
@@ -346,6 +373,9 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	
 	fprintf(outfile,"%s	%.2d-%.2d-%d	%2d:%.2d%cm\n",param->infile[file_num],ptr->tm_mon + 1,ptr->tm_mday, ptr->tm_year + 1900,hour,ptr->tm_min, am_or_pm );
 	fprintf(outfile,"%d	total input reads\n", li->total_read);
+	fprintf(outfile,"%f	selected threshold\n", param->confidence_threshold);
+
+	
 	
 	fprintf(outfile,"%d	successfully extracted\n" ,li->num_EXTRACT_SUCCESS);
 	fprintf(outfile,"%d	barcode / UMI not found\n" ,li->num_EXTRACT_FAIL_BAR_FINGER_NOT_FOUND);
@@ -392,6 +422,112 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	}
 }
 
+
+		   
+		
+		   
+/** \fn float model_information_content(struct model_bag*mb)
+ 
+ \brief Calculated the information content of a model based on the match states.  
+ 
+ \f[
+ 
+ IC =  - \sum_{i,j} p_{i,j} \log \left( p_{i,j} b_j \right)   
+ \f]
+ 
+ 
+ 
+ \param mb  @ref model_bag - contains the HMM model.
+
+ */
+
+
+float model_information_content(struct model_bag*mb)
+{
+	float IC =0.0;
+	int i,j,c,f;
+	struct hmm_column* col = 0;
+	float test_prob = 0;
+	for(i = 0; i < mb->num_models;i++){
+		
+		for(j = 0;j < mb->model[i]->hmms[0]->num_columns ;j++){
+			for(c= 0; c < 5;c++){
+				test_prob = 0.0;
+				for(f = 0;f < mb->model[i]->num_hmms;f++){
+					col = mb->model[i]->hmms[f]->hmm_column[j];
+					test_prob += scaledprob2prob( col->m_emit[c])  * 1.0 / (float)mb->model[i]->num_hmms;
+					
+				}
+				IC +=test_prob* log2 (   test_prob  /  scaledprob2prob( mb->model[0]->background_nuc_frequency[c]));
+				
+			}
+		}
+	}
+	return  IC;
+}
+
+double set_Q_threshold(struct model_bag* mb, struct read_info** ri, int numseq)
+{
+	double estimated_threshold = -1.0;
+	double fdr = 0.01;
+	int i,j,c,g;
+	int extracted;
+	int real[50];
+	int fake[50];
+	for(i =0; i < 50;i++){
+		real[i] = 0;
+		fake[i] = 0;
+	}
+	
+	for(i =0; i < numseq;i++){
+		if((int) ri[i]->mapq > 49){
+			real[49]++;
+		}else{
+			real[(int) ri[i]->mapq]++;
+		}
+		
+		if((int) mb->random_scores[i]> 49){
+			fake[49]++;
+		}else{
+			fake[(int) mb->random_scores[i]]++;
+		}
+	}
+	
+	//while(estimated_threshold == -1.0){
+		
+		c = 0; g = 0;
+		
+		j = 0;
+		extracted = 0;
+		
+		for(i = 49; i >= 0;i--){
+			c +=real[i];
+			g += fake[i];
+			j = c+g;
+			if((float)g / (float)(c+g)  <= fdr && j > extracted){
+				extracted = j;
+				estimated_threshold = i;
+			}
+			//fprintf(stderr,"%d	%d	%d	%f	%d	%f\n", i,real[i],fake[i],  (float)g / (float)(c+g) , c+g,estimated_threshold);
+		}
+		if(estimated_threshold == -1.0){
+			fprintf(stderr,"warning - cannot find a good separation with FDR: %f\n",fdr);
+			fdr += 0.01;
+			return 1000;
+		}else{
+			fprintf(stderr,"Good separation found at FDR: %f\n",fdr);
+
+		}
+		/*if(fdr >= 0.05){
+			fprintf(stderr,"Setting threshold to 50 - cannot extract reads\n");
+			return 50;
+		}*/
+
+	//}
+	
+
+	return estimated_threshold;
+}
 
 
 /** \fn struct model_bag* estimate_length_distribution_of_partial_segments(struct model_bag*mb,struct read_info** ri,struct parameters* param, int numseq)
@@ -463,7 +599,10 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 		}
 		mean = s1 / s0;
 		stdev = sqrt(  (s0 * s2 - pow(s1,2.0))   /  (  s0 *(s0-1.0) )) ;
-		fprintf(stderr,"5: %f %f	%f\n", mean,  stdev,s0);
+		if(stdev < 0.1){
+			stdev = 0.1;
+		}
+		//fprintf(stderr,"5: %f %f	%f\n", mean,  stdev,s0);
 
 		if(mean <= 1){
 			fprintf(stderr,"WARNING: 5' partial segment seems not to be present in the data (length < 1).\n");
@@ -471,15 +610,19 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 
 		sum_prob = 0;
 		
-		for(i = 0; i <  len;i++){
+		for(i = 0; i <=  len;i++){
+		//	fprintf(stderr,"%f ",sum_prob );
 			sum_prob +=gaussian_pdf(i , mean ,stdev);
 		}
 		
-		
+		//fprintf(stderr,"\n");
 		
 		//Init model ....
 		model = mb->model[0];
 		model->skip = prob2scaledprob(  gaussian_pdf(0 , mean ,stdev) / sum_prob    );
+		
+		//fprintf(stderr,"5SKIP:%f\t%f\n", model->skip, scaledprob2prob(model->skip));
+		
 		//if(rs->type[key] == 'P'){// Partial - can skip and exit at every M / I state....
 		len = model->hmms[0]->num_columns;
 		for(i = 0 ; i < model->num_hmms;i++){
@@ -489,6 +632,7 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 			for(j = 0; j < len;j++){
 				col = model->hmms[i]->hmm_column[j];
 				model->silent_to_M[i][j]  = prob2scaledprob(1.0 / (float) model->num_hmms) + prob2scaledprob(   gaussian_pdf(len-j , mean ,stdev) / sum_prob);
+				//fprintf(stderr,"move:%d:%f\t%f\n", j,model->silent_to_M[i][j], scaledprob2prob(model->silent_to_M[i][j]));
 				
 				col->transition[MM] = prob2scaledprob( 1.0 - base_error * indel_freq );
 				col->transition[MI] = prob2scaledprob(base_error * indel_freq*0.5);
@@ -609,31 +753,39 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 		}
 		mean = s1 / s0;
 		stdev = sqrt(  (s0 * s2 - pow(s1,2.0))   /  (  s0 *(s0-1.0) )) ;
-		fprintf(stderr,"3: %f %f\n", mean,  stdev);
+		if(stdev < 0.1){
+			stdev = 0.1;
+		}
+		
+		//fprintf(stderr,"3: %f %f\n", mean,  stdev);
 		if(mean <= 1){
 			fprintf(stderr,"WARNING: 3' partial segment seems not to be present in the data (length < 1).\n");
 		}
 		
 		sum_prob = 0;
 		
-		for(i = 0; i <  len;i++){
+		for(i = 0; i <=  len;i++){
 			sum_prob +=gaussian_pdf(i , mean ,stdev);
 		}
 
 		//Init model ....
 		model = mb->model[mb->num_models-1];
 		model->skip = prob2scaledprob(  gaussian_pdf(0 , mean ,stdev) / sum_prob    );
+		//fprintf(stderr,"3SKIP:%f\t%f\n", model->skip, scaledprob2prob(model->skip));
 		//if(rs->type[key] == 'P'){// Partial - can skip and exit at every M / I state....
 		//len = model->hmms[mb->num_models-1]->num_columns;
 		for(i = 0 ; i < model->num_hmms;i++){
 			
 			//model->M_to_silent[i] = prob2scaledprob(1.0);
 			model->silent_to_M[i][0] = prob2scaledprob(1.0 / (float) model->num_hmms) + prob2scaledprob(1.0 -  gaussian_pdf(0 , mean ,stdev) / sum_prob );
+			//fprintf(stderr,"move:%d:%f\t%f\n", i,model->silent_to_M[i][0], scaledprob2prob(model->silent_to_M[i][0]));
 			for(j = 0; j < len;j++){
 				col = model->hmms[i]->hmm_column[j];
 				//model->silent_to_M[i][j]  = prob2scaledprob(1.0 / (float) model->num_hmms) + prob2scaledprob(   gaussian_pdf(len-j , mean ,stdev) / sum_prob);
 				
 				col->transition[MSKIP] = prob2scaledprob(   gaussian_pdf(j+1 , mean ,stdev) / sum_prob)   - model->silent_to_M[i][0];
+				
+			//	fprintf(stderr,"mskip:%d:%f\t%f\n", j,col->transition[MSKIP] , scaledprob2prob(col->transition[MSKIP]));
 				
 				
 				col->transition[MM] = prob2scaledprob( 1.0 - base_error * indel_freq ) + prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
@@ -678,7 +830,8 @@ struct model_bag* run_pHMM(struct model_bag* mb,struct read_info** ri,struct par
 	thread_data = malloc(sizeof(struct thread_data)* param->num_threads);
 	pthread_t threads[param->num_threads];
 	pthread_attr_t attr;
-	int i,j,c,t,l;
+	int i,t;
+	
 	int interval = 0;
 	int rc;
 	
@@ -701,21 +854,7 @@ struct model_bag* run_pHMM(struct model_bag* mb,struct read_info** ri,struct par
 		thread_data[t].param = param;
 	}
 	thread_data[param->num_threads-1].end = numseq;
-	unsigned int seed = (unsigned int) (time(NULL) * ( 42));
-	
-	
-	
-	if(MODE_RUN_RANDOM == mode){
-		//shuffle sequences....
-		for(i = 0; i < numseq;i++){
-			for(j = 0; j < ri[i]->len;j++){
-				c = (int)rand_r(&seed) % numseq;
-				l = ri[c]->seq[j];
-				ri[c]->seq[j] = ri[i]->seq[j];
-				ri[i]->seq[j] = l;
-			}
-		}
-	}
+	//unsigned int seed = (unsigned int) (time(NULL) * ( 42));
 	
 	rc = pthread_attr_init(&attr);
 	if(rc){
@@ -836,12 +975,12 @@ void* do_probability_estimation(void *threadarg)
 			}else{
 				Q = -10.0 * log10(pbest) ;
 			}
-			ri[i]->prob = Q;
+			ri[i]->mapq = Q;
 		}
 	}else{
 		for(i = start; i < end;i++){
 			
-			
+			//fprintf(stderr,"%d	%d	%d	%d\n",i,ri[i]->len,start,end);
 			mb = backward(mb, ri[i]->seq ,ri[i]->len);			
 			mb = forward_max_posterior_decoding(mb, ri[i], ri[i]->seq ,ri[i]->len);
 			
@@ -855,7 +994,7 @@ void* do_probability_estimation(void *threadarg)
 				Q = -10.0 * log10(pbest) ;
 			}
 			    				     
-			ri[i]->prob = Q;			
+			ri[i]->mapq = Q;
 		}
 	}
 		
@@ -900,47 +1039,47 @@ void* do_label_thread(void *threadarg)
 	int i;
 	int tmp = 0;
 	float pbest,Q;
-	
-	if(matchstart != -1 || matchend != -1){
-		for(i = start; i < end;i++){
-			tmp = matchend - matchstart ;
-			mb = backward(mb, ri[i]->seq + matchstart , tmp);
-			mb = forward_max_posterior_decoding(mb, ri[i] , ri[i]->seq+matchstart ,tmp );
-			
-			pbest = logsum(mb->f_score, mb->r_score);
-			pbest = 1.0 - scaledprob2prob(  (ri[i]->bar_prob + mb->f_score) - pbest);
-			if(!pbest){
-				Q = 40.0;
-			}else if(pbest == 1.0){
-				Q = 0.0;
+	//if(ri[0]->mapq == -1){ // skip sequence scoring if Q values were already calculated....
+		if(matchstart != -1 || matchend != -1){
+			for(i = start; i < end;i++){
+				tmp = matchend - matchstart ;
+				mb = backward(mb, ri[i]->seq + matchstart , tmp);
+				mb = forward_max_posterior_decoding(mb, ri[i] , ri[i]->seq+matchstart ,tmp );
 				
-			}else{
-				Q = -10.0 * log10(pbest) ;
-			}
-			ri[i]->prob = Q;
-			
-		}
-	}else{
-		for(i = start; i < end;i++){
-			mb = backward(mb, ri[i]->seq ,ri[i]->len);
-			mb = forward_max_posterior_decoding(mb, ri[i], ri[i]->seq ,ri[i]->len);
-			pbest = logsum(mb->f_score, mb->r_score);
-			
-			pbest = 1.0 - scaledprob2prob(  (ri[i]->bar_prob + mb->f_score) - pbest);
-			if(!pbest){
-				Q = 40.0;
-			}else if(pbest == 1.0){
-				Q = 0.0;
+				pbest = logsum(mb->f_score, mb->r_score);
+				pbest = 1.0 - scaledprob2prob(  (ri[i]->bar_prob + mb->f_score) - pbest);
+				if(!pbest){
+					Q = 40.0;
+				}else if(pbest == 1.0){
+					Q = 0.0;
+					
+				}else{
+					Q = -10.0 * log10(pbest) ;
+				}
+				ri[i]->mapq = Q;
 				
-			}else{
-				Q = -10.0 * log10(pbest) ;
 			}
-			ri[i]->prob = Q;
-			
-			
+		}else{
+			for(i = start; i < end;i++){
+				mb = backward(mb, ri[i]->seq ,ri[i]->len);
+				mb = forward_max_posterior_decoding(mb, ri[i], ri[i]->seq ,ri[i]->len);
+				pbest = logsum(mb->f_score, mb->r_score);
+				
+				pbest = 1.0 - scaledprob2prob(  (ri[i]->bar_prob + mb->f_score ) - pbest);
+				if(!pbest){
+					Q = 40.0;
+				}else if(pbest == 1.0){
+					Q = 0.0;
+					
+				}else{
+					Q = -10.0 * log10(pbest) ;
+				}
+				ri[i]->mapq = Q;
+				
+				
+			}
 		}
-	}
-	
+	//}
 	for(i = start; i < end;i++){
 		
 		ri[i]->bar_prob = 100;
@@ -956,7 +1095,7 @@ void* do_label_thread(void *threadarg)
 	if(data->param->dust){
 		ri = dust_sequences(data);
 	}
-	
+	/*
 #if DEBUG	
 	for(i = start; i < end;i++){
 		
@@ -996,7 +1135,7 @@ void* do_label_thread(void *threadarg)
 	}
 	
 #endif
-	
+	*/
 	pthread_exit((void *) 0);
 }
 
@@ -1738,7 +1877,7 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 	
 	//ri[i]->prob = expf( ri[i]->prob) / (1.0f + expf(ri[i]->prob ));
 	
-	if(param->confidence_threshold <=  ri->prob ){
+	if(param->confidence_threshold <=  ri->mapq){
 		
 		if(0.5 <=  ri->bar_prob){
 			fingerlen = 0;
@@ -1775,7 +1914,7 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 				if(hmm_has_barcode && required_finger_len){
 					if(fingerlen == required_finger_len && bar != -1){
 						buffer[0] = 0;
-						sprintf (buffer, "@%s;BC:%s;FP:%d",ri->name,param->read_structure->sequence_matrix[mem][bar],key);
+						sprintf (buffer, "@%s;BC:%s;FP:%d;",ri->name,param->read_structure->sequence_matrix[mem][bar],key);
 						//strcat (buffer, tmp);
 						ri->name = realloc(ri->name, sizeof(char) * (strlen(buffer) + 1) );
 						
@@ -1796,7 +1935,7 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 					if(bar != -1){
 						
 						buffer[0] = 0;
-						sprintf (buffer, "@%s;BC:%s",ri->name,param->read_structure->sequence_matrix[mem][bar]);
+						sprintf (buffer, "@%s;BC:%s;",ri->name,param->read_structure->sequence_matrix[mem][bar]);
 						//strcat (buffer, tmp);
 						ri->name = realloc(ri->name, sizeof(char) * (strlen(buffer) + 1) );
 						
@@ -1921,7 +2060,10 @@ void* do_run_random_sequences(void *threadarg)
 	
 	int start = data->start;
 	int end = data->end;
-	int i;
+	int i,tmp;
+	
+	int matchstart = data->param->matchstart;
+	int matchend = data->param->matchend;
 	//int c;
 	//int j;
 	//f/loat r;
@@ -1941,39 +2083,64 @@ void* do_run_random_sequences(void *threadarg)
 	g = c +  scaledprob2prob(mb->model[0]->background_nuc_frequency[2]);
 	
 	*/
-	
-	for(i = start; i < end;i++){
-		
-		
-		
-		
-		/*for(j = 0; j < ri[i]->len;j++){
-			r = (float)rand_r(&seed)/(float)RAND_MAX;
-			if(r < a){
-				ri[i]->seq[j] = 0;// barcode[c][i] = 0;
-			}else if(r < c){
-				ri[i]->seq[j] = 1;
-			}else if(r < g){
-				ri[i]->seq[j] = 2;
+	double pbest,Q;
+	if(matchstart != -1 || matchend != -1){
+		for(i = start; i < end;i++){
+			tmp = matchend - matchstart ;
+			
+			reverse_sequence(ri[i]->seq,  ri[i]->len);
+			
+			mb = backward(mb, ri[i]->seq + matchstart , tmp);
+			mb = forward_max_posterior_decoding(mb, ri[i] , ri[i]->seq+matchstart ,tmp );
+			
+			reverse_sequence(ri[i]->seq,  ri[i]->len);
+			
+			pbest = logsum(mb->f_score, mb->r_score);
+			pbest = 1.0 - scaledprob2prob(  (ri[i]->bar_prob + mb->f_score) - pbest);
+			if(!pbest){
+				Q = 40.0;
+			}else if(pbest == 1.0){
+				Q = 0.0;
+				
 			}else{
-				ri[i]->seq[j] = 3;
+				Q = -10.0 * log10(pbest) ;
 			}
-		}*/
+			mb->random_scores[i] = Q;
+		}
+	}else{
+		for(i = start; i < end;i++){
 		
-		
-		//borroing the fist 5000 ri[i]'s to store probabilities of random sequences... 
-		//fprintf(stderr,"%s\n", ri[i]->name);
-		
-		mb = backward(mb, ri[i]->seq,ri[i]->len);
-		mb = forward_max_posterior_decoding(mb, ri[i], ri[i]->seq ,ri[i]->len);
-		//fprintf(stdout,"%f\n", ri[i]->prob);
-		
-		mb->random_scores[i] = ri[i]->prob;
-		
+			
+			
+			reverse_sequence(ri[i]->seq,  ri[i]->len);
+			
+			mb = backward(mb, ri[i]->seq,ri[i]->len);
+			mb = forward_max_posterior_decoding(mb, ri[i], ri[i]->seq ,ri[i]->len);
+			
+			reverse_sequence(ri[i]->seq,  ri[i]->len);
+			
+			
+			pbest = logsum(mb->f_score, mb->r_score);
+			
+			pbest = 1.0 - scaledprob2prob(  (ri[i]->bar_prob + mb->f_score) - pbest);
+			if(!pbest){
+				Q = 40.0;
+			}else if(pbest == 1.0){
+				Q = 0.0;
+				
+			}else{
+				Q = -10.0 * log10(pbest) ;
+			}
+			//ri[i]->prob = Q;
+			
+			
+			
+			//fprintf(stdout,"%f\n", ri[i]->prob);
+			
+			mb->random_scores[i] = Q;
+		}
 		//mb = forward_extract_posteriors(mb, ri[i]->seq ,ri[i]->len);
 	}
-	
-		
 	pthread_exit((void *) 0);
 }
 

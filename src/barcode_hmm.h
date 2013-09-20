@@ -337,6 +337,11 @@ struct model_bag* set_model_e_to_laplace(struct model_bag* mb);
 
 struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_length,unsigned int* seed );
 struct read_info* emit_random_sequence(struct model_bag* mb, struct read_info* ri,int average_length,unsigned int* seed );
+
+float model_information_content(struct model_bag*mb);
+double set_Q_threshold(struct model_bag* mb, struct read_info** ri, int numseq);
+
+
 #endif
 
 

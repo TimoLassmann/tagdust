@@ -108,6 +108,7 @@ struct parameters {
 	int average_read_length;/**< @brief Average read length. */
 	int num_threads;/**< @brief Number of threads. */
 	float confidence_threshold;
+	float random_prior;
 	int matchstart;
 	int matchend;
 	int minlen;/**< @brief Minium accepted read length.  */
