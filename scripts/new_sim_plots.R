@@ -142,4 +142,4 @@ p+scale_fill_manual(breaks=c(1,2,3,4,5,6,7,8,9,10),values =  colorRampPalette(c(
 
 
 
-s = subset(mat,!(is.na(mat[,9])) & mat[,16] == 0.5 & mat[,11] > 0 )
+s = subset(mat,!(is.na(mat[,9])) & mat[,16] == 0.1 & mat[,11] > 0 )

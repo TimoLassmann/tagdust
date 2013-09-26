@@ -133,7 +133,6 @@ void simulation_for_benchmark(struct parameters* param)
 			   param->sim_error_rate,
 			   param->sim_InDel_frac,
 			   param->sim_sequenced_len);
-		
 	}
 
 	fprintf(stderr,"%s\n",runid);

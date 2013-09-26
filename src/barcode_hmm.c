@@ -112,7 +112,6 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	 
 	 */
 	
-	
 	average_length = 0;
 	for(i = 0; i < 5;i++){
 		back[i] = 1.0; // pseudocount..... -- caused crashes on tiny datasets.... (even N does not occur in input, the M emit states of the HMM would have a N probability becasue of the sequencing error. But the random model was initializes straight from the background...)
@@ -120,7 +119,6 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	total_read = 0;
 	
 	while ((numseq = fp(ri, param,file)) != 0){
-		
 		for(i = 0; i < numseq;i++){
 			average_length += ri[i]->len;
 			for(j = 0;j < ri[i]->len;j++){
@@ -143,7 +141,6 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	if(param->matchstart!= -1 || param->matchend !=-1){
 		average_length = (param->matchend - param->matchstart )* total_read;
 	}
-	
 	
 	average_length = average_length / total_read;
 	
@@ -224,14 +221,22 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	}*/
 	// HMM training - not used in this version..
 	
+	
+	
+	/*for(i = 0; i < mb->num_models;i++){
+		print_model(mb->model[i]);
+	}
+	exit(0);
+	*/
+	/*
 	file =  io_handler(file, file_num,param);
 	numseq = fp(ri, param,file);
 	mb =  run_pHMM(mb,ri,param,numseq,MODE_GET_PROB);
-	//fprintf(stderr,"read: %d\n",numseq);
 	mb =  run_pHMM(mb,ri,param,numseq,MODE_RUN_RANDOM);
+	fprintf(stderr,"read: %d	%d\n",numseq,param->num_query );
 	param->confidence_threshold =  set_Q_threshold(mb, ri,  numseq);
 	pclose(file);
-	
+	*/
 	
 	file =  io_handler(file, file_num,param);
 
@@ -466,30 +471,47 @@ float model_information_content(struct model_bag*mb)
 	return  IC;
 }
 
+
+
+/** \fn double set_Q_threshold(struct model_bag* mb, struct read_info** ri, int numseq)
+ 
+ \brief Sets the confidence threshold based on comparison of Q scores obtained freom real and reversed sequences.
+ 
+ \param mb  @ref model_bag - contains the HMM model.
+\param ri  @ref read_info - contains the reads.
+\param numseq - number of sequences.
+ */
+
+
 double set_Q_threshold(struct model_bag* mb, struct read_info** ri, int numseq)
 {
 	double estimated_threshold = -1.0;
-	double fdr = 0.01;
+	double fdr = 0.05;
 	int i,j,c,g;
 	int extracted;
-	int real[50];
-	int fake[50];
-	for(i =0; i < 50;i++){
+	int real[5000];
+	int fake[5000];
+	for(i =0; i < 5000;i++){
 		real[i] = 0;
 		fake[i] = 0;
 	}
 	
 	for(i =0; i < numseq;i++){
-		if((int) ri[i]->mapq > 49){
-			real[49]++;
+		
+		//fprintf(stderr,"%d	\n",i);
+		//fprintf(stderr,"%f rand	\n", mb->random_scores[i]);
+		//fprintf(stderr,"%f	 mapq\n",  ri[i]->mapq);
+		
+		if((int) (ri[i]->mapq*100.0) > 4999){
+			real[4999]++;
 		}else{
-			real[(int) ri[i]->mapq]++;
+			real[(int) (ri[i]->mapq*100.0)]++;
 		}
 		
-		if((int) mb->random_scores[i]> 49){
-			fake[49]++;
+		if((int) (mb->random_scores[i]*100) > 4999){
+			fake[4999]++;
 		}else{
-			fake[(int) mb->random_scores[i]]++;
+			fake[(int) (mb->random_scores[i]*100.0)]++;
 		}
 	}
 	
@@ -500,15 +522,17 @@ double set_Q_threshold(struct model_bag* mb, struct read_info** ri, int numseq)
 		j = 0;
 		extracted = 0;
 		
-		for(i = 49; i >= 0;i--){
+		for(i = 4999; i >= 0;i--){
 			c +=real[i];
 			g += fake[i];
 			j = c+g;
-			if((float)g / (float)(c+g)  <= fdr && j > extracted){
+			if((float)g / (float)(c+g)  <= fdr && j >= extracted){
 				extracted = j;
-				estimated_threshold = i;
+				estimated_threshold = (double)i/100.0;
 			}
-			//fprintf(stderr,"%d	%d	%d	%f	%d	%f\n", i,real[i],fake[i],  (float)g / (float)(c+g) , c+g,estimated_threshold);
+			if(real[i]+fake[i]){
+			fprintf(stderr,"%d	%d	%d	%f	%d	%f\n", i,real[i],fake[i],  (float)g / (float)(c+g) , c+g,estimated_threshold);
+			}
 		}
 		if(estimated_threshold == -1.0){
 			fprintf(stderr,"warning - cannot find a good separation with FDR: %f\n",fdr);
@@ -523,6 +547,10 @@ double set_Q_threshold(struct model_bag* mb, struct read_info** ri, int numseq)
 			return 50;
 		}*/
 
+	//}
+	
+	//if(estimated_threshold < 10.0){
+	//	estimated_threshold = 10.0;
 	//}
 	
 
@@ -599,10 +627,10 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 		}
 		mean = s1 / s0;
 		stdev = sqrt(  (s0 * s2 - pow(s1,2.0))   /  (  s0 *(s0-1.0) )) ;
-		if(stdev < 0.1){
-			stdev = 0.1;
+		if(stdev < 1){
+			stdev = 1;
 		}
-		//fprintf(stderr,"5: %f %f	%f\n", mean,  stdev,s0);
+		fprintf(stderr,"5: %f %f	%f\n", mean,  stdev,s0);
 
 		if(mean <= 1){
 			fprintf(stderr,"WARNING: 5' partial segment seems not to be present in the data (length < 1).\n");
@@ -610,7 +638,7 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 
 		sum_prob = 0;
 		
-		for(i = 0; i <=  len;i++){
+		for(i = 0; i <  len;i++){
 		//	fprintf(stderr,"%f ",sum_prob );
 			sum_prob +=gaussian_pdf(i , mean ,stdev);
 		}
@@ -622,7 +650,10 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 		model->skip = prob2scaledprob(  gaussian_pdf(0 , mean ,stdev) / sum_prob    );
 		
 		//fprintf(stderr,"5SKIP:%f\t%f\n", model->skip, scaledprob2prob(model->skip));
-		
+		s1 = prob2scaledprob(0.0);
+		//fprintf(stderr,"SUMPROB:%f\n", s1);
+		s1 = logsum(s1, model->skip);
+		//fprintf(stderr,"SUMPROB:%f\n", s1);
 		//if(rs->type[key] == 'P'){// Partial - can skip and exit at every M / I state....
 		len = model->hmms[0]->num_columns;
 		for(i = 0 ; i < model->num_hmms;i++){
@@ -632,35 +663,31 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 			for(j = 0; j < len;j++){
 				col = model->hmms[i]->hmm_column[j];
 				model->silent_to_M[i][j]  = prob2scaledprob(1.0 / (float) model->num_hmms) + prob2scaledprob(   gaussian_pdf(len-j , mean ,stdev) / sum_prob);
-				//fprintf(stderr,"move:%d:%f\t%f\n", j,model->silent_to_M[i][j], scaledprob2prob(model->silent_to_M[i][j]));
 				
-				col->transition[MM] = prob2scaledprob( 1.0 - base_error * indel_freq );
-				col->transition[MI] = prob2scaledprob(base_error * indel_freq*0.5);
-				col->transition[MD] = prob2scaledprob(base_error * indel_freq*0.5);
-				col->transition[MSKIP] = prob2scaledprob(0.00f);
-				
-				col->transition[II] = prob2scaledprob(1.0 - 0.999);
-				col->transition[IM] = prob2scaledprob(0.999);
-				col->transition[ISKIP] = prob2scaledprob(0.00f);
+				s1 = logsum(s1, model->silent_to_M[i][j]);
 				
 			}
-			col = model->hmms[i]->hmm_column[len-1];
-			col->transition[MM] = prob2scaledprob(0.0f );// 1.0 - base_error * indel_freq);
-			col->transition[MI] = prob2scaledprob(0.0f );//(base_error * indel_freq) +  prob2scaledprob(0.5);
-			col->transition[MD] = prob2scaledprob(0.0f );//(base_error * indel_freq) +  prob2scaledprob(0.5);
-			col->transition[MSKIP] = prob2scaledprob(1.0);
-			col->transition[II] = prob2scaledprob(0.0f );// 1.0 - base_error * indel_freq);
-			col->transition[IM] = prob2scaledprob(0.0f );//(base_error * indel_freq) +  prob2scaledprob(0.5);
-			col->transition[ISKIP] = prob2scaledprob(1.0);
 			
-			
-			
+			model->hmms[i] = set_hmm_transition_parameters(model->hmms[i],len, base_error, indel_freq, -1.0, -1.0);
 		}
+		
+		model->skip = model->skip - s1;
+		s2 = model->skip;
+		for(i = 0 ; i < model->num_hmms;i++){
 			
-		//fprintf(stderr,"%f	skip\n", scaledprob2prob(model->skip));
-		//for(j = 0; j < len;j++){
-		//	fprintf(stderr,"%f	%d len \n", scaledprob2prob(model->silent_to_M[0][j] ),j);
-		//}
+			//model->M_to_silent[i] = prob2scaledprob(1.0);
+			
+			for(j = 0; j < len;j++){
+				model->silent_to_M[i][j]  = model->silent_to_M[i][j]  - s1;
+			}
+		}
+		
+		
+			
+		/*fprintf(stderr,"%f	skip\n", scaledprob2prob(model->skip));
+		for(j = 0; j < len;j++){
+			fprintf(stderr,"%f	%d len \n", scaledprob2prob(model->silent_to_M[0][j] ),j);
+		}*/
 			
 		//}
 		
@@ -679,44 +706,8 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 			for(i = 0 ; i < model->num_hmms;i++){
 				
 				j = 0;
-				
-				col = model->hmms[i]->hmm_column[j];
-				model->silent_to_M[i][j]  = prob2scaledprob(1.0 / (float) model->num_hmms) + prob2scaledprob(0.9);
-				for(j = 1; j < len;j++){
-					model->silent_to_M[i][j]  = prob2scaledprob(1.0 / (float) model->num_hmms) + prob2scaledprob(0.1 / (float)(len-1));
-				}
-				//model->silent_to_M[i][len-1] = prob2scaledprob(0.0);
-				//model->M_to_silent[i] = prob2scaledprob(1.0);
-				
-				for(j = 0; j < len;j++){
-					col = model->hmms[i]->hmm_column[j];
-					
-					col->transition[MSKIP] = prob2scaledprob(0.1 / (float)(len-1));
-					col->transition[MM] = prob2scaledprob( 1.0 - base_error * indel_freq )+ prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
-					col->transition[MI] = prob2scaledprob(base_error * indel_freq*0.5)+ prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
-					col->transition[MD] = prob2scaledprob(base_error * indel_freq*0.5)+ prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
-					
-					
-					col->transition[ISKIP] = prob2scaledprob(0.1 / (float)(len-1));
-					
-					col->transition[II] = prob2scaledprob(1.0 - 0.999)+ prob2scaledprob (1.0 - scaledprob2prob(col->transition[ISKIP]  ));
-					col->transition[IM] = prob2scaledprob(0.999)+ prob2scaledprob (1.0 - scaledprob2prob(col->transition[ISKIP]  ));
-					
-					
-				}
-				col = model->hmms[i]->hmm_column[len-1];
-				col->transition[MM] = prob2scaledprob(0.0f );// 1.0 - base_error * indel_freq);
-				col->transition[MI] = prob2scaledprob(0.0f );//(base_error * indel_freq) +  prob2scaledprob(0.5);
-				col->transition[MD] = prob2scaledprob(0.0f );//(base_error * indel_freq) +  prob2scaledprob(0.5);
-				col->transition[MSKIP] = prob2scaledprob(1.0);
-				col->transition[II] = prob2scaledprob(0.0f );// 1.0 - base_error * indel_freq);
-				col->transition[IM] = prob2scaledprob(0.0f );//(base_error * indel_freq) +  prob2scaledprob(0.5);
-				col->transition[ISKIP] = prob2scaledprob(1.0);
+				model->hmms[i] = set_hmm_transition_parameters(model->hmms[i],len, base_error, indel_freq, 0.1, -1.0); // 0.1 is exit parameter for partial internal sequence (I don't know how to set this.....)
 			}
-			/*for(j = 0; j < len;j++){
-				col = model->hmms[0]->hmm_column[j];
-				fprintf(stderr,"%f	%f	%f	%f	%f	%d len \n",scaledprob2prob(model->silent_to_M[0][j]),scaledprob2prob( col->transition[MM] ), scaledprob2prob(col->transition[MI] ), scaledprob2prob(col->transition[MD]), scaledprob2prob(col->transition[MSKIP]),j);
-			}*/
 		}
 	}
 	
@@ -743,7 +734,6 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 					}
 				}
 				if(c == len-j  && c > 3){
-					
 					s0++;
 					s1 += len -j;
 					s2 += (len-j) * (len-j);
@@ -753,24 +743,28 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 		}
 		mean = s1 / s0;
 		stdev = sqrt(  (s0 * s2 - pow(s1,2.0))   /  (  s0 *(s0-1.0) )) ;
-		if(stdev < 0.1){
-			stdev = 0.1;
+		if(stdev < 1){
+			stdev = 1;
 		}
 		
-		//fprintf(stderr,"3: %f %f\n", mean,  stdev);
+		fprintf(stderr,"3: %f %f\n", mean,  stdev);
 		if(mean <= 1){
 			fprintf(stderr,"WARNING: 3' partial segment seems not to be present in the data (length < 1).\n");
 		}
 		
 		sum_prob = 0;
 		
-		for(i = 0; i <=  len;i++){
+		for(i = 0; i <  len;i++){
 			sum_prob +=gaussian_pdf(i , mean ,stdev);
 		}
 
 		//Init model ....
 		model = mb->model[mb->num_models-1];
 		model->skip = prob2scaledprob(  gaussian_pdf(0 , mean ,stdev) / sum_prob    );
+		
+		
+		s1 = model->skip;
+		
 		//fprintf(stderr,"3SKIP:%f\t%f\n", model->skip, scaledprob2prob(model->skip));
 		//if(rs->type[key] == 'P'){// Partial - can skip and exit at every M / I state....
 		//len = model->hmms[mb->num_models-1]->num_columns;
@@ -779,35 +773,213 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 			//model->M_to_silent[i] = prob2scaledprob(1.0);
 			model->silent_to_M[i][0] = prob2scaledprob(1.0 / (float) model->num_hmms) + prob2scaledprob(1.0 -  gaussian_pdf(0 , mean ,stdev) / sum_prob );
 			//fprintf(stderr,"move:%d:%f\t%f\n", i,model->silent_to_M[i][0], scaledprob2prob(model->silent_to_M[i][0]));
-			for(j = 0; j < len;j++){
-				col = model->hmms[i]->hmm_column[j];
-				//model->silent_to_M[i][j]  = prob2scaledprob(1.0 / (float) model->num_hmms) + prob2scaledprob(   gaussian_pdf(len-j , mean ,stdev) / sum_prob);
-				
-				col->transition[MSKIP] = prob2scaledprob(   gaussian_pdf(j+1 , mean ,stdev) / sum_prob)   - model->silent_to_M[i][0];
-				
-			//	fprintf(stderr,"mskip:%d:%f\t%f\n", j,col->transition[MSKIP] , scaledprob2prob(col->transition[MSKIP]));
-				
-				
-				col->transition[MM] = prob2scaledprob( 1.0 - base_error * indel_freq ) + prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
-				col->transition[MI] = prob2scaledprob(base_error * indel_freq*0.5)+ prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
-
-				col->transition[MD] = prob2scaledprob(base_error * indel_freq*0.5)+ prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
-
-				
-				col->transition[ISKIP] = prob2scaledprob(   gaussian_pdf(j+1 , mean ,stdev) / sum_prob)  - model->silent_to_M[i][0];
-				
-				col->transition[II] = prob2scaledprob(1.0 - 0.999)+ prob2scaledprob (1.0 - scaledprob2prob(col->transition[ISKIP]  ));
-
-				col->transition[IM] = prob2scaledprob(0.999)+ prob2scaledprob (1.0 - scaledprob2prob(col->transition[ISKIP]  ));
-
-				
-				
-			}
 			
+			model->hmms[i] = set_hmm_transition_parameters(model->hmms[i],len, base_error, indel_freq, mean, stdev);
 		}
 		
 	}
 	return mb;
+}
+
+
+
+/** \fnstruct hmm* set_hmm_transition_parameters(struct hmm* hmm, int len,double base_error, double indel_freq,  double mean, double stdev)
+ 
+ \brief Initialized transition probabilities of HMM segments.
+ 
+ This function sets the transition probabilities within HMMs.
+ 
+ If mean and stdev = -1.0 MSKIP transitions are set to 0 - the sequence has to match the entire HMM.
+ If mean is > -1.0 and stdev = -1.0 MSKIP is set to a constant throughout the model. 
+ If mean and stdev are not -1.0 MSKIP is set according to a gaussian distribiution - i.e. leaving the model towards the end is more probable than at the beginning...
+ 
+ 
+ 
+ 
+ \param hmm  @ref hmm - contains the HMM model.
+ \param len - length of the HMM.
+ \param base_error - seuqencer error rate.
+ \param indel_freq - InDel frequency.
+ 
+ \param mean - mean length of modelled 3' sequence
+ \param stdev - standard deviation of read length.
+ 
+ */
+
+
+
+
+struct hmm* set_hmm_transition_parameters(struct hmm* hmm, int len,double base_error, double indel_freq,  double mean, double stdev)
+{
+	//cases:
+	//1) no MSKIP (apart from last columns
+	//2) MSKIP determined by mean & stdev.
+	//3 constant MSKIP...
+	
+	
+	int i;
+	struct hmm_column* col = 0;
+	
+	
+	double sum_prob = 0.0;
+	if(mean > 0.0 && stdev > 0.0){
+		for(i = 0; i <=  len;i++){
+			sum_prob +=gaussian_pdf(i , mean ,stdev);
+		}
+	}
+	
+	
+	if(len == 1){
+		//single state - only silent to / from M everything else set to zero....
+		col = hmm->hmm_column[0];
+		col->transition[MM] = prob2scaledprob(0.0f);
+		col->transition[MI] = prob2scaledprob(0.0f);
+		col->transition[MD] = prob2scaledprob(0.0f);
+		col->transition[MSKIP] = prob2scaledprob(1.0f);
+		
+		col->transition[II] = prob2scaledprob(0.0f);
+		col->transition[IM] = prob2scaledprob(0.0f);
+		col->transition[ISKIP] = prob2scaledprob(0.0f);
+		
+		col->transition[DD] = prob2scaledprob(0.0);
+		col->transition[DM] = prob2scaledprob(0.0);
+	}else if(len == 2){
+		
+		//first column
+		col = hmm->hmm_column[0];
+		
+		if(mean == -1.0 && stdev == -1.0){
+			col->transition[MSKIP] = prob2scaledprob(0.0);
+		}else if(mean > -1.0 && stdev == -1.0){
+			col->transition[MSKIP] = prob2scaledprob(mean / (float)(len-1));
+		}else{
+			col->transition[MSKIP] = prob2scaledprob(   gaussian_pdf(1 , mean ,stdev) / sum_prob);
+		}
+		
+		col->transition[MM] = prob2scaledprob( 1.0 - base_error * indel_freq ) + prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
+		col->transition[MI] = prob2scaledprob(base_error * indel_freq)+ prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
+		
+		col->transition[MD] = prob2scaledprob(base_error * indel_freq*0.0)+ prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
+		
+		
+		col->transition[II] = prob2scaledprob(1.0 - 0.999);
+		col->transition[IM] = prob2scaledprob(0.999);
+		col->transition[ISKIP] = prob2scaledprob(0.0f);
+		
+		col->transition[DD] = prob2scaledprob(0.0);
+		col->transition[DM] = prob2scaledprob(0.0);
+		
+		//second column
+		col = hmm->hmm_column[1];
+		col->transition[MM] = prob2scaledprob(0.0f );// 1.0 - base_error * indel_freq);
+		col->transition[MI] = prob2scaledprob(0.0f );//(base_error * indel_freq) +  prob2scaledprob(0.5);
+		col->transition[MD] = prob2scaledprob(0.0f );//(base_error * indel_freq) +  prob2scaledprob(0.5);
+		col->transition[MSKIP] = prob2scaledprob(1.0);
+		
+		col->transition[II] = prob2scaledprob(0.00);
+		col->transition[IM] = prob2scaledprob(0.0);
+		col->transition[ISKIP] = prob2scaledprob(0.0f);
+		
+		col->transition[DD] = prob2scaledprob(0.0f );//(1.0 - 0.999);
+		col->transition[DM] = prob2scaledprob(0.0f );//0.999);
+		
+	}else{
+		//first column....
+		col = hmm->hmm_column[0];
+		
+		if(mean == -1.0 && stdev == -1.0){
+			col->transition[MSKIP] = prob2scaledprob(0.0);
+		}else if(mean > -1.0 && stdev == -1.0){
+			col->transition[MSKIP] = prob2scaledprob(mean / (float)(len-1));
+		}else{
+			col->transition[MSKIP] = prob2scaledprob(   gaussian_pdf(1 , mean ,stdev) / sum_prob);
+		}
+		
+		col->transition[MM] = prob2scaledprob( 1.0 - base_error * indel_freq)+ prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
+		col->transition[MI] = prob2scaledprob(base_error * indel_freq*0.5)+ prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
+		
+		col->transition[MD] = prob2scaledprob(base_error * indel_freq*0.5)+ prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
+		
+		
+		
+		col->transition[II] = prob2scaledprob(1.0 - 0.999);
+		col->transition[IM] = prob2scaledprob(0.999);
+		col->transition[ISKIP] = prob2scaledprob(0.0f);
+		
+		col->transition[DD] = prob2scaledprob(0.0);
+		col->transition[DM] = prob2scaledprob(0.0);
+		
+		//middle columns...
+		for(i = 1; i < len-2;i++){
+			col = hmm->hmm_column[i];
+			
+			if(mean == -1.0 && stdev == -1.0){
+				col->transition[MSKIP] = prob2scaledprob(0.0);
+			}else if(mean > -1.0 && stdev == -1.0){
+				col->transition[MSKIP] = prob2scaledprob(mean / (float)(len-1));
+			}else{
+				col->transition[MSKIP] = prob2scaledprob(   gaussian_pdf(i +1.0 , mean ,stdev) / sum_prob);
+			}
+			
+			col->transition[MM] = prob2scaledprob( 1.0 - base_error * indel_freq)+ prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
+			col->transition[MI] = prob2scaledprob(base_error * indel_freq*0.5)+ prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
+			
+			col->transition[MD] = prob2scaledprob(base_error * indel_freq*0.5)+ prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
+			
+			
+						
+			col->transition[II] = prob2scaledprob(1.0 - 0.999);
+			col->transition[IM] = prob2scaledprob(0.999);
+			col->transition[ISKIP] = prob2scaledprob(0.0f);
+			
+			
+			col->transition[DD] = prob2scaledprob(1.0 - 0.999);
+			col->transition[DM] = prob2scaledprob(0.999);
+		}
+		
+		//second last...
+		col = hmm->hmm_column[len -2];
+		
+		
+		
+		if(mean == -1.0 && stdev == -1.0){
+			col->transition[MSKIP] = prob2scaledprob(0.0);
+		}else if(mean > -1.0 && stdev == -1.0){
+			col->transition[MSKIP] = prob2scaledprob(mean / (float)(len-1));
+		}else{
+			col->transition[MSKIP] = prob2scaledprob(   gaussian_pdf( len-1.0 , mean ,stdev) / sum_prob);
+		}
+		
+		col->transition[MM] = prob2scaledprob( 1.0 - base_error * indel_freq)+ prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
+		col->transition[MI] = prob2scaledprob(base_error * indel_freq*1.0)+ prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
+		
+		col->transition[MD] = prob2scaledprob(base_error * indel_freq*0.0)+ prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
+		
+				
+		col->transition[II] = prob2scaledprob(1.0 - 0.999);
+		col->transition[IM] = prob2scaledprob(0.999);
+		col->transition[ISKIP] = prob2scaledprob(0.0f);
+		
+		col->transition[DD] = prob2scaledprob(0.0);
+		col->transition[DM] = prob2scaledprob(1.0);
+		//col->transition[DD] = prob2scaledprob(0.0);
+		//col->transition[DM] = prob2scaledprob(0.0);
+		
+		col = hmm->hmm_column[len -1];
+		
+		col->transition[MM] = prob2scaledprob(0.0f );// 1.0 - base_error * indel_freq);
+		col->transition[MI] = prob2scaledprob(0.0f );//(base_error * indel_freq) +  prob2scaledprob(0.5);
+		col->transition[MD] = prob2scaledprob(0.0f );//(base_error * indel_freq) +  prob2scaledprob(0.5);
+		col->transition[MSKIP] = prob2scaledprob(1.0);
+		
+		col->transition[II] = prob2scaledprob(0.00);
+		col->transition[IM] = prob2scaledprob(0.0);
+		col->transition[ISKIP] = prob2scaledprob(0.0f);
+		
+		col->transition[DD] = prob2scaledprob(0.0f );//(1.0 - 0.999);
+		col->transition[DM] = prob2scaledprob(0.0f );//0.999);
+	}
+	return hmm;
 }
 
 
@@ -985,6 +1157,10 @@ void* do_probability_estimation(void *threadarg)
 			mb = forward_max_posterior_decoding(mb, ri[i], ri[i]->seq ,ri[i]->len);
 			
 			pbest = 1.0 - scaledprob2prob(  (ri[i]->bar_prob + mb->f_score) - logsum(mb->f_score,  mb->r_score));
+			
+			if(pbest < 0.0){
+				exit(-1);
+			}
 			if(!pbest){
 				Q = 40.0;
 			}else if(pbest == 1.0){
@@ -993,7 +1169,8 @@ void* do_probability_estimation(void *threadarg)
 			}else{
 				Q = -10.0 * log10(pbest) ;
 			}
-			    				     
+			//fprintf(stderr,"%d	score: 1 - %f+%f  / %f = %f    => Q:%f\n", i, ri[i]->bar_prob , mb->f_score , logsum(mb->f_score,  mb->r_score),pbest,Q);
+			
 			ri[i]->mapq = Q;
 		}
 	}
@@ -1040,10 +1217,35 @@ void* do_label_thread(void *threadarg)
 	int tmp = 0;
 	float pbest,Q;
 	//if(ri[0]->mapq == -1){ // skip sequence scoring if Q values were already calculated....
+	//add new random model if barcodes are present..,.
+	int bar = -1;
+	int r = -1;
+	tmp = 100000000;
+	//switch read and next shortest segment. ...
+	struct model* tmp_model = 0;
+	for(i = 0; i < mb->num_models;i++){
+		if(data->param->read_structure->type[i] == 'R'){
+			r = i;
+		}
+		if(data->param->read_structure->type[i] == 'B'){
+			//if(mb->model[i]->hmms[0]->num_columns < tmp){
+				//tmp =mb->model[i]->hmms[0]->num_columns;
+				bar= i;
+			//}
+		}
+		//mb->model[i]->hmms[0]->num_columns
+	}
+	if(bar != -1){
+		tmp_model = mb->model[r];
+		mb->model[r] = mb->model[bar];
+		mb->model[bar] = tmp_model;
+		
 		if(matchstart != -1 || matchend != -1){
 			for(i = start; i < end;i++){
 				tmp = matchend - matchstart ;
 				mb = backward(mb, ri[i]->seq + matchstart , tmp);
+				ri[i]->mapq = mb->b_score;
+				/*
 				mb = forward_max_posterior_decoding(mb, ri[i] , ri[i]->seq+matchstart ,tmp );
 				
 				pbest = logsum(mb->f_score, mb->r_score);
@@ -1056,13 +1258,16 @@ void* do_label_thread(void *threadarg)
 				}else{
 					Q = -10.0 * log10(pbest) ;
 				}
-				ri[i]->mapq = Q;
+				ri[i]->mapq = Q;*/
 				
 			}
 		}else{
 			for(i = start; i < end;i++){
 				mb = backward(mb, ri[i]->seq ,ri[i]->len);
-				mb = forward_max_posterior_decoding(mb, ri[i], ri[i]->seq ,ri[i]->len);
+				
+				ri[i]->mapq = mb->b_score;
+				
+				/*mb = forward_max_posterior_decoding(mb, ri[i], ri[i]->seq ,ri[i]->len);
 				pbest = logsum(mb->f_score, mb->r_score);
 				
 				pbest = 1.0 - scaledprob2prob(  (ri[i]->bar_prob + mb->f_score ) - pbest);
@@ -1074,18 +1279,76 @@ void* do_label_thread(void *threadarg)
 				}else{
 					Q = -10.0 * log10(pbest) ;
 				}
-				ri[i]->mapq = Q;
+				ri[i]->mapq = Q;*/
 				
 				
 			}
 		}
-	//}
+		tmp_model = mb->model[r];
+		mb->model[r] = mb->model[bar];
+		mb->model[bar] = tmp_model;
+	}else{
+		for(i = start; i < end;i++){
+			ri[i]->mapq = prob2scaledprob(0.0);
+		}
+	}
+	
+	
+	
+	if(matchstart != -1 || matchend != -1){
+		for(i = start; i < end;i++){
+			tmp = matchend - matchstart ;
+			mb = backward(mb, ri[i]->seq + matchstart , tmp);
+			mb = forward_max_posterior_decoding(mb, ri[i] , ri[i]->seq+matchstart ,tmp );
+		
+			
+			
+			pbest =ri[i]->mapq;
+			
+			pbest = logsum(pbest, mb->f_score);
+			pbest = logsum(pbest, mb->r_score);
+			
+			pbest = 1.0 - scaledprob2prob(  (ri[i]->bar_prob + mb->f_score) - pbest);
+			if(!pbest){
+				Q = 40.0;
+			}else if(pbest == 1.0){
+				Q = 0.0;
+				
+			}else{
+				Q = -10.0 * log10(pbest) ;
+			}
+			ri[i]->mapq = Q;
+		}
+	}else{
+		for(i = start; i < end;i++){
+			mb = backward(mb, ri[i]->seq ,ri[i]->len);
+			mb = forward_max_posterior_decoding(mb, ri[i], ri[i]->seq ,ri[i]->len);
+			
+			
+			pbest =ri[i]->mapq;
+			
+			pbest = logsum(pbest, mb->f_score);
+			pbest = logsum(pbest, mb->r_score);
+			
+			//fprintf(stderr,"%f	%f	%f\n",mb->f_score+ri[i]->bar_prob,ri[i]->mapq,mb->r_score);
+			
+			pbest = 1.0 - scaledprob2prob(  (ri[i]->bar_prob + mb->f_score ) - pbest);
+			if(!pbest){
+				Q = 40.0;
+			}else if(pbest == 1.0){
+				Q = 0.0;
+				
+			}else{
+				Q = -10.0 * log10(pbest) ;
+			}
+			fprintf(stderr,"%f	%f	%f:Q: %f\n",mb->f_score+ri[i]->bar_prob,ri[i]->mapq,mb->r_score,Q);
+			ri[i]->mapq = Q;
+		}
+	}
+	
 	for(i = start; i < end;i++){
-		
 		ri[i]->bar_prob = 100;
-		
 		ri[i] = extract_reads(mb,data->param,ri[i]);
-		
 	}
 	
 	if(data->param->reference_fasta){
@@ -2061,6 +2324,7 @@ void* do_run_random_sequences(void *threadarg)
 	int start = data->start;
 	int end = data->end;
 	int i,tmp;
+	int r,bar;
 	
 	int matchstart = data->param->matchstart;
 	int matchend = data->param->matchend;
@@ -2083,17 +2347,37 @@ void* do_run_random_sequences(void *threadarg)
 	g = c +  scaledprob2prob(mb->model[0]->background_nuc_frequency[2]);
 	
 	*/
+	bar = -1;
+	r = -1;
+	//switch read and barcode...
+	struct model* tmp_model = 0;
+	for(i = 0; i < mb->num_models;i++){
+		if(data->param->read_structure->type[i] == 'R'){
+			r = i;
+		}
+		if(data->param->read_structure->type[i] == 'B'){
+			bar= i;
+		}
+	}
+	if(bar != -1){
+		tmp_model = mb->model[r];
+		mb->model[r] = mb->model[bar];
+		mb->model[bar] = tmp_model;
+	}
+	
+	
 	double pbest,Q;
 	if(matchstart != -1 || matchend != -1){
 		for(i = start; i < end;i++){
 			tmp = matchend - matchstart ;
-			
-			reverse_sequence(ri[i]->seq,  ri[i]->len);
-			
+			if(bar == -1){
+				reverse_sequence(ri[i]->seq,  ri[i]->len);
+			}
 			mb = backward(mb, ri[i]->seq + matchstart , tmp);
 			mb = forward_max_posterior_decoding(mb, ri[i] , ri[i]->seq+matchstart ,tmp );
-			
-			reverse_sequence(ri[i]->seq,  ri[i]->len);
+			if(bar == -1){
+				reverse_sequence(ri[i]->seq,  ri[i]->len);
+			}
 			
 			pbest = logsum(mb->f_score, mb->r_score);
 			pbest = 1.0 - scaledprob2prob(  (ri[i]->bar_prob + mb->f_score) - pbest);
@@ -2111,15 +2395,16 @@ void* do_run_random_sequences(void *threadarg)
 		for(i = start; i < end;i++){
 		
 			
-			
-			reverse_sequence(ri[i]->seq,  ri[i]->len);
+			if(bar == -1){
+				reverse_sequence(ri[i]->seq,  ri[i]->len);
+			}
 			
 			mb = backward(mb, ri[i]->seq,ri[i]->len);
 			mb = forward_max_posterior_decoding(mb, ri[i], ri[i]->seq ,ri[i]->len);
-			
-			reverse_sequence(ri[i]->seq,  ri[i]->len);
-			
-			
+			if(bar == -1){
+				reverse_sequence(ri[i]->seq,  ri[i]->len);
+			}
+			fprintf(stderr,"%f	%f	%f	%f\n",mb->f_score,mb->b_score,mb->r_score,mb->f_score-mb->b_score  );
 			pbest = logsum(mb->f_score, mb->r_score);
 			
 			pbest = 1.0 - scaledprob2prob(  (ri[i]->bar_prob + mb->f_score) - pbest);
@@ -2141,6 +2426,14 @@ void* do_run_random_sequences(void *threadarg)
 		}
 		//mb = forward_extract_posteriors(mb, ri[i]->seq ,ri[i]->len);
 	}
+	
+	if(bar != -1){
+		tmp_model = mb->model[r];
+		mb->model[r] = mb->model[bar];
+		mb->model[bar] = tmp_model;
+	}
+	
+	
 	pthread_exit((void *) 0);
 }
 
@@ -3073,17 +3366,24 @@ struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct re
 	hmm_counter = 0;
 	g = 1;
 	next_silent[0] = prob2scaledprob(0.0);
+	next_silent[1] = prob2scaledprob(0.0);
 	for(j = 0; j < mb->num_models;j++){
 		if(mb->model[j]->num_hmms > 1){
 			g = 0;
+			next_silent[1] = prob2scaledprob(0.0);
 			for(f = 0;f < mb->model[j]->num_hmms;f++){
 				if(total_prob[hmm_counter] > next_silent[0]){
 					next_silent[0] = total_prob[hmm_counter];
+					next_silent[1] = logsum(next_silent[1] , total_prob[hmm_counter]);
 				}
 				//fprintf(stderr,"%d %f	%f\n",f,total_prob[hmm_counter],scaledprob2prob( total_prob[hmm_counter]));
 				hmm_counter++;
 			}
-			//fprintf(stderr,"\n\n");
+			next_silent[0] = next_silent[0] - next_silent[1]; // this ensures that barprob is never > 1 (happens due to numerical inaccuracy... )
+			//fprintf(stderr,"SUM:%f	%f\n\n", next_silent[1] , scaledprob2prob(next_silent[1] ));
+			
+			
+			
 		}else{
 			hmm_counter+= mb->model[j]->num_hmms;
 		}
@@ -3386,8 +3686,8 @@ struct model* init_model_according_to_read_structure(struct model* model,struct 
 			}
 		}
 		//sets transition probabilities....
-		
-		if(len == 1){
+		model->hmms[i] = set_hmm_transition_parameters(model->hmms[i],len, base_error, indel_freq, -1.0, -1.0);
+		/*if(len == 1){
 			//single state - only silent to / from M everything else set to zero.... 
 			col = model->hmms[i]->hmm_column[0];
 			col->transition[MM] = prob2scaledprob(0.0f);
@@ -3501,7 +3801,7 @@ struct model* init_model_according_to_read_structure(struct model* model,struct 
 			
 			
 			
-		}
+		}*/
 		
 	}
 	
@@ -3749,7 +4049,7 @@ void print_model(struct model* model)
 			sum = 0.0;
 			for(c = 0; c < 5;c++){
 				sum += scaledprob2prob(col->m_emit[c]);
-				fprintf(stderr,"%0.4f ", scaledprob2prob(col->m_emit[c]));
+			//	fprintf(stderr,"%0.2f ", scaledprob2prob(col->m_emit[c]));
 				
 			}
 			fprintf(stderr,"%0.1fc ",sum);
@@ -3757,7 +4057,7 @@ void print_model(struct model* model)
 			sum = 0.0;
 			for(c = 0; c < 5;c++){
 				sum += scaledprob2prob(col->i_emit[c]);
-				fprintf(stderr,"%0.4f ", scaledprob2prob(col->i_emit[c]));
+			//	fprintf(stderr,"%0.2f ", scaledprob2prob(col->i_emit[c]));
 				
 			}
 			fprintf(stderr,"%0.1fc ",sum);
@@ -3766,10 +4066,10 @@ void print_model(struct model* model)
 				fprintf(stderr,"%0.4f ", scaledprob2prob(col->transition[c]));
 
 			}
-			fprintf(stderr,"%0.3f %0.3f %0.3f\n",scaledprob2prob(col->transition[MM])+scaledprob2prob(col->transition[MI])+scaledprob2prob(col->transition[MD])  ,scaledprob2prob(col->transition[II])+scaledprob2prob(col->transition[IM]),  scaledprob2prob(col->transition[DD]) + scaledprob2prob(col->transition[DM]) );
+			fprintf(stderr,"%0.4f %0.4f %0.4f\n",scaledprob2prob(col->transition[MSKIP])+scaledprob2prob(col->transition[MM])+scaledprob2prob(col->transition[MI])+scaledprob2prob(col->transition[MD])  ,scaledprob2prob(col->transition[ISKIP])+scaledprob2prob(col->transition[II])+scaledprob2prob(col->transition[IM]),  scaledprob2prob(col->transition[DD]) + scaledprob2prob(col->transition[DM]) );
 		}
 	}
-	fprintf(stderr," ESTIMATED::::: \n");
+	/*fprintf(stderr," ESTIMATED::::: \n");
 	for(i = 0; i < model->num_hmms;i++){
 		fprintf(stderr,"HMM%d:		(get there:%f)\n",i, scaledprob2prob(model->silent_to_M[i][0]));
 		
@@ -3802,11 +4102,21 @@ void print_model(struct model* model)
 			}
 			fprintf(stderr,"%0.3f %0.3f %0.3f\n",scaledprob2prob(col->transition_e[MM])+scaledprob2prob(col->transition_e[MI])+scaledprob2prob(col->transition_e[MD])  ,scaledprob2prob(col->transition_e[II])+scaledprob2prob(col->transition_e[IM]),  scaledprob2prob(col->transition_e[DD]) + scaledprob2prob(col->transition_e[DM]) );
 		}
-	}
+	}*/
 	fprintf(stderr,"Links:silent to\n");
-	
+	double sumM = prob2scaledprob( 0.0);
+	double sumI =  prob2scaledprob( 0.0);
+
 	for(i = 0; i < model->num_hmms;i++){
-		fprintf(stderr,"%d	%f	%f	%f	%f\n",i, scaledprob2prob(  model->silent_to_M[i][0]), scaledprob2prob(  model->silent_to_I[i][0]),scaledprob2prob(   model->silent_to_M_e[i][0]),scaledprob2prob(  model->silent_to_I_e[i][0]));
+		len = model->hmms[i]->num_columns;
+		//tmp = rs->sequence_matrix[key][i];
+		for(j = 0; j < len;j++){
+			fprintf(stderr,"%d	%f	%f\n",i, scaledprob2prob(  model->silent_to_M[i][j]), scaledprob2prob(  model->silent_to_I[i][j]));
+			sumM = logsum(sumM, model->silent_to_M[i][j]);
+			sumI = logsum(sumI, model->silent_to_I[i][j]);
+		}
+		fprintf(stderr,"SANITY: %f\t%f\n",scaledprob2prob(sumM),scaledprob2prob(sumI));
+		//fprintf(stderr,"%d	%f	%f	%f	%f\n",i, scaledprob2prob(  model->silent_to_M[i][0]), scaledprob2prob(  model->silent_to_I[i][0]),scaledprob2prob(   model->silent_to_M_e[i][0]),scaledprob2prob(  model->silent_to_I_e[i][0]));
 	}
 	fprintf(stderr,"Links:to silent \n");
 	
@@ -4597,8 +4907,6 @@ void free_model_bag(struct model_bag* mb)
 	
 	
 	free(mb);// = malloc(sizeof(struct model_bag));
-
-	
 }
 
 

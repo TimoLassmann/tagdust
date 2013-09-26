@@ -341,6 +341,8 @@ struct read_info* emit_random_sequence(struct model_bag* mb, struct read_info* r
 float model_information_content(struct model_bag*mb);
 double set_Q_threshold(struct model_bag* mb, struct read_info** ri, int numseq);
 
+struct hmm* set_hmm_transition_parameters(struct hmm* hmm, int len,double base_error, double indel_freq,  double mean, double stdev);
+
 
 #endif
 
