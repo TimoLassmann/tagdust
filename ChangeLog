@@ -1,9 +1,11 @@
+Version 2.04:
+- new random model: If the reads are expected to include barcodes, I simply add another N{x} barcode. Reads which do not have the barode will use this HMM.   
 
 
 Version 2.03:
 - Several bugfixes:
-	- crashed when linkers were longer than 32 nucleotides. 
-	- nuc_code array was set to length 255 not 256 
+        - crashed when linkers were longer than 32 nucleotides. 
+        - nuc_code array was set to length 255 not 256 
 
 Version 2.01:
 

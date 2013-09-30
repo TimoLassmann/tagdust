@@ -710,7 +710,6 @@ void simulation_for_benchmark(struct parameters* param)
 		}
 		c = sprintf (read, "%s ",barcode[param->sim_barnum-1]);
 		strcat ( command, read);
-		
 		c = sprintf (read, "-3 R:N ");
 		strcat ( command, read);
 		c = sprintf (read, "-4 P:%s ", param->sim_3seq);
@@ -737,7 +736,6 @@ void simulation_for_benchmark(struct parameters* param)
 		}
 		c = sprintf (read, "%s ",barcode[param->sim_barnum-1]);
 		strcat ( command, read);
-		
 		c = sprintf (read, "-2 R:N ");
 		strcat ( command, read);
 		c = sprintf (read, "-3 P:%s ", param->sim_3seq);
@@ -791,10 +789,8 @@ void simulation_for_benchmark(struct parameters* param)
 		}
 		c = sprintf (read, "%s ",barcode[param->sim_barnum-1]);
 		strcat ( command, read);
-		
 		c = sprintf (read, "-3 R:N ");
 		strcat ( command, read);
-		
 		c = sprintf (read, "%s/%sread.fq  -o %s/%stagdustout.fq ", dp,runid,dp,runid);
 		strcat ( command, read);
 		fprintf(stderr,"%s\n",command);
@@ -817,10 +813,8 @@ void simulation_for_benchmark(struct parameters* param)
 		}
 		c = sprintf (read, "%s ",barcode[param->sim_barnum-1]);
 		strcat ( command, read);
-		
 		c = sprintf (read, "-2 R:N ");
 		strcat ( command, read);
-	
 		c = sprintf (read, "%s/%sread.fq  -o %s/%stagdustout.fq ", dp,runid,dp,runid);
 		strcat ( command, read);
 		fprintf(stderr,"%s\n",command);
@@ -889,8 +883,7 @@ void simulation_for_benchmark(struct parameters* param)
 		
 		//fprintf(stderr,"DELETING: %s\n",outfile);
 		if( access( outfile, F_OK ) != -1 ) {
-		
-		//	fprintf(stderr,"DELETING: %s\n",outfile);
+			fprintf(stderr,"DELETING: %s\n",outfile);
 			c = unlink(outfile);
 		//	fprintf(stderr,"%d\n",c);
 		}
@@ -900,8 +893,7 @@ void simulation_for_benchmark(struct parameters* param)
 	}
 	sprintf (outfile, "%s/%sfastxunmatched",dp,runid);
 	if( access( outfile, F_OK ) != -1 ) {
-		
-		//fprintf(stderr,"DELETING: %s\n",outfile);
+		fprintf(stderr,"DELETING: %s\n",outfile);
 		c = unlink(outfile);
 		//fprintf(stderr,"%d\n",c);
 	}

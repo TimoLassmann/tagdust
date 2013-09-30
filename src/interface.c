@@ -138,7 +138,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			{"simulation",required_argument,0, OPT_SIM},
 			{"numbarcode",required_argument,0, OPT_NUMBARCODE},
 			{"end",required_argument,0, OPT_END},
-			{"threshold",required_argument,0, OPT_THRESHOLD},
+			{"threshold",required_argument,0, 'q'},
 			{"fe",required_argument,0,OPT_FILTER_ERROR},
 			{"ref",required_argument,0,OPT_FILTER_REFERENCE},
 			{"dust",required_argument,0,OPT_DUST},
@@ -155,13 +155,12 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			{"sim_numseq",required_argument,0,OPT_sim_numseq},
 			{"sim_random_frac",required_argument,0,OPT_sim_random_frac},
 			{"sim_sequenced_len",required_argument,0,OPT_sim_sequenced_len},
-			{"quiet",0,0,'q'},
 			{"help",0,0,'h'},
 			{0, 0, 0, 0}
 		};
 		
 		int option_index = 0;
-		c = getopt_long_only (argc, argv,"e:o:p:q:hf:t:i:",long_options, &option_index);
+		c = getopt_long_only (argc, argv,"Q:e:o:p:q:hf:t:i:",long_options, &option_index);
 		
 		if (c == -1){
 			break;
@@ -290,6 +289,11 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 				param->confidence_threshold = atof(optarg);
 				//param->quiet_flag = 1;
 				break;
+				
+			case 'Q':
+				param->confidence_threshold = atof(optarg);
+				//param->quiet_flag = 1;
+				break;
 			case 'h':
 				help = 1;
 				break;
@@ -376,6 +380,12 @@ struct parameters* assign_segment_sequences(struct parameters* param, char* tmp,
 	int len;
 	//tmp = optarg;
 	count = byg_count(",", tmp);
+	
+	if(tmp[0] == 'B'){ // add extra space for all N barcode....
+		count++;
+	}
+	f = 0;
+	
 	//fprintf(stderr,"Segment %d: %d	sequences\n",segment,count+1);
 	param->read_structure->numseq_in_segment[segment] = count+1;
 	param->read_structure->sequence_matrix[segment] = malloc(sizeof(char*) * (count+1));
@@ -407,6 +417,18 @@ struct parameters* assign_segment_sequences(struct parameters* param, char* tmp,
 		}
 		param->read_structure->sequence_matrix[segment][f][g] = 0;
 	}
+	
+	if(tmp[0] == 'B'){
+		f = f + 1;
+		g = 0;
+		for(i = 0; i < strlen(param->read_structure->sequence_matrix[segment][0]);i++){
+			param->read_structure->sequence_matrix[segment][f][g] = 'N';
+			g++;
+		}
+		param->read_structure->sequence_matrix[segment][f][g] = 0;
+	}
+	
+	
 	if(segment+1 >param->read_structure->num_segments  ){
 		param->read_structure->num_segments = segment+1;
 	}
@@ -424,7 +446,7 @@ void usage()
 	fprintf(stdout, "Usage:   tagdust [options] <file>  .... \n\n");
 	fprintf(stdout, "Options:\n");
 	
-	fprintf(stdout, "         -threshold FLT     confidence threshold [0.99].\n");
+	fprintf(stdout, "         -Q FLT     confidence threshold [20].\n");
 	fprintf(stdout, "         -start     INT     start of search area [0].\n");
 	fprintf(stdout, "         -end       INT     end of search area [length of sequence].\n");
 	fprintf(stdout, "         -format    STR     format of input sequence file.\n");

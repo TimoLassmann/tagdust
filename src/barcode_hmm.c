@@ -379,8 +379,6 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	fprintf(outfile,"%s	%.2d-%.2d-%d	%2d:%.2d%cm\n",param->infile[file_num],ptr->tm_mon + 1,ptr->tm_mday, ptr->tm_year + 1900,hour,ptr->tm_min, am_or_pm );
 	fprintf(outfile,"%d	total input reads\n", li->total_read);
 	fprintf(outfile,"%f	selected threshold\n", param->confidence_threshold);
-
-	
 	
 	fprintf(outfile,"%d	successfully extracted\n" ,li->num_EXTRACT_SUCCESS);
 	fprintf(outfile,"%d	barcode / UMI not found\n" ,li->num_EXTRACT_FAIL_BAR_FINGER_NOT_FOUND);
@@ -480,6 +478,9 @@ float model_information_content(struct model_bag*mb)
  \param mb  @ref model_bag - contains the HMM model.
 \param ri  @ref read_info - contains the reads.
 \param numseq - number of sequences.
+ 
+ \deprecated not used anymore - it is much more straight forward to have a propper null model.
+ 
  */
 
 
@@ -1218,11 +1219,11 @@ void* do_label_thread(void *threadarg)
 	float pbest,Q;
 	//if(ri[0]->mapq == -1){ // skip sequence scoring if Q values were already calculated....
 	//add new random model if barcodes are present..,.
-	int bar = -1;
-	int r = -1;
-	tmp = 100000000;
+	//int bar = -1;
+	//int r = -1;
+	//tmp = 100000000;
 	//switch read and next shortest segment. ...
-	struct model* tmp_model = 0;
+	/*struct model* tmp_model = 0;
 	for(i = 0; i < mb->num_models;i++){
 		if(data->param->read_structure->type[i] == 'R'){
 			r = i;
@@ -1245,20 +1246,7 @@ void* do_label_thread(void *threadarg)
 				tmp = matchend - matchstart ;
 				mb = backward(mb, ri[i]->seq + matchstart , tmp);
 				ri[i]->mapq = mb->b_score;
-				/*
-				mb = forward_max_posterior_decoding(mb, ri[i] , ri[i]->seq+matchstart ,tmp );
 				
-				pbest = logsum(mb->f_score, mb->r_score);
-				pbest = 1.0 - scaledprob2prob(  (ri[i]->bar_prob + mb->f_score) - pbest);
-				if(!pbest){
-					Q = 40.0;
-				}else if(pbest == 1.0){
-					Q = 0.0;
-					
-				}else{
-					Q = -10.0 * log10(pbest) ;
-				}
-				ri[i]->mapq = Q;*/
 				
 			}
 		}else{
@@ -1266,32 +1254,18 @@ void* do_label_thread(void *threadarg)
 				mb = backward(mb, ri[i]->seq ,ri[i]->len);
 				
 				ri[i]->mapq = mb->b_score;
-				
-				/*mb = forward_max_posterior_decoding(mb, ri[i], ri[i]->seq ,ri[i]->len);
-				pbest = logsum(mb->f_score, mb->r_score);
-				
-				pbest = 1.0 - scaledprob2prob(  (ri[i]->bar_prob + mb->f_score ) - pbest);
-				if(!pbest){
-					Q = 40.0;
-				}else if(pbest == 1.0){
-					Q = 0.0;
-					
-				}else{
-					Q = -10.0 * log10(pbest) ;
-				}
-				ri[i]->mapq = Q;*/
-				
+								
 				
 			}
 		}
 		tmp_model = mb->model[r];
 		mb->model[r] = mb->model[bar];
 		mb->model[bar] = tmp_model;
-	}else{
+	}else{*/
 		for(i = start; i < end;i++){
 			ri[i]->mapq = prob2scaledprob(0.0);
 		}
-	}
+	//}
 	
 	
 	
@@ -1341,7 +1315,7 @@ void* do_label_thread(void *threadarg)
 			}else{
 				Q = -10.0 * log10(pbest) ;
 			}
-			fprintf(stderr,"%f	%f	%f:Q: %f\n",mb->f_score+ri[i]->bar_prob,ri[i]->mapq,mb->r_score,Q);
+			//fprintf(stderr,"%d	f:%f	%f	init:%f	r:%f:Q: %f\n",i,mb->f_score,scaledprob2prob( ri[i]->bar_prob),ri[i]->mapq,mb->r_score,Q);
 			ri[i]->mapq = Q;
 		}
 	}
@@ -1584,6 +1558,8 @@ Exhaustively compares reads to a fasta file of known artifact sequences. Uses a 
  \param average_length Average length of the sequences. 
  \param seed Seed used for randomization.
  
+ 
+ \deprecated not used.
  */
 
 
@@ -1675,6 +1651,8 @@ struct read_info* emit_random_sequence(struct model_bag* mb, struct read_info* r
  \param ri  @ref read_info - emitted sequences are written here.
  \param average_length Average length of the sequences.
  \param seed Seed used for randomization.
+ 
+ \deprecated not used.
  
  */
 
@@ -2159,6 +2137,11 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 				if(param->read_structure->type[c2] == 'B'){
 					hmm_has_barcode = 1;
 					bar = c3;
+					
+					if(bar == param->read_structure->numseq_in_segment[c2]-1){
+						//fprintf(stderr,"EXTRACTING N!!!!\n");
+						hmm_has_barcode = 0;
+					}
 					mem = c2;
 				}
 				if(param->read_structure->type[c2] == 'R'){

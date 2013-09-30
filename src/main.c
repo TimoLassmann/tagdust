@@ -31,7 +31,14 @@
  TagDust allows users to specify the expected architecture of a read and converts it into a hidden Markov model. The latter can assign sequences to a particular barcode (or index) even in the presence of sequencing errors. Sequences not matching the architecture (primer dimers, contaminants etc.) are automatically discarded).
 
  \image html figure1.jpg
-  \image latex figure1.eps "Overview of the TagDust workflow. Sequences are labelled according to the HMM architecture and relevant information written to the output." width=10cm
+ 
+ @latexonly
+ \begin{figure}[H]
+ \includegraphics[scale = 0.7]{../figures/figure1.pdf}
+ \caption{Overview of the TagDust workflow. Sequences are labelled according to the HMM architecture and relevant information written to the output.}
+ \end{figure}
+ 
+ @endlatexonly
  
  
 Copyright 2013 Timo Lassmann (timolassmann@gmail.com)

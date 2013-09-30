@@ -7,27 +7,29 @@
 #  Copyright 2011 RIKEN Yokohama Institute, Genome Exploration Research Group. All rights reserved.
 
 DIRECTORY=
+QTHRESHOLD=
 
 
 
 function usage()
 {
 cat <<EOF
-usage: $0 -d <directory>
+usage: $0 -d <directory> -q <threshold>
 EOF
 exit 1;
 }
 
-while getopts d: opt
+while getopts d:q: opt
 do
 case ${opt} in
 d) DIRECTORY=${OPTARG};;
+q) QTHRESHOLD=${OPTARG};;
 *) usage;;
 esac
 done
 
 if [ "${DIRECTORY}" = "" ]; then usage; fi
-
+if [ "${QTHRESHOLD}" = "" ]; then usage; fi
 
 #QSUB=`type qsub 2> /dev/null | sed -e "s/.* is //"`
 
@@ -65,7 +67,7 @@ echo "export PATH=/home/lassmann/bin:\$PATH" >>  $myrun.tagdust.qsub;
 echo "/home/lassmann/bin/tagdust -sim_numseq 100000  -sim_5seq agggaggacgatgcgg   -sim_3seq gtgtcagtcacttccagcgg  -sim_readlen 25 -sim_readlen_mod 5 -sim_random_frac 0.1 -o $DIRECTORY  -sim_error_rate ${array[$j]}  -sim_InDel_frac 0.1 -sim_sequenced_len 1100  -sim_barlen $i  -sim_barnum ${numbar[$c]} " >>  $myrun.tagdust.qsub;
 qsub $myrun.tagdust.qsub;
 else
-tagdust -sim_numseq 100000  -sim_5seq agggaggacgatgcgg   -sim_3seq gtgtcagtcacttccagcgg  -sim_readlen 25 -sim_readlen_mod 5 -sim_random_frac 0.1 -o $DIRECTORY  -sim_error_rate ${array[$j]}  -sim_InDel_frac 0.1 -sim_sequenced_len 1100  -sim_barlen $i  -sim_barnum ${numbar[$c]}
+tagdust -sim_numseq 100000  -sim_5seq agggaggacgatgcgg   -sim_3seq gtgtcagtcacttccagcgg  -sim_readlen 25 -sim_readlen_mod 5 -sim_random_frac 0.1 -o $DIRECTORY  -sim_error_rate ${array[$j]}  -sim_InDel_frac 0.1 -sim_sequenced_len 1100  -sim_barlen $i  -sim_barnum ${numbar[$c]} -threshold $QTHRESHOLD
 fi
 let j++
 let myrun++
@@ -90,7 +92,7 @@ echo "export PATH=/home/lassmann/bin:\$PATH" >>  $myrun.tagdust.qsub;
 echo "tagdust -sim_numseq 100000  -sim_5seq agggaggacgatgcgg   -sim_3seq gtgtcagtcacttccagcgg  -sim_readlen 25 -sim_readlen_mod 5 -sim_random_frac 0.1 -o $DIRECTORY  -sim_error_rate ${array[$j]}  -sim_InDel_frac 0.5 -sim_sequenced_len 1100  -sim_barlen $i  -sim_barnum ${numbar[$c]} " >>  $myrun.tagdust.qsub;
 qsub $myrun.tagdust.qsub;
 else
-tagdust -sim_numseq 100000  -sim_5seq agggaggacgatgcgg   -sim_3seq gtgtcagtcacttccagcgg  -sim_readlen 25 -sim_readlen_mod 5 -sim_random_frac 0.1 -o $DIRECTORY  -sim_error_rate ${array[$j]}  -sim_InDel_frac 0.5 -sim_sequenced_len 1100  -sim_barlen $i  -sim_barnum ${numbar[$c]}
+tagdust -sim_numseq 100000  -sim_5seq agggaggacgatgcgg   -sim_3seq gtgtcagtcacttccagcgg  -sim_readlen 25 -sim_readlen_mod 5 -sim_random_frac 0.1 -o $DIRECTORY  -sim_error_rate ${array[$j]}  -sim_InDel_frac 0.5 -sim_sequenced_len 1100  -sim_barlen $i  -sim_barnum ${numbar[$c]} -threshold $QTHRESHOLD
 fi
 let j++
 let myrun++
@@ -103,7 +105,7 @@ done
 
 
 
-
+j=0
 
 while [ $j -lt $len ]
 do
@@ -118,7 +120,7 @@ echo "export PATH=/home/lassmann/bin:\$PATH" >>  $myrun.tagdust.qsub;
 echo "tagdust -sim_numseq 100000  -sim_5seq agggaggacgatgcgg   -sim_3seq gtgtcagtcacttccagcgg  -sim_readlen 25 -sim_readlen_mod 5 -sim_random_frac 0.1 -o $DIRECTORY  -sim_error_rate ${array[$j]}  -sim_InDel_frac 0.1 -sim_sequenced_len 1100" >>  $myrun.tagdust.qsub;
 qsub $myrun.tagdust.qsub;
 else
-tagdust -sim_numseq 100000  -sim_5seq agggaggacgatgcgg   -sim_3seq gtgtcagtcacttccagcgg  -sim_readlen 25 -sim_readlen_mod 5 -sim_random_frac 0.1 -o $DIRECTORY  -sim_error_rate ${array[$j]}  -sim_InDel_frac 0.1 -sim_sequenced_len 1100
+tagdust -sim_numseq 100000  -sim_5seq agggaggacgatgcgg   -sim_3seq gtgtcagtcacttccagcgg  -sim_readlen 25 -sim_readlen_mod 5 -sim_random_frac 0.1 -o $DIRECTORY  -sim_error_rate ${array[$j]}  -sim_InDel_frac 0.1 -sim_sequenced_len 1100 -threshold $QTHRESHOLD
 fi
 
 let j++
@@ -142,7 +144,7 @@ echo "export PATH=/home/lassmann/bin:\$PATH" >>  $myrun.tagdust.qsub;
 echo "tagdust -sim_numseq 100000  -sim_5seq agggaggacgatgcgg   -sim_3seq gtgtcagtcacttccagcgg  -sim_readlen 25 -sim_readlen_mod 5 -sim_random_frac 0.1 -o $DIRECTORY  -sim_error_rate ${array[$j]}  -sim_InDel_frac 0.5 -sim_sequenced_len 1100" >>  $myrun.tagdust.qsub;
 qsub $myrun.tagdust.qsub;
 else
-tagdust -sim_numseq 100000  -sim_5seq agggaggacgatgcgg   -sim_3seq gtgtcagtcacttccagcgg  -sim_readlen 25 -sim_readlen_mod 5 -sim_random_frac 0.1 -o $DIRECTORY  -sim_error_rate ${array[$j]}  -sim_InDel_frac 0.5 -sim_sequenced_len 1100
+tagdust -sim_numseq 100000  -sim_5seq agggaggacgatgcgg   -sim_3seq gtgtcagtcacttccagcgg  -sim_readlen 25 -sim_readlen_mod 5 -sim_random_frac 0.1 -o $DIRECTORY  -sim_error_rate ${array[$j]}  -sim_InDel_frac 0.5 -sim_sequenced_len 1100 -threshold $QTHRESHOLD
 fi
 let j++
 let myrun++
@@ -166,7 +168,7 @@ echo "export PATH=/home/lassmann/bin:\$PATH" >>  $myrun.tagdust.qsub;
 echo "tagdust -sim_numseq 100000  -sim_readlen 25 -sim_readlen_mod 5 -sim_random_frac 0.1 -o $DIRECTORY  -sim_error_rate ${array[$j]}  -sim_InDel_frac 0.1 -sim_sequenced_len 1100  -sim_barlen $i  -sim_barnum ${numbar[$c]}" >>  $myrun.tagdust.qsub;
 qsub $myrun.tagdust.qsub;
 else
- tagdust -sim_numseq 100000  -sim_readlen 25 -sim_readlen_mod 5 -sim_random_frac 0.1 -o $DIRECTORY  -sim_error_rate ${array[$j]}  -sim_InDel_frac 0.1 -sim_sequenced_len 1100  -sim_barlen $i  -sim_barnum ${numbar[$c]}
+ tagdust -sim_numseq 100000  -sim_readlen 25 -sim_readlen_mod 5 -sim_random_frac 0.1 -o $DIRECTORY  -sim_error_rate ${array[$j]}  -sim_InDel_frac 0.1 -sim_sequenced_len 1100  -sim_barlen $i  -sim_barnum ${numbar[$c]} -threshold $QTHRESHOLD
 fi
 let j++
 let myrun++
@@ -194,8 +196,8 @@ echo "tagdust -sim_numseq 100000  -sim_readlen 25 -sim_readlen_mod 5 -sim_random
 qsub $myrun.tagdust.qsub;
 else
 
-tagdust -sim_numseq 100000  -sim_readlen 25 -sim_readlen_mod 5 -sim_random_frac 0.1 -o $DIRECTORY  -sim_error_rate ${array[$j]}  -sim_InDel_frac 0.5 -sim_sequenced_len 1100  -sim_barlen $i  -sim_barnum ${numbar[$c]}
-echo "tagdust -sim_numseq 100000  -sim_readlen 25 -sim_readlen_mod 5 -sim_random_frac 0.1 -o $DIRECTORY  -sim_error_rate ${array[$j]}  -sim_InDel_frac 0.5 -sim_sequenced_len 1100  -sim_barlen $i  -sim_barnum ${numbar[$c]}"
+tagdust -sim_numseq 100000  -sim_readlen 25 -sim_readlen_mod 5 -sim_random_frac 0.1 -o $DIRECTORY  -sim_error_rate ${array[$j]}  -sim_InDel_frac 0.5 -sim_sequenced_len 1100  -sim_barlen $i  -sim_barnum ${numbar[$c]} -threshold $QTHRESHOLD
+
 fi
 let j++
 let myrun++

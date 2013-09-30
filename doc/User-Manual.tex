@@ -182,7 +182,7 @@ TagDust allows users to specify the expected architecture of a read and converts
 Unpack the tarball:
 
 \begin{verbatim}
-bash-3.1$ tar -zxvf tagdust-2.02.tar.gz 
+bash-3.1$ tar -zxvf tagdust-2.04.tar.gz 
 \end{verbatim}
 
 \begin{verbatim}
@@ -216,7 +216,7 @@ bash-3.1$ tagdust [-options] <input file>
 \begin{tabular}{| l | l | p{12cm}|}
 \hline
 \rowcolor{blue} \textcolor{white}{\scshape Option}		&\textcolor{white}{\scshape Type}		&	\textcolor{white}{\scshape Description}\\ \hline
--threshold & FLT & read quality threshold [10].\\
+-Q & FLT & read quality threshold [20].\\
 -start & INT & start of search area [0].\\
 -end & INT & end of  search area [length of sequence].\\
 -format & STR & format of input sequence file.\\
@@ -235,7 +235,7 @@ bash-3.1$ tagdust [-options] <input file>
 \end{center}
 \section{Notes}
 \subsection{Threshold}
-The {\tt -threshold} option sets the minimum acceptable read quality analogous to the mapping quality Q. If the reads are very short or the model very simple (e.g. 3 nucleotide barcode followed by the read) this threshold might have to be lowered.
+The {\tt -Q} option sets the minimum acceptable read quality analogous to the mapping quality Q. If the reads are very short or the model very simple (e.g. 3 nucleotide barcode followed by the read) the default threshold of 20 might have to be lowered.
 
 \subsection{Removing Known Contaminants (e.g. ribosomal RNA sequences).}
 Known contaminants or unwanted reads can be filtered from the output by pointing TagDust to a reference fasta to be matched against ({\tt -ref <filename>} ). The maximum number of errors allowed for a match to reference is set with the {\tt -fe} option.
@@ -319,7 +319,7 @@ Example code: O:N\\
 
 (START) edge [lightedge] (O1) 
 (O1) edge [lightedge] (END) 
-(START) edge [lightedge] (END)
+(START) edge [winered,lightedge] (END)
    
 (O1) edge [lightedge,loop above] ();
 
@@ -348,7 +348,7 @@ Example code: O:N\\
 
 (START) edge [lightedge] (O1) 
 (O1) edge [lightedge] (END) 
-(START) edge [lightedge] (END)
+(START) edge [winered,lightedge] (END)
    
 (O1) edge [lightedge,loop above] ();
 
@@ -361,7 +361,7 @@ Example code: O:N\\
 
 \subsection{Barcode or Index}
 
-Segment modeling a set of barcode sequences. For each sequence a separate HMM is created. The barcode sequences must be given as a comma separated list.  \\
+Segment modeling a set of barcode sequences. For each sequence a separate HMM is created. The barcode sequences must be given as a comma separated list. A null model of the same length as the barcode is automatically added and initialized to the background nucleotide frequencies. \\
 
 
 
@@ -728,6 +728,7 @@ This segment is used to model sequences that may only be partially present at th
 (START)edge [orange,lightedge] (ml4.south)
 (START)edge [orange,lightedge] (ml5.south)
 (START)edge [orange,lightedge] (ml6.south)
+(START)edge [winered,lightedge] (END)
 
 ;
 
@@ -797,7 +798,7 @@ Note on the last line I restricted the search to the first 25 nucleotides for ef
 
 \section{Sequence scoring} 
 
-In short read mapping the mapping quality Q reflects the confidence we have in one particular mapping location over all others \cite{MAQ}. Analogously, TagDust2 compares the probability of each read matching to the user specified HMM to the total summed probability including a random model:
+In short read mapping the mapping quality Q reflects the confidence we have in one particular mapping location over all others \cite{Li:2008ip}. Analogously, TagDust2 compares the probability of each read matching to the user specified HMM to the total summed probability including a random model:
 
 \begin{equation}
 P = 1 - \frac{P(x|M)*V}{P(x|M) + P(x|R)}
