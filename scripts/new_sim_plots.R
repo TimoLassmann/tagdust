@@ -2,7 +2,7 @@ library(ggplot2)
 library(gplots)
 library(scales)
 
-mat = read.table("NsummaryQ20.csv",header =F )
+mat = read.table("../data/NsummaryQ20.csv",header =F )
 
 
 s = subset(mat,mat[,9] == "agggaggacgatgcgg" & mat[,11] == 0 & mat[,16] == 0.1)
@@ -11,15 +11,15 @@ names(s)[15] = "errorRate"
 
 ggplot(s, aes(x = errorRate,y = good+rand+wrong , fill=factor(Program))) + geom_bar(position="dodge",stat="identity") +scale_x_continuous(labels = percent_format(),breaks=seq(0, 0.05, 0.01))  + scale_y_continuous(limits=c(80000,91000),oob = rescale_none) + ylab("Number of Extracted Reads") + xlab("Simulated Error Rate") + theme(legend.title = element_blank() ,legend.justification=c(0,0), legend.position=c(0.1,0.1),legend.background = element_rect(colour = "black"),legend.text = element_text(size = 12 ), axis.ticks = element_blank(),strip.text.y = element_text(size = 15), axis.text.x = element_text(size = 10, hjust = 0, colour = "black"))
 
-ggsave("Q20ReadTrimming1extracted.pdf" );
+ggsave("Q20ReadTrimming1extracted.pdf" ,width =16, height =8, units = c("cm"), dpi = 300);
 
 
-ggplot(s, aes(x = errorRate,y = error , fill=factor(Program))) + geom_bar(position="dodge",stat="identity") +scale_x_continuous(labels = percent_format(),breaks=seq(0, 0.05, 0.01))  + scale_y_continuous(breaks=seq(0, 0.07, 0.01),limits=c(0,0.075),labels = percent_format(),oob = rescale_none) + ylab("Error Rate in Extracted Reads") + xlab("Simulated Error Rate") + theme(legend.title = element_blank() ,legend.justification=c(0,0), legend.position=c(0.1,0.7),legend.background = element_rect(colour = "black"),legend.text = element_text(size = 12 ), axis.ticks = element_blank(),strip.text.y = element_text(size = 15), axis.text.x = element_text(size = 10, hjust = 0, colour = "black"))
-ggsave("Q20ReadTrimming1errorrateinreads.pdf" );
+ggplot(s, aes(x = errorRate,y = error , fill=factor(Program))) + geom_bar(position="dodge",stat="identity") +scale_x_continuous(labels = percent_format(),breaks=seq(0, 0.05, 0.01))  + scale_y_continuous(breaks=seq(0, 0.07, 0.01),limits=c(0,0.075),labels = percent_format(),oob = rescale_none) + ylab("Error Rate in Extracted Reads") + xlab("Simulated Error Rate") + theme(legend.title = element_blank() ,legend.justification=c(0,0), legend.position=c(0.1,0.5),legend.background = element_rect(colour = "black"),legend.text = element_text(size = 12 ), axis.ticks = element_blank(),strip.text.y = element_text(size = 15), axis.text.x = element_text(size = 10, hjust = 0, colour = "black"))
+ggsave("Q20ReadTrimming1errorrateinreads.pdf" , width =16, height =8, units = c("cm"), dpi = 300);
 
 
 
-mat = read.table("NsummaryQ10.csv",header =F )
+mat = read.table("../data/NsummaryQ10.csv",header =F )
 
 
 s = subset(mat,mat[,9] == "agggaggacgatgcgg" & mat[,11] == 0 & mat[,16] == 0.1)
@@ -28,31 +28,31 @@ names(s)[15] = "errorRate"
 
 ggplot(s, aes(x = errorRate,y = good+rand+wrong , fill=factor(Program))) + geom_bar(position="dodge",stat="identity") +scale_x_continuous(labels = percent_format(),breaks=seq(0, 0.05, 0.01))  + scale_y_continuous(limits=c(80000,91000),oob = rescale_none) + ylab("Number of Extracted Reads") + xlab("Simulated Error Rate") + theme(legend.title = element_blank() ,legend.justification=c(0,0), legend.position=c(0.1,0.1),legend.background = element_rect(colour = "black"),legend.text = element_text(size = 12 ), axis.ticks = element_blank(),strip.text.y = element_text(size = 15), axis.text.x = element_text(size = 10, hjust = 0, colour = "black"))
 
-ggsave("Q10ReadTrimming1extracted.pdf" );
+ggsave("Q10ReadTrimming1extracted.pdf"  ,width =16, height =8, units = c("cm"), dpi = 300);
 
 
-ggplot(s, aes(x = errorRate,y = error , fill=factor(Program))) + geom_bar(position="dodge",stat="identity") +scale_x_continuous(labels = percent_format(),breaks=seq(0, 0.05, 0.01))  + scale_y_continuous(breaks=seq(0, 0.07, 0.01),limits=c(0,0.075),labels = percent_format(),oob = rescale_none) + ylab("Error Rate in Extracted Reads") + xlab("Simulated Error Rate") + theme(legend.title = element_blank() ,legend.justification=c(0,0), legend.position=c(0.1,0.7),legend.background = element_rect(colour = "black"),legend.text = element_text(size = 12 ), axis.ticks = element_blank(),strip.text.y = element_text(size = 15), axis.text.x = element_text(size = 10, hjust = 0, colour = "black"))
-ggsave("Q10ReadTrimming1errorrateinreads.pdf" );
+ggplot(s, aes(x = errorRate,y = error , fill=factor(Program))) + geom_bar(position="dodge",stat="identity") +scale_x_continuous(labels = percent_format(),breaks=seq(0, 0.05, 0.01))  + scale_y_continuous(breaks=seq(0, 0.07, 0.01),limits=c(0,0.075),labels = percent_format(),oob = rescale_none) + ylab("Error Rate in Extracted Reads") + xlab("Simulated Error Rate") + theme(legend.title = element_blank() ,legend.justification=c(0,0), legend.position=c(0.1,0.5),legend.background = element_rect(colour = "black"),legend.text = element_text(size = 12 ), axis.ticks = element_blank(),strip.text.y = element_text(size = 15), axis.text.x = element_text(size = 10, hjust = 0, colour = "black"))
+ggsave("Q10ReadTrimming1errorrateinreads.pdf"  ,width =16, height =8, units = c("cm"), dpi = 300);
 
 
 
 
-mat = read.table("NsummaryQ20.csv",header =F )
+mat = read.table("../data/NsummaryQ20.csv",header =F )
 s = subset(mat,mat[,9] == "agggaggacgatgcgg" & mat[,11] == 0 & mat[,16] == 0.5)
 names(s)  = c("date","Program","good","rand","wrong","error")
 names(s)[15] = "errorRate"
 
 ggplot(s, aes(x = errorRate,y = good+rand+wrong , fill=factor(Program))) + geom_bar(position="dodge",stat="identity") +scale_x_continuous(labels = percent_format(),breaks=seq(0, 0.05, 0.01))  + scale_y_continuous(limits=c(80000,91000),oob = rescale_none) + ylab("Number of Extracted Reads") + xlab("Simulated Error Rate") + theme(legend.title = element_blank() ,legend.justification=c(0,0), legend.position=c(0.1,0.1),legend.background = element_rect(colour = "black"),legend.text = element_text(size = 12 ), axis.ticks = element_blank(),strip.text.y = element_text(size = 15), axis.text.x = element_text(size = 10, hjust = 0, colour = "black"))
 
-ggsave("Q20ReadTrimming5extracted.pdf" );
+ggsave("Q20ReadTrimming5extracted.pdf"  ,width =16, height =8, units = c("cm"), dpi = 300);
 
 
 ggplot(s, aes(x = errorRate,y = error , fill=factor(Program))) + geom_bar(position="dodge",stat="identity") +scale_x_continuous(labels = percent_format(),breaks=seq(0, 0.05, 0.01))  + scale_y_continuous(breaks=seq(0, 0.07, 0.01),limits=c(0,0.075),labels = percent_format(),oob = rescale_none) + ylab("Error Rate in Extracted Reads") + xlab("Simulated Error Rate") + theme(legend.title = element_blank() ,legend.justification=c(0,0), legend.position=c(0.1,0.7),legend.background = element_rect(colour = "black"),legend.text = element_text(size = 12 ), axis.ticks = element_blank(),strip.text.y = element_text(size = 15), axis.text.x = element_text(size = 10, hjust = 0, colour = "black"))
-ggsave("Q20ReadTrimming5errorrateinreads.pdf" );
+ggsave("Q20ReadTrimming5errorrateinreads.pdf" ,width =16, height =8, units = c("cm"), dpi = 300 );
 
 
 
-mat = read.table("NsummaryQ10.csv",header =F )
+mat = read.table("../data/NsummaryQ10.csv",header =F )
 
 
 s = subset(mat,mat[,9] == "agggaggacgatgcgg" & mat[,11] == 0 & mat[,16] == 0.5)
@@ -61,11 +61,11 @@ names(s)[15] = "errorRate"
 
 ggplot(s, aes(x = errorRate,y = good+rand+wrong , fill=factor(Program))) + geom_bar(position="dodge",stat="identity") +scale_x_continuous(labels = percent_format(),breaks=seq(0, 0.05, 0.01))  + scale_y_continuous(limits=c(80000,91000),oob = rescale_none) + ylab("Number of Extracted Reads") + xlab("Simulated Error Rate") + theme(legend.title = element_blank() ,legend.justification=c(0,0), legend.position=c(0.1,0.1),legend.background = element_rect(colour = "black"),legend.text = element_text(size = 12 ), axis.ticks = element_blank(),strip.text.y = element_text(size = 15), axis.text.x = element_text(size = 10, hjust = 0, colour = "black"))
 
-ggsave("Q10ReadTrimming5extracted.pdf" );
+ggsave("Q10ReadTrimming5extracted.pdf" ,width =16, height =8, units = c("cm"), dpi = 300 );
 
 
 ggplot(s, aes(x = errorRate,y = error , fill=factor(Program))) + geom_bar(position="dodge",stat="identity") +scale_x_continuous(labels = percent_format(),breaks=seq(0, 0.05, 0.01))  + scale_y_continuous(breaks=seq(0, 0.07, 0.01),limits=c(0,0.075),labels = percent_format(),oob = rescale_none) + ylab("Error Rate in Extracted Reads") + xlab("Simulated Error Rate") + theme(legend.title = element_blank() ,legend.justification=c(0,0), legend.position=c(0.1,0.7),legend.background = element_rect(colour = "black"),legend.text = element_text(size = 12 ), axis.ticks = element_blank(),strip.text.y = element_text(size = 15), axis.text.x = element_text(size = 10, hjust = 0, colour = "black"))
-ggsave("Q10ReadTrimming5errorrateinreads.pdf" );
+ggsave("Q10ReadTrimming5errorrateinreads.pdf" ,width =16, height =8, units = c("cm"), dpi = 300 );
 
 
 
@@ -75,7 +75,7 @@ ggsave("Q10ReadTrimming5errorrateinreads.pdf" );
 
 
 
-mat = read.table("NsummaryQ20.csv",header =F )
+mat = read.table("../data/NsummaryQ20.csv",header =F )
 s = subset(mat,is.na(mat[,9]) & mat[,16] == 0.1 )
 
 x = cbind(s[,11],s[,12],s[,15],s[,16] ,s[,3] + s[,4], 100000 - (s[,3] + s[,4]), s[,4]+s[5],sprintf("N:%2d L:%2d",s[,11],s[,12]  ),10000 * s[,11] + s[,12],s[,2] , s[,3]+s[,4] ) 
@@ -131,7 +131,7 @@ p+scale_fill_manual(breaks=c(1,2,3,4,5,6,7,8,9,10),values =  colorRampPalette(c(
 ggsave("Q20onlyBarcode1misextracted.pdf" );
 
 
-mat = read.table("NsummaryQ10.csv",header =F )
+mat = read.table("../data/NsummaryQ10.csv",header =F )
 s = subset(mat,is.na(mat[,9]) & mat[,16] == 0.1 )
 
 x = cbind(s[,11],s[,12],s[,15],s[,16] ,s[,3] + s[,4], 100000 - (s[,3] + s[,4]), s[,4]+s[5],sprintf("N:%2d L:%2d",s[,11],s[,12]  ),10000 * s[,11] + s[,12],s[,2] , s[,3]+s[,4] )
@@ -197,7 +197,7 @@ ggsave("Q10onlyBarcode1misextracted.pdf" );
 
 
 
-mat = read.table("NsummaryQ20.csv",header =F )
+mat = read.table("../data/NsummaryQ20.csv",header =F )
 s = subset(mat,is.na(mat[,9]) & mat[,16] == 0.5 )
 
 x = cbind(s[,11],s[,12],s[,15],s[,16] ,s[,3] + s[,4], 100000 - (s[,3] + s[,4]), s[,4]+s[5],sprintf("N:%2d L:%2d",s[,11],s[,12]  ),10000 * s[,11] + s[,12],s[,2] , s[,3]+s[,4] )
@@ -253,7 +253,7 @@ p+scale_fill_manual(breaks=c(1,2,3,4,5,6,7,8,9,10),values =  colorRampPalette(c(
 ggsave("Q20onlyBarcode5misextracted.pdf" );
 
 
-mat = read.table("NsummaryQ10.csv",header =F )
+mat = read.table("../data/NsummaryQ10.csv",header =F )
 s = subset(mat,is.na(mat[,9]) & mat[,16] == 0.5 )
 
 x = cbind(s[,11],s[,12],s[,15],s[,16] ,s[,3] + s[,4], 100000 - (s[,3] + s[,4]), s[,4]+s[5],sprintf("N:%2d L:%2d",s[,11],s[,12]  ),10000 * s[,11] + s[,12],s[,2] , s[,3]+s[,4] )
@@ -315,7 +315,7 @@ ggsave("Q10onlyBarcode5misextracted.pdf" );
 
 
 
-mat = read.table("NsummaryQ20.csv",header =F )
+mat = read.table("../data/NsummaryQ20.csv",header =F )
 
 s = subset(mat,!(is.na(mat[,9])) & mat[,16] == 0.1 & mat[,11] > 0 & mat[,2]!= "CUTADAPT" )
 
@@ -378,7 +378,7 @@ p+scale_fill_manual(breaks=c(1,2,3,4,5,6,7,8,9,10),values =  colorRampPalette(c(
 ggsave("Q20BarcodeandAdapter1misextracted.pdf" );
 
 
-mat = read.table("NsummaryQ10.csv",header =F )
+mat = read.table("../data/NsummaryQ10.csv",header =F )
 
 s = subset(mat,!(is.na(mat[,9])) & mat[,16] == 0.1 & mat[,11] > 0 & mat[,2]!= "CUTADAPT" )
 
@@ -454,7 +454,7 @@ ggsave("Q10BarcodeandAdapter1misextracted.pdf" );
 
 
 
-mat = read.table("NsummaryQ20.csv",header =F )
+mat = read.table("../data/NsummaryQ20.csv",header =F )
 
 s = subset(mat,!(is.na(mat[,9])) & mat[,16] == 0.5 & mat[,11] > 0 & mat[,2]!= "CUTADAPT" )
 
@@ -517,7 +517,7 @@ p+scale_fill_manual(breaks=c(1,2,3,4,5,6,7,8,9,10),values =  colorRampPalette(c(
 ggsave("Q20BarcodeandAdapter5misextracted.pdf" );
 
 
-mat = read.table("NsummaryQ10.csv",header =F )
+mat = read.table("../data/NsummaryQ10.csv",header =F )
 
 s = subset(mat,!(is.na(mat[,9])) & mat[,16] == 0.5 & mat[,11] > 0 & mat[,2]!= "CUTADAPT" )
 

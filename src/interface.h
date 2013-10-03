@@ -107,7 +107,7 @@ struct parameters {
 	float indel_frequency;/**< @brief Fraction of insertions and deletions among sequencer_error_rate. */
 	int average_read_length;/**< @brief Average read length. */
 	int num_threads;/**< @brief Number of threads. */
-	float confidence_threshold;
+	float confidence_threshold;/**< @brief This threshold is used to determine whether the read matched the HMM. */
 	float random_prior;
 	int matchstart;
 	int matchend;
@@ -115,8 +115,9 @@ struct parameters {
 	int sim;
 	int numbarcode;
 	int filter_error;
+	char*  print_artifact;
 	
-	
+	int log;/**< @brief Produce log file?  */
 	int sim_barlen;
 	int sim_barnum;
 	char* sim_5seq;

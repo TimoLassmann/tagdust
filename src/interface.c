@@ -94,7 +94,8 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->sim_readlen =0;
 	param->sim_readlen_mod = 0;
 	param->sim_sequenced_len = 0;
-	
+	param->log = 0;
+	param->print_artifact = 0;
 	
 	
 	
@@ -156,11 +157,12 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			{"sim_random_frac",required_argument,0,OPT_sim_random_frac},
 			{"sim_sequenced_len",required_argument,0,OPT_sim_sequenced_len},
 			{"help",0,0,'h'},
+			{"log",0,0,'l'},
 			{0, 0, 0, 0}
 		};
 		
 		int option_index = 0;
-		c = getopt_long_only (argc, argv,"Q:e:o:p:q:hf:t:i:",long_options, &option_index);
+		c = getopt_long_only (argc, argv,"Q:e:o:p:q:hf:t:i:la:",long_options, &option_index);
 		
 		if (c == -1){
 			break;
@@ -270,9 +272,18 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			case OPT_DUST:
 				param->dust = atoi(optarg);
 				break;
+			case 'l':
+			case 'L':
+				param->log = 1;
+				break;
 			case 'f':
 				param->filter = optarg;
 				break;
+			case 'a':
+				param->print_artifact = optarg;
+				break;
+				
+		
 			case 'o':
 				param->outfile = optarg;
 				break;
@@ -344,11 +355,12 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 		}
 	}
 	
-	if(!c  && param->sim == 0){
-		fprintf(stderr,"ERROR: no read segment specified!\n");
-		free(param);
+	/*if(!c  && param->sim == 0){
+		fprintf(stderr,"ERROR: no read segment specified!%d\n",param->read_structure->num_segments);
+		
+		free_param(param);
 		exit(EXIT_FAILURE);
-	}
+	}*/
 	
 	if(help){
 		usage();
@@ -446,7 +458,8 @@ void usage()
 	fprintf(stdout, "Usage:   tagdust [options] <file>  .... \n\n");
 	fprintf(stdout, "Options:\n");
 	
-	fprintf(stdout, "         -Q FLT     confidence threshold [20].\n");
+	fprintf(stdout, "         -Q         FLT     confidence threshold [20].\n");
+	fprintf(stdout, "         -l         NA      write a log file.\n");
 	fprintf(stdout, "         -start     INT     start of search area [0].\n");
 	fprintf(stdout, "         -end       INT     end of search area [length of sequence].\n");
 	fprintf(stdout, "         -format    STR     format of input sequence file.\n");
@@ -456,6 +469,7 @@ void usage()
 	fprintf(stdout, "         -dust      INT     remove low complexity sequences. [100].\n");
 	fprintf(stdout, "         -e         FLT     expected sequencer error rate [0.05].\n");
 	fprintf(stdout, "         -o         STR     output file name.\n");
+	fprintf(stdout, "         -a         STR     output file for artifacts [NA].\n");
 	fprintf(stdout, "         -t         INT     number of threads [8].\n");
 	fprintf(stdout, "         -1         STR     type of the first HMM building block.\n");
 	fprintf(stdout, "         -2         STR     type of the second HMM building block.\n");

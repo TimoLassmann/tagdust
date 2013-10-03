@@ -156,12 +156,16 @@ int main (int argc,char * argv[]) {
 			if(param->sam == 0){
 				if(param->exact5){
 					exact_controller(param,&read_fasta_fastq,i);
+				}else if (param->read_structure->num_segments == 0){
+					filter_controller(param,&read_fasta_fastq,i);
 				}else{
 					hmm_controller(param,&read_fasta_fastq,i);
 				}
 			}else{
 				if(param->exact5){
 					exact_controller(param,&read_sam_chunk,i);
+				}else if(param->read_structure->num_segments == 0){
+					filter_controller(param,&read_fasta_fastq,i);
 				}else{
 					hmm_controller(param,&read_sam_chunk,i);
 				}

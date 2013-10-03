@@ -251,7 +251,7 @@ void print_sequence(struct read_info* ri,FILE* out)
 {
 	int i;
 	char alpha[5] = "ACGTN";
-	fprintf(out,"%s\n",ri->name);
+	fprintf(out,"@%s\n",ri->name);
 	for(i = 0; i < ri->len;i++){
 		fprintf(out,"%c", alpha[(int) ri->seq[i]]);
 	}
