@@ -224,8 +224,8 @@ void filter_controller(struct parameters* param,int (*fp)(struct read_info** ,st
 	}
 	
 	if(param->log){
-		sprintf (logfile, "%s_tagdust_log.txt",shorten_pathname(param->infile[file_num]));
-		
+		sprintf (logfile, "%s/%s_tagdust_log.txt",param->log,shorten_pathname(param->infile[file_num]));
+		fprintf(stderr,"LOGFILE::::%s\n",logfile);
 		if ((outfile = fopen( logfile, "w")) == NULL){
 			fprintf(stderr,"can't open output\n");
 			exit(-1);
@@ -245,16 +245,14 @@ void filter_controller(struct parameters* param,int (*fp)(struct read_info** ,st
 		fprintf(outfile,"%d	problems with architecture\n" , li->num_EXTRACT_FAIL_ARCHITECTURE_MISMATCH);
 		fprintf(outfile,"%d	low complexity\n" , li->num_EXTRACT_FAIL_LOW_COMPLEXITY);
 		fprintf(outfile,"%d	match artifacts:\n" , li->num_EXTRACT_FAIL_MATCHES_ARTIFACTS);
-		for(i = 0; i < reference_fasta->numseq;i++){
-			if(reference_fasta->mer_hash[i]){
-				fprintf(outfile,"%d	%s\n" , reference_fasta->mer_hash[i], reference_fasta->sn[i]);
+		if(reference_fasta){
+			for(i = 0; i < reference_fasta->numseq;i++){
+				if(reference_fasta->mer_hash[i]){
+					fprintf(outfile,"%d	%s\n" , reference_fasta->mer_hash[i], reference_fasta->sn[i]);
+				}
+				
 			}
-			
 		}
-		
-		
-		
-		
 		fclose(outfile);
 	}
 	
@@ -667,38 +665,37 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	}
 	
 	if(param->log){
-	sprintf (logfile, "%s_tagdust_log.txt",shorten_pathname(param->infile[file_num]));
-
-	if ((outfile = fopen( logfile, "w")) == NULL){
-		fprintf(stderr,"can't open output\n");
-		exit(-1);
-	}
-	
-	fprintf(outfile,"%s	Input file name.\n",param->infile[file_num]);
-	fprintf(outfile,"%.2d-%.2d-%d;%2d:%.2d%cm	Date and Time\n",ptr->tm_mon + 1,ptr->tm_mday, ptr->tm_year + 1900,hour,ptr->tm_min, am_or_pm );
-	fprintf(outfile,"%f	selected threshold\n", param->confidence_threshold);
-
-	fprintf(outfile,"%d	total input reads\n", li->total_read);
+		sprintf (logfile, "%s/%s_tagdust_log.txt",param->log,shorten_pathname(param->infile[file_num]));
+		fprintf(stderr,"LOGFILE::::%s\n",logfile);
 		
-	fprintf(outfile,"%d	successfully extracted\n" ,li->num_EXTRACT_SUCCESS);
-	fprintf(outfile,"%0.1f%%	extracted\n",  (float) li->num_EXTRACT_SUCCESS / (float) li->total_read  *100.0f);
-	fprintf(outfile,"%d	barcode / UMI not found\n" ,li->num_EXTRACT_FAIL_BAR_FINGER_NOT_FOUND);
-	fprintf(outfile,"%d	too short\n" , li->num_EXTRACT_FAIL_READ_TOO_SHORT);
-	fprintf(outfile,"%d	ambiguous barcode\n" , li->num_EXTRACT_FAIL_AMBIGIOUS_BARCODE);
-	fprintf(outfile,"%d	problems with architecture\n" , li->num_EXTRACT_FAIL_ARCHITECTURE_MISMATCH);
-	fprintf(outfile,"%d	low complexity\n" , li->num_EXTRACT_FAIL_LOW_COMPLEXITY);
-	fprintf(outfile,"%d	match artifacts:\n" , li->num_EXTRACT_FAIL_MATCHES_ARTIFACTS);
-	for(i = 0; i < reference_fasta->numseq;i++){
-		if(reference_fasta->mer_hash[i]){
-			fprintf(outfile,"%d	%s\n" , reference_fasta->mer_hash[i], reference_fasta->sn[i]);
+		if ((outfile = fopen( logfile, "w")) == NULL){
+			fprintf(stderr,"can't open output\n");
+			exit(-1);
 		}
-	
-	}
-	
-	
-	
-	
-	fclose(outfile);
+		
+		fprintf(outfile,"%s	Input file name.\n",param->infile[file_num]);
+		fprintf(outfile,"%.2d-%.2d-%d;%2d:%.2d%cm	Date and Time\n",ptr->tm_mon + 1,ptr->tm_mday, ptr->tm_year + 1900,hour,ptr->tm_min, am_or_pm );
+		fprintf(outfile,"%f	selected threshold\n", param->confidence_threshold);
+		
+		fprintf(outfile,"%d	total input reads\n", li->total_read);
+		
+		fprintf(outfile,"%d	successfully extracted\n" ,li->num_EXTRACT_SUCCESS);
+		fprintf(outfile,"%0.1f%%	extracted\n",  (float) li->num_EXTRACT_SUCCESS / (float) li->total_read  *100.0f);
+		fprintf(outfile,"%d	barcode / UMI not found\n" ,li->num_EXTRACT_FAIL_BAR_FINGER_NOT_FOUND);
+		fprintf(outfile,"%d	too short\n" , li->num_EXTRACT_FAIL_READ_TOO_SHORT);
+		fprintf(outfile,"%d	ambiguous barcode\n" , li->num_EXTRACT_FAIL_AMBIGIOUS_BARCODE);
+		fprintf(outfile,"%d	problems with architecture\n" , li->num_EXTRACT_FAIL_ARCHITECTURE_MISMATCH);
+		fprintf(outfile,"%d	low complexity\n" , li->num_EXTRACT_FAIL_LOW_COMPLEXITY);
+		fprintf(outfile,"%d	match artifacts:\n" , li->num_EXTRACT_FAIL_MATCHES_ARTIFACTS);
+		if(reference_fasta){
+			for(i = 0; i < reference_fasta->numseq;i++){
+				if(reference_fasta->mer_hash[i]){
+					fprintf(outfile,"%d	%s\n" , reference_fasta->mer_hash[i], reference_fasta->sn[i]);
+				}
+				
+			}
+		}
+		fclose(outfile);
 	}
 	
 	if(reference_fasta){

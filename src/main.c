@@ -103,6 +103,10 @@ int main (int argc,char * argv[]) {
 	}
 	
 	for(i = 0; i < param->infiles;i++){
+		if(i > 0){
+			fprintf(stderr,"Sorry - using multiple input files is presently disabeled");
+			break;
+		}
 		param->sam = 0;
 		if(!strcmp(".sam", param->infile[i] + (strlen(param->infile[i] ) - 4))){
 			param->sam = 1;
@@ -151,6 +155,7 @@ int main (int argc,char * argv[]) {
 		}else{
 			param->sam = -1;
 		}
+		fprintf(stderr,"Working on : %d:%s\n",i, param->infile[i] );
 		
 		if(param->sam != -1){
 			if(param->sam == 0){
@@ -170,7 +175,6 @@ int main (int argc,char * argv[]) {
 					hmm_controller(param,&read_sam_chunk,i);
 				}
 			}
-		
 		}
 	}
 	free_param(param);

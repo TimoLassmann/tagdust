@@ -157,12 +157,12 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			{"sim_random_frac",required_argument,0,OPT_sim_random_frac},
 			{"sim_sequenced_len",required_argument,0,OPT_sim_sequenced_len},
 			{"help",0,0,'h'},
-			{"log",0,0,'l'},
+			{"log",required_argument,0,'l'},
 			{0, 0, 0, 0}
 		};
 		
 		int option_index = 0;
-		c = getopt_long_only (argc, argv,"Q:e:o:p:q:hf:t:i:la:",long_options, &option_index);
+		c = getopt_long_only (argc, argv,"Q:e:o:p:q:hf:t:i:l:L:a:",long_options, &option_index);
 		
 		if (c == -1){
 			break;
@@ -273,8 +273,10 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 				param->dust = atoi(optarg);
 				break;
 			case 'l':
+				param->log = optarg;
+				break;
 			case 'L':
-				param->log = 1;
+				param->log = optarg;
 				break;
 			case 'f':
 				param->filter = optarg;
@@ -459,7 +461,7 @@ void usage()
 	fprintf(stdout, "Options:\n");
 	
 	fprintf(stdout, "         -Q         FLT     confidence threshold [20].\n");
-	fprintf(stdout, "         -l         NA      write a log file.\n");
+	fprintf(stdout, "         -l         STR     write a log file.\n");
 	fprintf(stdout, "         -start     INT     start of search area [0].\n");
 	fprintf(stdout, "         -end       INT     end of search area [length of sequence].\n");
 	fprintf(stdout, "         -format    STR     format of input sequence file.\n");

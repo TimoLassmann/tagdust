@@ -117,7 +117,7 @@ struct parameters {
 	int filter_error;
 	char*  print_artifact;
 	
-	int log;/**< @brief Produce log file?  */
+	char* log;/**< @brief Directory where log files are written.  */
 	int sim_barlen;
 	int sim_barnum;
 	char* sim_5seq;
