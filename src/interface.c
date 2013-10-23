@@ -461,7 +461,7 @@ void usage()
 	fprintf(stdout, "Options:\n");
 	
 	fprintf(stdout, "         -Q         FLT     confidence threshold [20].\n");
-	fprintf(stdout, "         -l         STR     write a log file.\n");
+	fprintf(stdout, "         -l         STR     log file directory name.\n");
 	fprintf(stdout, "         -start     INT     start of search area [0].\n");
 	fprintf(stdout, "         -end       INT     end of search area [length of sequence].\n");
 	fprintf(stdout, "         -format    STR     format of input sequence file.\n");

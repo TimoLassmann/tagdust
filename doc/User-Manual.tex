@@ -217,7 +217,7 @@ bash-3.1$ tagdust [-options] <input file>
 \hline
 \rowcolor{blue} \textcolor{white}{\scshape Option}		&\textcolor{white}{\scshape Type}		&	\textcolor{white}{\scshape Description}\\ \hline
 -Q & FLT & read quality threshold [20].\\
--l & NA & Write a log file.\\
+-l & STR & Write a log file to directory.\\
 -start & INT & start of search area [0].\\
 -end & INT & end of  search area [length of sequence].\\
 -format & STR & format of input sequence file.\\
@@ -240,7 +240,7 @@ bash-3.1$ tagdust [-options] <input file>
 The {\tt -Q} option sets the minimum acceptable read quality analogous to the mapping quality Q. If the reads are very short or the model very simple (e.g. 3 nucleotide barcode followed by the read) the default threshold of 20 might have to be lowered.
 
 \subsection{Logfile}
-The log file ({\tt -l} flag) will be written to the current directory. The name is the input file name and the suffix  "\_tagdust\_log.txt". It contains some basic statistics on the number of reads making it through the various TagDust steps. It also lists the number of matches to known contaminants (see below).  
+The log option ({\tt -l} flag) specifies the directory into which log files will be written. The log file name is the input file name and the suffix  "\_tagdust\_log.txt". It contains some basic statistics on the number of reads making it through the various TagDust steps. It also lists the number of matches to known contaminants (see below).  
 
 \subsection{Removing Known Contaminants (e.g. ribosomal RNA sequences).}
 Known contaminants or unwanted reads can be filtered from the output by pointing TagDust to a reference fasta to be matched against ({\tt -ref <filename>} ). The maximum number of errors allowed for a match to reference is set with the {\tt -fe} option.

@@ -59,8 +59,8 @@ Copyright 2013 Timo Lassmann (timolassmann@gmail.com)
  If not, see (http://www.gnu.org/licenses/).
 
  
- */
 
+ */
 
 
 /*! \file main.c 
