@@ -1,3 +1,7 @@
+Version 2.05:
+- added useability options. 
+- fixed some minor bugs.
+
 Version 2.04:
 - new random model: If the reads are expected to include barcodes, I simply add another N{x} barcode. Reads which do not have the barode will use this HMM.   
 
