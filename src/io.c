@@ -456,7 +456,7 @@ void print_seq(struct read_info* ri,FILE* out)
 {
 	char alphabet[] = "ACGTN";
 	int i;
-	fprintf(out,"@%s\n",ri->name);
+	/*fprintf(out,"@%s\n",ri->name);
 	for(i =0;i < ri->len;i++){
 		fprintf(out,"%c",alphabet[(int) ri->seq[i]]);
 	}
@@ -468,7 +468,73 @@ void print_seq(struct read_info* ri,FILE* out)
 			fprintf(out,".");
 		}
 	}
-	fprintf(out,"\n");
+	fprintf(out,"\n");*/
+	
+	int start = 0;
+	int stop = -1;
+	int last = 0;
+	int segment = 1;
+	int print_segment_name = 0;
+	
+	for(i =0;i < ri->len;i++){
+		if( ri->seq[i] == 65){
+			print_segment_name = 1;
+			
+			break;
+		}
+		//fprintf(stderr,"%d ", ri->seq[i]);
+	}
+	//fprintf(stderr,"\n");
+	
+	while(stop != ri->len){
+		last = 0;
+		for(i =start;i < ri->len;i++){
+			if( ri->seq[i] == 65){
+				stop = i;
+				last = 1;
+			//	segment++;
+				break;
+			}
+		}
+		if(!last){
+			stop = ri->len;
+		}
+		//fprintf(stderr,"%d->%d\n",start,stop);
+		if(print_segment_name){
+			fprintf(out,"@%s;RS:%d\n",ri->name,segment);
+		}else{
+		
+			fprintf(out,"@%s\n",ri->name);
+		}
+		for(i = start; i < stop;i++){
+			fprintf(out,"%c",alphabet[(int) ri->seq[i]]);
+		}
+		
+		fprintf(out,"\n+\n");
+		if(ri->qual){
+			for(i =start;i < stop;i++){
+				fprintf(out,"%c",ri->qual[i]);
+			}
+		}else{
+			for(i =start;i < stop;i++){
+				fprintf(out,".");
+			}
+		}
+		fprintf(out,"\n");
+		
+		start = stop;
+		while(ri->seq[start] == 65 && start < ri->len){
+			start++;
+			
+		}
+		segment++;
+		if(segment > 100){
+			exit(EXIT_FAILURE);
+		}
+		
+	}
+	
+	
 }
 
 
@@ -751,7 +817,7 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
 			seq_p = 1;
 			for(i = 1;i < MAX_LINE;i++){
 				len++;
-				if(isspace((int)line[i])){
+				if(iscntrl((int)line[i])){
 					break;
 				}
 				
@@ -762,7 +828,7 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
 			ri[park_pos]->name = malloc(sizeof(unsigned char)* (len+1));
 			for(i = 1;i < MAX_LINE;i++){
 				
-				if(isspace((int)line[i])){
+				if(iscntrl((int)line[i])){
 					ri[park_pos]->name[i-1] = 0;
 					break;
 				}
@@ -783,7 +849,7 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
 					len = 0;
 					for(i = 0;i < MAX_LINE;i++){
 						len++;
-						if(isspace((int)line[i])){
+						if(iscntrl((int)line[i])){
 							break;
 						}
 					}
@@ -793,7 +859,7 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
 					ri[park_pos]->labels = malloc(sizeof(unsigned char)* (len+1));
 					
 					for(i = 0;i < MAX_LINE;i++){
-						if(isspace((int)line[i])){
+						if(iscntrl((int)line[i])){
 							ri[park_pos]->seq[i] = 0;
 							ri[park_pos]->labels[i] = 0;
 							break;
@@ -806,7 +872,7 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
 					len = 0;
 					for(i = 0;i < MAX_LINE;i++){
 						len++;
-						if(isspace((int)line[i])){
+						if(iscntrl((int)line[i])){
 							break;
 						}
 						
@@ -814,7 +880,7 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
 					//fprintf(stderr,"QUAL LEN:%d\n",len);
 					ri[park_pos]->qual = malloc(sizeof(unsigned char)* (len+1));
 					for(i = 0;i < MAX_LINE;i++){
-						if(isspace((int)line[i])){
+						if(iscntrl((int)line[i])){
 							ri[park_pos]->qual[i] = 0;
 							break;
 						}

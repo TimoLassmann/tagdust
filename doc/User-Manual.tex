@@ -162,7 +162,7 @@ TagDust allows users to specify the expected architecture of a read and converts
 \begin{figure}[h]
 
 
-\includegraphics[scale = 0.9]{figures/figure1.pdf}
+\includegraphics[scale = 0.7]{figures/figure1.pdf}
 
 \caption{A HMM specifies the expected architecture of the raw sequence. After decoding sequences are segmented into the components of the architecture. Based on the segmentation, a barcode is assigned to each read and remaining sequences are trimmed.}
 \label{figure1}
@@ -235,6 +235,23 @@ bash-3.1$ tagdust [-options] <input file>
 \hline
 \end{tabular}
 \end{center}
+
+Here are some examples of HMM building blocks. Also have a look at the more detailed description further down and the usage examples. 
+\begin{center}
+\begin{tabular}{| l | l | p{12cm}|}
+\hline
+\rowcolor{blue} \textcolor{white}{\scshape Example}		&\textcolor{white}{\scshape Type}		&	\textcolor{white}{\scshape Description}\\ \hline
+R:N & Read  & a block containing a read to be extracted.\\
+S:AATT & Spacer & a block containing the sequence AATT.\\ 
+B:ACT,GGG & Barcode/Index & a three nucleotide long block containing index ACT or GGG\\ 
+F:NNNNNN & Fingerprint / UMI & a six nucleotide long {\bf U}nique {\bf M}olecular {\bf I}dentifier.\\ 
+O:T  & Optional & a block modeling the optimal inclusion of a single or multiple Ts.\\
+\hline
+\end{tabular}
+\end{center}
+
+
+
 \section{Notes}
 \subsection{Threshold}
 The {\tt -Q} option sets the minimum acceptable read quality analogous to the mapping quality Q. If the reads are very short or the model very simple (e.g. 3 nucleotide barcode followed by the read) the default threshold of 20 might have to be lowered.
@@ -243,7 +260,7 @@ The {\tt -Q} option sets the minimum acceptable read quality analogous to the ma
 The log option ({\tt -l} flag) specifies the directory into which log files will be written. The log file name is the input file name and the suffix  "\_tagdust\_log.txt". It contains some basic statistics on the number of reads making it through the various TagDust steps. It also lists the number of matches to known contaminants (see below).  
 
 \subsection{Removing Known Contaminants (e.g. ribosomal RNA sequences).}
-Known contaminants or unwanted reads can be filtered from the output by pointing TagDust to a reference fasta to be matched against ({\tt -ref <filename>} ). The maximum number of errors allowed for a match to reference is set with the {\tt -fe} option.
+Known contaminants or unwanted reads can be filtered from the output by pointing TagDust to a reference fasta to be matched against ({\tt -ref <filename>} ). The maximum number of errors allowed for a match to reference is set with the {\tt -fe} option. {\bf In the current implementation only the first 32 nucleotides off the extracted read are compared against the reference sequences!}
 \subsection{Removing Low Complexity Sequences}
 Tagdust implements a simplified version of the DUST module (R. Tatusov and D.J. Lipman, unpublished data) to filter out low complexity reads. While this is not strictly necessary for NGS reads I implemented it to remove poly-A and other "very" low complexity sequences. The algorithm is only applied to the first 64 nucleotides of the reads. The {\tt -dust} option both enables and sets the threshold for the low complexity filtering. I recommend using a relaxed threshold of 100 and leave the rest to the downstream mapping algorithm. 
 
@@ -252,6 +269,11 @@ Tagdust implements a simplified version of the DUST module (R. Tatusov and D.J. 
 As a default, TagDust attempts to match the entire sequence to the HMM (global). The options {\tt -start} and {\tt -end} restricts the matching to region specified. TagDust assumes that all residues upstream of 'start' do not belong to the read while all residues following 'end' are read residues.
 
 In the presence of barcodes or fingerprints, TagDust will recognize the most likely code and append it to the name of the read. 
+
+\subsection{Extracting multiple reads from a  single input read}
+
+If a user specified architecture contains multiple read segments (e.g. -1 R:N -2 S:TTTTTT -3 R:N) TagDust will print out multiple reads per input. The tag {\bf RS:$1...X$} is appended to the raw read name to distinguish the reads.
+
 
 \section{Formats}
 \subsection{Input file formats}
@@ -271,6 +293,20 @@ bBS`cceegggggiiiiiiiiiiiiiiiiiiiihhihhhiihhhiiihiiihiiiiggg
 }
 
 Note that BC:[A,C,G,T]+ is the sequence of the barcode and FP:[0-9]+ is the fingerprint sequence converted into a unique decimal number.
+
+If multiple reads are present TagDust appends the tag {\tt RS:X} to the read name: 
+
+{\small
+\begin{verbatim}
+@110922_SN549_0034_BB03F7ABXX:7:1101:1137:1974#0/1 BC:AGT;FP:367;RS:1 
+CNCTGAAACGTAGATATAGGGGAACCCCGCCTGTTTACCAAAAACATCACCTCTAGCAT
++
+bBS`cceegggggiiiiiiiiiiiiiiiiiiiihhihhhiihhhiiihiiihiiiiggg
+
+\end{verbatim}
+}
+ 
+
 \newpage
 
 \section{HMM Building Blocks}
@@ -756,7 +792,7 @@ Here is the corresponding TagDust command:
 
 {\small
 \begin{verbatim}
-bash-3.1$ tagdust test.fq.gz   -1 O:N -2 :ACAGAT,ATCGTG,CACGAT,CACTGA,CTGACG,GAGTGA,GTATAC,TCGAGC
+bash-3.1$ tagdust test.fq.gz   -1 O:N -2 B:ACAGAT,ATCGTG,CACGAT,CACTGA,CTGACG,GAGTGA,GTATAC,TCGAGC
 -3 F:NNNNNNNN -4 S:TATA -5 R:N  -o output.fq
 \end{verbatim}
 }
@@ -767,7 +803,7 @@ To remove ribosomal reads simply add the -ref and -fe options:
 
 {\small
 \begin{verbatim}
-bash-3.1$ tagdust test.fq.gz   -1 O:N -2 :ACAGAT,ATCGTG,CACGAT,CACTGA,CTGACG,GAGTGA,GTATAC,TCGAGC
+bash-3.1$ tagdust test.fq.gz   -1 O:N -2 B:ACAGAT,ATCGTG,CACGAT,CACTGA,CTGACG,GAGTGA,GTATAC,TCGAGC
 -3 F:NNNNNNNN -4 S:TATA -5 R:N  -o output.fq -ref U13369.1.fa -fe 2 
 \end{verbatim}
 }
@@ -798,6 +834,56 @@ bash-3.1$ tagdust ERR048990.fastq  -1 F:NNN -2 S:T -3 F:NNNN -4 S:T -5 F:NNN -6 
 }
 
 Note on the last line I restricted the search to the first 25 nucleotides for efficiency. 
+
+
+\section{Extracting multiple reads from a single input.}
+
+Here is a simulated case where we have reads at he 5' and 3' end of the input read separated by {\tt GGGGGGGGAAAAAAAA}:
+
+{\small
+\begin{verbatim}
+@SRR1043305.1 RunXXXXX 
+ATTGCTGTCTCTTATACACATCGGGGGGGGAAAAAAAATGACGCTGCCCAGATCGTATGCCGTCTTC
++
+__bccceefaeeefhfhhhhfhdddhhhaghhhdgffgfY^fghfd_cffhffffffffffffffff
+@SRR1043305.2 RunXXXXX 
+GATCGGGGGAACTTTCAGGATCGGGGGGGGAAAAAAAATGTCTCTTATACACATCTGACGCTGCCCA
++
+bb_eeeeegfgegiiiiiihhhieffhhfhiihhhffhhifiifiiggbedffffffffffffffff
+\end{verbatim}
+}
+To extract the reads: 
+{\small
+\begin{verbatim}
+
+bash-3.1$ tagdust test.fq -1 R:N -2 S:GGGGGGGGAAAAAAAA -3 R:N -o out.fq
+\end{verbatim}
+}
+
+Each original read will result in two output reads identified by RS:1 and RS:2 : 
+{\small
+\begin{verbatim}
+
+
+@SRR1043305.1 RunXXXXX;RS:1
+ATTGCTGTCTCTTATACACATC
++
+__bccceefaeeefhfhhhhfh
+@SRR1043305.1 RunXXXXX;RS:2
+TGACGCTGCCCAGATCGTATGCCGTCTTC
++
+fY^fghfd_cffhffffffffffffffff
+@SRR1043305.2 RunXXXXX;RS:1
+GATCGGGGGAACTTTCAGGATC
++
+bb_eeeeegfgegiiiiiihhh
+@SRR1043305.2 RunXXXXX;RS:2
+TGTCTCTTATACACATCTGACGCTGCCCA
++
+hifiifiiggbedffffffffffffffff
+\end{verbatim}
+}
+
 
 \chapter{Algorithm}
 

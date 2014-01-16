@@ -56,8 +56,8 @@ void filter_controller(struct parameters* param,int (*fp)(struct read_info** ,st
 {
 	struct read_info** ri = 0;
 	
-	FILE* outfile;
-	FILE* artifact_file;
+	FILE* outfile = 0;
+	FILE* artifact_file = 0;
 	int i;
 	int numseq;
 	int total_read = 0;
@@ -307,8 +307,8 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 {
 	struct read_info** ri = 0;
 	
-	FILE* outfile;
-	FILE* artifact_file;
+	FILE* outfile = 0;
+	FILE* artifact_file = 0;
 	
 	int i,j,c,g;
 	int numseq;
@@ -1601,7 +1601,6 @@ void* do_label_thread(void *threadarg)
 		ri[i]->mapq = prob2scaledprob(0.0);
 	}
 	
-	
 	if(matchstart != -1 || matchend != -1){
 		for(i = start; i < end;i++){
 			tmp = matchend - matchstart ;
@@ -2451,6 +2450,7 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 		}
 	}
 	
+	
 	//ri[i]->prob = expf( ri[i]->prob) / (1.0f + expf(ri[i]->prob ));
 	
 	if(param->confidence_threshold <=  ri->mapq){
@@ -2495,16 +2495,22 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 				if(hmm_has_barcode && required_finger_len){
 					if(fingerlen == required_finger_len && bar != -1){
 						buffer[0] = 0;
-						sprintf (buffer, "@%s;BC:%s;FP:%d;",ri->name,param->read_structure->sequence_matrix[mem][bar],key);
+						sprintf (buffer, "%s;BC:%s;FP:%d;",ri->name,param->read_structure->sequence_matrix[mem][bar],key);
 						//strcat (buffer, tmp);
 						ri->name = realloc(ri->name, sizeof(char) * (strlen(buffer) + 1) );
 						
 						strcpy(ri->name, buffer);
-						for(j = 0; j < s_pos;j++){
+						
+						ri = make_extracted_read(mb, param,ri);
+						
+						//added to extract multiple reads - if present reads will be written to same string separated by 0. We can detect multireads by detectinga 0 before the length (ri->len)...
+						//if(multireadread == 1){
+						/*for(j = 0; j < s_pos;j++){
 							ri->seq[j] = ri->seq[read_start+j];
 							ri->qual[j] = ri->qual[read_start+j];
 						}
-						ri->len = s_pos;
+						ri->len = s_pos;*/
+						
 						ri->prob = EXTRACT_SUCCESS;
 						//ret = 1;
 						//fprintf(out,"@%s;BC:%s;FP:%d\n",ri->name,param->read_structure->sequence_matrix[mem][bar],key);
@@ -2516,16 +2522,18 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 					if(bar != -1){
 						
 						buffer[0] = 0;
-						sprintf (buffer, "@%s;BC:%s;",ri->name,param->read_structure->sequence_matrix[mem][bar]);
+						sprintf (buffer, "%s;BC:%s;",ri->name,param->read_structure->sequence_matrix[mem][bar]);
 						//strcat (buffer, tmp);
 						ri->name = realloc(ri->name, sizeof(char) * (strlen(buffer) + 1) );
 						
 						strcpy(ri->name, buffer);
-						for(j = 0; j < s_pos;j++){
+						
+						ri = make_extracted_read(mb, param,ri);
+						/*for(j = 0; j < s_pos;j++){
 							ri->seq[j] = ri->seq[read_start+j];
 							ri->qual[j] = ri->qual[read_start+j];
 						}
-						ri->len = s_pos;
+						ri->len = s_pos;*/
 						ri->prob = EXTRACT_SUCCESS;
 					}else{
 						ri->prob  = EXTRACT_FAIL_BAR_FINGER_NOT_FOUND;
@@ -2534,32 +2542,37 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 				}else if(required_finger_len){
 					if(fingerlen == required_finger_len){
 						buffer[0] = 0;
-						sprintf (buffer, "@%s;FP:%d",ri->name,key);
+						sprintf (buffer, "%s;FP:%d",ri->name,key);
 						//strcat (buffer, tmp);
 						ri->name = realloc(ri->name, sizeof(char) * (strlen(buffer) + 1) );
 						
 						strcpy(ri->name, buffer);
-						for(j = 0; j < s_pos;j++){
+						
+						ri = make_extracted_read(mb, param,ri);
+						/*for(j = 0; j < s_pos;j++){
 							ri->seq[j] = ri->seq[read_start+j];
 							ri->qual[j] = ri->qual[read_start+j];
 						}
-						ri->len = s_pos;
+						ri->len = s_pos;*/
 						ri->prob = EXTRACT_SUCCESS;
 					}else{
 						ri->prob  = EXTRACT_FAIL_BAR_FINGER_NOT_FOUND;
 					}
 				}else{
 					buffer[0] = 0;
-					sprintf (buffer, "@%s",ri->name);
+					sprintf (buffer, "%s",ri->name);
 					//strcat (buffer, tmp);
 					ri->name = realloc(ri->name, sizeof(char) * (strlen(buffer) + 1) );
 					
 					strcpy(ri->name, buffer);
-					for(j = 0; j < s_pos;j++){
+					
+					ri = make_extracted_read(mb, param,ri);
+					
+					/*for(j = 0; j < s_pos;j++){
 						ri->seq[j] = ri->seq[read_start+j];
 						ri->qual[j] = ri->qual[read_start+j];
 					}
-					ri->len = s_pos;
+					ri->len = s_pos;*/
 					ri->prob = EXTRACT_SUCCESS;
 				}
 			}else{
@@ -2578,11 +2591,49 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 }
 
 
+/** \fn  struct read_info* make_extracted_read(struct model_bag* mb, struct parameters* param,  struct read_info* ri)
+ \brief Reformats the read sequence.
+ 
+ \param mb The HMM model @ref model_bag.
+ \param param @ref parameters .
+ \param ri The reads.
+ 
+ */
+
+
+struct read_info* make_extracted_read(struct model_bag* mb, struct parameters* param,  struct read_info* ri)
+{
+	int s_pos,j,c1,c2;
+	int multireadread = 0;
+	s_pos = 0;
+	for(j = 0; j < ri->len;j++){
+		c1 = mb->label[(int)ri->labels[j+1]];
+		c2 = c1 & 0xFFFF; //which segment
+		if(param->read_structure->type[c2] == 'R'){
+			if(multireadread == 0){
+				multireadread = 1;
+			}
+			ri->seq[s_pos] = ri->seq[j];
+			ri->qual[s_pos] = ri->qual[j];
+			s_pos++;
+		}else if (multireadread){
+			ri->seq[s_pos] = 65; // 65 is the spacer! nucleotides are 0 -5....
+			ri->qual[s_pos] = 65;
+			s_pos++;
+		}
+	}
+	ri->len = s_pos;
+	return ri;
+}
+
+
+
+
 
 /** \fn void* do_baum_welch_thread(void *threadarg)
- \brief Runs Baum-Welch procedure. 
+ \brief Runs Baum-Welch procedure.
  
-We implemented the HMM training procedure to verify that the forward and backward recursion work as expected. In other words this is only used for testing. 
+We implemented the HMM training procedure to verify that the forward and backward recursion work as expected. In other words this is only used for testing.
  
  \param threadarg  A @ref thread_data object used to pass data / parameters to function.
  */
@@ -3103,8 +3154,6 @@ struct model_bag* forward(struct model_bag* mb, char* a, int len)
 					
 					//instertion emission...
 					c_hmm_column->I_foward[i]  = c_hmm_column->I_foward[i]  + c_hmm_column->i_emit[c];
-					
-					
 					// deletion state
 					//from previous match state.
 					c_hmm_column->D_foward[i] = p_hmm_column->M_foward[i] + p_hmm_column->transition[MD];
@@ -3120,9 +3169,7 @@ struct model_bag* forward(struct model_bag* mb, char* a, int len)
 				//csilent[i] =  logsum(csilent[i],  c_hmm_column->M_foward[i] + mb->model[j]->M_to_silent[f]);
 				//csilent[i] =  logsum(csilent[i],  c_hmm_column->I_foward[i] + mb->model[j]->I_to_silent[f]);
 				csilent[i] = logsum(csilent[i], psilent[i] + mb->model[j]->skip);
-				
 			}
-			
 		}
 	}
 	
@@ -5166,8 +5213,8 @@ struct model_bag* init_model_bag(struct parameters* param,double* back)
 		// remain in the same state....
 		mb->transition_matrix[i][i] = 1;
 	}
-	/*
-	for(i = 0; i < mb->total_hmm_num ;i++){
+	
+	/*for(i = 0; i < mb->total_hmm_num ;i++){
 		for(j = 0; j <  mb->total_hmm_num ;j++){
 			fprintf(stderr,"%f ",mb->transition_matrix[i][j] );
 		}

@@ -1,3 +1,8 @@
+Version 2.06: 
+- TagDust now supports extracting multiple reads from single input sequences. 
+- fixed bug prining out two '@' signs for read names. 
+- fixed bug only partially printinting out sequence names. 
+
 Version 2.05:
 - added useability options. 
 - fixed some minor bugs.

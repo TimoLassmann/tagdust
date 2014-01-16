@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT(Tagdust, 2.05, timolassmann@gmail.com)
+AC_INIT(Tagdust, 2.06, timolassmann@gmail.com)
 AC_CONFIG_HEADER([src/config.h])
 AM_INIT_AUTOMAKE([1.9.6 -Wall no-define])
 
@@ -17,7 +17,7 @@ if test $USE_DEBUG = yes ; then
   DEBUG=1
   CFLAGS="$CFLAGS -D DEBUG -ggdb -Wall -m64 -std=gnu99"
 else
- CFLAGS="$CFLAGS -O2 -Wall -m64 -std=gnu99"
+ CFLAGS="$CFLAGS -O3 -Wall -m64 -std=gnu99"
   DEBUG=0
 fi
 

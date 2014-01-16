@@ -59,7 +59,7 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "/Users/lassmann/Downloads/NChi10019.110922_SN549_0034_BB03F7ABXX.read1.lane7.fq  -1 O:A,T  -2 R:N"
+            argument = "/Users/lassmann/tmp/test2.fq -t 1 -l . -o /Users/lassmann/tmp/output -a /Users/lassmann/tmp/artefacts -1 R:N -2 S:GGGGGGGGAAAAAAAA -3 R:N"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

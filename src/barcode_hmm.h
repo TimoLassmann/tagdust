@@ -327,6 +327,7 @@ double pi0_bootstrap(struct read_info** ri, int numseq);
 double get_min_pi0(double* x, double* y, int n_points);
 
 struct read_info*  extract_reads(struct model_bag* mb, struct parameters* param,  struct read_info* ri);
+struct read_info*  make_extracted_read(struct model_bag* mb, struct parameters* param,  struct read_info* ri);
 struct read_info** match_to_reference(struct thread_data *data);
 
 struct read_info** dust_sequences(struct thread_data *data);
