@@ -250,7 +250,7 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 void print_sequence(struct read_info* ri,FILE* out)
 {
 	int i;
-	char alpha[5] = "ACGTN";
+	char alpha[6] = "ACGTNN";
 	fprintf(out,"@%s\n",ri->name);
 	for(i = 0; i < ri->len;i++){
 		fprintf(out,"%c", alpha[(int) ri->seq[i]]);
@@ -269,7 +269,7 @@ void print_sequence(struct read_info* ri,FILE* out)
 int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  struct read_info* ri,FILE* out)
 {
 	int j,c1,c2,c3,key,bar,mem,fingerlen,required_finger_len,ret;
-	char alpha[5] = "ACGTN";
+	char alpha[6] = "ACGTNN";
 	
 	char out_qual[MAX_HMM_SEQ_LEN];
 	char out_seq[MAX_HMM_SEQ_LEN];
@@ -454,7 +454,7 @@ int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  stru
  */
 void print_seq(struct read_info* ri,FILE* out)
 {
-	char alphabet[] = "ACGTN";
+	char alphabet[] = "ACGTNN";
 	int i;
 	/*fprintf(out,"@%s\n",ri->name);
 	for(i =0;i < ri->len;i++){
@@ -482,9 +482,19 @@ void print_seq(struct read_info* ri,FILE* out)
 			
 			break;
 		}
-		//fprintf(stderr,"%d ", ri->seq[i]);
+	//	fprintf(stderr,"%d ", ri->seq[i]);
 	}
-	//fprintf(stderr,"\n");
+	//fprintf(stderr,"\nREADNAME:%d\n",print_segment_name);
+	//start = stop;
+	if(print_segment_name){
+		//if we have a multiread scroll to the first read if starting with 65....
+		while(ri->seq[start] == 65 && start < ri->len){
+			start++;
+		
+		}
+	}
+
+	
 	
 	while(stop != ri->len){
 		last = 0;
@@ -500,8 +510,9 @@ void print_seq(struct read_info* ri,FILE* out)
 			stop = ri->len;
 		}
 		//fprintf(stderr,"%d->%d\n",start,stop);
+		//if(i != stop){
 		if(print_segment_name){
-			fprintf(out,"@%s;RS:%d\n",ri->name,segment);
+			fprintf(out,"@%sRS:%d\n",ri->name,segment);
 		}else{
 		
 			fprintf(out,"@%s\n",ri->name);
@@ -521,13 +532,14 @@ void print_seq(struct read_info* ri,FILE* out)
 			}
 		}
 		fprintf(out,"\n");
+		segment++;
 		
 		start = stop;
 		while(ri->seq[start] == 65 && start < ri->len){
 			start++;
 			
 		}
-		segment++;
+		
 		if(segment > 100){
 			exit(EXIT_FAILURE);
 		}

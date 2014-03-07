@@ -80,6 +80,10 @@ void print_sequence(struct read_info* ri,FILE* out);
 int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  struct read_info* ri,FILE* out);
 int qsort_ri_prob_compare(const void *a, const void *b);
 
+void concatenate_reads(struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ));
+void split(struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ));
+int file_exists (char * name);
+
 
 struct fasta* read_fasta(struct fasta* f);
 struct fasta* get_fasta(struct fasta* p,char *infile);

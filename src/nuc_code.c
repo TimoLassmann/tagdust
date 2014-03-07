@@ -42,6 +42,9 @@ void init_nuc_code()
 		nuc_code[i] = 4;
 	}
 	
+	
+	nuc_code[46] = 5;/// dot - will initialize N to p = 1
+	
 	nuc_code[65] = 0;//A Adenine
 	nuc_code[67] = 1;//C	Cytosine
 	nuc_code[71] = 2;//G	Guanine

@@ -103,7 +103,7 @@
  \brief Maximum Length of sequences in each HMM.
  
  */
-#define MAX_HMM_SEQ_LEN 150
+#define MAX_HMM_SEQ_LEN 500
 
 /** \def MAX_NUM_SUB_MODELS
  \brief Maximum Number of HMM segments. 

@@ -96,7 +96,9 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->sim_sequenced_len = 0;
 	param->log = 0;
 	param->print_artifact = 0;
-	
+	param->multiread = 0;
+	param->join = 0;
+	param->split = 0;
 	
 	
 	param->read_structure = malloc(sizeof(struct read_structure));
@@ -156,6 +158,8 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			{"sim_numseq",required_argument,0,OPT_sim_numseq},
 			{"sim_random_frac",required_argument,0,OPT_sim_random_frac},
 			{"sim_sequenced_len",required_argument,0,OPT_sim_sequenced_len},
+			{"join",0,0,OPT_join_paired},
+			{"split",0,0,OPT_split},
 			{"help",0,0,'h'},
 			{"log",required_argument,0,'l'},
 			{0, 0, 0, 0}
@@ -170,6 +174,12 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 		
 		switch(c) {
 			case 0:
+				break;
+			case	OPT_split:
+				param->split = 1;
+				break;
+			case OPT_join_paired:
+				param->join = 1;
 				break;
 			case OPT_sim_sequenced_len:
 				param->sim_sequenced_len = atoi(optarg);
@@ -325,7 +335,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	c = 0;
 	for(i = 0; i < param->read_structure->num_segments;i++){
 		if(param->read_structure->type[i] == 'R'){
-			c = 1;
+			c++;
 		}
 		
 		if(param->read_structure->sequence_matrix[i]){
@@ -357,6 +367,9 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 		}
 	}
 	
+	if(c >= 2){
+		param->multiread = 1;
+	}
 	/*if(!c  && param->sim == 0){
 		fprintf(stderr,"ERROR: no read segment specified!%d\n",param->read_structure->num_segments);
 		

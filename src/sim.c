@@ -70,7 +70,7 @@ void simulation_for_benchmark(struct parameters* param)
 	char* outfile = 0;
 	
 	char* command = 0;
-	char alpha[5] = "ACGTN";
+	char alpha[6] = "ACGTNN";
 	
 	
 	//char btrimfiller[] = "ZZZZZZZ";
@@ -596,7 +596,26 @@ void simulation_for_benchmark(struct parameters* param)
 		fclose(file2);
 	}
 		
+	//AdapterRemoval
+	
+	if(!param->sim_5seq && !param->sim_barnum && param->sim_3seq){
+		c = sprintf(command, "cat %s/%sread.fq | AdapterRemoval --pcr1 %s  > %s/%sAdapterRemovalout.fq ",dp,runid,param->sim_3seq,dp,runid);
+		fprintf(stderr,"%s\n",command);
+		if (!(file = popen(command, "r"))) {
+			fprintf(stderr,"Cannot execute cutadapt with command:%s\n",command);
+			exit(-1);
+		}
+		while ((c = fgetc (file)) != EOF){
+			putchar (c);
+		}
+		pclose(file);
+	}
+	
+	
+	
 	//cutadapt!!!
+	
+	
 	
 	if(param->sim_5seq && param->sim_3seq){
 		c = sprintf(command, "cutadapt --discard-untrimmed -n 2 --front %s    --adapter=%s  %s/%sread.fq   -o %s/%scutadaptout.fq ", param->sim_5seq,param->sim_3seq,dp,runid,dp,runid);
@@ -842,6 +861,35 @@ void simulation_for_benchmark(struct parameters* param)
 		pclose(file);
 		
 	}
+	
+	
+	if(!param->sim_5seq && !param->sim_barnum && param->sim_3seq){
+		c = sprintf(command,"tagdust -threshold %f -t 80 ", param->confidence_threshold);
+		/*for(i = 0; i < param->sim_barnum-1;i++){
+		 c = sprintf (read, "%s,",barcode[i]);
+		 strcat ( command, read);
+		 }
+		 c = sprintf (read, "%s ",barcode[param->sim_barnum-1]);
+		 strcat ( command, read);
+		 */
+		c = sprintf (read, "-1 R:N ");
+		strcat ( command, read);
+		c = sprintf (read, "-2 P:%s ", param->sim_3seq);
+		strcat ( command, read);
+		c = sprintf (read, "%s/%sread.fq  -o %s/%stagdustout.fq ", dp,runid,dp,runid);
+		strcat ( command, read);
+		fprintf(stderr,"%s\n",command);
+		if (!(file = popen(command, "r"))) {
+			fprintf(stderr,"Cannot execute tagdust with command:%s\n",command);
+			exit(-1);
+		}
+		while ((c = fgetc (file)) != EOF){
+			putchar (c);
+		}
+		pclose(file);
+		
+	}
+
 
 	//EVALUATION!!!
 	
@@ -856,6 +904,13 @@ void simulation_for_benchmark(struct parameters* param)
 		unlink(outfile);
 	}
 	//exit(0);
+	sprintf (outfile, "%s/%sAdapterRemovalout.fq",dp,runid );
+	if( access( outfile, F_OK ) != -1 ) {
+		evalres=  get_results(evalres, param, outfile, "AdapterRemoval");
+		unlink(outfile);
+	}
+	
+		
 	
 	sprintf (outfile, "%s/%stagdustout.fq",dp,runid);
 	if( access( outfile, F_OK ) != -1 ) {
@@ -1265,7 +1320,7 @@ void simulate(struct parameters* param)
 	float r = 0.0;
 	FILE* file = 0;
 	int errors_allowed = 6;
-	char alpha[5] = "ACGTN";
+	char alpha[6] = "ACGTNN";
 	
 	char* outfile = 0;
 	outfile = malloc(sizeof(char)*(200));

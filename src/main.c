@@ -97,7 +97,18 @@ int main (int argc,char * argv[]) {
 	if(param->sim_numseq){
 		simulation_for_benchmark(param);
 	}
-		
+	
+	if(param->join){
+		concatenate_reads(param,&read_fasta_fastq);
+		free_param(param);
+		return EXIT_SUCCESS;
+	}
+	if(param->split){
+		split(param,&read_fasta_fastq);
+		free_param(param);
+		return EXIT_SUCCESS;
+	}
+	
 	if(param->sim){
 		simulate(param);
 	}

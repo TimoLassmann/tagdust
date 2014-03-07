@@ -67,6 +67,9 @@
 #define OPT_sim_random_frac 32
 #define OPT_sim_sequenced_len 33
 
+#define OPT_join_paired 34
+#define OPT_split 35
+
 
 /**
  * @brief Contains user specified read structure.
@@ -129,12 +132,18 @@ struct parameters {
 	int sim_numseq;
 	float sim_random_frac;
 	int sim_sequenced_len;
+	
+	int multiread;
+	
+	int join;
+	int split;
 };
 
 struct parameters* interface(struct parameters* param,int argc, char *argv[]);
 struct parameters* assign_segment_sequences(struct parameters* param, char* tmp, int segment);
 void free_param(struct parameters* param);
 void usage(void);
+
 
 
 

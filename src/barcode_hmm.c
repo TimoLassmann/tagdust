@@ -1754,7 +1754,7 @@ void* do_rna_dust(void *threadarg)
 	
 		if(s > dust_cut){
 #if DEBUG
-			char alphabet[] = "ACGTN";
+			char alphabet[] = "ACGTNN";
 			for(j = 0;j < len;j++){
 				fprintf(stderr,"%c",alphabet[(int)ri[i]->seq[j]]);
 			}
@@ -2311,7 +2311,7 @@ struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,
 struct model_bag* estimate_model_from_labels(struct model_bag* mb, struct parameters* param,  struct read_info** ri,int numseq)
 {
 	int i,j,c1,c2,c3,g;//,bar,mem;
-	char alpha[5] = "ACGTN";
+	char alpha[6] = "ACGTNN";
 	//set all counts to 1;
 	
 	mb = set_model_e_to_laplace(mb);
@@ -2475,7 +2475,7 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 					
 					if(bar == param->read_structure->numseq_in_segment[c2]-1){
 						//fprintf(stderr,"EXTRACTING N!!!!\n");
-						hmm_has_barcode = 0;
+						hmm_has_barcode = -1;
 					}
 					mem = c2;
 				}
@@ -2491,11 +2491,12 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 			}
 			
 			if(s_pos >= param->minlen){
-				
-				if(hmm_has_barcode && required_finger_len){
+				if(hmm_has_barcode == -1){
+					ri->prob  = EXTRACT_FAIL_BAR_FINGER_NOT_FOUND;
+				}else if(hmm_has_barcode && required_finger_len){
 					if(fingerlen == required_finger_len && bar != -1){
 						buffer[0] = 0;
-						sprintf (buffer, "%s;BC:%s;FP:%d;",ri->name,param->read_structure->sequence_matrix[mem][bar],key);
+						sprintf (buffer, "%s;FP:%d;BC:%s;",ri->name,key,param->read_structure->sequence_matrix[mem][bar]);
 						//strcat (buffer, tmp);
 						ri->name = realloc(ri->name, sizeof(char) * (strlen(buffer) + 1) );
 						
@@ -2542,7 +2543,7 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 				}else if(required_finger_len){
 					if(fingerlen == required_finger_len){
 						buffer[0] = 0;
-						sprintf (buffer, "%s;FP:%d",ri->name,key);
+						sprintf (buffer, "%s;FP:%d;",ri->name,key);
 						//strcat (buffer, tmp);
 						ri->name = realloc(ri->name, sizeof(char) * (strlen(buffer) + 1) );
 						
@@ -2604,25 +2605,29 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 struct read_info* make_extracted_read(struct model_bag* mb, struct parameters* param,  struct read_info* ri)
 {
 	int s_pos,j,c1,c2;
-	int multireadread = 0;
+	//int multireadread = 0;
 	s_pos = 0;
 	for(j = 0; j < ri->len;j++){
 		c1 = mb->label[(int)ri->labels[j+1]];
 		c2 = c1 & 0xFFFF; //which segment
+		
+		//fprintf(stderr,"%d	%c	\n", ri->seq[j],param->read_structure->type[c2]);
+		
 		if(param->read_structure->type[c2] == 'R'){
-			if(multireadread == 0){
-				multireadread = 1;
-			}
+			//if(multireadread == 0){
+			//	multireadread = 1;
+			//}
 			ri->seq[s_pos] = ri->seq[j];
 			ri->qual[s_pos] = ri->qual[j];
 			s_pos++;
-		}else if (multireadread){
+		}else if (param->multiread){
 			ri->seq[s_pos] = 65; // 65 is the spacer! nucleotides are 0 -5....
 			ri->qual[s_pos] = 65;
 			s_pos++;
 		}
 	}
 	ri->len = s_pos;
+	//exit(0);
 	return ri;
 }
 
@@ -4028,7 +4033,7 @@ struct model* init_model_according_to_read_structure(struct model* model,struct 
 			col->transition_e[DM] =  prob2scaledprob(0.0);
 			current_nuc = nuc_code[(int) tmp[j]];
 			col->identifier = -1;
-			if(current_nuc != 4){
+			if(current_nuc < 4){
 				
 				for(c = 0; c < 5;c++){
 					if(c == current_nuc){
@@ -4040,11 +4045,23 @@ struct model* init_model_according_to_read_structure(struct model* model,struct 
 					col->i_emit_e[c] =  prob2scaledprob(0.0f);
 					col->m_emit_e[c] =  prob2scaledprob(0.0f);
 				}
-			}else{
+			}else if(current_nuc == 4){
 				for(c = 0; c < 5;c++){
 	
 					col->m_emit[c] =  background[c];
 					col->i_emit[c] =  background[c];
+					col->i_emit_e[c] =  prob2scaledprob(0.0f);
+					col->m_emit_e[c] =  prob2scaledprob(0.0f);
+				}
+			}else{
+				current_nuc = 4;
+				for(c = 0; c < 5;c++){
+					if(c == current_nuc){
+						col->m_emit[c] = prob2scaledprob(1.0);
+					}else{
+						col->m_emit[c] =  prob2scaledprob(0.0);
+					}
+					col->i_emit[c] = background[c];
 					col->i_emit_e[c] =  prob2scaledprob(0.0f);
 					col->m_emit_e[c] =  prob2scaledprob(0.0f);
 				}
