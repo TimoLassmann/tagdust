@@ -64,6 +64,34 @@ int qsort_ri_prob_compare(const void *a, const void *b)
 		return 0;
 }
 
+/** \fn int qsort_ri_prob_compare(const void *a, const void *b)
+ \brief Compares reads based their probability.
+ Used to sort arrays of string using qsort.
+ \param a void pointer to first @ref read_info.
+ \param b void pointer to second @ref read_info.
+ */
+int qsort_ri_mapq_compare(const void *a, const void *b)
+{
+	
+	//struct mys **a = (struct mys **)i1;
+	//struct mys **b = (struct mys **)i2;
+	//return (*b)->id - (*a)->id;
+	
+	const struct read_info **elem1 = (const struct read_info**) a;
+	
+	const struct read_info **elem2 = (const struct read_info**) b;
+	
+	if ( (*elem1)->mapq > (*elem2)->mapq)
+		return -1;
+	
+	else if ((*elem1)->mapq < (*elem2)->mapq)
+		return 1;
+	
+	else
+		return 0;
+}
+
+
 
 /** \fn FILE* io_handler(FILE* file, int file_num,struct parameters* param)
  \brief Opens stream to files. 

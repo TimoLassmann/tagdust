@@ -534,22 +534,28 @@ void print_split_sequences(struct rb_node* n,char* out,struct read_info** ri, st
 	}
 	
 	int go = 0;
-	if(param->join & 1){
+	
+	if(param->join == 3){ // both double reads and barcode
 		if(byg_end("BC", filename)){
-			if(param->join & 2){
-				if(byg_end("RS", filename)){
-					go =1;
-				}
-			}
-
-		}
-	}else{
-		if(param->join & 2){
 			if(byg_end("RS", filename)){
 				go =1;
 			}
 		}
 	}
+	
+	if(param->join == 1){ // just barcodes
+		if(byg_end("BC", filename)){
+			go = 1;
+		}
+	}
+		
+	
+	if(param->join == 2){ // double reads...
+		if(byg_end("RS", filename)){
+			go =1;
+		}
+	}
+	
 	if(!go){
 		sprintf (filename, "%s_%s.fq" , out,"not_extracted");
 	}

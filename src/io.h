@@ -79,6 +79,7 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file);
 void print_sequence(struct read_info* ri,FILE* out);
 int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  struct read_info* ri,FILE* out);
 int qsort_ri_prob_compare(const void *a, const void *b);
+int qsort_ri_mapq_compare(const void *a, const void *b);
 
 void concatenate_reads(struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ));
 void split(struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ));

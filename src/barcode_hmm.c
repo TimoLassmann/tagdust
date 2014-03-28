@@ -227,7 +227,7 @@ void filter_controller(struct parameters* param,int (*fp)(struct read_info** ,st
 		sprintf (logfile, "%s/%s_tagdust_log.txt",param->log,shorten_pathname(param->infile[file_num]));
 		fprintf(stderr,"LOGFILE::::%s\n",logfile);
 		if ((outfile = fopen( logfile, "w")) == NULL){
-			fprintf(stderr,"can't open output\n");
+			fprintf(stderr,"can't open logfile\n");
 			exit(-1);
 		}
 		
@@ -332,7 +332,7 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	
 #if DEBUG
 	//printf("Debug\n");
-	param->num_query = 501;
+	param->num_query = 10001;
 #else
 	//printf("No Debug\n");
 	param->num_query = 1000000;
@@ -385,7 +385,7 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		
 		total_read += numseq;
 #if DEBUG
-		if(total_read > 501){
+		if(total_read > 10001){
 			break;
 		}
 #else
@@ -397,8 +397,7 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	if(param->matchstart!= -1 || param->matchend !=-1){
 		average_length = (param->matchend - param->matchstart )* total_read;
 	}
-	
-	average_length = average_length / total_read;
+	average_length =  (int) floor((double)  average_length / (double) total_read   + 0.5);
 	
 	param->average_read_length = average_length;
 	
@@ -420,7 +419,12 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	// Inits model.
 	
 	struct model_bag* mb = init_model_bag(param, back);
-		
+	
+	
+	mb->average_raw_length =average_length;
+	
+	//struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_length,unsigned int* seed )
+	
 	// Let's check the hamming distance between barcodes...
 	
 	g = 0;
@@ -588,7 +592,178 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	li->num_EXTRACT_FAIL_ARCHITECTURE_MISMATCH = 0;
 	li->num_EXTRACT_FAIL_MATCHES_ARTIFACTS = 0;
 	li->num_EXTRACT_FAIL_LOW_COMPLEXITY= 0;
+	
+	
+	
+	fprintf(stderr,"Testing the model\n");
+	fprintf(stderr,"%d	%d\n",	param->average_read_length ,average_length);
+	///switch off transition to NNN barcodes for testing..
+	for(i = 0; i < mb->num_models;i++){
+		if(param->read_structure->type[i] == 'B'){
+			for(j = 0 ; j < mb->model[i]->num_hmms-1;j++){
+				 mb->model[i]->silent_to_M[j][0] = prob2scaledprob(1.0 / (float)( mb->model[i]->num_hmms-1));
+			}
+			mb->model[i]->num_hmms =  mb->model[i]->num_hmms -1;
+		}
+	}
+	
+	
 		
+	unsigned int seed = (unsigned int) (time(NULL) * ( 42));
+	for(i = 0; i < 10001;i++){
+		ri[i] =emit_random_sequence(mb, ri[i],average_length,&seed);
+		
+	}
+	for(i = 0; i < mb->num_models;i++){
+		if(param->read_structure->type[i] == 'B'){
+			mb->model[i]->num_hmms =  mb->model[i]->num_hmms +1;
+			for(j = 0 ; j < mb->model[i]->num_hmms;j++){
+				mb->model[i]->silent_to_M[j][0] = prob2scaledprob(1.0 / (float) mb->model[i]->num_hmms);
+			}
+		}
+	}
+	
+	
+	mb =  run_pHMM(mb,ri,param,reference_fasta, 10001,MODE_GET_PROB);
+	
+	
+	qsort(ri,10001, sizeof(struct read_info*), qsort_ri_mapq_compare);
+	float stats[3];
+	
+	stats[0] = SCALEINFTY;
+	stats[1] = -SCALEINFTY;
+	stats[2] = 0;
+	
+	
+	for(i = 0; i < 10001;i++){
+		if(ri[i]->mapq >stats[1] ){
+			stats[1]  =ri[i]->mapq;
+		}
+		if(ri[i]->mapq  < stats[0] ){
+			stats[0]  =ri[i]->mapq;
+		}
+		stats[2] +=ri[i]->mapq;
+		
+	}
+	stats[2] /=10001.0;
+	
+	
+	
+	char AL[] = "ACGTN";
+	for(i = 0; i < 10;i++){
+		fprintf(stderr,"%d	%d	%f	%f	", i, ri[i]->len, ri[i]->mapq,  1.0 - pow(10.0, -1.0 *  ri[i]->mapq / 10.0));
+		
+		for(j = 0; j < ri[i]->len;j++){
+			fprintf(stderr,"%c",AL[(int)ri[i]->seq[j]]);
+			if(j >30){
+				break;
+			}
+		}
+		fprintf(stderr,"\n");
+		
+	}
+	for(i = 9990; i < 10000;i++){
+		fprintf(stderr,"%d	%d	%f	%f	", i, ri[i]->len, ri[i]->mapq,  1.0 - pow(10.0, -1.0 *  ri[i]->mapq / 10.0));
+		
+		for(j = 0; j < ri[i]->len;j++){
+			fprintf(stderr,"%c",AL[(int)ri[i]->seq[j]]);
+			if(j >30){
+				break;
+			}
+		}
+		fprintf(stderr,"\n");
+	}
+	fprintf(stderr,"Min: %f	%f\n", stats[0] , 1.0 - pow(10.0, -1.0 *stats[0]  / 10.0));
+	fprintf(stderr,"Max: %f	%f\n",stats[1] , 1.0 - pow(10.0, -1.0 *stats[1]  / 10.0) );
+	fprintf(stderr,"Average: %f	%f\n", stats[2] , 1.0 - pow(10.0, -1.0 *stats[2]  / 10.0));
+	fprintf(stderr,"Median: %f	%f\n",ri[5000]->mapq, 1.0 - pow(10.0, -1.0 *ri[5000]->mapq / 10.0));
+	
+	
+	
+	///switch off transition to NNN barcodes for testing..
+	for(i = 0; i < mb->num_models;i++){
+		if(param->read_structure->type[i] == 'B'){
+			for(j = 0 ; j < mb->model[i]->num_hmms-1;j++){
+				mb->model[i]->silent_to_M[j][0] = prob2scaledprob(1.0 / (float)( mb->model[i]->num_hmms-1));
+			}
+			mb->model[i]->num_hmms =  mb->model[i]->num_hmms -1;
+		}
+	}
+	
+	
+	
+	for(i = 0; i < 10001;i++){
+		ri[i] =emit_read_sequence(mb, ri[i],average_length,&seed);
+		
+	}
+	for(i = 0; i < mb->num_models;i++){
+		if(param->read_structure->type[i] == 'B'){
+			mb->model[i]->num_hmms =  mb->model[i]->num_hmms +1;
+			for(j = 0 ; j < mb->model[i]->num_hmms;j++){
+				mb->model[i]->silent_to_M[j][0] = prob2scaledprob(1.0 / (float) mb->model[i]->num_hmms);
+			}
+		}
+	}
+	
+	
+	mb =  run_pHMM(mb,ri,param,reference_fasta, 10001,MODE_GET_PROB);
+	
+	
+	qsort(ri,10001, sizeof(struct read_info*), qsort_ri_mapq_compare);
+	//float stats[3];
+	
+	stats[0] = SCALEINFTY;
+	stats[1] = -SCALEINFTY;
+	stats[2] = 0;
+	
+	
+	for(i = 0; i < 10001;i++){
+		if(ri[i]->mapq >stats[1] ){
+			stats[1]  =ri[i]->mapq;
+		}
+		if(ri[i]->mapq  < stats[0] ){
+			stats[0]  =ri[i]->mapq;
+		}
+		stats[2] +=ri[i]->mapq;
+		
+	}
+	stats[2] /=10001.0;
+	
+	
+	
+	//char AL[] = "ACGTN";
+	for(i = 0; i < 10;i++){
+		fprintf(stderr,"%d	%d	%f	%f	", i, ri[i]->len, ri[i]->mapq,  1.0 - pow(10.0, -1.0 *  ri[i]->mapq / 10.0));
+		
+		for(j = 0; j < ri[i]->len;j++){
+			fprintf(stderr,"%c",AL[(int)ri[i]->seq[j]]);
+			if(j >30){
+				break;
+			}
+		}
+		fprintf(stderr,"\n");
+		
+	}
+	for(i = 9990; i < 10000;i++){
+		fprintf(stderr,"%d	%d	%f	%f	", i, ri[i]->len, ri[i]->mapq,  1.0 - pow(10.0, -1.0 *  ri[i]->mapq / 10.0));
+		
+		for(j = 0; j < ri[i]->len;j++){
+			fprintf(stderr,"%c",AL[(int)ri[i]->seq[j]]);
+			if(j >30){
+				break;
+			}
+		}
+		fprintf(stderr,"\n");
+	}
+	fprintf(stderr,"Min: %f	%f\n", stats[0] , 1.0 - pow(10.0, -1.0 *stats[0]  / 10.0));
+	fprintf(stderr,"Max: %f	%f\n",stats[1] , 1.0 - pow(10.0, -1.0 *stats[1]  / 10.0) );
+	fprintf(stderr,"Average: %f	%f\n", stats[2] , 1.0 - pow(10.0, -1.0 *stats[2]  / 10.0));
+	fprintf(stderr,"Median: %f	%f\n",ri[5000]->mapq, 1.0 - pow(10.0, -1.0 *ri[5000]->mapq / 10.0));
+	
+
+	///switch off transition to NNN barcodes for testing..
+	
+	
 	total_read = 0;
 	while ((numseq = fp(ri, param,file)) != 0){
 		
@@ -735,6 +910,8 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		fclose(file);
 	}
 }
+
+
 
 
 		   
@@ -937,6 +1114,11 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 				
 			}
 		}
+		if(!s0){
+			fprintf(stderr,"ERROR: there seems to e not a single read containing the 5' partial sequence.\n");
+			exit(EXIT_FAILURE);
+		}
+		
 		mean = s1 / s0;
 		stdev = sqrt(  (s0 * s2 - pow(s1,2.0))   /  (  s0 *(s0-1.0) )) ;
 		if(stdev < 1){
@@ -1052,6 +1234,10 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 					break;
 				}
 							}
+		}
+		if(!s0){
+			fprintf(stderr,"ERROR: there seems to e not a single read containing the 3' partial sequence.\n");
+			exit(EXIT_FAILURE);
 		}
 		mean = s1 / s0;
 		stdev = sqrt(  (s0 * s2 - pow(s1,2.0))   /  (  s0 *(s0-1.0) )) ;
@@ -1905,7 +2091,7 @@ struct read_info* emit_random_sequence(struct model_bag* mb, struct read_info* r
 	double r = (float)rand_r(seed)/(float)RAND_MAX;
 	double sum = prob2scaledprob(0.0f);
 	//char alpha[] = "ACGTN";
-	int nuc;
+	int nuc,i;
 	
 	free(ri->seq);
 	free(ri->name);
@@ -1962,6 +2148,13 @@ struct read_info* emit_random_sequence(struct model_bag* mb, struct read_info* r
 	ri->seq[current_length] = 0;
 	ri->len = current_length;
 	
+	ri->qual = malloc(sizeof(char) * (current_length+1));
+	for(i = 0; i < current_length;i++){
+		ri->qual[i] = 'B';
+	}
+	
+	ri->qual[current_length] = 0;
+	
 	ri->name = malloc(sizeof(char) *2);
 	ri->name[0] = 'N';
 	ri->name[1] = 0;
@@ -1970,9 +2163,9 @@ struct read_info* emit_random_sequence(struct model_bag* mb, struct read_info* r
 	//ri->labels[0] = 'N';
 	//ri->labels[1] = 0;
 	
-	ri->qual = malloc(sizeof(char) *2);
-	ri->qual[0] = 'N';
-	ri->qual[1] = 0;
+	//ri->qual = malloc(sizeof(char) *2);
+	//ri->qual[0] = 'N';
+	//ri->qual[1] = 0;
 	
 	return ri;
 }
@@ -2284,6 +2477,16 @@ struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,
 	
 	ri->seq = realloc(ri->seq, sizeof(char) * (current_length+1));
 	ri->seq[current_length] = 0;
+	
+	ri->qual = malloc(sizeof(char) * (current_length+1));
+	for(i = 0; i < current_length;i++){
+		ri->qual[i] = 'B';
+	}
+	
+	ri->qual[current_length] = 0;
+	    
+	 
+	
 	ri->len = current_length;
 	
 	ri->name = malloc(sizeof(char) *2);
@@ -2293,9 +2496,9 @@ struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,
 	ri->labels = malloc(sizeof(char) * (current_length+1));
 	
 	
-	ri->qual = malloc(sizeof(char) *2);
-	ri->qual[0] = 'P';
-	ri->qual[1] = 0;
+	//ri->qual = malloc(sizeof(char) *2);
+	//ri->qual[0] = 'P';
+	//ri->qual[1] = 0;
 	
 	return ri;
 }
@@ -3854,11 +4057,11 @@ struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct re
 	
 	for(i = 1; i <= len;i++){
 		c = seqa[i];
-		mb->r_score  = mb->r_score  + mb->model[0]->background_nuc_frequency[c] + prob2scaledprob(1.0 - (1.0 / (float)len));
+		mb->r_score  = mb->r_score  + mb->model[0]->background_nuc_frequency[c] + prob2scaledprob(1.0 - (1.0 / (float)mb->average_raw_length ));
 		
 		//fprintf(stderr,"%d,%f	%e	%f	%f	%f\n",   i,scaledprob2prob(next_silent[0]),   scaledprob2prob(next_silent[0]),next_silent[0] , scaledprob2prob(mb->model[0]->background_nuc_frequency[c] ) , 1.0 - (1.0 / (float)len) );
 	}
-	mb->r_score  += prob2scaledprob(1.0 / (float)len);
+	mb->r_score  += prob2scaledprob(1.0 / (float)mb->average_raw_length);
 	return mb;
 }
 
@@ -4034,17 +4237,24 @@ struct model* init_model_according_to_read_structure(struct model* model,struct 
 			current_nuc = nuc_code[(int) tmp[j]];
 			col->identifier = -1;
 			if(current_nuc < 4){
-				
-				for(c = 0; c < 5;c++){
+				// before distributed the error probabilityequally to all remaining 4 letters. Now: distribute to 3 and set probability to emit 'N' to background...
+				for(c = 0; c < 4;c++){
 					if(c == current_nuc){
-						col->m_emit[c] = prob2scaledprob(1.0 - base_error* (1.0- indel_freq));
+						col->m_emit[c] = prob2scaledprob(1.0 -scaledprob2prob(background[4])  - base_error* (1.0- indel_freq));
 					}else{
-						col->m_emit[c] =  prob2scaledprob( base_error* (1.0- indel_freq)/ 4.0);
+						col->m_emit[c] =  prob2scaledprob( base_error* (1.0- indel_freq)/ 3.0);
 					}
 					col->i_emit[c] = background[c];
 					col->i_emit_e[c] =  prob2scaledprob(0.0f);
 					col->m_emit_e[c] =  prob2scaledprob(0.0f);
 				}
+				col->m_emit[4] =  background[4];
+				col->i_emit[4] = background[4];
+				col->i_emit_e[4] =  prob2scaledprob(0.0f);
+				col->m_emit_e[4] =  prob2scaledprob(0.0f);
+
+				
+				
 			}else if(current_nuc == 4){
 				for(c = 0; c < 5;c++){
 	
@@ -4431,7 +4641,7 @@ void print_model(struct model* model)
 			sum = 0.0;
 			for(c = 0; c < 5;c++){
 				sum += scaledprob2prob(col->m_emit[c]);
-			//	fprintf(stderr,"%0.2f ", scaledprob2prob(col->m_emit[c]));
+				fprintf(stderr,"%0.4f ", scaledprob2prob(col->m_emit[c]));
 				
 			}
 			fprintf(stderr,"%0.1fc ",sum);
@@ -4439,7 +4649,7 @@ void print_model(struct model* model)
 			sum = 0.0;
 			for(c = 0; c < 5;c++){
 				sum += scaledprob2prob(col->i_emit[c]);
-			//	fprintf(stderr,"%0.2f ", scaledprob2prob(col->i_emit[c]));
+				fprintf(stderr,"%0.4f ", scaledprob2prob(col->i_emit[c]));
 				
 			}
 			fprintf(stderr,"%0.1fc ",sum);
@@ -4612,7 +4822,7 @@ struct model_bag* copy_model_bag(struct model_bag* org)
 	for(i = 0; i < org->num_random_scores;i++){
 		copy->random_scores[i] = org->random_scores[i];
 	}
-	
+	copy->average_raw_length = org->average_raw_length;
 	copy->num_models  = org->num_models;
 	copy->total_hmm_num = org->total_hmm_num;
 	for(i = 0; i < org->num_models;i++){
@@ -5154,6 +5364,7 @@ struct model_bag* init_model_bag(struct parameters* param,double* back)
 		mb->total_hmm_num += mb->model[i]->num_hmms;
 		
 	}
+	//exit(0);
 	
 	mb->path = malloc(sizeof(int*) * MAX_SEQ_LEN);
 	mb->dyn_prog_matrix = malloc(sizeof(float*) * MAX_SEQ_LEN );

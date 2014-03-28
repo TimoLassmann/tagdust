@@ -253,6 +253,7 @@ struct model_bag{
 	int* label; /**<@brief Hold information about HMMs.*/
 	double* random_scores;/**<@brief Holds probabilities of random / shuffled sequences. */
 	int num_random_scores;/**<@brief Number of random probabilities.*/
+	int average_raw_length;
 	//float lambda;
 	//float mu;
 	
