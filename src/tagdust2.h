@@ -55,7 +55,7 @@ __LINE__, __func__, __VA_ARGS__); } while (0)
 /** \def MAX_SEQ_LEN 
  \brief Maximum length of sequences;
  */
-#define MAX_SEQ_LEN 500
+//#define MAX_SEQ_LEN 500
 /** \def MAX_LINE 
  \brief Maximum length of input line. 
  */

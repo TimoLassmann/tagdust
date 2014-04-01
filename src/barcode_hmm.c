@@ -310,12 +310,10 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	FILE* outfile = 0;
 	FILE* artifact_file = 0;
 	
-	int i,j,c,g;
+	int i,j;
 	int numseq;
 	int total_read = 0;
-	int barcode_length;
-	int min_distance; 
-	double sum = 0.0;
+	//double sum = 0.0;
 	
 	struct tm *ptr;
 	int hour;
@@ -325,17 +323,17 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		
 	init_logsum();
 	
-	double* back = 0;
-	int average_length = 0;
+	//double* back = 0;
+	//int average_length = 0;
 	
-	back = malloc(sizeof(double)*5);
+	//back = malloc(sizeof(double)*5);
 	
 #if DEBUG
 	//printf("Debug\n");
-	param->num_query = 10001;
+	param->num_query = 1001;
 #else
 	//printf("No Debug\n");
-	param->num_query = 1000000;
+	param->num_query = 1000001;
 #endif
 
 	//param->num_query = 500000;
@@ -360,13 +358,13 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		ri[i]->strand = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 		ri[i]->hits = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 	}
-	file =  io_handler(file, file_num,param);
 	
-	/*
-	 
-	 get backgorund nucleotide distribution - from all reads?
-	 
-	 */
+	
+	struct sequence_stats_info* ssi = get_sequence_stats(param, ri, file_num );
+	
+	param = estimateQthreshold(param, ssi);
+	
+	/*file =  io_handler(file, file_num,param);
 	
 	average_length = 0;
 	for(i = 0; i < 5;i++){
@@ -400,67 +398,40 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	average_length =  (int) floor((double)  average_length / (double) total_read   + 0.5);
 	
 	param->average_read_length = average_length;
-	
+	fprintf(stderr," %d len\n",param->average_read_length);
 	sum = 0.0;
 	for(i = 0; i < 5;i++){
-	//	fprintf(stderr,"%f\n",(back[i])  );
+		//fprintf(stderr,"%f\n",(back[i])  );
 		sum += back[i];
 	}
 	
 	for(i = 0; i < 5;i++){
 		//back[i] = prob2scaledprob(0.25);
 		back[i] = prob2scaledprob(back[i]  / sum);
-	//	fprintf(stderr,"%f\n",scaledprob2prob(back[i])  );
+		fprintf(stderr,"%f\n",scaledprob2prob(back[i])  );
 	}
-	//exit(0);
+	//
 	pclose(file);
-	
+	*/
 	
 	// Inits model.
 	
-	struct model_bag* mb = init_model_bag(param, back);
+	struct model_bag* mb = init_model_bag(param, ssi);
 	
 	
-	mb->average_raw_length =average_length;
-	
-	//struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_length,unsigned int* seed )
-	
-	// Let's check the hamming distance between barcodes...
-	
-	g = 0;
-	min_distance = 1000; // hamming distance.
-	for(i = 0; i < mb->num_models;i++){
-		if(param->read_structure->type[i] == 'B'){
-			barcode_length = (int)strlen(param->read_structure->sequence_matrix[i][0]);
-			for(j = 0; j < mb->model[i]->num_hmms;j++){
-				for(c = j +1;c <  mb->model[i]->num_hmms ;c++){
-					numseq = bpm(param->read_structure->sequence_matrix[i][j] ,param->read_structure->sequence_matrix[i][c], barcode_length,barcode_length);
-					
-					if(numseq < min_distance){
-						min_distance = numseq;
-						g = 1;
-					//	fprintf(stderr,"%s\n%s\t%d\n",param->read_structure->sequence_matrix[i][j],param->read_structure->sequence_matrix[i][c] ,numseq);
-					}else if(numseq == min_distance ){
-						g++;
-					}
-				}
-			}
-		}
-	}
-	if(min_distance != 1000){
-		fprintf(stderr,"Minumum edit distance among barcodes: %d, %d pairs\n", min_distance,g);
-	}
 	
 	
-	// Estimates lengths of partial segments by using exact matching + normal distribution. 
+	// Estimates lengths of partial segments by using exact matching + normal distribution.
 	
-	file =  io_handler(file, file_num,param);
+	/*file =  io_handler(file, file_num,param);
 	
 	numseq = fp(ri, param,file);
 	mb = estimate_length_distribution_of_partial_segments(mb,ri, param,  numseq);
 
 	pclose(file);
 	
+	exit(0);
+	*/
 	struct fasta* reference_fasta = 0;
 	
 	if(param->reference_fasta){
@@ -594,180 +565,23 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	li->num_EXTRACT_FAIL_LOW_COMPLEXITY= 0;
 	
 	
-	
-	fprintf(stderr,"Testing the model\n");
-	fprintf(stderr,"%d	%d\n",	param->average_read_length ,average_length);
-	///switch off transition to NNN barcodes for testing..
-	for(i = 0; i < mb->num_models;i++){
-		if(param->read_structure->type[i] == 'B'){
-			for(j = 0 ; j < mb->model[i]->num_hmms-1;j++){
-				 mb->model[i]->silent_to_M[j][0] = prob2scaledprob(1.0 / (float)( mb->model[i]->num_hmms-1));
-			}
-			mb->model[i]->num_hmms =  mb->model[i]->num_hmms -1;
-		}
-	}
-	
-	
-		
-	unsigned int seed = (unsigned int) (time(NULL) * ( 42));
-	for(i = 0; i < 10001;i++){
-		ri[i] =emit_random_sequence(mb, ri[i],average_length,&seed);
-		
-	}
-	for(i = 0; i < mb->num_models;i++){
-		if(param->read_structure->type[i] == 'B'){
-			mb->model[i]->num_hmms =  mb->model[i]->num_hmms +1;
-			for(j = 0 ; j < mb->model[i]->num_hmms;j++){
-				mb->model[i]->silent_to_M[j][0] = prob2scaledprob(1.0 / (float) mb->model[i]->num_hmms);
-			}
-		}
-	}
-	
-	
-	mb =  run_pHMM(mb,ri,param,reference_fasta, 10001,MODE_GET_PROB);
-	
-	
-	qsort(ri,10001, sizeof(struct read_info*), qsort_ri_mapq_compare);
-	float stats[3];
-	
-	stats[0] = SCALEINFTY;
-	stats[1] = -SCALEINFTY;
-	stats[2] = 0;
-	
-	
-	for(i = 0; i < 10001;i++){
-		if(ri[i]->mapq >stats[1] ){
-			stats[1]  =ri[i]->mapq;
-		}
-		if(ri[i]->mapq  < stats[0] ){
-			stats[0]  =ri[i]->mapq;
-		}
-		stats[2] +=ri[i]->mapq;
-		
-	}
-	stats[2] /=10001.0;
-	
-	
-	
-	char AL[] = "ACGTN";
-	for(i = 0; i < 10;i++){
-		fprintf(stderr,"%d	%d	%f	%f	", i, ri[i]->len, ri[i]->mapq,  1.0 - pow(10.0, -1.0 *  ri[i]->mapq / 10.0));
-		
-		for(j = 0; j < ri[i]->len;j++){
-			fprintf(stderr,"%c",AL[(int)ri[i]->seq[j]]);
-			if(j >30){
-				break;
-			}
-		}
-		fprintf(stderr,"\n");
-		
-	}
-	for(i = 9990; i < 10000;i++){
-		fprintf(stderr,"%d	%d	%f	%f	", i, ri[i]->len, ri[i]->mapq,  1.0 - pow(10.0, -1.0 *  ri[i]->mapq / 10.0));
-		
-		for(j = 0; j < ri[i]->len;j++){
-			fprintf(stderr,"%c",AL[(int)ri[i]->seq[j]]);
-			if(j >30){
-				break;
-			}
-		}
-		fprintf(stderr,"\n");
-	}
-	fprintf(stderr,"Min: %f	%f\n", stats[0] , 1.0 - pow(10.0, -1.0 *stats[0]  / 10.0));
-	fprintf(stderr,"Max: %f	%f\n",stats[1] , 1.0 - pow(10.0, -1.0 *stats[1]  / 10.0) );
-	fprintf(stderr,"Average: %f	%f\n", stats[2] , 1.0 - pow(10.0, -1.0 *stats[2]  / 10.0));
-	fprintf(stderr,"Median: %f	%f\n",ri[5000]->mapq, 1.0 - pow(10.0, -1.0 *ri[5000]->mapq / 10.0));
-	
-	
-	
-	///switch off transition to NNN barcodes for testing..
-	for(i = 0; i < mb->num_models;i++){
-		if(param->read_structure->type[i] == 'B'){
-			for(j = 0 ; j < mb->model[i]->num_hmms-1;j++){
-				mb->model[i]->silent_to_M[j][0] = prob2scaledprob(1.0 / (float)( mb->model[i]->num_hmms-1));
-			}
-			mb->model[i]->num_hmms =  mb->model[i]->num_hmms -1;
-		}
-	}
-	
-	
-	
-	for(i = 0; i < 10001;i++){
-		ri[i] =emit_read_sequence(mb, ri[i],average_length,&seed);
-		
-	}
-	for(i = 0; i < mb->num_models;i++){
-		if(param->read_structure->type[i] == 'B'){
-			mb->model[i]->num_hmms =  mb->model[i]->num_hmms +1;
-			for(j = 0 ; j < mb->model[i]->num_hmms;j++){
-				mb->model[i]->silent_to_M[j][0] = prob2scaledprob(1.0 / (float) mb->model[i]->num_hmms);
-			}
-		}
-	}
-	
-	
-	mb =  run_pHMM(mb,ri,param,reference_fasta, 10001,MODE_GET_PROB);
-	
-	
-	qsort(ri,10001, sizeof(struct read_info*), qsort_ri_mapq_compare);
-	//float stats[3];
-	
-	stats[0] = SCALEINFTY;
-	stats[1] = -SCALEINFTY;
-	stats[2] = 0;
-	
-	
-	for(i = 0; i < 10001;i++){
-		if(ri[i]->mapq >stats[1] ){
-			stats[1]  =ri[i]->mapq;
-		}
-		if(ri[i]->mapq  < stats[0] ){
-			stats[0]  =ri[i]->mapq;
-		}
-		stats[2] +=ri[i]->mapq;
-		
-	}
-	stats[2] /=10001.0;
-	
-	
-	
-	//char AL[] = "ACGTN";
-	for(i = 0; i < 10;i++){
-		fprintf(stderr,"%d	%d	%f	%f	", i, ri[i]->len, ri[i]->mapq,  1.0 - pow(10.0, -1.0 *  ri[i]->mapq / 10.0));
-		
-		for(j = 0; j < ri[i]->len;j++){
-			fprintf(stderr,"%c",AL[(int)ri[i]->seq[j]]);
-			if(j >30){
-				break;
-			}
-		}
-		fprintf(stderr,"\n");
-		
-	}
-	for(i = 9990; i < 10000;i++){
-		fprintf(stderr,"%d	%d	%f	%f	", i, ri[i]->len, ri[i]->mapq,  1.0 - pow(10.0, -1.0 *  ri[i]->mapq / 10.0));
-		
-		for(j = 0; j < ri[i]->len;j++){
-			fprintf(stderr,"%c",AL[(int)ri[i]->seq[j]]);
-			if(j >30){
-				break;
-			}
-		}
-		fprintf(stderr,"\n");
-	}
-	fprintf(stderr,"Min: %f	%f\n", stats[0] , 1.0 - pow(10.0, -1.0 *stats[0]  / 10.0));
-	fprintf(stderr,"Max: %f	%f\n",stats[1] , 1.0 - pow(10.0, -1.0 *stats[1]  / 10.0) );
-	fprintf(stderr,"Average: %f	%f\n", stats[2] , 1.0 - pow(10.0, -1.0 *stats[2]  / 10.0));
-	fprintf(stderr,"Median: %f	%f\n",ri[5000]->mapq, 1.0 - pow(10.0, -1.0 *ri[5000]->mapq / 10.0));
-	
-
-	///switch off transition to NNN barcodes for testing..
-	
-	
 	total_read = 0;
 	while ((numseq = fp(ri, param,file)) != 0){
-		
-		
+		j = 0;
+		for(i = 0; i < numseq;i++){
+			if(ri[i]->len >=ssi->max_seq_len){
+				ssi->max_seq_len = ri[i]->len;
+				///mb->current_dyn_length = ri[i]->len + 10;
+				j = 1;
+			}
+		}
+		if(j){
+			fprintf(stderr,"Long sequence found. Need to realloc model...\n");
+			free_model_bag(mb);
+			
+			mb = init_model_bag(param, ssi);
+			
+		}
 		
 		//	numseq = fp(ri, param,file);
 		mb =  run_pHMM(mb,ri,param,reference_fasta,numseq,MODE_GET_LABEL);
@@ -902,13 +716,14 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		
 		free(ri[i]);
 	}
-	free(back);
+	//free(back);
 	free(ri);
 	if(param->sam == 2 || param->sam == 1 || param->gzipped ){
 		pclose(file);
 	}else{
 		fclose(file);
 	}
+	free(ssi);
 }
 
 
@@ -1233,7 +1048,7 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 					s2 += (len-j) * (len-j);
 					break;
 				}
-							}
+			}
 		}
 		if(!s0){
 			fprintf(stderr,"ERROR: there seems to e not a single read containing the 3' partial sequence.\n");
@@ -1498,6 +1313,7 @@ struct model_bag* run_pHMM(struct model_bag* mb,struct read_info** ri,struct par
 	
 	
 	thread_data = malloc(sizeof(struct thread_data)* param->num_threads);
+	assert(thread_data != NULL);
 	pthread_t threads[param->num_threads];
 	pthread_attr_t attr;
 	int i,t;
@@ -1519,6 +1335,10 @@ struct model_bag* run_pHMM(struct model_bag* mb,struct read_info** ri,struct par
 		thread_data[t].param = param;
 	}
 	thread_data[param->num_threads-1].end = numseq;
+	
+	//fprintf(stderr," %d-%d\n",t*interval,numseq);
+
+	
 	//unsigned int seed = (unsigned int) (time(NULL) * ( 42));
 	
 	rc = pthread_attr_init(&attr);
@@ -2108,6 +1928,7 @@ struct read_info* emit_random_sequence(struct model_bag* mb, struct read_info* r
 	ri->cigar = 0;
 	ri->errors = 0;
 	ri->seq = malloc(sizeof(char) * allocated_length);
+	assert(ri->seq != NULL);
 	
 	while(current_length < average_length){
 		
@@ -2139,16 +1960,18 @@ struct read_info* emit_random_sequence(struct model_bag* mb, struct read_info* r
 			current_length = 0;
 		}
 		
-		if(current_length >= MAX_HMM_SEQ_LEN){
+		if(current_length+2 >= MAX_HMM_SEQ_LEN){
 			current_length = 0;
 		}
 	}
 	
 	ri->seq = realloc(ri->seq, sizeof(char) * (current_length+1));
+	assert(ri->seq != NULL);
 	ri->seq[current_length] = 0;
 	ri->len = current_length;
 	
 	ri->qual = malloc(sizeof(char) * (current_length+1));
+	assert(ri->qual != NULL);
 	for(i = 0; i < current_length;i++){
 		ri->qual[i] = 'B';
 	}
@@ -2156,10 +1979,12 @@ struct read_info* emit_random_sequence(struct model_bag* mb, struct read_info* r
 	ri->qual[current_length] = 0;
 	
 	ri->name = malloc(sizeof(char) *2);
+	assert(ri->name != NULL);
 	ri->name[0] = 'N';
 	ri->name[1] = 0;
 	
 	ri->labels = malloc(sizeof(char) * (current_length+1));
+	assert(ri->labels != NULL);
 	//ri->labels[0] = 'N';
 	//ri->labels[1] = 0;
 	
@@ -2222,6 +2047,7 @@ struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,
 	
 	
 	ri->seq = malloc(sizeof(char) * allocated_length);
+	assert(ri->seq != NULL);
 	
 	while(current_length < average_length){
 		state = 0; //0 silent ; 1 M , 2 I , 3 D
@@ -2453,6 +2279,7 @@ struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,
 			if(current_length == allocated_length){
 				allocated_length = allocated_length*2;
 				ri->seq = realloc(ri->seq, sizeof(char) * allocated_length );
+				assert(ri->seq != NULL);
 			}
 			
 			//fprintf(stderr,"segement: %d %d\n", segment,mb->num_models);
@@ -2467,7 +2294,7 @@ struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,
 			current_length = 0;
 		}
 		
-		if(current_length >= MAX_HMM_SEQ_LEN){
+		if(current_length+2 >= MAX_HMM_SEQ_LEN){
 			current_length = 0;
 		}
 		
@@ -2476,9 +2303,11 @@ struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,
 	
 	
 	ri->seq = realloc(ri->seq, sizeof(char) * (current_length+1));
+	assert(ri->seq != NULL);
 	ri->seq[current_length] = 0;
 	
 	ri->qual = malloc(sizeof(char) * (current_length+1));
+	assert(ri->qual != NULL);
 	for(i = 0; i < current_length;i++){
 		ri->qual[i] = 'B';
 	}
@@ -2490,10 +2319,12 @@ struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,
 	ri->len = current_length;
 	
 	ri->name = malloc(sizeof(char) *2);
+	assert(ri->name != NULL);
 	ri->name[0] = 'P';
 	ri->name[1] = 0;
 	
 	ri->labels = malloc(sizeof(char) * (current_length+1));
+	assert(ri->labels != NULL);
 	
 	
 	//ri->qual = malloc(sizeof(char) *2);
@@ -2630,7 +2461,8 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
  struct read_info*  extract_reads(struct model_bag* mb, struct parameters* param,  struct read_info* ri)
 {
 	int j,c1,c2,c3,key,bar,mem,fingerlen,required_finger_len,ret;
-	char buffer[MAX_HMM_SEQ_LEN];
+	char* buffer = malloc(sizeof(char)* mb->current_dyn_length );
+	assert(buffer != NULL);
 	int s_pos = 0;
 	key = 0;
 	bar = -1;
@@ -2790,7 +2622,7 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 	}
 	
 	ri->qual[ri->len] = 0;
-	
+	free (buffer);
 	return ri;
 }
 
@@ -2908,7 +2740,6 @@ void* do_run_random_sequences(void *threadarg)
 	//int c;
 	//int j;
 	//f/loat r;
-	//char random[MAX_HMM_SEQ_LEN];
 	
 	//unsigned int seed = (unsigned int) (time(NULL) * ( 42));
 	
@@ -3281,7 +3112,6 @@ struct model_bag* forward(struct model_bag* mb, char* a, int len)
 			mb->model[j]->silent_forward[i] = prob2scaledprob(0.0f);
 		}
 	}
-	
 	//fprintf(stderr,"\n\n\n");
 	mb->model[0]->silent_forward[0] = prob2scaledprob(1.0) + mb->model[0]->skip;
 	//fprintf(stderr,"Init silent states... \n");
@@ -3291,11 +3121,7 @@ struct model_bag* forward(struct model_bag* mb, char* a, int len)
 		//fprintf(stderr,"%d	%f	%f	%f\n",j,mb->model[j]->silent_forward[0]  ,mb->model[j-1]->silent_forward[0]  , mb->model[j]->skip  );
 	}
 	
-	
  	for(i = 0; i <= len;i++){
-		
-		
-		
 		previous_silent[i] = prob2scaledprob(0.0f);
 	}
 	previous_silent[0] = prob2scaledprob(1.0);
@@ -4058,7 +3884,6 @@ struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct re
 	for(i = 1; i <= len;i++){
 		c = seqa[i];
 		mb->r_score  = mb->r_score  + mb->model[0]->background_nuc_frequency[c] + prob2scaledprob(1.0 - (1.0 / (float)mb->average_raw_length ));
-		
 		//fprintf(stderr,"%d,%f	%e	%f	%f	%f\n",   i,scaledprob2prob(next_silent[0]),   scaledprob2prob(next_silent[0]),next_silent[0] , scaledprob2prob(mb->model[0]->background_nuc_frequency[c] ) , 1.0 - (1.0 / (float)len) );
 	}
 	mb->r_score  += prob2scaledprob(1.0 / (float)mb->average_raw_length);
@@ -4133,7 +3958,7 @@ struct model* malloc_model(int main_length, int sub_length, int number_sub_model
  \param num_hmm Number of HMMs.
  */
 
-struct model* malloc_model_according_to_read_structure(int num_hmm, int length)
+struct model* malloc_model_according_to_read_structure(int num_hmm, int length,int dyn_length)
 {
 	struct model* model = NULL;
 	int i = 0;
@@ -4141,31 +3966,43 @@ struct model* malloc_model_according_to_read_structure(int num_hmm, int length)
 	int len = 0;
 
 	model = malloc(sizeof(struct model));
-	assert(model != 0);
+	assert(model != NULL);
 	
 	model->num_hmms = num_hmm;// (rs->numseq_in_segment[key]);
 	model->hmms = malloc(sizeof(struct hmm*) * model->num_hmms  );//(rs->numseq_in_segment[key]));
-	assert(model->hmms !=0);
+	assert(model->hmms != NULL);
 	
 	for(i = 0; i < model->num_hmms;i++){
 		model->hmms[i] = malloc(sizeof(struct hmm) );
-		assert(model->hmms[i]  != 0);
+		assert(model->hmms[i]  != NULL);
 	}
 
 	model->silent_to_M = malloc(sizeof(float*) * model->num_hmms);
+	assert(model->silent_to_M!= NULL);
 	model->silent_to_I = malloc(sizeof(float*) * model->num_hmms);
+	assert(model->silent_to_I!= NULL);
 	model->silent_to_M_e = malloc(sizeof(float*) * model->num_hmms);
+	assert(model->silent_to_M_e!= NULL);
 	model->silent_to_I_e = malloc(sizeof(float*) * model->num_hmms);
+	assert(model->silent_to_I_e != NULL);
 	
+	model->silent_forward = malloc(sizeof(float) * (dyn_length+1));
+	assert(model->silent_forward != NULL);
+	model->silent_backward = malloc(sizeof(float) * (dyn_length+1));
+	assert(model->silent_backward != NULL);
 	
 	len = length;// (int)strlen(rs->sequence_matrix[key][0]);
 	
 	for(i = 0 ;i  < model->num_hmms;i++){
 		model->silent_to_M[i] =  malloc(sizeof(float) * len);
+		assert(model->silent_to_M[i]  != NULL);
 		model->silent_to_I[i] =  malloc(sizeof(float) * len);
+		assert(model->silent_to_I[i] != NULL);
 		
 		model->silent_to_M_e[i] =  malloc(sizeof(float) * len);
+		assert(model->silent_to_M_e[i] != NULL);
 		model->silent_to_I_e[i] =  malloc(sizeof(float) * len);
+		assert(model->silent_to_I_e[i] != NULL);
 
 		for(j = 0; j < len;j++){
 			model->silent_to_M[i][j] =  0.0f;
@@ -4181,7 +4018,22 @@ struct model* malloc_model_according_to_read_structure(int num_hmm, int length)
 		assert(model->hmms[i]->hmm_column != 0);
 		for(j = 0; j < len;j++){
 			model->hmms[i]->hmm_column[j] = malloc(sizeof(struct hmm_column));
-			assert(model->hmms[i]->hmm_column[j] != 0);
+			
+			assert(model->hmms[i]->hmm_column[j] != NULL);
+			model->hmms[i]->hmm_column[j]->M_foward = malloc(sizeof(float) * (dyn_length+1));
+			assert(model->hmms[i]->hmm_column[j]->M_foward != NULL);
+			model->hmms[i]->hmm_column[j]->M_backward =malloc(sizeof(float) * (dyn_length+1));
+			assert(model->hmms[i]->hmm_column[j]->M_backward != NULL);
+			model->hmms[i]->hmm_column[j]->I_foward  = malloc(sizeof(float) * (dyn_length+1));
+			assert(model->hmms[i]->hmm_column[j]->I_foward != NULL);
+			model->hmms[i]->hmm_column[j]->I_backward = malloc(sizeof(float) * (dyn_length+1));
+			assert(model->hmms[i]->hmm_column[j]->I_backward != NULL);
+			model->hmms[i]->hmm_column[j]->D_foward = malloc(sizeof(float) * (dyn_length+1));
+			assert(model->hmms[i]->hmm_column[j]->D_foward != NULL);
+			model->hmms[i]->hmm_column[j]->D_backward = malloc(sizeof(float) * (dyn_length+1));
+			assert(model->hmms[i]->hmm_column[j]->D_backward != NULL);
+			
+			
 		}
 	}
 	return model;
@@ -4252,12 +4104,8 @@ struct model* init_model_according_to_read_structure(struct model* model,struct 
 				col->i_emit[4] = background[4];
 				col->i_emit_e[4] =  prob2scaledprob(0.0f);
 				col->m_emit_e[4] =  prob2scaledprob(0.0f);
-
-				
-				
 			}else if(current_nuc == 4){
 				for(c = 0; c < 5;c++){
-	
 					col->m_emit[c] =  background[c];
 					col->i_emit[c] =  background[c];
 					col->i_emit_e[c] =  prob2scaledprob(0.0f);
@@ -4740,6 +4588,12 @@ void free_model(struct model* model)
 	for(i = 0; i < model->num_hmms;i++){
 		
 		for(j = 0; j < model->hmms[i]->num_columns;j++){
+			free(model->hmms[i]->hmm_column[j]->M_foward);// = malloc(sizeof(float) * (dyn_length+1));
+			free(model->hmms[i]->hmm_column[j]->M_backward);// =malloc(sizeof(float) * (dyn_length+1));
+			free(model->hmms[i]->hmm_column[j]->I_foward);//  = malloc(sizeof(float) * (dyn_length+1));
+			free(model->hmms[i]->hmm_column[j]->I_backward);// = malloc(sizeof(float) * (dyn_length+1));
+			free(model->hmms[i]->hmm_column[j]->D_foward);// = malloc(sizeof(float) * (dyn_length+1));
+			free(model->hmms[i]->hmm_column[j]->D_backward);// = malloc(sizeof(float) * (dyn_length+1));
 			free(model->hmms[i]->hmm_column[j]);// = malloc(sizeof(struct hmm_column));
 			//assert(model->hmms[i]->hmm_column[j] !=0);
 			//model->hmms[i]->hmm_column[j]->identifier = -1;
@@ -4766,20 +4620,21 @@ void free_model(struct model* model)
 		//assert(model->hmms[i]  != 0);
 	}
 	free(model->hmms);// = malloc(sizeof(struct hmm*) * (1+ number_sub_models));
-	if(model->silent_to_M){
-		for(i = 0; i < model->num_hmms;i++){
-			free(model->silent_to_M[i]);
-			free(model->silent_to_M_e[i]);
-			free(model->silent_to_I[i]);
-			free(model->silent_to_I_e[i]);
-		}
-		free(model->silent_to_M);
-		free(model->silent_to_M_e);
-		free(model->silent_to_I);
-		free(model->silent_to_I_e);
+	//if(model->silent_to_M){
+		
+	for(i = 0; i < model->num_hmms;i++){
+		free(model->silent_to_M[i]);
+		free(model->silent_to_M_e[i]);
+		free(model->silent_to_I[i]);
+		free(model->silent_to_I_e[i]);
 	}
-	
-	
+	free(model->silent_to_M);
+	free(model->silent_to_M_e);
+	free(model->silent_to_I);
+	free(model->silent_to_I_e);
+	//}
+	free(model->silent_forward);// = malloc(sizeof(float) * (dyn_length+1));
+	free(model->silent_backward);// = malloc(sizeof(float) * (dyn_length+1));
 	free(model);// = malloc(sizeof(struct model));
 	//assert(model != 0);
 
@@ -4807,17 +4662,17 @@ struct model_bag* copy_model_bag(struct model_bag* org)
 	int i,j;
 	copy =  malloc(sizeof(struct model_bag));
 	
-	assert(copy!=0);
+	assert(copy != NULL);
 	
 	copy->model = malloc(sizeof(struct model* ) * org->num_models);//   param->read_structure->num_segments);
+	copy->current_dyn_length = org->current_dyn_length;
 	
 	
 	
-	
-	assert(copy->model);
+	assert(copy->model != NULL );
 	
 	copy->random_scores = malloc(sizeof(double) * org->num_random_scores);
-	assert(copy-> random_scores);
+	assert(copy-> random_scores != NULL);
 
 	for(i = 0; i < org->num_random_scores;i++){
 		copy->random_scores[i] = org->random_scores[i];
@@ -4826,21 +4681,27 @@ struct model_bag* copy_model_bag(struct model_bag* org)
 	copy->num_models  = org->num_models;
 	copy->total_hmm_num = org->total_hmm_num;
 	for(i = 0; i < org->num_models;i++){
-		copy->model[i] = malloc_model_according_to_read_structure(org->model[i]->num_hmms,  org->model[i]->hmms[0]->num_columns);
+		copy->model[i] = malloc_model_according_to_read_structure(org->model[i]->num_hmms,  org->model[i]->hmms[0]->num_columns,org->current_dyn_length);
 		
 		copy->model[i]  = copy_model_parameters(org->model[i],copy->model[i]) ;
 	}
 	
-	copy->path = malloc(sizeof(int*) * MAX_SEQ_LEN);
-	copy->dyn_prog_matrix = malloc(sizeof(float*) * MAX_SEQ_LEN );
+	copy->path = malloc(sizeof(int*) * org->current_dyn_length);
+	assert(copy->path != NULL);
+	copy->dyn_prog_matrix = malloc(sizeof(float*) * org->current_dyn_length );
+	assert(copy->dyn_prog_matrix != NULL);
 	
-	for (i = 0; i < MAX_SEQ_LEN;i++){
+	for (i = 0; i < org->current_dyn_length;i++){
 		copy->path[i] = malloc(sizeof(int)* (copy->total_hmm_num +1) );
+		assert(copy->path[i] != NULL);
 		copy->dyn_prog_matrix[i] = malloc(sizeof(float) * (copy->total_hmm_num +1) );
+		assert(copy->dyn_prog_matrix[i] != NULL);
 	}
 	
 	copy->transition_matrix = malloc(sizeof(float*) * (copy->total_hmm_num +1));
+	assert(copy->transition_matrix != NULL);
 	copy->label = malloc(sizeof(int) *  (copy->total_hmm_num +1));
+	assert(copy->label != NULL);
 		
 	for(i = 0; i < copy->total_hmm_num +1;i++){
 		copy->label[i] = org->label[i];
@@ -4848,6 +4709,7 @@ struct model_bag* copy_model_bag(struct model_bag* org)
 	
 	for(i = 0; i < copy->total_hmm_num+1 ;i++){
 		copy->transition_matrix[i] = malloc(sizeof(float) * (copy->total_hmm_num +1));
+		assert(copy->transition_matrix[i] != NULL);
 		for(j = 0; j <  copy->total_hmm_num+1 ;j++){
 			copy->transition_matrix[i][j] = org->transition_matrix[i][j];
 		}
@@ -5282,17 +5144,17 @@ struct model* copy_estimated_parameter(struct model* target, struct model* sourc
 
 
 
-/** \fn struct model_bag* init_model_bag(struct parameters* param,double* back)
+/** \fn struct model_bag* init_model_bag(struct parameters* param,struct sequence_stats_info* ssi )
  
  \brief Initializes whole HMM model based on user input.
  
   
  \param param @ref parameters   Model to hold the sums.
- \param back Backgound nucleotide probabilities. 
+ \param ssi sequence information including backgound nucleotide probabilities.
  
  */
 
-struct model_bag* init_model_bag(struct parameters* param,double* back)
+struct model_bag* init_model_bag(struct parameters* param,struct sequence_stats_info* ssi)
 {
 	int i,j,c;
 	//int average_length = 12;
@@ -5300,17 +5162,22 @@ struct model_bag* init_model_bag(struct parameters* param,double* back)
 	int segment_length;
 	
 	struct model_bag* mb = 0;
+	
+	struct  model* model_p = 0;
+	struct hmm_column* col = 0;
+	
 	mb = malloc(sizeof(struct model_bag));
 	
 	assert(mb!=0);
-	
+	mb->average_raw_length = ssi->average_length;
+	mb->current_dyn_length = ssi->max_seq_len + 10;
 	mb->model = malloc(sizeof(struct model* ) * param->read_structure->num_segments);
 	
-	assert(mb->model);
+	assert(mb->model != 0);
 	
 	mb->random_scores = malloc(sizeof(double) * param->num_query);
 	mb->num_random_scores = param->num_query;
-	assert(mb->random_scores);
+	assert(mb->random_scores != 0);
 	
 	for(i= 0;i < mb->num_random_scores;i++){
 		mb->random_scores[i] = 0.0f;
@@ -5347,29 +5214,83 @@ struct model_bag* init_model_bag(struct parameters* param,double* back)
 	
 	
 	for(i = 0; i < mb->num_models;i++){
-		mb->model[i] = malloc_model_according_to_read_structure(param->read_structure->numseq_in_segment[i],(int)strlen(param->read_structure->sequence_matrix[i][0]));
+		mb->model[i] = malloc_model_according_to_read_structure(param->read_structure->numseq_in_segment[i],(int)strlen(param->read_structure->sequence_matrix[i][0]),mb->current_dyn_length);
 		segment_length = 0;
 		if(param->read_structure->type[i] == 'G'){
 			segment_length = 2;
-			
 		}
 		if(param->read_structure->type[i]  == 'R'){
 			segment_length = read_length;
 		}
-		
-		
-		
-		mb->model[i] = init_model_according_to_read_structure(mb->model[i], param, i,back,segment_length);
+		mb->model[i] = init_model_according_to_read_structure(mb->model[i], param, i,ssi->background,segment_length);
 		//print_model(mb->model[i]);
 		mb->total_hmm_num += mb->model[i]->num_hmms;
-		
 	}
+	double sum_prob = 0.0;
+	double temp1;
+	// 1) setting 5' parameters...
+	if(ssi->expected_5_len){
+		sum_prob = 0;
+		
+		for(i = 0; i <  ssi->expected_5_len;i++){
+			sum_prob +=gaussian_pdf(i , ssi->mean_5_len, ssi->stdev_5_len);
+		}
+		model_p = mb->model[0];
+		model_p->skip = prob2scaledprob(  gaussian_pdf(0 ,ssi->mean_5_len, ssi->stdev_5_len) / sum_prob    );
+		
+		temp1 = prob2scaledprob(0.0);
+		temp1 = logsum(temp1, model_p->skip);
+		for(i = 0 ; i < model_p->num_hmms;i++){
+			for(j = 0; j < ssi->expected_5_len;j++){
+				col = model_p->hmms[i]->hmm_column[j];
+				model_p->silent_to_M[i][j]  = prob2scaledprob(1.0 / (float) model_p->num_hmms) + prob2scaledprob(   gaussian_pdf(ssi->expected_5_len-j ,ssi->mean_5_len, ssi->stdev_5_len) / sum_prob);
+				temp1 = logsum(temp1, model_p->silent_to_M[i][j]);
+			}
+			model_p->hmms[i] = set_hmm_transition_parameters(model_p->hmms[i],ssi->expected_5_len, param->sequencer_error_rate, param->indel_frequency, -1.0, -1.0);
+		}
+		model_p->skip = model_p->skip - temp1;
+		for(i = 0 ; i < model_p->num_hmms;i++){
+			for(j = 0; j < ssi->expected_5_len;j++){
+				model_p->silent_to_M[i][j]  = model_p->silent_to_M[i][j]  - temp1;
+			}
+		}
+	}
+	
+	// 2) setting 3' parameters...
+	if(ssi->expected_3_len){
+		sum_prob = 0;
+		
+		for(i = 0; i <  ssi->expected_3_len;i++){
+			sum_prob +=gaussian_pdf(i , ssi->mean_3_len ,ssi->stdev_3_len);
+		}
+		model_p = mb->model[mb->num_models-1];
+		model_p->skip = prob2scaledprob(  gaussian_pdf(0 , ssi->mean_3_len ,ssi->stdev_3_len) / sum_prob    );
+		temp1 = model_p->skip;
+		for(i = 0 ; i < model_p->num_hmms;i++){
+			model_p->silent_to_M[i][0] = prob2scaledprob(1.0 / (float) model_p->num_hmms) + prob2scaledprob(1.0 -  gaussian_pdf(0 ,ssi->mean_3_len ,ssi->stdev_3_len) / sum_prob );
+			model_p->hmms[i] = set_hmm_transition_parameters(model_p->hmms[i],ssi->expected_3_len, param->sequencer_error_rate,  param->indel_frequency,ssi->mean_3_len ,ssi->stdev_3_len);
+		}
+	}
+	for(c = 1; c < mb->num_models-1;c++){
+		if(param->read_structure->type[c] == 'P'){
+			
+			model_p = mb->model[c];
+			int len = model_p->hmms[0]->num_columns;
+			for(i = 0 ; i < model_p->num_hmms;i++){
+				j = 0;
+				model_p->hmms[i] = set_hmm_transition_parameters(model_p->hmms[i],len, param->sequencer_error_rate,  param->indel_frequency, 0.1, -1.0);
+			}
+		}
+	}
+	
+	
+	
 	//exit(0);
 	
-	mb->path = malloc(sizeof(int*) * MAX_SEQ_LEN);
-	mb->dyn_prog_matrix = malloc(sizeof(float*) * MAX_SEQ_LEN );
+	mb->path = malloc(sizeof(int*) * mb->current_dyn_length);
+	mb->dyn_prog_matrix = malloc(sizeof(float*) * mb->current_dyn_length );
 	
-	for (i = 0; i < MAX_SEQ_LEN;i++){
+	for (i = 0; i < mb->current_dyn_length;i++){
 		mb->path[i] = malloc(sizeof(int)* (mb->total_hmm_num +1) );
 		mb->dyn_prog_matrix[i] = malloc(sizeof(float) * (mb->total_hmm_num +1) );
 	}
@@ -5387,7 +5308,6 @@ struct model_bag* init_model_bag(struct parameters* param,double* back)
 			if(mb->model[i]->skip != prob2scaledprob(0.0)){
 				mb->label[c]  |= 0x80000000;
 			}
-			//fprintf(stderr,"%d %d	%d %d\n",c,mb->label[c],mb->label[c] & 0xFFFF, (mb->label[c] >> 16) & 0x7FFF);
 			c++;
 			
 		}
@@ -5404,15 +5324,6 @@ struct model_bag* init_model_bag(struct parameters* param,double* back)
 	
 	
 	for(i = 0; i < mb->total_hmm_num ;i++){
-		//mb->substitution_matrix[i] = malloc(sizeof(float) * (mb->total_hmm_num +1));
-		//c = 0; // assume no skipping....
-		//if(mb->label[i] & 0x80000000){
-		//	c =1;
-		//}
-		//if(mb->model[i]->skip){
-		//	c =1;
-		//}
-		
 		c = 1;
 		for(j = i+1; j <  mb->total_hmm_num ;j++){
 			mb->transition_matrix[i][j] = 0;
@@ -5441,16 +5352,6 @@ struct model_bag* init_model_bag(struct parameters* param,double* back)
 		// remain in the same state....
 		mb->transition_matrix[i][i] = 1;
 	}
-	
-	/*for(i = 0; i < mb->total_hmm_num ;i++){
-		for(j = 0; j <  mb->total_hmm_num ;j++){
-			fprintf(stderr,"%f ",mb->transition_matrix[i][j] );
-		}
-		fprintf(stderr,"\n");
-	}
-	fprintf(stderr,"\n");
-	*/
-	
 	return mb;
 }
 
@@ -5473,7 +5374,7 @@ void free_model_bag(struct model_bag* mb)
 	//mb->transition_matrix = malloc(sizeof(float*) * (mb->total_hmm_num +1));
 	//mb->label = malloc(sizeof(int) *  (mb->total_hmm_num +1));
 	
-	for (i = 0; i < MAX_SEQ_LEN;i++){
+	for (i = 0; i < mb->current_dyn_length;i++){
 		free(mb->path[i]);// = malloc(sizeof(int)* (mb->total_hmm_num +1) );
 		free(mb->dyn_prog_matrix[i]);// = malloc(sizeof(float) * (mb->total_hmm_num +1) );
 	}

@@ -43,6 +43,9 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	int i,c,f,g;
 	int help = 0;
 	int last;
+	int errors = 0;
+	int num_pairs = 0;
+	int min_error =1000;
 	
 	if (argc < 2 && isatty(0)){
 		usage();
@@ -365,6 +368,33 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			last = i;
 			
 		}
+		
+		
+		
+		if(param->read_structure->type[i] == 'B'){
+			min_error = 1000;
+			for(g = 0;g < param->read_structure->numseq_in_segment[i];g++){
+				for(f = g+1;f < param->read_structure->numseq_in_segment[i];f++){
+					errors = bpm(param->read_structure->sequence_matrix[i][g] ,param->read_structure->sequence_matrix[i][f], (int)strlen(param->read_structure->sequence_matrix[i][0]),(int)strlen(param->read_structure->sequence_matrix[i][0]));
+					
+					if(errors < min_error){
+						min_error = errors;
+						num_pairs = 1;
+						//	fprintf(stderr,"%s\n%s\t%d\n",param->read_structure->sequence_matrix[i][j],param->read_structure->sequence_matrix[i][c] ,numseq);
+					}else if(errors == min_error ){
+						num_pairs++;
+					}
+				}
+			}
+			if(min_error != 1000){
+				fprintf(stderr,"Minumum edit distance among barcodes: %d, %d pairs\n", min_error,num_pairs);
+			}
+			
+		}
+		
+		
+		
+		
 	}
 	
 	if(c >= 2){

@@ -652,7 +652,7 @@ char* shorten_pathname(char* p)
 
 unsigned char* reverse_complement(unsigned char* p,int len)
 {
-	unsigned char* tmp = malloc(sizeof(unsigned char)*MAX_SEQ_LEN);
+	unsigned char* tmp = malloc(sizeof(unsigned char)*(len +2));
 	int i,c;
 	c = 0;
 	for(i =len-1; i >= 0;i--){

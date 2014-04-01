@@ -29,8 +29,6 @@
  */
 #define LIST_STORE_SIZE 1
 
-#include "barcode_hmm.h"
-
 #define SEEK_START 0
 #define SEEK_END 2
 /**
@@ -72,6 +70,28 @@ struct read_info{
 };
 
 
+
+/**
+ * @brief Used to store info needed to initialize HMM. 
+ *
+ *
+ */
+struct sequence_stats_info{
+	double background[5];
+	int expected_5_len;
+	int expected_3_len;
+	double mean_5_len;
+	double stdev_5_len;
+	double mean_3_len;
+	double stdev_3_len;
+	double average_length;
+	int max_seq_len;
+	
+};
+
+#include "barcode_hmm.h"
+
+
 FILE* io_handler(FILE* file, int file_num,struct parameters* param);
 void print_seq(struct read_info* ri,FILE* out);
 int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file);
@@ -80,6 +100,8 @@ void print_sequence(struct read_info* ri,FILE* out);
 int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  struct read_info* ri,FILE* out);
 int qsort_ri_prob_compare(const void *a, const void *b);
 int qsort_ri_mapq_compare(const void *a, const void *b);
+
+struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct read_info** ri, int file_num );
 
 void concatenate_reads(struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ));
 void split(struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ));

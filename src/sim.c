@@ -1222,7 +1222,7 @@ struct eval_results* get_results(struct eval_results* eval,struct parameters* pa
 		param->sim_3seq = "NA";
 	}
 	if(!(eval->num_extracted +  eval->num_rand_extracted)){
-		fprintf(file,"%.2d-%.2d-%d;%d:%d%cm\t%s\t%d\t%d\t%d\t%f\t%d\t%f\t%s\t%s\t%d\t%d\t%d\t%d\t%f\t%f\t%d\n",
+		fprintf(file,"%.2d-%.2d-%d;%d:%d%cm\t%s\t%d\t%d\t%d\t%f\t%d\t%f\t%s\t%s\t%d\t%d\t%d\t%d\t%f\t%f\t%d\t%f\n",
 		        ptr->tm_mon + 1,ptr->tm_mday, ptr->tm_year + 1900,hour,ptr->tm_min, am_or_pm,
 		        program,
 		        eval->num_extracted,
@@ -1239,11 +1239,12 @@ struct eval_results* get_results(struct eval_results* eval,struct parameters* pa
 		        param->sim_readlen_mod,
 		        param->sim_error_rate,
 		        param->sim_InDel_frac,
-		        param->sim_sequenced_len
+		        param->sim_sequenced_len,
+		        -1.0
 		        );
 	}else{
 	
-	fprintf(file,"%.2d-%.2d-%d;%d:%d%cm\t%s\t%d\t%d\t%d\t%f\t%d\t%f\t%s\t%s\t%d\t%d\t%d\t%d\t%f\t%f\t%d\n",
+	fprintf(file,"%.2d-%.2d-%d;%d:%d%cm\t%s\t%d\t%d\t%d\t%f\t%d\t%f\t%s\t%s\t%d\t%d\t%d\t%d\t%f\t%f\t%d\t%f\n",
 	        ptr->tm_mon + 1,ptr->tm_mday, ptr->tm_year + 1900,hour,ptr->tm_min, am_or_pm,
 	       program,
 	        eval->num_extracted,
@@ -1260,7 +1261,9 @@ struct eval_results* get_results(struct eval_results* eval,struct parameters* pa
 	        param->sim_readlen_mod,
 	        param->sim_error_rate,
 	        param->sim_InDel_frac,
-	        param->sim_sequenced_len
+	        param->sim_sequenced_len,
+	        (double)(eval->num_rand_extracted+eval->num_wrong_bc) / (double)(eval->num_extracted+ eval->num_rand_extracted)
+	        
 	        );
 	}
 	

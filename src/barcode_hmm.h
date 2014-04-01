@@ -181,14 +181,14 @@
  
  */
 struct hmm_column{
-	float M_foward[MAX_HMM_SEQ_LEN]; /**< @brief  Holds forward probabilities for Match states.*/
-	float M_backward[MAX_HMM_SEQ_LEN]; /**<@brief  Holds backward probabilities for Match states.*/
+	float* M_foward;//[MAX_HMM_SEQ_LEN]; /**< @brief  Holds forward probabilities for Match states.*/
+	float* M_backward;//[MAX_HMM_SEQ_LEN]; /**<@brief  Holds backward probabilities for Match states.*/
 	
-	float I_foward[MAX_HMM_SEQ_LEN]; /**<@brief  Holds backward probabilities for Insert states.*/
-	float I_backward[MAX_HMM_SEQ_LEN]; /**<@brief  Holds backward probabilities for Insert states.*/
+	float* I_foward;//[MAX_HMM_SEQ_LEN]; /**<@brief  Holds backward probabilities for Insert states.*/
+	float* I_backward;//[MAX_HMM_SEQ_LEN]; /**<@brief  Holds backward probabilities for Insert states.*/
 	
-	float D_foward[MAX_HMM_SEQ_LEN]; /**<@brief  Holds backward probabilities for Delete states.*/
-	float D_backward[MAX_HMM_SEQ_LEN]; /**<@brief  Holds backward probabilities for Delete states.*/
+	float* D_foward;//[MAX_HMM_SEQ_LEN]; /**<@brief  Holds backward probabilities for Delete states.*/
+	float* D_backward;//[MAX_HMM_SEQ_LEN]; /**<@brief  Holds backward probabilities for Delete states.*/
 	
 	float transition[9]; /**<@brief Transition probabilities. */
 	float transition_e[9];/**<@brief Estimated transition probabilities. */
@@ -228,8 +228,8 @@ struct model{
 	float** silent_to_I;/**<@brief  Silent to Insert transition probability.  */
 	float** silent_to_M_e;/**<@brief Estimated Silent to Match transition probability.  */
 	float** silent_to_I_e;/**<@brief Estimated Silent to Insert transition probability.  */
-	float silent_forward[MAX_HMM_SEQ_LEN]; /**<@brief Dyn. Prog. Matrix for forward silent state. */
-	float silent_backward[MAX_HMM_SEQ_LEN]; /**<@brief Dyn. Prog. Matrix for backward silent state. */
+	float* silent_forward;//[MAX_HMM_SEQ_LEN]; /**<@brief Dyn. Prog. Matrix for forward silent state. */
+	float* silent_backward;//[MAX_HMM_SEQ_LEN]; /**<@brief Dyn. Prog. Matrix for backward silent state. */
 	float skip; /**<@brief Probability to skip segment*/
 	float skip_e;/**<@brief Estimated probability to skip segment*/
 	int average_length; /**<@brief Not used.... */
@@ -254,6 +254,7 @@ struct model_bag{
 	double* random_scores;/**<@brief Holds probabilities of random / shuffled sequences. */
 	int num_random_scores;/**<@brief Number of random probabilities.*/
 	int average_raw_length;
+	int current_dyn_length;
 	//float lambda;
 	//float mu;
 	
@@ -297,7 +298,7 @@ struct model* malloc_model(int main_length, int sub_length, int number_sub_model
 void free_model(struct model* model);
 
 //struct model* malloc_model_according_to_read_structure(struct read_structure* rs, int key);
-struct model* malloc_model_according_to_read_structure(int num_hmm, int length);
+struct model* malloc_model_according_to_read_structure(int num_hmm, int length,int dyn_length);
 struct model* init_model_according_to_read_structure(struct model* model,struct parameters* param , int key, double* background,int assumed_length);
 void print_model(struct model* model);
 
@@ -310,7 +311,7 @@ struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, char
 struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct read_info* ri, char* a, int len);
 
 struct model_bag* copy_model_bag(struct model_bag* org);
-struct model_bag* init_model_bag(struct parameters* param,double* back);
+struct model_bag* init_model_bag(struct parameters* param,struct sequence_stats_info* ssi);
 struct model* copy_model_parameters(struct model* org, struct model* copy );
 struct model* copy_estimated_parameter(struct model* target, struct model* source );
 struct model* reestimate(struct model* m, int mode);
@@ -348,6 +349,8 @@ double set_Q_threshold(struct model_bag* mb, struct read_info** ri, int numseq);
 
 struct hmm* set_hmm_transition_parameters(struct hmm* hmm, int len,double base_error, double indel_freq,  double mean, double stdev);
 
+
+struct parameters* estimateQthreshold(struct parameters* param, struct sequence_stats_info* ssi);
 
 #endif
 

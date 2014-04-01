@@ -17,6 +17,7 @@
 		A1441D4518B5DD1C0084B030 /* paired_pre_processing.c in Sources */ = {isa = PBXBuildFile; fileRef = A1441D4418B5DD1C0084B030 /* paired_pre_processing.c */; };
 		A16115CC1741BAC40077DEFD /* exact.c in Sources */ = {isa = PBXBuildFile; fileRef = A16115CB1741BAC40077DEFD /* exact.c */; };
 		A16115CF1741E85D0077DEFD /* sim.c in Sources */ = {isa = PBXBuildFile; fileRef = A16115CE1741E85D0077DEFD /* sim.c */; };
+		A1DDE7F318E568D7000E3709 /* calibrateQ.c in Sources */ = {isa = PBXBuildFile; fileRef = A1DDE7F218E568D6000E3709 /* calibrateQ.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -73,6 +74,7 @@
 		A17B7B6D17557D4600E58E88 /* cmath.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = cmath.h; path = src/cmath.h; sourceTree = "<group>"; };
 		A19956B717B4AAC1006A7F85 /* plot_scatter_plots.R */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.rez; name = plot_scatter_plots.R; path = scripts/plot_scatter_plots.R; sourceTree = "<group>"; };
 		A1D9CE1C17A73C9A00C6BBFD /* make_sim_plots.R */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.rez; name = make_sim_plots.R; path = scripts/make_sim_plots.R; sourceTree = "<group>"; };
+		A1DDE7F218E568D6000E3709 /* calibrateQ.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = calibrateQ.c; path = src/calibrateQ.c; sourceTree = "<group>"; };
 		A1DF436717C74CFE00FAC6DF /* make_bench.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; name = make_bench.sh; path = test/make_bench.sh; sourceTree = "<group>"; };
 		A1E17141178A8B28006F393D /* README */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = README; sourceTree = "<group>"; };
 		A1E17142178A8B34006F393D /* ChangeLog */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = ChangeLog; sourceTree = "<group>"; };
@@ -161,6 +163,7 @@
 		A14F589C17783093003A7B1A /* src */ = {
 			isa = PBXGroup;
 			children = (
+				A1DDE7F218E568D6000E3709 /* calibrateQ.c */,
 				A1441D4418B5DD1C0084B030 /* paired_pre_processing.c */,
 				A10B993F16C09F2900AF1A1E /* misc.h */,
 				A10B993E16C09F2900AF1A1E /* misc.c */,
@@ -250,6 +253,7 @@
 				A10B994D16C0C7FF00AF1A1E /* barcode_hmm.c in Sources */,
 				A16115CC1741BAC40077DEFD /* exact.c in Sources */,
 				A16115CF1741E85D0077DEFD /* sim.c in Sources */,
+				A1DDE7F318E568D7000E3709 /* calibrateQ.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
