@@ -532,13 +532,6 @@ void simulation_for_benchmark(struct parameters* param)
 		ri[i]->strand = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 		ri[i]->hits = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 	}
-
-	
-	
-	
-	
-	
-	
 	
 	// btrim
 	
@@ -1041,6 +1034,9 @@ struct eval_results* get_results(struct eval_results* eval,struct parameters* pa
 	char* orgbc = 0;
 	org_read_len = 0;
 	
+	double TP,FP,FN, TN,sensitivity,specificity,precision,kappa,P_e,P_o;
+	
+	
 	orgread = malloc(sizeof(char)* 300);
 	orgbc = malloc(sizeof(char)* 300);
 	bc = malloc(sizeof(char)* 300);
@@ -1189,7 +1185,22 @@ struct eval_results* get_results(struct eval_results* eval,struct parameters* pa
 		}
 	}
 	
+	TP = eval->num_extracted - eval->num_wrong_bc;
+	FP = eval->num_wrong_bc + eval->num_rand_extracted;
+	FN = (int)((float) param->sim_numseq * (1.0-param->sim_random_frac)) - eval->num_extracted;
+	TN =  param->sim_numseq  - (TP + FP + FN);
+
 	
+	precision = TP / (TP + FP);
+	sensitivity = TP/( TP + FN );
+	specificity =  TN / ( TN + FP);
+	
+	P_e = ((TP+FN) / (double)param->sim_numseq) * ((TP+FP) / (double)param->sim_numseq) +  ( ((FP+TN) / (double)param->sim_numseq  ) * ((FN+TN) / (double)param->sim_numseq));
+	P_o =(TP+TN)/(double)param->sim_numseq ;
+	
+	kappa = (P_o - P_e) / (1.0 - P_e);
+	
+	fprintf(stderr,"%s	Sen:%f	Spe:%f	Precision:%f	Kappa:%f	TP:%f	FP:%f	FN:%f	TN:%f\n",program,sensitivity,specificity,precision,kappa,TP,FP,FN,TN);
 	sprintf (orgread, "%s/summary.csv",param->outfile);
 	
 	if ((file = fopen(orgread, "a")) == NULL){
@@ -1222,12 +1233,9 @@ struct eval_results* get_results(struct eval_results* eval,struct parameters* pa
 		param->sim_3seq = "NA";
 	}
 	if(!(eval->num_extracted +  eval->num_rand_extracted)){
-		fprintf(file,"%.2d-%.2d-%d;%d:%d%cm\t%s\t%d\t%d\t%d\t%f\t%d\t%f\t%s\t%s\t%d\t%d\t%d\t%d\t%f\t%f\t%d\t%f\n",
+		fprintf(file,"%.2d-%.2d-%d;%d:%d%cm\t%s\t%f\t%f\t%f\t%f\t%0.0f\t%0.0f\t%0.0f\t%0.0f\t%f\t%d\t%f\t%s\t%s\t%d\t%d\t%d\t%d\t%f\t%f\t%d\t%f\n",
 		        ptr->tm_mon + 1,ptr->tm_mday, ptr->tm_year + 1900,hour,ptr->tm_min, am_or_pm,
-		        program,
-		        eval->num_extracted,
-		        eval->num_rand_extracted,
-		        eval->num_wrong_bc,
+		        program,sensitivity,specificity,precision,kappa,TP,FP,FN,TN,
 		        -1.0,
 		        param->sim_numseq,
 		        param->sim_random_frac,
@@ -1244,12 +1252,9 @@ struct eval_results* get_results(struct eval_results* eval,struct parameters* pa
 		        );
 	}else{
 	
-	fprintf(file,"%.2d-%.2d-%d;%d:%d%cm\t%s\t%d\t%d\t%d\t%f\t%d\t%f\t%s\t%s\t%d\t%d\t%d\t%d\t%f\t%f\t%d\t%f\n",
+	fprintf(file,"%.2d-%.2d-%d;%d:%d%cm\t%s\t%f\t%f\t%f\t%f\t%0.0f\t%0.0f\t%0.0f\t%0.0f\t%f\t%d\t%f\t%s\t%s\t%d\t%d\t%d\t%d\t%f\t%f\t%d\t%f\n",
 	        ptr->tm_mon + 1,ptr->tm_mday, ptr->tm_year + 1900,hour,ptr->tm_min, am_or_pm,
-	       program,
-	        eval->num_extracted,
-	        eval->num_rand_extracted,
-	        eval->num_wrong_bc,
+	        program,sensitivity,specificity,precision,kappa,TP,FP,FN,TN,
 	        eval->average_read_similarity / (double)(eval->num_extracted +  eval->num_rand_extracted),
 	        param->sim_numseq,
 	        param->sim_random_frac,

@@ -69,11 +69,8 @@ struct read_info{
 	int errors;
 };
 
-
-
 /**
  * @brief Used to store info needed to initialize HMM. 
- *
  *
  */
 struct sequence_stats_info{

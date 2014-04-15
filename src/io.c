@@ -178,6 +178,11 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
 	}
 
 	if(five_len){
+		if(five_s0 <= 1){
+			fprintf(stderr,"WARNING:5' partial segment seems not to be present in the data.\n");
+			exit(EXIT_FAILURE);
+		}
+		
 		ssi->mean_5_len = five_s1 / five_s0;
 		ssi->stdev_5_len = sqrt(  (five_s0 * five_s2 - pow(five_s1,2.0))   /  (  five_s0 *(five_s0-1.0) )) ;
 		if(ssi->stdev_5_len < 1){
@@ -196,6 +201,11 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
 	
 	
 	if(three_len){
+		if(three_s0 <= 1){
+			fprintf(stderr,"WARNING: 3' partial segment seems not to be present in the data.\n");
+			exit(EXIT_FAILURE);
+		}
+		
 		ssi->mean_3_len = three_s1 / three_s0;
 		ssi->stdev_3_len = sqrt(  (three_s0 * three_s2 - pow(three_s1,2.0))   /  (  three_s0 *(three_s0-1.0) )) ;
 		if(ssi->stdev_3_len < 1){
@@ -224,6 +234,16 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
 	for(i = 0; i < 5;i++){
 		ssi->background[i] = prob2scaledprob(ssi->background[i]  / sum);
 	}
+	
+	if(five_test_sequence){
+		free(five_test_sequence);
+	}
+	if(three_test_sequence){
+		free(three_test_sequence);
+	}
+	
+	
+	
 	
 	pclose(file);
 	return ssi;
@@ -314,6 +334,59 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 	}else if(access("/bin/zcat", X_OK) == 0){
 		gzcat = 0;
 	}
+
+	param->gzipped = 0;
+	param->bzipped = 0;
+	param->sam = 0;
+	
+	if(!strcmp(".sam", param->infile[file_num] + (strlen(param->infile[file_num] ) - 4))){
+		param->sam = 1;
+	}else if (!strcmp(".bam", param->infile[file_num] + (strlen(param->infile[file_num] ) - 4))){
+		param->sam = 2;
+	}else if (!strcmp(".fa", param->infile[file_num] + (strlen(param->infile[file_num] ) - 3))){
+		param->sam = 0;
+		param->fasta = 1;
+	}else if (!strcmp(".fq", param->infile[file_num] + (strlen(param->infile[file_num] ) - 3))){
+		param->sam = 0;
+	}else if (!strcmp(".fastq", param->infile[file_num] + (strlen(param->infile[file_num] ) - 6))){
+		param->sam = 0;
+	}else if (!strcmp(".fastaq", param->infile[file_num] + (strlen(param->infile[file_num] ) - 7))){
+		param->sam = 0;
+	}else if (!strcmp(".fasta", param->infile[file_num] + (strlen(param->infile[file_num] ) - 6))){
+		param->sam = 0;
+		param->fasta = 1;
+	}else if(!strcmp(".sam.gz", param->infile[file_num] + (strlen(param->infile[file_num] ) - 7))){
+		param->sam = 1;
+		param->gzipped  = 1;
+	}else if (!strcmp(".bam.gz", param->infile[file_num] + (strlen(param->infile[file_num] ) - 7))){
+		param->sam = 2;
+		param->gzipped  = 1;
+	}else if (!strcmp(".fa.gz", param->infile[file_num] + (strlen(param->infile[file_num] ) - 6))){
+		param->sam = 0;
+		param->fasta = 1;
+		param->gzipped  = 1;
+	}else if (!strcmp(".fq.gz", param->infile[file_num] + (strlen(param->infile[file_num] ) - 6))){
+		param->sam = 0;
+		param->gzipped  = 1;
+	}else if (!strcmp(".fastq.gz", param->infile[file_num] + (strlen(param->infile[file_num] ) - 9))){
+		param->sam = 0;
+		param->gzipped  = 1;
+	}else if (!strcmp(".fastaq.gz", param->infile[file_num] + (strlen(param->infile[file_num] ) - 10))){
+		param->sam = 0;
+		param->gzipped  = 1;
+	}else if (!strcmp(".fasta.gz", param->infile[file_num] + (strlen(param->infile[file_num] ) - 9))){
+		param->sam = 0;
+		param->gzipped  = 1;
+	}else if (!strcmp(".fastq.bz2", param->infile[file_num] + (strlen(param->infile[file_num] ) - 10))){
+		param->sam = 0;
+		param->bzipped  = 1;
+	}else if (!strcmp(".fq.bz2", param->infile[file_num] + (strlen(param->infile[file_num] ) - 7))){
+		param->sam = 0;
+		param->bzipped  = 1;
+	}else{
+		param->sam = -1;
+	}
+	
 	
 	if(param->gzipped && gzcat == -1){
 		fprintf(stderr,"Cannot find gzcat / zcat on your system. Try gzcat <infile> | samstat -f sam/bam/fa/fq\n");

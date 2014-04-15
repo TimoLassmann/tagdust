@@ -40,16 +40,13 @@
  */
 struct parameters* interface(struct parameters* param,int argc, char *argv[])
 {
-	int i,c,f,g;
+	int i,c;
 	int help = 0;
 	int last;
-	int errors = 0;
-	int num_pairs = 0;
-	int min_error =1000;
 	
 	if (argc < 2 && isatty(0)){
 		usage();
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 		
 	param = malloc(sizeof(struct parameters));
@@ -104,25 +101,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->split = 0;
 	
 	
-	param->read_structure = malloc(sizeof(struct read_structure));
-	assert(param->read_structure !=0);
-	param->read_structure->sequence_matrix = malloc(sizeof(char**) * 10 );
-	assert(param->read_structure->sequence_matrix !=0);
-	
-	param->read_structure->numseq_in_segment  = malloc(sizeof(int) * 10);
-	assert(param->read_structure->numseq_in_segment !=0);
-	param->read_structure->type = malloc(sizeof(char) * 10 );
-	
-	assert(param->read_structure->type !=0);
-	
-	for(i = 0;i  <10;i++){
-		param->read_structure->sequence_matrix[i] = 0;
-		param->read_structure->numseq_in_segment[i] = 0;
-		param->read_structure->type[i] = 0;
-		
-	}
-	
-	param->read_structure->num_segments = 0;
+	param->read_structure = malloc_read_structure();
 		
 	while (1){	 
 		static struct option long_options[] ={
@@ -161,6 +140,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			{"sim_numseq",required_argument,0,OPT_sim_numseq},
 			{"sim_random_frac",required_argument,0,OPT_sim_random_frac},
 			{"sim_sequenced_len",required_argument,0,OPT_sim_sequenced_len},
+			{"arch",required_argument,0,OPT_archfile},
 			{"join",0,0,OPT_join_paired},
 			{"split",0,0,OPT_split},
 			{"help",0,0,'h'},
@@ -177,6 +157,9 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 		
 		switch(c) {
 			case 0:
+				break;
+			case OPT_archfile:
+				param->arch_file = optarg;
 				break;
 			case	OPT_split:
 				param->split = 1;
@@ -220,34 +203,34 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 				break;
 				
 			case OPT_SEG1:
-				param = assign_segment_sequences(param, optarg , 0 );
+				param->read_structure = assign_segment_sequences(param->read_structure, optarg , 0 );
 				break;
 			case OPT_SEG2:
-				param = assign_segment_sequences(param, optarg , 1 );
+				param->read_structure = assign_segment_sequences(param->read_structure, optarg , 1 );
 				break;
 			case OPT_SEG3:
-				param = assign_segment_sequences(param, optarg , 2 );
+				param->read_structure = assign_segment_sequences(param->read_structure, optarg , 2 );
 				break;
 			case OPT_SEG4:
-				param = assign_segment_sequences(param, optarg , 3 );
+				param->read_structure = assign_segment_sequences(param->read_structure, optarg , 3 );
 				break;
 			case OPT_SEG5:
-				param = assign_segment_sequences(param, optarg , 4 );
+				param->read_structure = assign_segment_sequences(param->read_structure, optarg , 4 );
 				break;
 			case OPT_SEG6:
-				param = assign_segment_sequences(param, optarg , 5 );
+				param->read_structure = assign_segment_sequences(param->read_structure, optarg , 5 );
 				break;
 			case OPT_SEG7:
-				param = assign_segment_sequences(param, optarg , 6 );
+				param->read_structure = assign_segment_sequences(param->read_structure, optarg , 6 );
 				break;
 			case OPT_SEG8:
-				param = assign_segment_sequences(param, optarg , 7 );
+				param->read_structure = assign_segment_sequences(param->read_structure, optarg , 7 );
 				break;
 			case OPT_SEG9:
-				param = assign_segment_sequences(param, optarg , 8 );
+				param->read_structure = assign_segment_sequences(param->read_structure, optarg , 8 );
 				break;
 			case OPT_SEG10:
-				param = assign_segment_sequences(param, optarg , 9 );
+				param->read_structure = assign_segment_sequences(param->read_structure, optarg , 9 );
 				break;
 			case OPT_TRAIN:
 				param->train = optarg;
@@ -334,68 +317,19 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	
 	//if(param->matchstart)
 	//fprintf(stderr,"Viterbi: %d\n",param->viterbi);
+	if(QC_read_structure(param->read_structure)){
+		free_param(param);
+		exit(EXIT_FAILURE);
+	}
+	
 	last = -1;
 	c = 0;
 	for(i = 0; i < param->read_structure->num_segments;i++){
 		if(param->read_structure->type[i] == 'R'){
 			c++;
 		}
-		
-		if(param->read_structure->sequence_matrix[i]){
-			if(last +1 != i){
-				fprintf(stderr,"ERROR: a hmm building lock was skipped??\n");
-				free_param(param);
-				exit(-1);
-			}
-			
-			//serious checking...
-			for(g = 0;g < param->read_structure->numseq_in_segment[i];g++){
-				for(f = g+1;f < param->read_structure->numseq_in_segment[i];f++){
-					if(strlen(param->read_structure->sequence_matrix[i][g]) != strlen(param->read_structure->sequence_matrix[i][f])){
-						fprintf(stderr,"ERROR: the sequences in the same segment have to have the same length\n");
-						fprintf(stderr,"%dseq\n%s	%d\n%s	%d\n",param->read_structure->numseq_in_segment[i],param->read_structure->sequence_matrix[i][g],g,param->read_structure->sequence_matrix[i][f],f );
-						free_param(param);
-						exit(-1);
-					}
-				}
-			}
-			
-			fprintf(stderr,"Found %c segment %d with %d sequences\n",param->read_structure->type[i] ,i, param->read_structure->numseq_in_segment[i] );
-			for(g = 0;g < param->read_structure->numseq_in_segment[i];g++){
-				fprintf(stderr,"%s, ",param->read_structure->sequence_matrix[i][g] );
-			}
-			fprintf(stderr,"\n" );
-			last = i;
-			
-		}
-		
-		
-		
-		if(param->read_structure->type[i] == 'B'){
-			min_error = 1000;
-			for(g = 0;g < param->read_structure->numseq_in_segment[i];g++){
-				for(f = g+1;f < param->read_structure->numseq_in_segment[i];f++){
-					errors = bpm(param->read_structure->sequence_matrix[i][g] ,param->read_structure->sequence_matrix[i][f], (int)strlen(param->read_structure->sequence_matrix[i][0]),(int)strlen(param->read_structure->sequence_matrix[i][0]));
-					
-					if(errors < min_error){
-						min_error = errors;
-						num_pairs = 1;
-						//	fprintf(stderr,"%s\n%s\t%d\n",param->read_structure->sequence_matrix[i][j],param->read_structure->sequence_matrix[i][c] ,numseq);
-					}else if(errors == min_error ){
-						num_pairs++;
-					}
-				}
-			}
-			if(min_error != 1000){
-				fprintf(stderr,"Minumum edit distance among barcodes: %d, %d pairs\n", min_error,num_pairs);
-			}
-			
-		}
-		
-		
-		
-		
 	}
+	
 	
 	if(c >= 2){
 		param->multiread = 1;
@@ -430,7 +364,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
  \param tmp sequences from user input.
  \param segment number of segment.
  */
-struct parameters* assign_segment_sequences(struct parameters* param, char* tmp, int segment)
+struct read_structure* assign_segment_sequences(struct read_structure* read_structure, char* tmp, int segment)
 {
 	int i,f,g;
 	int count;
@@ -444,17 +378,17 @@ struct parameters* assign_segment_sequences(struct parameters* param, char* tmp,
 	f = 0;
 	
 	//fprintf(stderr,"Segment %d: %d	sequences\n",segment,count+1);
-	param->read_structure->numseq_in_segment[segment] = count+1;
-	param->read_structure->sequence_matrix[segment] = malloc(sizeof(char*) * (count+1));
-	assert(param->read_structure->sequence_matrix[segment] !=0);
+	read_structure->numseq_in_segment[segment] = count+1;
+	read_structure->sequence_matrix[segment] = malloc(sizeof(char*) * (count+1));
+	assert(read_structure->sequence_matrix[segment] !=0);
 	for(i = 0; i < count+1;i++){
-		param->read_structure->sequence_matrix[segment][i] = malloc(sizeof(char)* strlen(tmp));
+		read_structure->sequence_matrix[segment][i] = malloc(sizeof(char)* strlen(tmp));
 	}
-	param->read_structure->type[segment] = tmp[0];
+	read_structure->type[segment] = tmp[0];
 	
 	if(tmp[0] == 'R'){
-		param->read_structure->sequence_matrix[segment][0][0]  = 'N';
-		param->read_structure->sequence_matrix[segment][0][1]  = 0;
+		read_structure->sequence_matrix[segment][0][0]  = 'N';
+		read_structure->sequence_matrix[segment][0][1]  = 0;
 		
 	}else{
 	
@@ -464,32 +398,32 @@ struct parameters* assign_segment_sequences(struct parameters* param, char* tmp,
 		//fprintf(stderr,"%d\n",len);
 		for(i = 2;i <  len;i++){
 			if(tmp[i] != ','){
-				param->read_structure->sequence_matrix[segment][f][g] = tmp[i];
+				read_structure->sequence_matrix[segment][f][g] = tmp[i];
 				g++;
 			}else{
-				param->read_structure->sequence_matrix[segment][f][g] = 0;
+				read_structure->sequence_matrix[segment][f][g] = 0;
 				f++;
 				g = 0;
 			}
 		}
-		param->read_structure->sequence_matrix[segment][f][g] = 0;
+		read_structure->sequence_matrix[segment][f][g] = 0;
 	}
 	
 	if(tmp[0] == 'B'){
 		f = f + 1;
 		g = 0;
-		for(i = 0; i < strlen(param->read_structure->sequence_matrix[segment][0]);i++){
-			param->read_structure->sequence_matrix[segment][f][g] = 'N';
+		for(i = 0; i < strlen(read_structure->sequence_matrix[segment][0]);i++){
+			read_structure->sequence_matrix[segment][f][g] = 'N';
 			g++;
 		}
-		param->read_structure->sequence_matrix[segment][f][g] = 0;
+		read_structure->sequence_matrix[segment][f][g] = 0;
 	}
 	
 	
-	if(segment+1 >param->read_structure->num_segments  ){
-		param->read_structure->num_segments = segment+1;
+	if(segment+1 >read_structure->num_segments  ){
+		read_structure->num_segments = segment+1;
 	}
-	return param;
+	return read_structure;
 }
 
 
@@ -529,22 +463,117 @@ void usage()
  */
 void free_param(struct parameters* param)
 {
-	int i,j;
-	for(i = 0; i < 10;i++){
-		if(param->read_structure->sequence_matrix[i]){
-			for(j = 0; j < param->read_structure->numseq_in_segment[i];j++){
-				free(param->read_structure->sequence_matrix[i][j]);
-			}
-			
-			free(param->read_structure->sequence_matrix[i]);
-		}
-	}
-	free(param->read_structure->sequence_matrix);
-	
-	free(param->read_structure->numseq_in_segment );
-	free(param->read_structure->type);
-	free(param->read_structure);
+	free_read_structure(param->read_structure);
 	free(param->infile);
 	free(param);
 }
+
+
+int QC_read_structure(struct read_structure* read_structure)
+{
+	int i,g,f,min_error,errors;
+	int last = -1;
+	int num_pairs = 0;
+	for(i = 0; i < read_structure->num_segments;i++){
+		
+		
+		if(read_structure->sequence_matrix[i]){
+			if(last +1 != i){
+				fprintf(stderr,"ERROR: a hmm building lock was skipped??\n");
+				return 1;
+			}
+			
+			//serious checking...
+			for(g = 0;g < read_structure->numseq_in_segment[i];g++){
+				for(f = g+1;f < read_structure->numseq_in_segment[i];f++){
+					if(strlen(read_structure->sequence_matrix[i][g]) != strlen(read_structure->sequence_matrix[i][f])){
+						fprintf(stderr,"ERROR: the sequences in the same segment have to have the same length\n");
+						fprintf(stderr,"%dseq\n%s	%d\n%s	%d\n",read_structure->numseq_in_segment[i], read_structure->sequence_matrix[i][g],g, read_structure->sequence_matrix[i][f],f );
+						return 1;
+					}
+				}
+			}
+			
+			fprintf(stderr,"Found %c segment %d with %d sequences\n", read_structure->type[i] ,i, read_structure->numseq_in_segment[i] );
+			for(g = 0;g < read_structure->numseq_in_segment[i];g++){
+				fprintf(stderr,"%s, ",read_structure->sequence_matrix[i][g] );
+			}
+			fprintf(stderr,"\n" );
+			last = i;
+			
+		}
+		
+		
+		
+		if(read_structure->type[i] == 'B'){
+			min_error = 1000;
+			for(g = 0;g <  read_structure->numseq_in_segment[i];g++){
+				for(f = g+1;f < read_structure->numseq_in_segment[i];f++){
+					errors = bpm(read_structure->sequence_matrix[i][g], read_structure->sequence_matrix[i][f], (int)strlen(read_structure->sequence_matrix[i][0]),(int)strlen(read_structure->sequence_matrix[i][0]));
+					
+					if(errors < min_error){
+						min_error = errors;
+						num_pairs = 1;
+						//	fprintf(stderr,"%s\n%s\t%d\n",param->read_structure->sequence_matrix[i][j],param->read_structure->sequence_matrix[i][c] ,numseq);
+					}else if(errors == min_error ){
+						num_pairs++;
+					}
+				}
+			}
+			if(min_error != 1000){
+				fprintf(stderr,"Minumum edit distance among barcodes: %d, %d pairs\n", min_error,num_pairs);
+			}
+			
+		}
+	}
+	return 0;
+}
+
+struct read_structure* malloc_read_structure(void)
+{
+	struct read_structure* read_structure = 0;
+	int i;
+	read_structure = malloc(sizeof(struct read_structure));
+	assert(read_structure !=0);
+	read_structure->sequence_matrix = malloc(sizeof(char**) * 10 );
+	assert(read_structure->sequence_matrix !=0);
+	
+	read_structure->numseq_in_segment  = malloc(sizeof(int) * 10);
+	assert(read_structure->numseq_in_segment !=0);
+	read_structure->type = malloc(sizeof(char) * 10 );
+	
+	assert(read_structure->type !=0);
+	
+	for(i = 0;i  <10;i++){
+		read_structure->sequence_matrix[i] = 0;
+		read_structure->numseq_in_segment[i] = 0;
+		read_structure->type[i] = 0;
+		
+	}
+	
+	read_structure->num_segments = 0;
+	return read_structure;
+}
+
+void free_read_structure(struct read_structure* read_structure)
+{
+	int i,j;
+	for(i = 0; i < 10;i++){
+		if(read_structure->sequence_matrix[i]){
+			for(j = 0; j < read_structure->numseq_in_segment[i];j++){
+				free(read_structure->sequence_matrix[i][j]);
+			}
+			
+			free(read_structure->sequence_matrix[i]);
+		}
+	}
+	free(read_structure->sequence_matrix);
+	
+	free(read_structure->numseq_in_segment );
+	free(read_structure->type);
+	free(read_structure);
+}
+
+
+
 

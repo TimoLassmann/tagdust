@@ -113,6 +113,30 @@ int main (int argc,char * argv[]) {
 		simulate(param);
 	}
 	
+	if(param->infiles > 1){
+		fprintf(stderr,"Sorry - using multiple input files is presently disabeled");
+		free_param(param);
+		exit(EXIT_FAILURE);
+	}
+	
+	if(param->arch_file){
+		test_architectures(param, 0);
+		free_param(param);
+		return EXIT_SUCCESS;
+	}
+	
+	
+	if (param->read_structure->num_segments == 0){
+		for(i = 0; i < param->infiles;i++){
+			filter_controller(param,i);
+		}
+	}else{
+		for(i = 0; i < param->infiles;i++){
+			hmm_controller(param,i);
+		}
+	}
+	
+	/*
 	for(i = 0; i < param->infiles;i++){
 		if(i > 0){
 			fprintf(stderr,"Sorry - using multiple input files is presently disabeled");
@@ -173,21 +197,21 @@ int main (int argc,char * argv[]) {
 				if(param->exact5){
 					exact_controller(param,&read_fasta_fastq,i);
 				}else if (param->read_structure->num_segments == 0){
-					filter_controller(param,&read_fasta_fastq,i);
+					filter_controller(param,i);
 				}else{
-					hmm_controller(param,&read_fasta_fastq,i);
+					hmm_controller(param,i);
 				}
 			}else{
 				if(param->exact5){
 					exact_controller(param,&read_sam_chunk,i);
 				}else if(param->read_structure->num_segments == 0){
-					filter_controller(param,&read_fasta_fastq,i);
+					filter_controller(param,i);
 				}else{
-					hmm_controller(param,&read_sam_chunk,i);
+					hmm_controller(param,i);
 				}
 			}
 		}
-	}
+	}*/
 	free_param(param);
 	return EXIT_SUCCESS;
 }

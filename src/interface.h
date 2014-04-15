@@ -69,6 +69,7 @@
 
 #define OPT_join_paired 34
 #define OPT_split 35
+#define OPT_archfile 36
 
 
 /**
@@ -119,6 +120,7 @@ struct parameters {
 	int numbarcode;
 	int filter_error;
 	char*  print_artifact;
+	char* arch_file;
 	
 	char* log;/**< @brief Directory where log files are written.  */
 	int sim_barlen;
@@ -140,10 +142,13 @@ struct parameters {
 };
 
 struct parameters* interface(struct parameters* param,int argc, char *argv[]);
-struct parameters* assign_segment_sequences(struct parameters* param, char* tmp, int segment);
+struct read_structure* assign_segment_sequences(struct read_structure* read_structure, char* tmp, int segment);
 void free_param(struct parameters* param);
 void usage(void);
 
 
+struct read_structure* malloc_read_structure(void);
+void free_read_structure(struct read_structure* read_structure);
+int QC_read_structure(struct read_structure* read_structure);
 
 

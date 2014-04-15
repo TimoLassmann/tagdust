@@ -135,6 +135,7 @@
 #define MODE_TRAIN 2
 #define MODE_RUN_RANDOM 3
 #define MODE_GET_PROB 4
+#define MODE_ARCH_COMP  5
 #define NUM_RANDOM_SCORES 500000
 
 
@@ -263,17 +264,27 @@ struct model_bag{
 	float model_multiplier; /**< @brief Number of different profile HMM combinations. */
 }_MM_ALIGN16;
 
+
+struct arch_bag{
+	struct model_bag** archs;
+	
+	float* arch_posterior;
+	int num_arch;
+};
+
+
 /**
  @brief Passes data to threads. 
  */
 struct thread_data{
+	struct arch_bag* ab;
 	struct model_bag* mb;
 	struct parameters* param;
 	struct read_info** ri;
 	struct fasta* fasta;
 	int numseq; /** Number of sequences.*/
 	int start; /** @brief  Starting index of sequences for a particular thread.*/
-	int end;; /** @brief Endoing index of sequences for a particular thread.*/
+	int end; /** @brief Endoing index of sequences for a particular thread.*/
 };
 
 /**
@@ -290,8 +301,8 @@ struct log_information{
 	int num_EXTRACT_FAIL_LOW_COMPLEXITY;
 };
 
-void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ),int file_num);
-void filter_controller(struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ),int file_num);
+void hmm_controller(struct parameters* param, int file_num);
+void filter_controller(struct parameters* param, int file_num);
 
 struct model* malloc_model(int main_length, int sub_length, int number_sub_models);
 
@@ -317,13 +328,14 @@ struct model* copy_estimated_parameter(struct model* target, struct model* sourc
 struct model* reestimate(struct model* m, int mode);
 void free_model_bag(struct model_bag* mb);
 
-struct model_bag* run_pHMM(struct model_bag* mb,struct read_info** ri,struct parameters* param,struct fasta* reference_fasta ,int numseq, int mode);
+struct model_bag* run_pHMM(struct arch_bag* ab,struct model_bag* mb,struct read_info** ri,struct parameters* param,struct fasta* reference_fasta ,int numseq, int mode);
 struct read_info** run_rna_dust(struct read_info** ri,struct parameters* param,struct fasta* reference_fasta ,int numseq);
 void* do_baum_welch_thread(void *threadarg);
 void* do_label_thread(void *threadarg);
 void* do_rna_dust(void *threadarg);
 void* do_probability_estimation(void *threadarg);
 void* do_run_random_sequences(void *threadarg);
+void* do_arch_comparison(void *threadarg);
 
 double pi0_bootstrap(struct read_info** ri, int numseq);
 double get_min_pi0(double* x, double* y, int n_points);
@@ -351,6 +363,8 @@ struct hmm* set_hmm_transition_parameters(struct hmm* hmm, int len,double base_e
 
 
 struct parameters* estimateQthreshold(struct parameters* param, struct sequence_stats_info* ssi);
+
+void test_architectures(struct parameters* param, int file_num);
 
 #endif
 

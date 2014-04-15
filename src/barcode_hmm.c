@@ -52,10 +52,10 @@
  \param filenum Number of input files.
  
  */
-void filter_controller(struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ),int file_num)
+void filter_controller(struct parameters* param, int file_num)
 {
 	struct read_info** ri = 0;
-	
+	int (*fp)(struct read_info** ,struct parameters*,FILE* ) = 0;
 	FILE* outfile = 0;
 	FILE* artifact_file = 0;
 	int i;
@@ -114,6 +114,11 @@ void filter_controller(struct parameters* param,int (*fp)(struct read_info** ,st
 	}
 	
 	file =  io_handler(file, file_num,param);
+	if(param->sam == 0){
+		fp = &read_fasta_fastq;
+	}else {
+		fp = &read_sam_chunk;
+	}
 	
 	if(param->outfile){
 		if ((outfile = fopen( param->outfile, "w")) == NULL){
@@ -303,10 +308,10 @@ void filter_controller(struct parameters* param,int (*fp)(struct read_info** ,st
  \param filenum Number of input files.
  
  */
-void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ),int file_num)
+void hmm_controller(struct parameters* param,int file_num)
 {
 	struct read_info** ri = 0;
-	
+	int (*fp)(struct read_info** ,struct parameters*,FILE* ) = 0;
 	FILE* outfile = 0;
 	FILE* artifact_file = 0;
 	
@@ -363,75 +368,11 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 	struct sequence_stats_info* ssi = get_sequence_stats(param, ri, file_num );
 	
 	param = estimateQthreshold(param, ssi);
-	
-	/*file =  io_handler(file, file_num,param);
-	
-	average_length = 0;
-	for(i = 0; i < 5;i++){
-		back[i] = 1.0; // pseudocount..... -- caused crashes on tiny datasets.... (even N does not occur in input, the M emit states of the HMM would have a N probability becasue of the sequencing error. But the random model was initializes straight from the background...)
-	}
-	total_read = 0;
-	
-	while ((numseq = fp(ri, param,file)) != 0){
-		for(i = 0; i < numseq;i++){
-			average_length += ri[i]->len;
-			for(j = 0;j < ri[i]->len;j++){
-				//fprintf(stderr,"%d ",(int)ri[i]->seq[j] );
-				back[(int)ri[i]->seq[j]] += 1.0f;
-			}
-		}
 		
-		total_read += numseq;
-#if DEBUG
-		if(total_read > 10001){
-			break;
-		}
-#else
-		if(total_read > 1000000){
-			break;
-		}
-#endif
-	}
-	if(param->matchstart!= -1 || param->matchend !=-1){
-		average_length = (param->matchend - param->matchstart )* total_read;
-	}
-	average_length =  (int) floor((double)  average_length / (double) total_read   + 0.5);
-	
-	param->average_read_length = average_length;
-	fprintf(stderr," %d len\n",param->average_read_length);
-	sum = 0.0;
-	for(i = 0; i < 5;i++){
-		//fprintf(stderr,"%f\n",(back[i])  );
-		sum += back[i];
-	}
-	
-	for(i = 0; i < 5;i++){
-		//back[i] = prob2scaledprob(0.25);
-		back[i] = prob2scaledprob(back[i]  / sum);
-		fprintf(stderr,"%f\n",scaledprob2prob(back[i])  );
-	}
-	//
-	pclose(file);
-	*/
-	
 	// Inits model.
 	
 	struct model_bag* mb = init_model_bag(param, ssi);
 	
-	
-	
-	
-	// Estimates lengths of partial segments by using exact matching + normal distribution.
-	
-	/*file =  io_handler(file, file_num,param);
-	
-	numseq = fp(ri, param,file);
-	mb = estimate_length_distribution_of_partial_segments(mb,ri, param,  numseq);
-
-	pclose(file);
-	
-	exit(0);
-	*/
 	struct fasta* reference_fasta = 0;
 	
 	if(param->reference_fasta){
@@ -445,46 +386,14 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		
 	}
 	
-	
-	//fprintf(stderr,"%f	%f\n", model_information_content(mb),   exp(model_information_content(mb) ) / (1 + exp(model_information_content(mb))) * 10 + 5) ;
-	/*
-	for(i = 1; i < 1000;i++){
-		sum = (double)i / 100.0;
-		fprintf(stderr,"%f	%f\n",sum,exp(sum ) / (1.0 + exp(sum)) * 10 + 5) ;
+	file =  io_handler(file, file_num,param);
+	if(param->sam == 0){
+		fp = &read_fasta_fastq;
+	}else {
+		fp = &read_sam_chunk;
 	}
 	
-	exit(0);*/
-	//sum = model_information_content(mb) ;
-	//param->random_prior = 0.1 * 0.5  + 0.9 *( 1- exp(-1.0 * sum));
 	
-	//fprintf(stderr,"%f	%f\n",param->random_prior, 1- exp(-1.0 * sum));
-	
-	//exit(0);
-	/*if(!param->confidence_threshold){
-		sum = model_information_content(mb) ;
-		param->confidence_threshold =  exp(sum ) / (1.0 + exp(sum)) * 20.0;
-		fprintf(stderr,"Setting Threshold to %f\n",param->confidence_threshold );
-	}*/
-	// HMM training - not used in this version..
-	
-	
-	
-	/*for(i = 0; i < mb->num_models;i++){
-		print_model(mb->model[i]);
-	}
-	exit(0);
-	*/
-	/*
-	file =  io_handler(file, file_num,param);
-	numseq = fp(ri, param,file);
-	mb =  run_pHMM(mb,ri,param,numseq,MODE_GET_PROB);
-	mb =  run_pHMM(mb,ri,param,numseq,MODE_RUN_RANDOM);
-	fprintf(stderr,"read: %d	%d\n",numseq,param->num_query );
-	param->confidence_threshold =  set_Q_threshold(mb, ri,  numseq);
-	pclose(file);
-	*/
-	
-	file =  io_handler(file, file_num,param);
 
 	if(!param->train ){
 	
@@ -494,7 +403,7 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 			mb = set_model_e_to_laplace(mb);
 			while ((numseq = fp(ri, param,file)) != 0){
 				//	numseq = fp(ri, param,file);
-				mb =  run_pHMM(mb,ri,param,reference_fasta,numseq,MODE_TRAIN);
+				mb =  run_pHMM(0,mb,ri,param,reference_fasta,numseq,MODE_TRAIN);
 			}
 			pclose(file);
 			file =  io_handler(file, file_num,param);
@@ -511,7 +420,7 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 			fprintf(stderr,"Iteration %d\n",i);
 			while ((numseq = fp(ri, param,file)) != 0){
 				//	numseq = fp(ri, param,file);
-				mb =  run_pHMM(mb,ri,param,reference_fasta,numseq,MODE_TRAIN);
+				mb =  run_pHMM(0,mb,ri,param,reference_fasta,numseq,MODE_TRAIN);
 			}
 			pclose(file);
 			file =  io_handler(file, file_num,param);
@@ -584,7 +493,7 @@ void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struc
 		}
 		
 		//	numseq = fp(ri, param,file);
-		mb =  run_pHMM(mb,ri,param,reference_fasta,numseq,MODE_GET_LABEL);
+		mb =  run_pHMM(0,mb,ri,param,reference_fasta,numseq,MODE_GET_LABEL);
 		li->total_read += numseq;
 		
 		for(i = 0; i < numseq;i++){
@@ -1307,7 +1216,7 @@ struct hmm* set_hmm_transition_parameters(struct hmm* hmm, int len,double base_e
  \param mode Determines which function to run.
  
  */
-struct model_bag* run_pHMM(struct model_bag* mb,struct read_info** ri,struct parameters* param,struct fasta* reference_fasta ,int numseq, int mode)
+struct model_bag* run_pHMM(struct arch_bag* ab,struct model_bag* mb,struct read_info** ri,struct parameters* param,struct fasta* reference_fasta ,int numseq, int mode)
 {
 	struct thread_data* thread_data = 0;
 	
@@ -1336,6 +1245,20 @@ struct model_bag* run_pHMM(struct model_bag* mb,struct read_info** ri,struct par
 	}
 	thread_data[param->num_threads-1].end = numseq;
 	
+	if(ab && (mode == MODE_ARCH_COMP) ){
+		for(t = 0;t < param->num_threads ;t++) {
+			thread_data[t].ab = malloc(sizeof(struct arch_bag));
+			thread_data[t].ab->num_arch = ab->num_arch;
+			thread_data[t].ab->archs = malloc(sizeof(struct model_bag*) * ab->num_arch );
+			thread_data[t].ab->arch_posterior  = malloc(sizeof(float) * ab->num_arch );
+			for(i = 0; i < ab->num_arch;i++){
+				thread_data[t].ab->archs[i] =copy_model_bag(ab->archs[i]);
+				thread_data[t].ab->arch_posterior[i] = prob2scaledprob(0.0);
+			}
+		}
+	}
+	
+	
 	//fprintf(stderr," %d-%d\n",t*interval,numseq);
 
 	
@@ -1362,6 +1285,9 @@ struct model_bag* run_pHMM(struct model_bag* mb,struct read_info** ri,struct par
 				
 			case MODE_RUN_RANDOM:
 				rc = pthread_create(&threads[t], &attr, do_run_random_sequences, (void *) &thread_data[t]);
+				break;
+			case MODE_ARCH_COMP:
+				rc = pthread_create(&threads[t], &attr, do_arch_comparison, (void *) &thread_data[t]);
 				break;
 		}
 		
@@ -1394,6 +1320,22 @@ struct model_bag* run_pHMM(struct model_bag* mb,struct read_info** ri,struct par
 			}
 		}
 	}
+	
+	if(ab && (mode == MODE_ARCH_COMP) ){
+		for(t = 0;t < param->num_threads ;t++) {
+			for(i = 0; i < ab->num_arch;i++){
+				free_model_bag(thread_data[t].ab->archs[i]);// =copy_model_bag(ab->archs[i]);
+				//here I sum the posteriors from the different runs!!!
+				ab->arch_posterior[i] = logsum(ab->arch_posterior[i] , thread_data[t].ab->arch_posterior[i]);
+			}
+			
+			free(thread_data[t].ab->archs);// = malloc(sizeof(struct model_bag*) * ab->num_arch );
+			free(thread_data[t].ab->arch_posterior);//  = malloc(sizeof(float) * ab->num_arch );
+			free(thread_data[t].ab);// = malloc(struct arch_bag);
+			
+		}
+	}
+	
 	
 	for(t = 0;t < param->num_threads;t++) {
 		free_model_bag(thread_data[t].mb);
@@ -1475,7 +1417,39 @@ struct read_info** run_rna_dust(struct read_info** ri,struct parameters* param,s
 
 
 
-
+void* do_arch_comparison(void *threadarg)
+{
+	struct thread_data *data;
+	data = (struct thread_data *) threadarg;
+	
+	struct read_info** ri  = data->ri;
+	
+	
+	int start = data->start;
+	int end = data->end;
+	int i,j;
+	
+	float raw[100];
+	float sum;
+	
+	for(i = start; i < end;i++){
+		for(j = 0; j < data->ab->num_arch;j++){
+			data->ab->archs[j] = backward(data->ab->archs[j] , ri[i]->seq ,ri[i]->len);
+			raw[j] = data->ab->archs[j]->b_score;
+		}
+		
+		sum = raw[0];
+		for(j = 1; j < data->ab->num_arch;j++){
+			sum = logsum(sum, raw[j]);
+		}
+		for(j = 0; j < data->ab->num_arch;j++){
+			data->ab->arch_posterior[j] = logsum(data->ab->arch_posterior[j], raw[j] - sum );
+		}
+	}
+	
+	
+	pthread_exit((void *) 0);
+}
 
 
 
@@ -1563,6 +1537,14 @@ void* do_probability_estimation(void *threadarg)
 		
 	pthread_exit((void *) 0);
 }
+
+
+
+
+
+
+
+
 
 
 
