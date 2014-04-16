@@ -101,7 +101,9 @@ struct parameters {
 	char* format;
 	char* filter;
 	char* train;
-	char* exact5; 
+	char* exact5;
+	char* messages;
+	char* buffer;
 	int gzipped;
 	int bzipped;
 	int dust;
@@ -119,7 +121,7 @@ struct parameters {
 	int sim;
 	int numbarcode;
 	int filter_error;
-	char*  print_artifact;
+	char* print_artifact;
 	char* arch_file;
 	
 	char* log;/**< @brief Directory where log files are written.  */
@@ -149,6 +151,6 @@ void usage(void);
 
 struct read_structure* malloc_read_structure(void);
 void free_read_structure(struct read_structure* read_structure);
-int QC_read_structure(struct read_structure* read_structure);
+int QC_read_structure(struct parameters* param);
 
 

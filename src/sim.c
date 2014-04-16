@@ -1002,6 +1002,9 @@ void simulation_for_benchmark(struct parameters* param)
 		if(ri[i]->qual){
 			free(ri[i]->qual );
 		}
+		if(ri[i]->labels){
+			free(ri[i]->labels);
+		}
 		
 		free(ri[i]);
 	}
@@ -1046,8 +1049,11 @@ struct eval_results* get_results(struct eval_results* eval,struct parameters* pa
 	eval->num_rand_extracted = 0;
 	eval->num_wrong_bc = 0;
 	if ((file = fopen(filename, "r")) == NULL){
-		fprintf(stderr,"can't open output\n");
-		exit(-1);
+		sprintf(param->buffer,"can't open output\n");
+		fprintf(stderr,"%s",param->buffer);
+		param->messages = append_message(param->messages, param->buffer);
+		free_param(param);
+		exit(EXIT_FAILURE);
 	}
 	
 	ri = malloc(sizeof(struct read_info*) * param->num_query);
@@ -1204,8 +1210,11 @@ struct eval_results* get_results(struct eval_results* eval,struct parameters* pa
 	sprintf (orgread, "%s/summary.csv",param->outfile);
 	
 	if ((file = fopen(orgread, "a")) == NULL){
-		fprintf(stderr,"can't open output\n");
-		exit(-1);
+		sprintf(param->buffer,"can't open output\n");
+		fprintf(stderr,"%s",param->buffer);
+		param->messages = append_message(param->messages, param->buffer);
+		free_param(param);
+		exit(EXIT_FAILURE);
 	}
 	struct tm *ptr;
 	int hour;
@@ -1300,6 +1309,9 @@ struct eval_results* get_results(struct eval_results* eval,struct parameters* pa
 		}
 		if(ri[i]->qual){
 			free(ri[i]->qual );
+		}
+		if(ri[i]->labels){
+			free(ri[i]->labels);
 		}
 		
 		free(ri[i]);

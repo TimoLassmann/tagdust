@@ -90,9 +90,15 @@ int main (int argc,char * argv[]) {
 
 	int i;
 	
+	
 	init_nuc_code();
 
 	param = interface(param,argc,argv);
+	
+	
+	sprintf(param->buffer,"Start Run\n---------------------------------------------\n");
+	param->messages = append_message(param->messages, param->buffer);
+
 	
 	if(param->sim_numseq){
 		simulation_for_benchmark(param);
@@ -120,9 +126,7 @@ int main (int argc,char * argv[]) {
 	}
 	
 	if(param->arch_file){
-		test_architectures(param, 0);
-		free_param(param);
-		return EXIT_SUCCESS;
+		param = test_architectures(param, 0);
 	}
 	
 	

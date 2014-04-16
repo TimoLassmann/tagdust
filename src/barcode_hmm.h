@@ -269,6 +269,7 @@ struct arch_bag{
 	struct model_bag** archs;
 	
 	float* arch_posterior;
+	char** command_line; 
 	int num_arch;
 };
 
@@ -364,7 +365,7 @@ struct hmm* set_hmm_transition_parameters(struct hmm* hmm, int len,double base_e
 
 struct parameters* estimateQthreshold(struct parameters* param, struct sequence_stats_info* ssi);
 
-void test_architectures(struct parameters* param, int file_num);
+struct parameters* test_architectures(struct parameters* param, int file_num);
 
 #endif
 

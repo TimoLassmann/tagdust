@@ -168,19 +168,32 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
 #endif
 	}
 	if(!five_s0  && five_len){
-		fprintf(stderr,"ERROR: there seems to e not a single read containing the 5' partial sequence.\n");
+		sprintf(param->buffer,"ERROR: there seems to e not a single read containing the 5' partial sequence.\n");
+		fprintf(stderr,"%s",param->buffer);
+		param->messages = append_message(param->messages, param->buffer);
+		free_param(param);
 		exit(EXIT_FAILURE);
+		
+		
 	}
 	
 	if(!three_s0  && three_len){
-		fprintf(stderr,"ERROR: there seems to e not a single read containing the 3' partial sequence.\n");
+		sprintf(param->buffer,"ERROR: there seems to e not a single read containing the 3' partial sequence.\n");
+		fprintf(stderr,"%s",param->buffer);
+		param->messages = append_message(param->messages, param->buffer);
+		free_param(param);
 		exit(EXIT_FAILURE);
 	}
 
 	if(five_len){
 		if(five_s0 <= 1){
-			fprintf(stderr,"WARNING:5' partial segment seems not to be present in the data.\n");
+			sprintf(param->buffer,"ERROR: 5' partial segment seems not to be present in the data.\n");
+			fprintf(stderr,"%s",param->buffer);
+			param->messages = append_message(param->messages, param->buffer);
+			free_param(param);
 			exit(EXIT_FAILURE);
+			
+			
 		}
 		
 		ssi->mean_5_len = five_s1 / five_s0;
@@ -189,9 +202,12 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
 			ssi->stdev_5_len = 1;
 		}
 		
-		fprintf(stderr,"5: %f %f	%f\n", ssi->mean_5_len,  ssi->stdev_5_len,five_s0);
+		//fprintf(stderr,"5: %f %f	%f\n", ssi->mean_5_len,  ssi->stdev_5_len,five_s0);
 		if(ssi->mean_5_len <= 1){
-			fprintf(stderr,"WARNING: 5' partial segment seems not to be present in the data (length < 1).\n");
+			sprintf(param->buffer,"ERROR: 5' partial segment seems not to be present in the data (length < 1).\n");
+			fprintf(stderr,"%s",param->buffer);
+			param->messages = append_message(param->messages, param->buffer);
+			free_param(param);
 			exit(EXIT_FAILURE);
 		}
 	}else{
@@ -202,7 +218,10 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
 	
 	if(three_len){
 		if(three_s0 <= 1){
-			fprintf(stderr,"WARNING: 3' partial segment seems not to be present in the data.\n");
+			sprintf(param->buffer,"ERROR: 3' partial segment seems not to be present in the data.\n");
+			fprintf(stderr,"%s",param->buffer);
+			param->messages = append_message(param->messages, param->buffer);
+			free_param(param);
 			exit(EXIT_FAILURE);
 		}
 		
@@ -213,7 +232,10 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
 		}
 		fprintf(stderr,"3: %f %f	%f\n", ssi->mean_3_len,  ssi->stdev_3_len,three_s0);
 		if(ssi->mean_3_len <= 1){
-			fprintf(stderr,"WARNING: 3' partial segment seems not to be present in the data (length < 1).\n");
+			sprintf(param->buffer,"ERROR: 3' partial segment seems not to be present in the data (length < 1).\n");
+			fprintf(stderr,"%s",param->buffer);
+			param->messages = append_message(param->messages, param->buffer);
+			free_param(param);
 			exit(EXIT_FAILURE);
 		}
 	}else{
@@ -389,8 +411,11 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 	
 	
 	if(param->gzipped && gzcat == -1){
-		fprintf(stderr,"Cannot find gzcat / zcat on your system. Try gzcat <infile> | samstat -f sam/bam/fa/fq\n");
-		exit(-1);
+		sprintf(param->buffer,"Cannot find gzcat / zcat on your system. Try gzcat <infile> | samstat -f sam/bam/fa/fq\n");
+		fprintf(stderr,"%s",param->buffer);
+		param->messages = append_message(param->messages, param->buffer);
+		free_param(param);
+		exit(EXIT_FAILURE);
 	}
 	
 	if(file_num == -1){
@@ -470,8 +495,11 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 				strcat ( command, tmp);
 			}
 			if (!(file = popen(command, "r"))) {
-				fprintf(stderr,"Cannot open bam file '%s' with command:%s\n",param->infile[file_num],command);
-				exit(-1);
+				sprintf(param->buffer,"Cannot open bam file '%s' with command:%s\n",param->infile[file_num],command);
+				fprintf(stderr,"%s",param->buffer);
+				param->messages = append_message(param->messages, param->buffer);
+				free_param(param);
+				exit(EXIT_FAILURE);
 			}
 		}else if(param->sam == 1){
 			command[0] = 0;
@@ -502,8 +530,11 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 				strcat ( command, tmp);
 			}
 			if (!(file = popen(command, "r"))) {
-				fprintf(stderr,"Cannot open bam file '%s' with command:%s\n",param->infile[file_num],command);
-				exit(-1);
+				sprintf(param->buffer,"Cannot open bam file '%s' with command:%s\n",param->infile[file_num],command);
+				fprintf(stderr,"%s",param->buffer);
+				param->messages = append_message(param->messages, param->buffer);
+				free_param(param);
+				exit(EXIT_FAILURE);
 			}
 		}else{
 			command[0] = 0;
@@ -523,8 +554,11 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 			strcat ( command, tmp);
 			//fprintf(stderr,"%s\n",command);
 			if (!(file = popen(command, "r"))) {
-				fprintf(stderr,"Cannot open bam file '%s' with command:%s\n",param->infile[file_num],command);
-				exit(-1);
+				sprintf(param->buffer,"Cannot open bam file '%s' with command:%s\n",param->infile[file_num],command);
+				fprintf(stderr,"%s",param->buffer);
+				param->messages = append_message(param->messages, param->buffer);
+				free_param(param);
+				exit(EXIT_FAILURE);
 			}
 		}
 	}
@@ -843,10 +877,7 @@ void print_seq(struct read_info* ri,FILE* out)
 		if(segment > 100){
 			exit(EXIT_FAILURE);
 		}
-		
 	}
-	
-	
 }
 
 

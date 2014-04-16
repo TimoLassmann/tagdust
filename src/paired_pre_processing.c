@@ -157,8 +157,14 @@ void concatenate_reads(struct parameters* param,int (*fp)(struct read_info** ,st
 	
 	if(param->outfile){
 		if ((outfile = fopen( param->outfile, "w")) == NULL){
-			fprintf(stderr,"can't open output\n");
-			exit(-1);
+			sprintf(param->buffer,"can't open output\n");
+			fprintf(stderr,"%s",param->buffer);
+			param->messages = append_message(param->messages, param->buffer);
+			free_param(param);
+			exit(EXIT_FAILURE);
+			
+			//fprintf(stderr,"can't open output\n");
+			//exit(-1);
 		}
 	}else{
 		outfile= stdout;
@@ -168,8 +174,12 @@ void concatenate_reads(struct parameters* param,int (*fp)(struct read_info** ,st
 	while ((numseq1 = fp(ri1, param,file1)) != 0){
 		numseq2 = fp(ri2, param,file2);
 		if(numseq1 != numseq2){
-			fprintf(stderr,"Two files seem to be of different length.\n");
+			sprintf(param->buffer,"Two files seem to be of different length.\n");
+			fprintf(stderr,"%s",param->buffer);
+			param->messages = append_message(param->messages, param->buffer);
+			free_param(param);
 			exit(EXIT_FAILURE);
+			
 		}
 		for(i = 0; i < numseq1;i++){
 			fprintf(outfile,"@");
@@ -181,7 +191,10 @@ void concatenate_reads(struct parameters* param,int (*fp)(struct read_info** ,st
 				
 			}
 			if(strcmp(ri1[i]->name,ri2[i]->name)){
-				fprintf(stderr,"Files seem to contain reads in different order:\n%s\n%s\n",ri1[i]->name,ri2[i]->name );
+				sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",ri1[i]->name,ri2[i]->name );
+				fprintf(stderr,"%s",param->buffer);
+				param->messages = append_message(param->messages, param->buffer);
+				free_param(param);
 				exit(EXIT_FAILURE);
 			}
 			
@@ -306,9 +319,12 @@ void split(struct parameters* param,int (*fp)(struct read_info** ,struct paramet
 	int i = 0;
 	int j = 0;
 	if(!param->outfile){
+		sprintf(param->buffer,"You need to specify an output prefix.\n");
+		fprintf(stderr,"%s",param->buffer);
+		param->messages = append_message(param->messages, param->buffer);
+		free_param(param);
+		exit(EXIT_FAILURE);
 		
-		fprintf(stderr,"You need to specify an output prefix.\n");
-		exit(-1);
 	}
 	
 	
@@ -483,6 +499,9 @@ void split(struct parameters* param,int (*fp)(struct read_info** ,struct paramet
 		if(ri[i]->qual){
 			free(ri[i]->qual );
 		}
+		if(ri[i]->labels){
+			free(ri[i]->labels);
+		}
 		free(ri[i]);
 	}
 	free(ri);
@@ -564,8 +583,11 @@ void print_split_sequences(struct rb_node* n,char* out,struct read_info** ri, st
 	FILE* outfile = 0;
 	FILE* infile = 0;
 	if ((outfile = fopen( filename, "w")) == NULL){
-		fprintf(stderr,"can't open output\n");
-		exit(-1);
+		sprintf(param->buffer,"can't open output\n");
+		fprintf(stderr,"%s",param->buffer);
+		param->messages = append_message(param->messages, param->buffer);
+		free_param(param);
+		exit(EXIT_FAILURE);
 	}
 	int numseq;
 	infile =  io_handler(infile,0,param);

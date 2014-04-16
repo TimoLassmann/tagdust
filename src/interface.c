@@ -40,7 +40,7 @@
  */
 struct parameters* interface(struct parameters* param,int argc, char *argv[])
 {
-	int i,c;
+	int i,j,c;
 	int help = 0;
 	int last;
 	
@@ -99,6 +99,8 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->multiread = 0;
 	param->join = 0;
 	param->split = 0;
+	param->messages = 0;
+	param->buffer = 0;
 	
 	
 	param->read_structure = malloc_read_structure();
@@ -315,9 +317,38 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 		}
 	}
 	
+	
+	param->buffer  = malloc(sizeof(char) * MAX_LINE);
+	
+	
+	sprintf(param->buffer , "%s %s, Copyright (C) 2013 Timo Lassmann <%s>\n",PACKAGE_NAME, PACKAGE_VERSION,PACKAGE_BUGREPORT);
+	param->messages = append_message(param->messages, param->buffer  );
+	//command_line[0] = 0;
+	//c = 0;
+	param->buffer[0] = 'c';
+	param->buffer[1] = 'm';
+	param->buffer[2] = 'd';
+	param->buffer[3] = ':';
+	param->buffer[4] = ' ';
+	c = 5;
+	for(i =0 ; i < argc;i++){
+		for(j = 0; j < strlen(argv[i]);j++){
+			param->buffer[c] = argv[i][j];
+			c++;
+		}
+		param->buffer[c] = ' ';
+		c++;
+		
+	}
+	param->buffer[c] = '\n';
+	param->buffer[c+1] = 0;
+	
+	param->messages = append_message(param->messages, param->buffer );
+	
+	
 	//if(param->matchstart)
 	//fprintf(stderr,"Viterbi: %d\n",param->viterbi);
-	if(QC_read_structure(param->read_structure)){
+	if(QC_read_structure(param)){
 		free_param(param);
 		exit(EXIT_FAILURE);
 	}
@@ -354,6 +385,12 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 		c++;
 	}
 	param->infiles = c;
+	
+	
+	
+	
+	
+	//free(command_line);
 	return param;
 }
 
@@ -463,14 +500,30 @@ void usage()
  */
 void free_param(struct parameters* param)
 {
+	char logfile[200];
+	FILE* outfile = 0;
+	if(param->outfile){
+		sprintf (logfile, "%s/tagdust_log.txt",param->log);
+		if ((outfile = fopen( logfile, "w")) == NULL){
+			fprintf(stderr,"can't open logfile\n");
+			exit(-1);
+		}
+	}else{
+		outfile = stdout;
+	}
+	fprintf(outfile,"%s\n",param->messages);
+	
 	free_read_structure(param->read_structure);
 	free(param->infile);
+	free(param->messages);
+	free(param->buffer);
 	free(param);
 }
 
 
-int QC_read_structure(struct read_structure* read_structure)
+int QC_read_structure(struct parameters* param )
 {
+	struct read_structure* read_structure = param->read_structure;
 	int i,g,f,min_error,errors;
 	int last = -1;
 	int num_pairs = 0;
@@ -479,7 +532,10 @@ int QC_read_structure(struct read_structure* read_structure)
 		
 		if(read_structure->sequence_matrix[i]){
 			if(last +1 != i){
-				fprintf(stderr,"ERROR: a hmm building lock was skipped??\n");
+				sprintf(param->buffer,"ERROR: a hmm building lock was skipped??\n");
+				fprintf(stderr,"%s",param->buffer);
+				param->messages = append_message(param->messages, param->buffer);
+
 				return 1;
 			}
 			
@@ -487,18 +543,28 @@ int QC_read_structure(struct read_structure* read_structure)
 			for(g = 0;g < read_structure->numseq_in_segment[i];g++){
 				for(f = g+1;f < read_structure->numseq_in_segment[i];f++){
 					if(strlen(read_structure->sequence_matrix[i][g]) != strlen(read_structure->sequence_matrix[i][f])){
-						fprintf(stderr,"ERROR: the sequences in the same segment have to have the same length\n");
-						fprintf(stderr,"%dseq\n%s	%d\n%s	%d\n",read_structure->numseq_in_segment[i], read_structure->sequence_matrix[i][g],g, read_structure->sequence_matrix[i][f],f );
+						
+						sprintf(param->buffer,"ERROR: the sequences in the same segment have to have the same length.\n");
+						fprintf(stderr,"%s",param->buffer);
+						param->messages = append_message(param->messages, param->buffer);
+						
+						sprintf(param->buffer,"Segment %d\n%s	%d\n%s	%d\n",read_structure->numseq_in_segment[i], read_structure->sequence_matrix[i][g],g, read_structure->sequence_matrix[i][f],f );
+						fprintf(stderr,"%s",param->buffer);
+						param->messages = append_message(param->messages, param->buffer);
+						
+						
+						//fprintf(stderr,"ERROR: the sequences in the same segment have to have the same length\n");
+						//fprintf(stderr,"%dseq\n%s	%d\n%s	%d\n",read_structure->numseq_in_segment[i], read_structure->sequence_matrix[i][g],g, read_structure->sequence_matrix[i][f],f );
 						return 1;
 					}
 				}
 			}
 			
-			fprintf(stderr,"Found %c segment %d with %d sequences\n", read_structure->type[i] ,i, read_structure->numseq_in_segment[i] );
+			/*fprintf(stderr,"Found %c segment %d with %d sequences\n", read_structure->type[i] ,i, read_structure->numseq_in_segment[i] );
 			for(g = 0;g < read_structure->numseq_in_segment[i];g++){
 				fprintf(stderr,"%s, ",read_structure->sequence_matrix[i][g] );
 			}
-			fprintf(stderr,"\n" );
+			fprintf(stderr,"\n" );*/
 			last = i;
 			
 		}
@@ -522,6 +588,11 @@ int QC_read_structure(struct read_structure* read_structure)
 			}
 			if(min_error != 1000){
 				fprintf(stderr,"Minumum edit distance among barcodes: %d, %d pairs\n", min_error,num_pairs);
+				
+				sprintf(param->buffer,"Minumum edit distance among barcodes: %d, %d pairs\n", min_error,num_pairs);
+				param->messages = append_message(param->messages, param->buffer);
+
+				
 			}
 			
 		}

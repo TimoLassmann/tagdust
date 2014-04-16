@@ -95,7 +95,7 @@ int byg_end(const char* pattern,const char*text);
 
 int byg_count(char* pattern,char*text);
 
-
+char* append_message(char* old_message, char* new_message);
 void init_logsum();
 float logsum(float a,float b);
 

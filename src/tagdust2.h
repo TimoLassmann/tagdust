@@ -59,7 +59,7 @@ __LINE__, __func__, __VA_ARGS__); } while (0)
 /** \def MAX_LINE 
  \brief Maximum length of input line. 
  */
-#define MAX_LINE 50000
+#define MAX_LINE 10000
 
 
 

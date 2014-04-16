@@ -122,8 +122,11 @@ void filter_controller(struct parameters* param, int file_num)
 	
 	if(param->outfile){
 		if ((outfile = fopen( param->outfile, "w")) == NULL){
-			fprintf(stderr,"can't open output\n");
-			exit(-1);
+			sprintf(param->buffer,"can't open output file: %s\n",  param->outfile);
+			fprintf(stderr,"%s",param->buffer);
+			param->messages = append_message(param->messages, param->buffer);
+			free_param(param);
+			exit(EXIT_FAILURE);
 		}
 	}else{
 		outfile= stdout;
@@ -133,8 +136,11 @@ void filter_controller(struct parameters* param, int file_num)
 	if(param->print_artifact){
 		
 		if ((artifact_file = fopen( param->print_artifact, "w")) == NULL){
-			fprintf(stderr,"can't open output\n");
-			exit(-1);
+			sprintf(param->buffer,"can't open artifact file: %s\n",  param->print_artifact);
+			fprintf(stderr,"%s",param->buffer);
+			param->messages = append_message(param->messages, param->buffer);
+			free_param(param);
+			exit(EXIT_FAILURE);
 		}
 	
 	}
@@ -273,6 +279,9 @@ void filter_controller(struct parameters* param, int file_num)
 		
 		if(ri[i]->cigar){
 			free(ri[i]->cigar);
+		}
+		if(ri[i]->labels){
+			free(ri[i]->labels);
 		}
 		if(ri[i]->md){
 			free(ri[i]->md);
@@ -436,27 +445,33 @@ void hmm_controller(struct parameters* param,int file_num)
 	pclose(file);
 	file =  io_handler(file, file_num,param);
 	
+	
+	
+	
 	if(param->outfile){
 		if ((outfile = fopen( param->outfile, "w")) == NULL){
-			fprintf(stderr,"can't open output\n");
-			exit(-1);
+			sprintf(param->buffer,"can't open output file: %s\n",  param->outfile);
+			fprintf(stderr,"%s",param->buffer);
+			param->messages = append_message(param->messages, param->buffer);
+			free_param(param);
+			exit(EXIT_FAILURE);
 		}
 	}else{
 		outfile= stdout;
 	}
 	
 	
-	
 	if(param->print_artifact){
-		//sprintf (logfile, "artifacts_%s",param->outfile);
 		
 		if ((artifact_file = fopen( param->print_artifact, "w")) == NULL){
-			fprintf(stderr,"can't open output\n");
-			exit(-1);
+			sprintf(param->buffer,"can't open artifact file: %s\n",  param->print_artifact);
+			fprintf(stderr,"%s",param->buffer);
+			param->messages = append_message(param->messages, param->buffer);
+			free_param(param);
+			exit(EXIT_FAILURE);
 		}
 		
 	}
-
 	
 	struct log_information* li = 0;
 	
@@ -485,7 +500,10 @@ void hmm_controller(struct parameters* param,int file_num)
 			}
 		}
 		if(j){
-			fprintf(stderr,"Long sequence found. Need to realloc model...\n");
+			sprintf(param->buffer,"Long sequence found. Need to realloc model...\n");
+			fprintf(stderr,"%s",param->buffer);
+			param->messages = append_message(param->messages, param->buffer);
+			
 			free_model_bag(mb);
 			
 			mb = init_model_bag(param, ssi);
@@ -609,6 +627,9 @@ void hmm_controller(struct parameters* param,int file_num)
 		
 		if(ri[i]->cigar){
 			free(ri[i]->cigar);
+		}
+		if(ri[i]->labels){
+			free(ri[i]->labels);
 		}
 		if(ri[i]->md){
 			free(ri[i]->md);
@@ -744,7 +765,7 @@ double set_Q_threshold(struct model_bag* mb, struct read_info** ri, int numseq)
 				estimated_threshold = (double)i/100.0;
 			}
 			if(real[i]+fake[i]){
-			fprintf(stderr,"%d	%d	%d	%f	%d	%f\n", i,real[i],fake[i],  (float)g / (float)(c+g) , c+g,estimated_threshold);
+			//fprintf(stderr,"%d	%d	%d	%f	%d	%f\n", i,real[i],fake[i],  (float)g / (float)(c+g) , c+g,estimated_threshold);
 			}
 		}
 		if(estimated_threshold == -1.0){
@@ -839,8 +860,13 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 			}
 		}
 		if(!s0){
-			fprintf(stderr,"ERROR: there seems to e not a single read containing the 5' partial sequence.\n");
+			//fprintf(stderr,"ERROR: there seems to e not a single read containing the 5' partial sequence.\n");
+			sprintf(param->buffer,"ERROR: there seems to e not a single read containing the 5' partial sequence.\n");
+			fprintf(stderr,"%s",param->buffer);
+			param->messages = append_message(param->messages, param->buffer);
+			free_param(param);
 			exit(EXIT_FAILURE);
+			
 		}
 		
 		mean = s1 / s0;
@@ -848,10 +874,15 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 		if(stdev < 1){
 			stdev = 1;
 		}
-		fprintf(stderr,"5: %f %f	%f\n", mean,  stdev,s0);
+		//fprintf(stderr,"5: %f %f	%f\n", mean,  stdev,s0);
 
 		if(mean <= 1){
-			fprintf(stderr,"WARNING: 5' partial segment seems not to be present in the data (length < 1).\n");
+			//fprintf(stderr,"
+			sprintf(param->buffer,"WARNING: 5' partial segment seems not to be present in the data (length < 1).\n");
+			fprintf(stderr,"%s",param->buffer);
+			param->messages = append_message(param->messages, param->buffer);
+			//free_param(param);
+			
 		}
 
 		sum_prob = 0;
@@ -960,7 +991,10 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 			}
 		}
 		if(!s0){
-			fprintf(stderr,"ERROR: there seems to e not a single read containing the 3' partial sequence.\n");
+			sprintf(param->buffer,"ERROR: there seems to e not a single read containing the 3' partial sequence.\n");
+			fprintf(stderr,"%s",param->buffer);
+			param->messages = append_message(param->messages, param->buffer);
+			free_param(param);
 			exit(EXIT_FAILURE);
 		}
 		mean = s1 / s0;
@@ -969,7 +1003,7 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 			stdev = 1;
 		}
 		
-		fprintf(stderr,"3: %f %f\n", mean,  stdev);
+		//fprintf(stderr,"3: %f %f\n", mean,  stdev);
 		if(mean <= 1){
 			fprintf(stderr,"WARNING: 3' partial segment seems not to be present in the data (length < 1).\n");
 		}
@@ -1266,8 +1300,12 @@ struct model_bag* run_pHMM(struct arch_bag* ab,struct model_bag* mb,struct read_
 	
 	rc = pthread_attr_init(&attr);
 	if(rc){
-		fprintf(stderr,"ERROR; return code from pthread_attr_init() is %d\n", rc);
-		exit(-1);
+		sprintf(param->buffer,"ERROR; return code from pthread_attr_init() is %d\n", rc);
+		fprintf(stderr,"%s",param->buffer);
+		param->messages = append_message(param->messages, param->buffer);
+		
+		free_param(param);
+		exit(EXIT_FAILURE);
 	}
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 	
@@ -1292,8 +1330,11 @@ struct model_bag* run_pHMM(struct arch_bag* ab,struct model_bag* mb,struct read_
 		}
 		
 		if (rc) {
-			fprintf(stderr,"ERROR; return code from pthread_create() is %d\n", rc);
-			exit(-1);
+			sprintf(param->buffer,"ERROR; return code from pthread_create() is %d\n", rc);
+			fprintf(stderr,"%s",param->buffer);
+			param->messages = append_message(param->messages, param->buffer);
+			free_param(param);
+			exit(EXIT_FAILURE );
 		}
 	}
 	
@@ -1302,8 +1343,11 @@ struct model_bag* run_pHMM(struct arch_bag* ab,struct model_bag* mb,struct read_
 	for (t = 0;t < param->num_threads;t++){
 		rc = pthread_join(threads[t], NULL);
 		if (rc){
-			fprintf(stderr,"ERROR; return code from pthread_join()is %d\n", rc);
-			exit(-1);
+			sprintf(param->buffer,"ERROR; return code from pthread_join()is %d\n", rc);
+			fprintf(stderr,"%s",param->buffer);
+			param->messages = append_message(param->messages, param->buffer);
+			free_param(param);
+			exit(EXIT_FAILURE );
 		}
 	}
 	
@@ -1387,8 +1431,11 @@ struct read_info** run_rna_dust(struct read_info** ri,struct parameters* param,s
 	
 	rc = pthread_attr_init(&attr);
 	if(rc){
-		fprintf(stderr,"ERROR; return code from pthread_attr_init() is %d\n", rc);
-		exit(-1);
+		sprintf(param->buffer,"ERROR; return code from pthread_attr_init() is %d\n", rc);
+		fprintf(stderr,"%s",param->buffer);
+		param->messages = append_message(param->messages, param->buffer);
+		free_param(param);
+		exit(EXIT_FAILURE);
 	}
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 	
@@ -1396,8 +1443,11 @@ struct read_info** run_rna_dust(struct read_info** ri,struct parameters* param,s
 		
 		rc = pthread_create(&threads[t], &attr, do_rna_dust, (void *) &thread_data[t]);
 		if (rc) {
-			fprintf(stderr,"ERROR; return code from pthread_create() is %d\n", rc);
-			exit(-1);
+			sprintf(param->buffer,"ERROR; return code from pthread_create() is %d\n", rc);
+			fprintf(stderr,"%s",param->buffer);
+			param->messages = append_message(param->messages, param->buffer);
+			free_param(param);
+			exit(EXIT_FAILURE);
 		}
 	}
 	
@@ -1406,8 +1456,11 @@ struct read_info** run_rna_dust(struct read_info** ri,struct parameters* param,s
 	for (t = 0;t < param->num_threads;t++){
 		rc = pthread_join(threads[t], NULL);
 		if (rc){
-			fprintf(stderr,"ERROR; return code from pthread_join()is %d\n", rc);
-			exit(-1);
+			sprintf(param->buffer,"ERROR; return code from pthread_join() is %d\n", rc);
+			fprintf(stderr,"%s",param->buffer);
+			param->messages = append_message(param->messages, param->buffer);
+			free_param(param);
+			exit(EXIT_FAILURE);
 		}
 	}
 	
@@ -2794,7 +2847,7 @@ void* do_run_random_sequences(void *threadarg)
 			if(bar == -1){
 				reverse_sequence(ri[i]->seq,  ri[i]->len);
 			}
-			fprintf(stderr,"%f	%f	%f	%f\n",mb->f_score,mb->b_score,mb->r_score,mb->f_score-mb->b_score  );
+			//fprintf(stderr,"%f	%f	%f	%f\n",mb->f_score,mb->b_score,mb->r_score,mb->f_score-mb->b_score  );
 			pbest = logsum(mb->f_score, mb->r_score);
 			
 			pbest = 1.0 - scaledprob2prob(  (ri[i]->bar_prob + mb->f_score) - pbest);
@@ -4287,14 +4340,11 @@ struct model* init_model_according_to_read_structure(struct model* model,struct 
 				col->transition[MD] = prob2scaledprob(base_error * indel_freq) +  prob2scaledprob(0.5)+ prob2scaledprob(0.99f);
 				col->transition[MSKIP] = prob2scaledprob(0.01f);
 				
-				col->transition[II] = prob2scaledprob(1.0 - 0.999)+ prob2scaledprob(0.99f);
-				col->transition[IM] = prob2scaledprob(0.999)+ prob2scaledprob(0.99f);
+				col->transition[II] = prob2scaledprob(1.0 - 0.999) + prob2scaledprob(0.99f);
+				col->transition[IM] = prob2scaledprob(0.999) + prob2scaledprob(0.99f);
 				col->transition[ISKIP] = prob2scaledprob(0.01f);
-			
 			}
-			
 		}
-		
 		model->skip = prob2scaledprob(0.01);
 	}
 

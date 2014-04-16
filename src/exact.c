@@ -179,6 +179,9 @@ void exact_controller(struct parameters* param,int (*fp)(struct read_info** ,str
 		if(ri[i]->qual){
 			free(ri[i]->qual );
 		}
+		if(ri[i]->labels){
+			free(ri[i]->labels);
+		}
 		
 		free(ri[i]);
 	}

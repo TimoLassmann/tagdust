@@ -131,7 +131,7 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 	
 	free_model_bag(mb);
 	
-	fprintf(stderr,"%d	%d\n",readnum, num_test_sequences);
+	//fprintf(stderr,"%d	%d\n",readnum, num_test_sequences);
 	
 	param->sequencer_error_rate = 0.05;
 	
@@ -147,7 +147,11 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 		}
 	}
 	if(j){
-		fprintf(stderr,"Long sequence found. Need to realloc model...\n");
+		sprintf(param->buffer,"Long sequence found. Need to realloc model...\n");
+		fprintf(stderr,"%s",param->buffer);
+		param->messages = append_message(param->messages, param->buffer);
+		
+		
 		free_model_bag(mb);
 		
 		mb = init_model_bag(param, ssi);
@@ -261,9 +265,6 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 		
 		tmp = (P_o - P_e) / (1.0 - P_e);
 		
-		if(i < 100){
-			fprintf(stderr,"TP:%0.0f	FP:%0.0f	FN:%0.0f	TN:%0.0f	%0.0f(%d)	ACC:%0.3f	T:%0.3f	P:%0.3f	K:%0.5f\n",TP,FP,FN,TN,TP+FP+FN+TN,readnum, (TP+TN)/(double)readnum, (TP+FN) / (double)readnum   ,(TP+FP) / (double)readnum  ,tmp);
-		}
 		
 		if(tmp > kappa ){
 			
@@ -323,6 +324,7 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 		if(ri[i]->cigar){
 			free(ri[i]->cigar);
 		}
+		
 		if(ri[i]->md){
 			free(ri[i]->md);
 		}

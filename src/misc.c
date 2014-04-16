@@ -272,6 +272,54 @@ int binsearch_up(const char*p,const char** suffix,int h,int len)
 
 
 
+char* append_message(char* old_message, char* new_message)
+{
+	static size_t message_len = 0;
+	struct tm *ptr;
+	
+	char time_string[200];
+	int hour;
+	char am_or_pm;
+	time_t current = time(NULL);
+	ptr = localtime(&current);
+	hour = ptr->tm_hour;
+	if (hour <= 11)
+		am_or_pm = 'a';
+	else {
+		hour -= 12;
+		am_or_pm = 'p';
+	}
+	if (hour == 0){
+		hour = 12;
+	}
+	
+	strftime(time_string, 200, "[%F %H:%M:%S]\t", ptr);
+
+	//%H:%M:%S.000
+	//sprintf(time_string,"[%.2d-%.2d-%d %2d:%.2d%cm\t",ptr->tm_mon + 1,ptr->tm_mday, ptr->tm_year + 1900,hour,ptr->tm_min, am_or_pm );
+	size_t time_len = strlen(time_string);
+	
+	size_t added_len = strlen(new_message);
+	
+	if(message_len == 0){
+		old_message = malloc(time_len+added_len+1);
+	}else{
+		old_message = realloc(old_message,  message_len + time_len+added_len + 1);
+
+	}
+	
+	
+		//char *concat = (char*) malloc(len1 + len2 + 1);
+	memcpy(old_message+message_len, time_string, time_len+1);
+	
+	memcpy(old_message+message_len+time_len, new_message, added_len+1);
+	message_len =strlen(old_message);
+
+	
+	return old_message;
+}
+
+
 /** \fn int qsort_string_cmp(const void *a, const void *b)
  \brief Compares two strings. 
  Used to sort arrays of string using qsort.   
