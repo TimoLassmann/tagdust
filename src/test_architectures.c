@@ -47,9 +47,7 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 		ri[i]->qual = 0;
 		ri[i]->labels = 0;
 		ri[i]->len = 0;
-		ri[i]->cigar = 0;
 		ri[i]->bar_prob = 0;
-		ri[i]->md = 0;
 		ri[i]->mapq = -1.0;
 		ri[i]->strand = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 		ri[i]->hits = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
@@ -57,8 +55,6 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 	
 	
 	struct sequence_stats_info* ssi = 0;
-	
-	
 	
 	struct arch_bag* ab = malloc(sizeof(struct arch_bag) );
 	
@@ -72,11 +68,7 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 	
 	sprintf(param->buffer,"Searching for best architecture in file '%s'\n", param->arch_file);
 	param->messages = append_message(param->messages, param->buffer);
-	
-	
-	
 	if (!(inarch = fopen( param->arch_file, "r" ))){
-		fprintf(stderr,"Cannot open file '%s'\n", param->arch_file);
 		sprintf(param->buffer,"Cannot open file '%s'\n", param->arch_file);
 		param->messages = append_message(param->messages, param->buffer);
 		free_param(param);
@@ -191,7 +183,6 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 		float sum = prob2scaledprob(0.0f);
 		for(i = 0; i < ab->num_arch;i++){
 			sum = logsum(sum, ab->arch_posterior[i]);
-			//fprintf(stderr,"%f\n", ab->arch_posterior[i]);
 		}
 		best_architecture = -1;
 		best_score = -1.0;
@@ -205,22 +196,16 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 		}
 		
 		for(i = 0; i < ab->num_arch;i++){
-			//sum = logsum(sum, ab->arch_posterior[i]);
 			if(i == best_architecture){
-				fprintf(stderr,"BEST%d:	%f	%s\n", i, ab->arch_posterior[i] ,ab->command_line[i]);
+				//fprintf(stderr,"BEST%d:	%f	%s", i, ab->arch_posterior[i] ,ab->command_line[i]);
 				sprintf(param->buffer,"Using: %s", ab->command_line[i]);
 				param->messages = append_message(param->messages, param->buffer);
 				sprintf(param->buffer,"Confidence: %0.2f\n", ab->arch_posterior[i]);
 				param->messages = append_message(param->messages, param->buffer);
-
-				
-				
 			}else{
-				fprintf(stderr,"Arch%d:	%f	%s\n", i, ab->arch_posterior[i] ,ab->command_line[i]);
+				fprintf(stderr,"Arch%d:	%f	%s", i, ab->arch_posterior[i] ,ab->command_line[i]);
 			}
-			
 		}
-		
 	}else{
 		best_architecture = 0;
 		sprintf(param->buffer,"Using: %s", ab->command_line[0]);
@@ -255,7 +240,6 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 				}
 				tmp[j] = ab->command_line[best_architecture][i];
 				j++;
-				
 			}
 			param->read_structure = assign_segment_sequences(param->read_structure, tmp , c );
 		}else{
@@ -272,15 +256,8 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 		free(ri[i]->strand);
 		free(ri[i]->hits);
 		
-		if(ri[i]->cigar){
-			free(ri[i]->cigar);
-		}
 		if(ri[i]->labels){
 			free(ri[i]->labels);
-		}
-		
-		if(ri[i]->md){
-			free(ri[i]->md);
 		}
 		if(ri[i]->name){
 			free(ri[i]->name);
@@ -294,7 +271,6 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 		
 		free(ri[i]);
 	}
-	//free(back);
 	free(ri);
 	
 	free_model_bag(mb);

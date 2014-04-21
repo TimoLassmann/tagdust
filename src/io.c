@@ -169,7 +169,6 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
 	}
 	if(!five_s0  && five_len){
 		sprintf(param->buffer,"ERROR: there seems to e not a single read containing the 5' partial sequence.\n");
-		fprintf(stderr,"%s",param->buffer);
 		param->messages = append_message(param->messages, param->buffer);
 		free_param(param);
 		exit(EXIT_FAILURE);
@@ -179,7 +178,6 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
 	
 	if(!three_s0  && three_len){
 		sprintf(param->buffer,"ERROR: there seems to e not a single read containing the 3' partial sequence.\n");
-		fprintf(stderr,"%s",param->buffer);
 		param->messages = append_message(param->messages, param->buffer);
 		free_param(param);
 		exit(EXIT_FAILURE);
@@ -188,7 +186,6 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
 	if(five_len){
 		if(five_s0 <= 1){
 			sprintf(param->buffer,"ERROR: 5' partial segment seems not to be present in the data.\n");
-			fprintf(stderr,"%s",param->buffer);
 			param->messages = append_message(param->messages, param->buffer);
 			free_param(param);
 			exit(EXIT_FAILURE);
@@ -205,7 +202,6 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
 		//fprintf(stderr,"5: %f %f	%f\n", ssi->mean_5_len,  ssi->stdev_5_len,five_s0);
 		if(ssi->mean_5_len <= 1){
 			sprintf(param->buffer,"ERROR: 5' partial segment seems not to be present in the data (length < 1).\n");
-			fprintf(stderr,"%s",param->buffer);
 			param->messages = append_message(param->messages, param->buffer);
 			free_param(param);
 			exit(EXIT_FAILURE);
@@ -219,7 +215,6 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
 	if(three_len){
 		if(three_s0 <= 1){
 			sprintf(param->buffer,"ERROR: 3' partial segment seems not to be present in the data.\n");
-			fprintf(stderr,"%s",param->buffer);
 			param->messages = append_message(param->messages, param->buffer);
 			free_param(param);
 			exit(EXIT_FAILURE);
@@ -230,10 +225,10 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
 		if(ssi->stdev_3_len < 1){
 			ssi->stdev_3_len = 1;
 		}
-		fprintf(stderr,"3: %f %f	%f\n", ssi->mean_3_len,  ssi->stdev_3_len,three_s0);
+		//fprintf(stderr,"3: %f %f	%f\n", ssi->mean_3_len,  ssi->stdev_3_len,three_s0);
 		if(ssi->mean_3_len <= 1){
 			sprintf(param->buffer,"ERROR: 3' partial segment seems not to be present in the data (length < 1).\n");
-			fprintf(stderr,"%s",param->buffer);
+		//	fprintf(stderr,"%s",param->buffer);
 			param->messages = append_message(param->messages, param->buffer);
 			free_param(param);
 			exit(EXIT_FAILURE);
@@ -298,6 +293,35 @@ int qsort_ri_prob_compare(const void *a, const void *b)
 	
 	else
 		return 0;
+}
+
+
+
+
+/** \fn int qsort_ri_prob_compare(const void *a, const void *b)
+ \brief Compares reads based their probability.
+ Used to sort arrays of string using qsort.
+ \param a void pointer to first @ref read_info.
+ \param b void pointer to second @ref read_info.
+ */
+int qsort_ri_bar_prob_compare(const void *a, const void *b)
+{
+	
+	//struct mys **a = (struct mys **)i1;
+	//struct mys **b = (struct mys **)i2;
+	//return (*b)->id - (*a)->id;
+	
+	const struct read_info **elem1 = (const struct read_info**) a;
+	
+	const struct read_info **elem2 = (const struct read_info**) b;
+	
+	if ( (*elem1)->bar_prob <  (*elem2)->bar_prob){
+		return -1;
+	}else if ((*elem1)->bar_prob > (*elem2)->bar_prob){
+		return 1;
+	}else{
+		return 0;
+	}
 }
 
 /** \fn int qsort_ri_prob_compare(const void *a, const void *b)
@@ -412,7 +436,6 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 	
 	if(param->gzipped && gzcat == -1){
 		sprintf(param->buffer,"Cannot find gzcat / zcat on your system. Try gzcat <infile> | samstat -f sam/bam/fa/fq\n");
-		fprintf(stderr,"%s",param->buffer);
 		param->messages = append_message(param->messages, param->buffer);
 		free_param(param);
 		exit(EXIT_FAILURE);
@@ -496,7 +519,6 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 			}
 			if (!(file = popen(command, "r"))) {
 				sprintf(param->buffer,"Cannot open bam file '%s' with command:%s\n",param->infile[file_num],command);
-				fprintf(stderr,"%s",param->buffer);
 				param->messages = append_message(param->messages, param->buffer);
 				free_param(param);
 				exit(EXIT_FAILURE);
@@ -531,7 +553,6 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 			}
 			if (!(file = popen(command, "r"))) {
 				sprintf(param->buffer,"Cannot open bam file '%s' with command:%s\n",param->infile[file_num],command);
-				fprintf(stderr,"%s",param->buffer);
 				param->messages = append_message(param->messages, param->buffer);
 				free_param(param);
 				exit(EXIT_FAILURE);
@@ -555,7 +576,6 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 			//fprintf(stderr,"%s\n",command);
 			if (!(file = popen(command, "r"))) {
 				sprintf(param->buffer,"Cannot open bam file '%s' with command:%s\n",param->infile[file_num],command);
-				fprintf(stderr,"%s",param->buffer);
 				param->messages = append_message(param->messages, param->buffer);
 				free_param(param);
 				exit(EXIT_FAILURE);
@@ -816,10 +836,7 @@ void print_seq(struct read_info* ri,FILE* out)
 			
 			break;
 		}
-	//	fprintf(stderr,"%d ", ri->seq[i]);
 	}
-	//fprintf(stderr,"\nREADNAME:%d\n",print_segment_name);
-	//start = stop;
 	if(print_segment_name){
 		//if we have a multiread scroll to the first read if starting with 65....
 		while(ri->seq[start] == 65 && start < ri->len){
@@ -827,8 +844,6 @@ void print_seq(struct read_info* ri,FILE* out)
 		
 		}
 	}
-
-	
 	
 	while(stop != ri->len){
 		last = 0;
@@ -843,8 +858,6 @@ void print_seq(struct read_info* ri,FILE* out)
 		if(!last){
 			stop = ri->len;
 		}
-		//fprintf(stderr,"%d->%d\n",start,stop);
-		//if(i != stop){
 		if(print_segment_name){
 			fprintf(out,"@%sRS:%d\n",ri->name,segment);
 		}else{
@@ -854,7 +867,6 @@ void print_seq(struct read_info* ri,FILE* out)
 		for(i = start; i < stop;i++){
 			fprintf(out,"%c",alphabet[(int) ri->seq[i]]);
 		}
-		
 		fprintf(out,"\n+\n");
 		if(ri->qual){
 			for(i =start;i < stop;i++){
@@ -871,7 +883,6 @@ void print_seq(struct read_info* ri,FILE* out)
 		start = stop;
 		while(ri->seq[start] == 65 && start < ri->len){
 			start++;
-			
 		}
 		
 		if(segment > 100){
@@ -906,21 +917,13 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file)
 		free(ri[i]->qual);
 		free(ri[i]->labels);
 		
-		if(ri[i]->cigar){
-			free(ri[i]->cigar);
-		}
-		if(ri[i]->md){
-			free(ri[i]->md);
-		}
 		
 				
 		ri[i]->seq = 0;
 		ri[i]->name = 0;
 		ri[i]->qual = 0;
 		ri[i]->len = 0;
-		ri[i]->errors = -1;
-		ri[i]->cigar = 0;
-		ri[i]->md = 0;
+		ri[i]->read_type = -1;
 		ri[i]->mapq = -1;
 		
 	}
@@ -977,24 +980,7 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file)
 							
 							break;
 						case 6: //  <CIGAR>
-							tmp = 0;
-							for(j = i+1;j < MAX_LINE;j++){
-								tmp++;
-								if(isspace((int)line[j])){
-									break;
-								}
-							}
 							
-							ri[c]->cigar = malloc(sizeof(unsigned char)* tmp);
-							g = 0;
-							for(j = i+1;j < MAX_LINE;j++){
-								if(isspace((int)line[j])){
-									ri[c]->cigar[g] = 0;
-									break;
-								}
-								ri[c]->cigar[g] = line[j];
-								g++;
-							}
 							break;
 						case 7: //  <MRNM>
 							break;
@@ -1061,33 +1047,12 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file)
 			}
 			tmp = byg_end("NM:i:", line  );
 			if(tmp){
-				ri[c]->errors = atoi(line+tmp);				
+				ri[c]->read_type = atoi(line+tmp);
 			}else{
-				ri[c]->errors = -1;								
+				ri[c]->read_type = -1;
 			}	
 			
-			tmp = byg_end("MD:Z:", line  );
-			if(tmp){
-				g = 0;
-				for(j = tmp ;j < MAX_LINE;j++){
-					g++;
-					if(isspace((int)line[j])){
-						break;
-					}
-					
-				}
-				ri[c]->md = malloc(sizeof(unsigned char)* g);
-				g = 0;
-				for(j = tmp ;j < MAX_LINE;j++){
-					
-					if(isspace((int)line[j])){
-						ri[c]->md[g] = 0;
-						break;
-					}
-					ri[c]->md[g] = line[j];
-					g++;
-				}
-			}
+			
 			
 			
 			
@@ -1102,6 +1067,10 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file)
 	}
 	return c;
 }
+
+//FASTQ files from CASAVA-1.8 Should have the following READ-ID format:
+//@<instrument>:<run number>:<flowcell ID>:<lane>:<tile>:<x-pos>:<y-pos> <read>:<is filtered>:<control number>:<index sequence>
+
 
 
 /** \fn int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
@@ -1135,10 +1104,8 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
 		ri[i]->qual = 0;
 		ri[i]->labels = 0;
 		ri[i]->len = 0;
-		ri[i]->md = 0;
 		//ri[i]->xp = 0;
-		ri[i]->cigar = 0;
-		ri[i]->errors = 0;
+		ri[i]->read_type = 0;
 		ri[i]->mapq = -1;
 		//ri[i]->read_start = -1;
 		//ri[i]->read_end = -1;

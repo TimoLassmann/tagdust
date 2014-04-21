@@ -526,9 +526,7 @@ void simulation_for_benchmark(struct parameters* param)
 		ri[i]->qual = 0;
 		ri[i]->labels = 0;
 		ri[i]->len = 0;
-		ri[i]->cigar = 0;
 		ri[i]->bar_prob = 0;
-		ri[i]->md = 0;
 		ri[i]->strand = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 		ri[i]->hits = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 	}
@@ -894,13 +892,13 @@ void simulation_for_benchmark(struct parameters* param)
 	sprintf (outfile, "%s/%sbtrimout.fq",dp,runid );
 	if( access( outfile, F_OK ) != -1 ) {
 		evalres=  get_results(evalres, param, outfile, "BTRIM");
-		unlink(outfile);
+	//	unlink(outfile);
 	}
 	//exit(0);
 	sprintf (outfile, "%s/%sAdapterRemovalout.fq",dp,runid );
 	if( access( outfile, F_OK ) != -1 ) {
 		evalres=  get_results(evalres, param, outfile, "AdapterRemoval");
-		unlink(outfile);
+	//	unlink(outfile);
 	}
 	
 		
@@ -908,25 +906,25 @@ void simulation_for_benchmark(struct parameters* param)
 	sprintf (outfile, "%s/%stagdustout.fq",dp,runid);
 	if( access( outfile, F_OK ) != -1 ) {
 		evalres=  get_results(evalres, param, outfile, "TagDust");
-		unlink(outfile);
+	//	unlink(outfile);
 	}
 	
 	sprintf (outfile, "%s/%sfastxout.fq",dp,runid);
 	if( access( outfile, F_OK ) != -1 ) {
 		evalres=  get_results(evalres, param, outfile, "FASTX");
-		unlink(outfile);
+	//	unlink(outfile);
 	}
 	
 	sprintf (outfile, "%s/%scutadaptfastxout.fq",dp,runid);
 	if( access( outfile, F_OK ) != -1 ) {
 		evalres=  get_results(evalres, param, outfile, "CUTADAPTFASTX");
-		unlink(outfile);
+	//	unlink(outfile);
 	}
 	
 	sprintf (outfile, "%s/%scutadaptout.fq",dp,runid);
 	if( access( outfile, F_OK ) != -1 ) {
 		evalres=  get_results(evalres, param, outfile, "CUTADAPT");
-		unlink(outfile);
+	//	unlink(outfile);
 	}
 	//exit(0);
 
@@ -937,7 +935,7 @@ void simulation_for_benchmark(struct parameters* param)
 		//fprintf(stderr,"DELETING: %s\n",outfile);
 		if( access( outfile, F_OK ) != -1 ) {
 			fprintf(stderr,"DELETING: %s\n",outfile);
-			c = unlink(outfile);
+	//		c = unlink(outfile);
 		//	fprintf(stderr,"%d\n",c);
 		}
 		sprintf (outfile, "%s/%sfastxBC%d",dp,runid,i);
@@ -945,7 +943,7 @@ void simulation_for_benchmark(struct parameters* param)
 		//fprintf(stderr,"DELETING: %s\n",outfile);
 		if( access( outfile, F_OK ) != -1 ) {
 			fprintf(stderr,"DELETING: %s\n",outfile);
-			c = unlink(outfile);
+	//		c = unlink(outfile);
 		//	fprintf(stderr,"%d\n",c);
 		}
 		
@@ -955,27 +953,27 @@ void simulation_for_benchmark(struct parameters* param)
 	sprintf (outfile, "%s/%sfastxunmatched",dp,runid);
 	if( access( outfile, F_OK ) != -1 ) {
 		fprintf(stderr,"DELETING: %s\n",outfile);
-		c = unlink(outfile);
+	//	c = unlink(outfile);
 		//fprintf(stderr,"%d\n",c);
 	}
 	//54F01FF5fastxunmatched
 	
 	sprintf (outfile, "%s/%sread.fq",dp,runid);
 	if( access( outfile, F_OK ) != -1 ) {
-		c = unlink(outfile);
+	//	c = unlink(outfile);
 	}
 	
 	sprintf (outfile, "%s/%sfastxbarcodefile.txt",dp,runid);
 	if( access( outfile, F_OK ) != -1 ) {
-		c = unlink(outfile);
+	//	c = unlink(outfile);
 	}
 	
 	sprintf (outfile, "%s/%sbtrim_pattern.txt",dp,runid);
 	if( access( outfile, F_OK ) != -1 ) {
-		c = unlink(outfile);
+	//	c = unlink(outfile);
 	}
 
-	rmdir(basedir);
+	//rmdir(basedir);
 
 	free(sequenced_read_mutated);
 	free(sequenced_read);
@@ -987,12 +985,7 @@ void simulation_for_benchmark(struct parameters* param)
 		free(ri[i]->strand);
 		free(ri[i]->hits);
 		
-		if(ri[i]->cigar){
-			free(ri[i]->cigar);
-		}
-		if(ri[i]->md){
-			free(ri[i]->md);
-		}
+		
 		if(ri[i]->name){
 			free(ri[i]->name);
 		}
@@ -1050,7 +1043,6 @@ struct eval_results* get_results(struct eval_results* eval,struct parameters* pa
 	eval->num_wrong_bc = 0;
 	if ((file = fopen(filename, "r")) == NULL){
 		sprintf(param->buffer,"can't open output\n");
-		fprintf(stderr,"%s",param->buffer);
 		param->messages = append_message(param->messages, param->buffer);
 		free_param(param);
 		exit(EXIT_FAILURE);
@@ -1067,9 +1059,7 @@ struct eval_results* get_results(struct eval_results* eval,struct parameters* pa
 		ri[i]->qual = 0;
 		ri[i]->labels = 0;
 		ri[i]->len = 0;
-		ri[i]->cigar = 0;
 		ri[i]->bar_prob = 0;
-		ri[i]->md = 0;
 		ri[i]->strand = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 		ri[i]->hits = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 	}
@@ -1211,7 +1201,6 @@ struct eval_results* get_results(struct eval_results* eval,struct parameters* pa
 	
 	if ((file = fopen(orgread, "a")) == NULL){
 		sprintf(param->buffer,"can't open output\n");
-		fprintf(stderr,"%s",param->buffer);
 		param->messages = append_message(param->messages, param->buffer);
 		free_param(param);
 		exit(EXIT_FAILURE);
@@ -1295,12 +1284,6 @@ struct eval_results* get_results(struct eval_results* eval,struct parameters* pa
 		free(ri[i]->strand);
 		free(ri[i]->hits);
 		
-		if(ri[i]->cigar){
-			free(ri[i]->cigar);
-		}
-		if(ri[i]->md){
-			free(ri[i]->md);
-		}
 		if(ri[i]->name){
 			free(ri[i]->name);
 		}

@@ -86,8 +86,6 @@ void exact_controller(struct parameters* param,int (*fp)(struct read_info** ,str
 		ri[i]->qual = 0;
 		ri[i]->labels = 0;
 		ri[i]->len = 0;
-		ri[i]->cigar = 0;
-		ri[i]->md = 0;
 		//ri[i]->xp = 0;
 		ri[i]->strand = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 		ri[i]->hits = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
@@ -164,12 +162,6 @@ void exact_controller(struct parameters* param,int (*fp)(struct read_info** ,str
 		free(ri[i]->strand);
 		free(ri[i]->hits);
 		
-		if(ri[i]->cigar){
-			free(ri[i]->cigar);
-		}
-		if(ri[i]->md){
-			free(ri[i]->md);
-		}
 		if(ri[i]->name){
 			free(ri[i]->name);
 		}

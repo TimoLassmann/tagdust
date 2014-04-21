@@ -271,8 +271,6 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 				param->dust = atoi(optarg);
 				break;
 			case 'l':
-				param->log = optarg;
-				break;
 			case 'L':
 				param->log = optarg;
 				break;
@@ -363,7 +361,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	
 	
 	if(c >= 2){
-		param->multiread = 1;
+		param->multiread = c;
 	}
 	/*if(!c  && param->sim == 0){
 		fprintf(stderr,"ERROR: no read segment specified!%d\n",param->read_structure->num_segments);
@@ -372,11 +370,26 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}*/
 	
+	
+	
+	
 	if(help){
 		usage();
 		free(param);
 		exit(EXIT_SUCCESS);
 	}
+	if(param->reference_fasta || param->dust){
+		if(param->multiread){
+			sprintf(param->buffer,"ERROR: cannot dust or filter sequences by comparison to a known sequence if multiple reads are present in one input seqeunce.\n");
+			param->messages = append_message(param->messages, param->buffer);
+			free_param(param);
+			exit(EXIT_FAILURE);
+
+			
+		}
+	//param->messages = append_message(param->messages, param->buffer );
+	}
+	
 	param->infile = malloc(sizeof(char*)* (argc-optind));
 	
 	c = 0;
@@ -502,7 +515,7 @@ void free_param(struct parameters* param)
 {
 	char logfile[200];
 	FILE* outfile = 0;
-	if(param->outfile){
+	if(param->log){
 		sprintf (logfile, "%s/tagdust_log.txt",param->log);
 		if ((outfile = fopen( logfile, "w")) == NULL){
 			fprintf(stderr,"can't open logfile\n");
@@ -533,7 +546,6 @@ int QC_read_structure(struct parameters* param )
 		if(read_structure->sequence_matrix[i]){
 			if(last +1 != i){
 				sprintf(param->buffer,"ERROR: a hmm building lock was skipped??\n");
-				fprintf(stderr,"%s",param->buffer);
 				param->messages = append_message(param->messages, param->buffer);
 
 				return 1;
@@ -545,11 +557,9 @@ int QC_read_structure(struct parameters* param )
 					if(strlen(read_structure->sequence_matrix[i][g]) != strlen(read_structure->sequence_matrix[i][f])){
 						
 						sprintf(param->buffer,"ERROR: the sequences in the same segment have to have the same length.\n");
-						fprintf(stderr,"%s",param->buffer);
 						param->messages = append_message(param->messages, param->buffer);
 						
 						sprintf(param->buffer,"Segment %d\n%s	%d\n%s	%d\n",read_structure->numseq_in_segment[i], read_structure->sequence_matrix[i][g],g, read_structure->sequence_matrix[i][f],f );
-						fprintf(stderr,"%s",param->buffer);
 						param->messages = append_message(param->messages, param->buffer);
 						
 						
@@ -589,7 +599,6 @@ int QC_read_structure(struct parameters* param )
 			if(min_error != 1000){
 				fprintf(stderr,"Minumum edit distance among barcodes: %d, %d pairs\n", min_error,num_pairs);
 				
-				sprintf(param->buffer,"Minumum edit distance among barcodes: %d, %d pairs\n", min_error,num_pairs);
 				param->messages = append_message(param->messages, param->buffer);
 
 				

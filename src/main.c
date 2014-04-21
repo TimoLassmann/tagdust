@@ -96,7 +96,7 @@ int main (int argc,char * argv[]) {
 	param = interface(param,argc,argv);
 	
 	
-	sprintf(param->buffer,"Start Run\n---------------------------------------------\n");
+	sprintf(param->buffer,"Start Run\n--------------------------------------------------\n");
 	param->messages = append_message(param->messages, param->buffer);
 
 	

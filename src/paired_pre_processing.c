@@ -111,9 +111,7 @@ void concatenate_reads(struct parameters* param,int (*fp)(struct read_info** ,st
 		ri1[i]->qual = 0;
 		ri1[i]->labels = 0;
 		ri1[i]->len = 0;
-		ri1[i]->cigar = 0;
 		ri1[i]->bar_prob = 0;
-		ri1[i]->md = 0;
 		ri1[i]->mapq = -1.0;
 		ri1[i]->strand = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 		ri1[i]->hits = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
@@ -124,9 +122,7 @@ void concatenate_reads(struct parameters* param,int (*fp)(struct read_info** ,st
 		ri2[i]->qual = 0;
 		ri2[i]->labels = 0;
 		ri2[i]->len = 0;
-		ri2[i]->cigar = 0;
 		ri2[i]->bar_prob = 0;
-		ri2[i]->md = 0;
 		ri2[i]->mapq = -1.0;
 		ri2[i]->strand = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 		ri2[i]->hits = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
@@ -158,7 +154,6 @@ void concatenate_reads(struct parameters* param,int (*fp)(struct read_info** ,st
 	if(param->outfile){
 		if ((outfile = fopen( param->outfile, "w")) == NULL){
 			sprintf(param->buffer,"can't open output\n");
-			fprintf(stderr,"%s",param->buffer);
 			param->messages = append_message(param->messages, param->buffer);
 			free_param(param);
 			exit(EXIT_FAILURE);
@@ -175,7 +170,6 @@ void concatenate_reads(struct parameters* param,int (*fp)(struct read_info** ,st
 		numseq2 = fp(ri2, param,file2);
 		if(numseq1 != numseq2){
 			sprintf(param->buffer,"Two files seem to be of different length.\n");
-			fprintf(stderr,"%s",param->buffer);
 			param->messages = append_message(param->messages, param->buffer);
 			free_param(param);
 			exit(EXIT_FAILURE);
@@ -192,7 +186,6 @@ void concatenate_reads(struct parameters* param,int (*fp)(struct read_info** ,st
 			}
 			if(strcmp(ri1[i]->name,ri2[i]->name)){
 				sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",ri1[i]->name,ri2[i]->name );
-				fprintf(stderr,"%s",param->buffer);
 				param->messages = append_message(param->messages, param->buffer);
 				free_param(param);
 				exit(EXIT_FAILURE);
@@ -257,19 +250,7 @@ void concatenate_reads(struct parameters* param,int (*fp)(struct read_info** ,st
 		free(ri2[i]->strand);
 		free(ri2[i]->hits);
 		
-		if(ri1[i]->cigar){
-			free(ri1[i]->cigar);
-		}
-		if(ri2[i]->cigar){
-			free(ri2[i]->cigar);
-		}
 		
-		if(ri1[i]->md){
-			free(ri1[i]->md);
-		}
-		if(ri2[i]->md){
-			free(ri2[i]->md);
-		}
 		
 		if(ri1[i]->name){
 			free(ri1[i]->name);
@@ -320,7 +301,6 @@ void split(struct parameters* param,int (*fp)(struct read_info** ,struct paramet
 	int j = 0;
 	if(!param->outfile){
 		sprintf(param->buffer,"You need to specify an output prefix.\n");
-		fprintf(stderr,"%s",param->buffer);
 		param->messages = append_message(param->messages, param->buffer);
 		free_param(param);
 		exit(EXIT_FAILURE);
@@ -390,9 +370,7 @@ void split(struct parameters* param,int (*fp)(struct read_info** ,struct paramet
 		ri[i]->qual = 0;
 		ri[i]->labels = 0;
 		ri[i]->len = 0;
-		ri[i]->cigar = 0;
 		ri[i]->bar_prob = 0;
-		ri[i]->md = 0;
 		ri[i]->mapq = -1.0;
 		ri[i]->strand = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 		ri[i]->hits = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
@@ -457,18 +435,12 @@ void split(struct parameters* param,int (*fp)(struct read_info** ,struct paramet
 					}
 					tmp[g] =ri[i]->name[c];
 					g++;
-					
 				}
 			}
 			tmp[g] = 0;
 			root = insert_start(root, key, tmp );
-			
-			
-			
 		}
 	}
-	
-	
 	
 	if(param->sam == 2 || param->sam == 1 || param->gzipped ){
 		pclose(file);
@@ -483,13 +455,6 @@ void split(struct parameters* param,int (*fp)(struct read_info** ,struct paramet
 	for(i = 0; i < param->num_query;i++){
 		free(ri[i]->strand);
 		free(ri[i]->hits);
-		
-		if(ri[i]->cigar){
-			free(ri[i]->cigar);
-		}
-		if(ri[i]->md){
-			free(ri[i]->md);
-		}
 		if(ri[i]->name){
 			free(ri[i]->name);
 		}
@@ -584,7 +549,6 @@ void print_split_sequences(struct rb_node* n,char* out,struct read_info** ri, st
 	FILE* infile = 0;
 	if ((outfile = fopen( filename, "w")) == NULL){
 		sprintf(param->buffer,"can't open output\n");
-		fprintf(stderr,"%s",param->buffer);
 		param->messages = append_message(param->messages, param->buffer);
 		free_param(param);
 		exit(EXIT_FAILURE);

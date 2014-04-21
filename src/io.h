@@ -60,13 +60,11 @@ struct read_info{
 	char* labels;/**<  @brief Labeling according to HMM.*/
 	unsigned int* strand;
 	unsigned int* hits;
-	char* cigar;
-	char* md;
 	float mapq;/**<  @brief Mapping Quality.*/
 	double prob;/**<  @brief Quality of read.*/
 	double bar_prob;/**< @brief Ambiguity */
 	int len;/**<  @brief Sequence length.*/
-	int errors;
+	int read_type;
 };
 
 /**
@@ -97,6 +95,7 @@ void print_sequence(struct read_info* ri,FILE* out);
 int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  struct read_info* ri,FILE* out);
 int qsort_ri_prob_compare(const void *a, const void *b);
 int qsort_ri_mapq_compare(const void *a, const void *b);
+int qsort_ri_bar_prob_compare(const void *a, const void *b);
 
 struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct read_info** ri, int file_num );
 

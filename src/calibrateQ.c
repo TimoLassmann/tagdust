@@ -42,9 +42,7 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 		ri[i]->qual = 0;
 		ri[i]->labels = 0;
 		ri[i]->len = 0;
-		ri[i]->cigar = 0;
 		ri[i]->bar_prob = 0;
-		ri[i]->md = 0;
 		ri[i]->mapq = -1.0;
 		ri[i]->strand = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 		ri[i]->hits = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
@@ -74,7 +72,7 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 	
 	for(i = 0; i < binsize*2;i++){
 		ri[readnum] = emit_read_sequence(mb, ri[readnum],ssi->average_length,&seed);
-		ri[readnum]->errors = 0;
+		ri[readnum]->read_type = 0;
 		FN++;
 		readnum++;
 	}
@@ -100,7 +98,7 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 		
 		for(i = 0; i < binsize;i++){
 			ri[readnum] = emit_read_sequence(mb, ri[readnum],ssi->average_length,&seed);
-			ri[readnum]->errors = 1;
+			ri[readnum]->read_type = 1;
 			TN++;
 			readnum++;
 			//ri[i]->prob =
@@ -118,7 +116,7 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 	
 	for(i = 0; i <  binsize ;i++){
 		ri[readnum] = emit_random_sequence(mb, ri[readnum],ssi->average_length,&seed);
-		ri[readnum]->errors = 1;
+		ri[readnum]->read_type = 1;
 		TN++;
 		
 		readnum++;
@@ -148,7 +146,6 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 	}
 	if(j){
 		sprintf(param->buffer,"Long sequence found. Need to realloc model...\n");
-		fprintf(stderr,"%s",param->buffer);
 		param->messages = append_message(param->messages, param->buffer);
 		
 		
@@ -183,7 +180,7 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 	double P_o = 0.0;
 	
 	for(i = 0; i < readnum;i++){
-		if(ri[i]->errors){
+		if(ri[i]->read_type){
 			if(ri[i]->mapq >stats[4] ){
 				stats[4]  =ri[i]->mapq;
 			}
@@ -223,7 +220,7 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 	
 	
 	for(i = 0; i < readnum;i++){
-		if(ri[i]->errors){
+		if(ri[i]->read_type){
 			FP += 1.0;
 			TN -= 1.0;
 		}else{
@@ -320,14 +317,6 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 	for(i = 0; i < num_test_sequences;i++){
 		free(ri[i]->strand);
 		free(ri[i]->hits);
-		
-		if(ri[i]->cigar){
-			free(ri[i]->cigar);
-		}
-		
-		if(ri[i]->md){
-			free(ri[i]->md);
-		}
 		if(ri[i]->name){
 			free(ri[i]->name);
 		}

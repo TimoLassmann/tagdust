@@ -91,9 +91,7 @@ void filter_controller(struct parameters* param, int file_num)
 		ri[i]->qual = 0;
 		ri[i]->labels = 0;
 		ri[i]->len = 0;
-		ri[i]->cigar = 0;
 		ri[i]->bar_prob = 0;
-		ri[i]->md = 0;
 		ri[i]->mapq = -1.0;
 		ri[i]->strand = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 		ri[i]->hits = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
@@ -123,7 +121,6 @@ void filter_controller(struct parameters* param, int file_num)
 	if(param->outfile){
 		if ((outfile = fopen( param->outfile, "w")) == NULL){
 			sprintf(param->buffer,"can't open output file: %s\n",  param->outfile);
-			fprintf(stderr,"%s",param->buffer);
 			param->messages = append_message(param->messages, param->buffer);
 			free_param(param);
 			exit(EXIT_FAILURE);
@@ -137,7 +134,6 @@ void filter_controller(struct parameters* param, int file_num)
 		
 		if ((artifact_file = fopen( param->print_artifact, "w")) == NULL){
 			sprintf(param->buffer,"can't open artifact file: %s\n",  param->print_artifact);
-			fprintf(stderr,"%s",param->buffer);
 			param->messages = append_message(param->messages, param->buffer);
 			free_param(param);
 			exit(EXIT_FAILURE);
@@ -277,14 +273,9 @@ void filter_controller(struct parameters* param, int file_num)
 		free(ri[i]->strand);
 		free(ri[i]->hits);
 		
-		if(ri[i]->cigar){
-			free(ri[i]->cigar);
-		}
+		
 		if(ri[i]->labels){
 			free(ri[i]->labels);
-		}
-		if(ri[i]->md){
-			free(ri[i]->md);
 		}
 		if(ri[i]->name){
 			free(ri[i]->name);
@@ -365,9 +356,7 @@ void hmm_controller(struct parameters* param,int file_num)
 		ri[i]->qual = 0;
 		ri[i]->labels = 0;
 		ri[i]->len = 0;
-		ri[i]->cigar = 0;
 		ri[i]->bar_prob = 0;
-		ri[i]->md = 0;
 		ri[i]->mapq = -1.0;
 		ri[i]->strand = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 		ri[i]->hits = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
@@ -451,7 +440,6 @@ void hmm_controller(struct parameters* param,int file_num)
 	if(param->outfile){
 		if ((outfile = fopen( param->outfile, "w")) == NULL){
 			sprintf(param->buffer,"can't open output file: %s\n",  param->outfile);
-			fprintf(stderr,"%s",param->buffer);
 			param->messages = append_message(param->messages, param->buffer);
 			free_param(param);
 			exit(EXIT_FAILURE);
@@ -465,7 +453,6 @@ void hmm_controller(struct parameters* param,int file_num)
 		
 		if ((artifact_file = fopen( param->print_artifact, "w")) == NULL){
 			sprintf(param->buffer,"can't open artifact file: %s\n",  param->print_artifact);
-			fprintf(stderr,"%s",param->buffer);
 			param->messages = append_message(param->messages, param->buffer);
 			free_param(param);
 			exit(EXIT_FAILURE);
@@ -501,7 +488,6 @@ void hmm_controller(struct parameters* param,int file_num)
 		}
 		if(j){
 			sprintf(param->buffer,"Long sequence found. Need to realloc model...\n");
-			fprintf(stderr,"%s",param->buffer);
 			param->messages = append_message(param->messages, param->buffer);
 			
 			free_model_bag(mb);
@@ -512,6 +498,10 @@ void hmm_controller(struct parameters* param,int file_num)
 		
 		//	numseq = fp(ri, param,file);
 		mb =  run_pHMM(0,mb,ri,param,reference_fasta,numseq,MODE_GET_LABEL);
+		
+		qsort(ri,numseq, sizeof(struct read_info*), qsort_ri_bar_prob_compare);
+		
+		
 		li->total_read += numseq;
 		
 		for(i = 0; i < numseq;i++){
@@ -625,14 +615,9 @@ void hmm_controller(struct parameters* param,int file_num)
 		free(ri[i]->strand);
 		free(ri[i]->hits);
 		
-		if(ri[i]->cigar){
-			free(ri[i]->cigar);
-		}
+		
 		if(ri[i]->labels){
 			free(ri[i]->labels);
-		}
-		if(ri[i]->md){
-			free(ri[i]->md);
 		}
 		if(ri[i]->name){
 			free(ri[i]->name);
@@ -703,93 +688,6 @@ float model_information_content(struct model_bag*mb)
 }
 
 
-
-/** \fn double set_Q_threshold(struct model_bag* mb, struct read_info** ri, int numseq)
- 
- \brief Sets the confidence threshold based on comparison of Q scores obtained freom real and reversed sequences.
- 
- \param mb  @ref model_bag - contains the HMM model.
-\param ri  @ref read_info - contains the reads.
-\param numseq - number of sequences.
- 
- \deprecated not used anymore - it is much more straight forward to have a propper null model.
- 
- */
-
-
-double set_Q_threshold(struct model_bag* mb, struct read_info** ri, int numseq)
-{
-	double estimated_threshold = -1.0;
-	double fdr = 0.05;
-	int i,j,c,g;
-	int extracted;
-	int real[5000];
-	int fake[5000];
-	for(i =0; i < 5000;i++){
-		real[i] = 0;
-		fake[i] = 0;
-	}
-	
-	for(i =0; i < numseq;i++){
-		
-		//fprintf(stderr,"%d	\n",i);
-		//fprintf(stderr,"%f rand	\n", mb->random_scores[i]);
-		//fprintf(stderr,"%f	 mapq\n",  ri[i]->mapq);
-		
-		if((int) (ri[i]->mapq*100.0) > 4999){
-			real[4999]++;
-		}else{
-			real[(int) (ri[i]->mapq*100.0)]++;
-		}
-		
-		if((int) (mb->random_scores[i]*100) > 4999){
-			fake[4999]++;
-		}else{
-			fake[(int) (mb->random_scores[i]*100.0)]++;
-		}
-	}
-	
-	//while(estimated_threshold == -1.0){
-		
-		c = 0; g = 0;
-		
-		j = 0;
-		extracted = 0;
-		
-		for(i = 4999; i >= 0;i--){
-			c +=real[i];
-			g += fake[i];
-			j = c+g;
-			if((float)g / (float)(c+g)  <= fdr && j >= extracted){
-				extracted = j;
-				estimated_threshold = (double)i/100.0;
-			}
-			if(real[i]+fake[i]){
-			//fprintf(stderr,"%d	%d	%d	%f	%d	%f\n", i,real[i],fake[i],  (float)g / (float)(c+g) , c+g,estimated_threshold);
-			}
-		}
-		if(estimated_threshold == -1.0){
-			fprintf(stderr,"warning - cannot find a good separation with FDR: %f\n",fdr);
-			fdr += 0.01;
-			return 1000;
-		}else{
-			fprintf(stderr,"Good separation found at FDR: %f\n",fdr);
-
-		}
-		/*if(fdr >= 0.05){
-			fprintf(stderr,"Setting threshold to 50 - cannot extract reads\n");
-			return 50;
-		}*/
-
-	//}
-	
-	//if(estimated_threshold < 10.0){
-	//	estimated_threshold = 10.0;
-	//}
-	
-
-	return estimated_threshold;
-}
 
 
 /** \fn struct model_bag* estimate_length_distribution_of_partial_segments(struct model_bag*mb,struct read_info** ri,struct parameters* param, int numseq)
@@ -862,7 +760,6 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 		if(!s0){
 			//fprintf(stderr,"ERROR: there seems to e not a single read containing the 5' partial sequence.\n");
 			sprintf(param->buffer,"ERROR: there seems to e not a single read containing the 5' partial sequence.\n");
-			fprintf(stderr,"%s",param->buffer);
 			param->messages = append_message(param->messages, param->buffer);
 			free_param(param);
 			exit(EXIT_FAILURE);
@@ -879,7 +776,6 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 		if(mean <= 1){
 			//fprintf(stderr,"
 			sprintf(param->buffer,"WARNING: 5' partial segment seems not to be present in the data (length < 1).\n");
-			fprintf(stderr,"%s",param->buffer);
 			param->messages = append_message(param->messages, param->buffer);
 			//free_param(param);
 			
@@ -992,7 +888,6 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 		}
 		if(!s0){
 			sprintf(param->buffer,"ERROR: there seems to e not a single read containing the 3' partial sequence.\n");
-			fprintf(stderr,"%s",param->buffer);
 			param->messages = append_message(param->messages, param->buffer);
 			free_param(param);
 			exit(EXIT_FAILURE);
@@ -1005,7 +900,9 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 		
 		//fprintf(stderr,"3: %f %f\n", mean,  stdev);
 		if(mean <= 1){
-			fprintf(stderr,"WARNING: 3' partial segment seems not to be present in the data (length < 1).\n");
+			sprintf(param->buffer,"WARNING: 3' partial segment seems not to be present in the data (length < 1).\n");
+			param->messages = append_message(param->messages, param->buffer);
+
 		}
 		
 		sum_prob = 0;
@@ -1301,7 +1198,6 @@ struct model_bag* run_pHMM(struct arch_bag* ab,struct model_bag* mb,struct read_
 	rc = pthread_attr_init(&attr);
 	if(rc){
 		sprintf(param->buffer,"ERROR; return code from pthread_attr_init() is %d\n", rc);
-		fprintf(stderr,"%s",param->buffer);
 		param->messages = append_message(param->messages, param->buffer);
 		
 		free_param(param);
@@ -1321,9 +1217,6 @@ struct model_bag* run_pHMM(struct arch_bag* ab,struct model_bag* mb,struct read_
 				rc = pthread_create(&threads[t], &attr, do_baum_welch_thread, (void *) &thread_data[t]);
 				break;
 				
-			case MODE_RUN_RANDOM:
-				rc = pthread_create(&threads[t], &attr, do_run_random_sequences, (void *) &thread_data[t]);
-				break;
 			case MODE_ARCH_COMP:
 				rc = pthread_create(&threads[t], &attr, do_arch_comparison, (void *) &thread_data[t]);
 				break;
@@ -1331,7 +1224,6 @@ struct model_bag* run_pHMM(struct arch_bag* ab,struct model_bag* mb,struct read_
 		
 		if (rc) {
 			sprintf(param->buffer,"ERROR; return code from pthread_create() is %d\n", rc);
-			fprintf(stderr,"%s",param->buffer);
 			param->messages = append_message(param->messages, param->buffer);
 			free_param(param);
 			exit(EXIT_FAILURE );
@@ -1344,7 +1236,6 @@ struct model_bag* run_pHMM(struct arch_bag* ab,struct model_bag* mb,struct read_
 		rc = pthread_join(threads[t], NULL);
 		if (rc){
 			sprintf(param->buffer,"ERROR; return code from pthread_join()is %d\n", rc);
-			fprintf(stderr,"%s",param->buffer);
 			param->messages = append_message(param->messages, param->buffer);
 			free_param(param);
 			exit(EXIT_FAILURE );
@@ -1355,13 +1246,6 @@ struct model_bag* run_pHMM(struct arch_bag* ab,struct model_bag* mb,struct read_
 		for(i = 0; i < mb->num_models;i++){
 
 			mb->model[i] = copy_estimated_parameter(mb->model[i], thread_data[t].mb->model[i]);
-		}
-	}
-	if(mode == MODE_RUN_RANDOM){
-		for (t = 0;t < param->num_threads;t++){
-			for(i = thread_data[t].start; i <  thread_data[t].end;i++){
-				mb->random_scores[i] = thread_data[t].mb->random_scores[i];
-			}
 		}
 	}
 	
@@ -1432,7 +1316,6 @@ struct read_info** run_rna_dust(struct read_info** ri,struct parameters* param,s
 	rc = pthread_attr_init(&attr);
 	if(rc){
 		sprintf(param->buffer,"ERROR; return code from pthread_attr_init() is %d\n", rc);
-		fprintf(stderr,"%s",param->buffer);
 		param->messages = append_message(param->messages, param->buffer);
 		free_param(param);
 		exit(EXIT_FAILURE);
@@ -1444,7 +1327,6 @@ struct read_info** run_rna_dust(struct read_info** ri,struct parameters* param,s
 		rc = pthread_create(&threads[t], &attr, do_rna_dust, (void *) &thread_data[t]);
 		if (rc) {
 			sprintf(param->buffer,"ERROR; return code from pthread_create() is %d\n", rc);
-			fprintf(stderr,"%s",param->buffer);
 			param->messages = append_message(param->messages, param->buffer);
 			free_param(param);
 			exit(EXIT_FAILURE);
@@ -1457,7 +1339,6 @@ struct read_info** run_rna_dust(struct read_info** ri,struct parameters* param,s
 		rc = pthread_join(threads[t], NULL);
 		if (rc){
 			sprintf(param->buffer,"ERROR; return code from pthread_join() is %d\n", rc);
-			fprintf(stderr,"%s",param->buffer);
 			param->messages = append_message(param->messages, param->buffer);
 			free_param(param);
 			exit(EXIT_FAILURE);
@@ -1590,6 +1471,7 @@ void* do_probability_estimation(void *threadarg)
 		
 	pthread_exit((void *) 0);
 }
+
 
 
 
@@ -1957,11 +1839,9 @@ struct read_info* emit_random_sequence(struct model_bag* mb, struct read_info* r
 	ri->qual = 0;
 	ri->labels = 0;
 	ri->len = 0;
-	ri->md = 0;
 	ri->prob = 0;
 	//ri[i]->xp = 0;
-	ri->cigar = 0;
-	ri->errors = 0;
+	ri->read_type = 0;
 	ri->seq = malloc(sizeof(char) * allocated_length);
 	assert(ri->seq != NULL);
 	
@@ -2074,11 +1954,9 @@ struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,
 	ri->qual = 0;
 	ri->labels = 0;
 	ri->len = 0;
-	ri->md = 0;
 	ri->prob = 0;
 	//ri[i]->xp = 0;
-	ri->cigar = 0;
-	ri->errors = 0;
+	ri->read_type = 0;
 	
 	
 	ri->seq = malloc(sizeof(char) * allocated_length);
@@ -2525,7 +2403,7 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 	
 	if(param->confidence_threshold <=  ri->mapq){
 		
-		if(0.5 <=  ri->bar_prob){
+		//if(0.5 <=  ri->bar_prob){
 			fingerlen = 0;
 			//required_finger_len = 0;
 			
@@ -2573,7 +2451,7 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 						strcpy(ri->name, buffer);
 						
 						ri = make_extracted_read(mb, param,ri);
-						
+						ri->bar_prob = bar;
 						//added to extract multiple reads - if present reads will be written to same string separated by 0. We can detect multireads by detectinga 0 before the length (ri->len)...
 						//if(multireadread == 1){
 						/*for(j = 0; j < s_pos;j++){
@@ -2600,6 +2478,7 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 						strcpy(ri->name, buffer);
 						
 						ri = make_extracted_read(mb, param,ri);
+						ri->bar_prob = bar;
 						/*for(j = 0; j < s_pos;j++){
 							ri->seq[j] = ri->seq[read_start+j];
 							ri->qual[j] = ri->qual[read_start+j];
@@ -2620,6 +2499,7 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 						strcpy(ri->name, buffer);
 						
 						ri = make_extracted_read(mb, param,ri);
+						ri->bar_prob = -1;
 						/*for(j = 0; j < s_pos;j++){
 							ri->seq[j] = ri->seq[read_start+j];
 							ri->qual[j] = ri->qual[read_start+j];
@@ -2638,7 +2518,7 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 					strcpy(ri->name, buffer);
 					
 					ri = make_extracted_read(mb, param,ri);
-					
+					ri->bar_prob = -1;
 					/*for(j = 0; j < s_pos;j++){
 						ri->seq[j] = ri->seq[read_start+j];
 						ri->qual[j] = ri->qual[read_start+j];
@@ -2649,9 +2529,9 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 			}else{
 				ri->prob = EXTRACT_FAIL_READ_TOO_SHORT;
 			}
-		}else{
-			ri->prob = EXTRACT_FAIL_AMBIGIOUS_BARCODE;
-		}
+		//}else{
+		//	ri->prob = EXTRACT_FAIL_AMBIGIOUS_BARCODE;
+		//}
 	}else{
 		ri->prob = EXTRACT_FAIL_ARCHITECTURE_MISMATCH;
 	}
@@ -2744,142 +2624,6 @@ void* do_baum_welch_thread(void *threadarg)
 	}
 	pthread_exit((void *) 0);
 }
-
-
-/** \fn void* do_run_random_sequences(void *threadarg)
- \brief Runs Forward and BAckward oin random sequences. 
- The read probabilities are stored in @ref model_bag. 
- 
- 
- 
- \param threadarg  A @ref thread_data object used to pass data / parameters to function.
- \deprecated We do not need this anymore. 
- 
- */
-
-void* do_run_random_sequences(void *threadarg)
-{
-	struct thread_data *data;
-	data = (struct thread_data *) threadarg;
-	
-	struct read_info** ri  = data->ri;
-	struct model_bag* mb = data->mb;
-	
-	int start = data->start;
-	int end = data->end;
-	int i,tmp;
-	int r,bar;
-	
-	int matchstart = data->param->matchstart;
-	int matchend = data->param->matchend;
-	//int c;
-	//int j;
-	//f/loat r;
-	
-	//unsigned int seed = (unsigned int) (time(NULL) * ( 42));
-	
-	
-	//fprintf(stderr," %d - %d\n", start,end);
-
-	/*float a,c,g;
-	
-	a = scaledprob2prob( mb->model[0]->background_nuc_frequency[0]);
-	
-	c = a +  scaledprob2prob(mb->model[0]->background_nuc_frequency[1]);
-	
-	g = c +  scaledprob2prob(mb->model[0]->background_nuc_frequency[2]);
-	
-	*/
-	bar = -1;
-	r = -1;
-	//switch read and barcode...
-	struct model* tmp_model = 0;
-	for(i = 0; i < mb->num_models;i++){
-		if(data->param->read_structure->type[i] == 'R'){
-			r = i;
-		}
-		if(data->param->read_structure->type[i] == 'B'){
-			bar= i;
-		}
-	}
-	if(bar != -1){
-		tmp_model = mb->model[r];
-		mb->model[r] = mb->model[bar];
-		mb->model[bar] = tmp_model;
-	}
-	
-	
-	double pbest,Q;
-	if(matchstart != -1 || matchend != -1){
-		for(i = start; i < end;i++){
-			tmp = matchend - matchstart ;
-			if(bar == -1){
-				reverse_sequence(ri[i]->seq,  ri[i]->len);
-			}
-			mb = backward(mb, ri[i]->seq + matchstart , tmp);
-			mb = forward_max_posterior_decoding(mb, ri[i] , ri[i]->seq+matchstart ,tmp );
-			if(bar == -1){
-				reverse_sequence(ri[i]->seq,  ri[i]->len);
-			}
-			
-			pbest = logsum(mb->f_score, mb->r_score);
-			pbest = 1.0 - scaledprob2prob(  (ri[i]->bar_prob + mb->f_score) - pbest);
-			if(!pbest){
-				Q = 40.0;
-			}else if(pbest == 1.0){
-				Q = 0.0;
-				
-			}else{
-				Q = -10.0 * log10(pbest) ;
-			}
-			mb->random_scores[i] = Q;
-		}
-	}else{
-		for(i = start; i < end;i++){
-		
-			
-			if(bar == -1){
-				reverse_sequence(ri[i]->seq,  ri[i]->len);
-			}
-			
-			mb = backward(mb, ri[i]->seq,ri[i]->len);
-			mb = forward_max_posterior_decoding(mb, ri[i], ri[i]->seq ,ri[i]->len);
-			if(bar == -1){
-				reverse_sequence(ri[i]->seq,  ri[i]->len);
-			}
-			//fprintf(stderr,"%f	%f	%f	%f\n",mb->f_score,mb->b_score,mb->r_score,mb->f_score-mb->b_score  );
-			pbest = logsum(mb->f_score, mb->r_score);
-			
-			pbest = 1.0 - scaledprob2prob(  (ri[i]->bar_prob + mb->f_score) - pbest);
-			if(!pbest){
-				Q = 40.0;
-			}else if(pbest == 1.0){
-				Q = 0.0;
-				
-			}else{
-				Q = -10.0 * log10(pbest) ;
-			}
-			//ri[i]->prob = Q;
-			
-			
-			
-			//fprintf(stdout,"%f\n", ri[i]->prob);
-			
-			mb->random_scores[i] = Q;
-		}
-		//mb = forward_extract_posteriors(mb, ri[i]->seq ,ri[i]->len);
-	}
-	
-	if(bar != -1){
-		tmp_model = mb->model[r];
-		mb->model[r] = mb->model[bar];
-		mb->model[bar] = tmp_model;
-	}
-	
-	
-	pthread_exit((void *) 0);
-}
-
 
 
 
@@ -4703,12 +4447,6 @@ struct model_bag* copy_model_bag(struct model_bag* org)
 	
 	assert(copy->model != NULL );
 	
-	copy->random_scores = malloc(sizeof(double) * org->num_random_scores);
-	assert(copy-> random_scores != NULL);
-
-	for(i = 0; i < org->num_random_scores;i++){
-		copy->random_scores[i] = org->random_scores[i];
-	}
 	copy->average_raw_length = org->average_raw_length;
 	copy->num_models  = org->num_models;
 	copy->total_hmm_num = org->total_hmm_num;
@@ -5207,13 +4945,6 @@ struct model_bag* init_model_bag(struct parameters* param,struct sequence_stats_
 	
 	assert(mb->model != 0);
 	
-	mb->random_scores = malloc(sizeof(double) * param->num_query);
-	mb->num_random_scores = param->num_query;
-	assert(mb->random_scores != 0);
-	
-	for(i= 0;i < mb->num_random_scores;i++){
-		mb->random_scores[i] = 0.0f;
-	}
 	
 	mb->f_score = prob2scaledprob(0.0f);
 	mb->b_score = prob2scaledprob(0.0f);
@@ -5427,7 +5158,6 @@ void free_model_bag(struct model_bag* mb)
 		free_model(mb->model[i]);
 	}
 
-	free(mb->random_scores);
 	
 	free(mb->model);// = malloc(sizeof(struct model* ) * param->read_structure->num_segments);
 	

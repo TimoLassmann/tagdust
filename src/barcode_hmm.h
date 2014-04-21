@@ -252,8 +252,8 @@ struct model_bag{
 	float** dyn_prog_matrix;/**<@brief Dyn. Prog. Matrix - used to find consistent max posterior path. */
 	float** transition_matrix;/**<@brief Transition scores - used to find consistent max posterior path. */
 	int* label; /**<@brief Hold information about HMMs.*/
-	double* random_scores;/**<@brief Holds probabilities of random / shuffled sequences. */
-	int num_random_scores;/**<@brief Number of random probabilities.*/
+	//double* random_scores;/**<@brief Holds probabilities of random / shuffled sequences. */
+	//int num_random_scores;/**<@brief Number of random probabilities.*/
 	int average_raw_length;
 	int current_dyn_length;
 	//float lambda;
@@ -335,7 +335,6 @@ void* do_baum_welch_thread(void *threadarg);
 void* do_label_thread(void *threadarg);
 void* do_rna_dust(void *threadarg);
 void* do_probability_estimation(void *threadarg);
-void* do_run_random_sequences(void *threadarg);
 void* do_arch_comparison(void *threadarg);
 
 double pi0_bootstrap(struct read_info** ri, int numseq);
@@ -358,7 +357,6 @@ struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,
 struct read_info* emit_random_sequence(struct model_bag* mb, struct read_info* ri,int average_length,unsigned int* seed );
 
 float model_information_content(struct model_bag*mb);
-double set_Q_threshold(struct model_bag* mb, struct read_info** ri, int numseq);
 
 struct hmm* set_hmm_transition_parameters(struct hmm* hmm, int len,double base_error, double indel_freq,  double mean, double stdev);
 
