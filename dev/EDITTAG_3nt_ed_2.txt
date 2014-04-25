@@ -1,0 +1,17 @@
+[3nt ed2]
+Tag0:TGC
+Tag1:AAA
+Tag2:ACC
+Tag3:AGG
+Tag4:ATT
+Tag5:CAC
+Tag6:CCA
+Tag7:CGT
+Tag8:CTG
+Tag9:GAG
+Tag10:GCT
+Tag11:GGA
+Tag12:GTC
+Tag13:TAT
+Tag14:TCG
+Tag15:TTA

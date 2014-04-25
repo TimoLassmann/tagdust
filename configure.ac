@@ -14,12 +14,30 @@ AC_ARG_ENABLE(debug,
               USE_DEBUG="$enableval", USE_DEBUG="no")
 
 if test $USE_DEBUG = yes ; then 
-  DEBUG=1
-  CFLAGS="$CFLAGS -D DEBUG -ggdb -Wall -m64 -std=gnu99"
+	DEBUG=1
+	CFLAGS="$CFLAGS -D DEBUG -ggdb -Wall -m64 -std=gnu99"
 else
- CFLAGS="$CFLAGS -O3 -Wall -m64 -std=gnu99"
-  DEBUG=0
+	CFLAGS="$CFLAGS -O3 -Wall -m64 -std=gnu99"
+	DEBUG=0
 fi
+
+AC_ARG_ENABLE(valgrind-tests,
+    [--enable-valgrind-tests run self tests under valgrind],
+    opt_valgrind_tests="$enableval", opt_valgrind_tests="no")
+    
+
+OPTS="-q --trace-children=yes --error-exitcode=1 --dsymutil=yes --leak-check=yes"
+  # Run self-tests under valgrind?
+if test "$opt_valgrind_tests" = "yes"; then
+	CFLAGS="-DDEBUG -ggdb -pedantic -Wall -m64 -std=gnu99"
+	AC_CHECK_PROGS(VALGRIND, valgrind)
+	VALGRIND="$VALGRIND $OPTS"
+else
+	VALGRIND=
+fi
+
+AC_MSG_CHECKING([whether self tests are run under valgrind])
+AC_MSG_RESULT($opt_valgrind_tests)
 
 
 # Checks for programs.
@@ -41,4 +59,18 @@ AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 
 AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([src/Makefile])
+AC_CONFIG_FILES([dev/Makefile])
 AC_OUTPUT
+
+
+echo "
+     Configuration:
+     
+     compiler: ${CFLAGS}
+     valgrind: ${VALGRIND}
+
+"
+
+
+

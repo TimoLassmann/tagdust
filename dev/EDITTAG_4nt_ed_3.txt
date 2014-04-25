@@ -1,0 +1,11 @@
+[4nt ed3]
+Tag0:TGCT
+Tag1:AAAA
+Tag2:ACCC
+Tag3:AGGG
+Tag4:ATTT
+Tag5:CACG
+Tag6:CCAT
+Tag7:CGTA
+Tag8:GAGC
+Tag9:TTAC

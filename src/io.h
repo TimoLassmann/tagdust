@@ -31,6 +31,22 @@
 
 #define SEEK_START 0
 #define SEEK_END 2
+
+
+#ifndef EXTRACTION_OUTCOMES
+
+#define EXTRACTION_OUTCOMES
+
+#define EXTRACT_SUCCESS 0
+#define EXTRACT_FAIL_BAR_FINGER_NOT_FOUND 1
+#define EXTRACT_FAIL_READ_TOO_SHORT 2
+#define EXTRACT_FAIL_AMBIGIOUS_BARCODE 3
+#define EXTRACT_FAIL_ARCHITECTURE_MISMATCH 4
+#define EXTRACT_FAIL_MATCHES_ARTIFACTS 5
+#define EXTRACT_FAIL_LOW_COMPLEXITY 6
+
+#endif
+
 /**
  * @brief Deals with fasta files. 
  *
@@ -61,10 +77,12 @@ struct read_info{
 	unsigned int* strand;
 	unsigned int* hits;
 	float mapq;/**<  @brief Mapping Quality.*/
-	double prob;/**<  @brief Quality of read.*/
+	//double prob;/**<  @brief Quality of read.*/
 	double bar_prob;/**< @brief Ambiguity */
 	int len;/**<  @brief Sequence length.*/
 	int read_type;
+	int barcode;
+	int fingerprint;
 };
 
 /**
@@ -84,7 +102,7 @@ struct sequence_stats_info{
 	
 };
 
-#include "barcode_hmm.h"
+//#include "barcode_hmm.h"
 
 
 FILE* io_handler(FILE* file, int file_num,struct parameters* param);
@@ -92,10 +110,10 @@ void print_seq(struct read_info* ri,FILE* out);
 int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file);
 int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file);
 void print_sequence(struct read_info* ri,FILE* out);
-int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  struct read_info* ri,FILE* out);
-int qsort_ri_prob_compare(const void *a, const void *b);
+//int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  struct read_info* ri,FILE* out);
 int qsort_ri_mapq_compare(const void *a, const void *b);
-int qsort_ri_bar_prob_compare(const void *a, const void *b);
+
+int qsort_ri_barcode_compare(const void *a, const void *b);
 
 struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct read_info** ri, int file_num );
 
@@ -109,6 +127,11 @@ struct fasta* get_fasta(struct fasta* p,char *infile);
 unsigned char* get_input_into_string(unsigned char* string,char* infile);
 void free_fasta(struct fasta*f);
 
+void print_split_files(struct parameters* param, struct read_info** ri, int numseq);
+
+struct read_info** malloc_read_info(struct read_info** ri, int numseq);
+struct read_info** clear_read_info(struct read_info** ri, int numseq);
+void free_read_info(struct read_info** ri, int numseq);
 
 
 

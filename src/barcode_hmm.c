@@ -80,22 +80,10 @@ void filter_controller(struct parameters* param, int file_num)
 	
 	FILE* file = 0;
 	
-	ri = malloc(sizeof(struct read_info*) * param->num_query);
 	
-	assert(ri !=0);
+	ri = malloc_read_info(ri, param->num_query );
 	
-	for(i = 0; i < param->num_query;i++){
-		ri[i] = malloc(sizeof(struct read_info));
-		ri[i]->seq = 0;
-		ri[i]->name = 0;
-		ri[i]->qual = 0;
-		ri[i]->labels = 0;
-		ri[i]->len = 0;
-		ri[i]->bar_prob = 0;
-		ri[i]->mapq = -1.0;
-		ri[i]->strand = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
-		ri[i]->hits = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
-	}
+	
 	
 	
 	struct fasta* reference_fasta = 0;
@@ -158,15 +146,12 @@ void filter_controller(struct parameters* param, int file_num)
 	
 	total_read = 0;
 	while ((numseq = fp(ri, param,file)) != 0){
-		
-		
-		
 		//	numseq = fp(ri, param,file);
 		ri =  run_rna_dust(ri,param,reference_fasta,numseq);
 		li->total_read += numseq;
 		
 		for(i = 0; i < numseq;i++){
-			switch ((int) ri[i]->prob) {
+			switch ((int) ri[i]->read_type) {
 					
 				case EXTRACT_SUCCESS:
 					print_seq(ri[i],outfile);
@@ -192,7 +177,7 @@ void filter_controller(struct parameters* param, int file_num)
 				default:
 					li->num_EXTRACT_FAIL_MATCHES_ARTIFACTS++;
 					
-					reference_fasta->mer_hash[ ((int)(ri[i]->prob) >> 8 ) -1] ++;
+					reference_fasta->mer_hash[ ((int)(ri[i]->read_type) >> 8 ) -1] ++;
 					
 					//fprintf(stderr,"Guessing it matches sequence %d (%s)\n",  ((int)(ri[i]->prob) >> 8 ) -1,reference_fasta->sn[((int)(ri[i]->prob) >> 8)-1]   ) ;
 					
@@ -201,7 +186,7 @@ void filter_controller(struct parameters* param, int file_num)
 		}
 		if(param->print_artifact){
 			for(i = 0; i < numseq;i++){
-				if ((int) ri[i]->prob != EXTRACT_SUCCESS) {
+				if ((int) ri[i]->read_type != EXTRACT_SUCCESS) {
 					print_seq(ri[i],artifact_file);
 				}
 			}
@@ -269,27 +254,8 @@ void filter_controller(struct parameters* param, int file_num)
 	
 	
 	free(li);
-	for(i = 0; i < param->num_query;i++){
-		free(ri[i]->strand);
-		free(ri[i]->hits);
-		
-		
-		if(ri[i]->labels){
-			free(ri[i]->labels);
-		}
-		if(ri[i]->name){
-			free(ri[i]->name);
-		}
-		if(ri[i]->seq){
-			free(ri[i]->seq);
-		}
-		if(ri[i]->qual){
-			free(ri[i]->qual );
-		}
-		
-		free(ri[i]);
-	}
-	free(ri);
+	
+	free_read_info(ri,param->num_query);
 	if(param->sam == 2 || param->sam == 1 || param->gzipped ){
 		pclose(file);
 	}else{
@@ -312,18 +278,12 @@ void hmm_controller(struct parameters* param,int file_num)
 {
 	struct read_info** ri = 0;
 	int (*fp)(struct read_info** ,struct parameters*,FILE* ) = 0;
-	FILE* outfile = 0;
-	FILE* artifact_file = 0;
 	
 	int i,j;
 	int numseq;
 	int total_read = 0;
 	//double sum = 0.0;
 	
-	struct tm *ptr;
-	int hour;
-	char am_or_pm;
-	char logfile[1000];
 
 		
 	init_logsum();
@@ -345,27 +305,15 @@ void hmm_controller(struct parameters* param,int file_num)
 	
 	FILE* file = 0;
 	
-	ri = malloc(sizeof(struct read_info*) * param->num_query);
-	
-	assert(ri !=0);
-	
-	for(i = 0; i < param->num_query;i++){
-		ri[i] = malloc(sizeof(struct read_info));
-		ri[i]->seq = 0;
-		ri[i]->name = 0;
-		ri[i]->qual = 0;
-		ri[i]->labels = 0;
-		ri[i]->len = 0;
-		ri[i]->bar_prob = 0;
-		ri[i]->mapq = -1.0;
-		ri[i]->strand = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
-		ri[i]->hits = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
-	}
-	
+	ri = malloc_read_info(ri, param->num_query );
+
 	
 	struct sequence_stats_info* ssi = get_sequence_stats(param, ri, file_num );
 	
-	param = estimateQthreshold(param, ssi);
+	if(! param->confidence_threshold ){
+		param = estimateQthreshold(param, ssi);
+	}
+	
 		
 	// Inits model.
 	
@@ -437,28 +385,7 @@ void hmm_controller(struct parameters* param,int file_num)
 	
 	
 	
-	if(param->outfile){
-		if ((outfile = fopen( param->outfile, "w")) == NULL){
-			sprintf(param->buffer,"can't open output file: %s\n",  param->outfile);
-			param->messages = append_message(param->messages, param->buffer);
-			free_param(param);
-			exit(EXIT_FAILURE);
-		}
-	}else{
-		outfile= stdout;
-	}
 	
-	
-	if(param->print_artifact){
-		
-		if ((artifact_file = fopen( param->print_artifact, "w")) == NULL){
-			sprintf(param->buffer,"can't open artifact file: %s\n",  param->print_artifact);
-			param->messages = append_message(param->messages, param->buffer);
-			free_param(param);
-			exit(EXIT_FAILURE);
-		}
-		
-	}
 	
 	struct log_information* li = 0;
 	
@@ -499,16 +426,16 @@ void hmm_controller(struct parameters* param,int file_num)
 		//	numseq = fp(ri, param,file);
 		mb =  run_pHMM(0,mb,ri,param,reference_fasta,numseq,MODE_GET_LABEL);
 		
-		qsort(ri,numseq, sizeof(struct read_info*), qsort_ri_bar_prob_compare);
-		
+		print_split_files(param, ri, numseq);
 		
 		li->total_read += numseq;
 		
 		for(i = 0; i < numseq;i++){
-			switch ((int) ri[i]->prob) {
+			///fprintf(stdout,"%d	%d	%d\n",i,ri[i]->read_type,ri[i]->barcode);
+			switch ((int) ri[i]->read_type) {
 					
 				case EXTRACT_SUCCESS:
-					print_seq(ri[i],outfile);
+				//	print_seq(ri[i],outfile);
 					li->num_EXTRACT_SUCCESS++;
 					break;
 				case EXTRACT_FAIL_BAR_FINGER_NOT_FOUND:
@@ -516,9 +443,6 @@ void hmm_controller(struct parameters* param,int file_num)
 					break;
 				case  EXTRACT_FAIL_READ_TOO_SHORT:
 					li->num_EXTRACT_FAIL_READ_TOO_SHORT++;
-					break;
-				case  EXTRACT_FAIL_AMBIGIOUS_BARCODE:
-					li->num_EXTRACT_FAIL_AMBIGIOUS_BARCODE++;
 					break;
 				case  EXTRACT_FAIL_ARCHITECTURE_MISMATCH:
 					li->num_EXTRACT_FAIL_ARCHITECTURE_MISMATCH++;
@@ -530,109 +454,61 @@ void hmm_controller(struct parameters* param,int file_num)
 					break;
 				default:
 					li->num_EXTRACT_FAIL_MATCHES_ARTIFACTS++;
-					
-					reference_fasta->mer_hash[ ((int)(ri[i]->prob) >> 8 ) -1] ++;
-					
-					//fprintf(stderr,"Guessing it matches sequence %d (%s)\n",  ((int)(ri[i]->prob) >> 8 ) -1,reference_fasta->sn[((int)(ri[i]->prob) >> 8)-1]   ) ;
-					
+					reference_fasta->mer_hash[ ((int)(ri[i]->read_type) >> 8 ) -1] ++;
 					break;
 			}
 		}
-		if(param->print_artifact){
-			for(i = 0; i < numseq;i++){
-				if ((int) ri[i]->prob != EXTRACT_SUCCESS) {
-					print_seq(ri[i],artifact_file);
-				}
-			}
-		}
 	}
-	if(param->print_artifact){
-		fclose(artifact_file);
-	}
+	
+	sprintf(param->buffer,"Done.\n\n");
+	param->messages = append_message(param->messages, param->buffer);
+	
+	sprintf(param->buffer,"%s	Input file name.\n",param->infile[file_num]);
+	param->messages = append_message(param->messages, param->buffer);
+	
+	sprintf(param->buffer,"%d	total input reads\n", li->total_read);
+	param->messages = append_message(param->messages, param->buffer);
+	
+	sprintf(param->buffer,"%d	selected threshold\n", (int)param->confidence_threshold);
+	param->messages = append_message(param->messages, param->buffer);
+	
+	sprintf(param->buffer,"%d	successfully extracted\n" ,li->num_EXTRACT_SUCCESS);
+	param->messages = append_message(param->messages, param->buffer);
 
-		
+	sprintf(param->buffer,"%0.1f%%	extracted\n",  (float) li->num_EXTRACT_SUCCESS / (float) li->total_read  *100.0f);
+	param->messages = append_message(param->messages, param->buffer);
 	
-	if(param->outfile){
-		fclose(outfile);
-	}
+	sprintf(param->buffer,"%d	problems with architecture\n" , li->num_EXTRACT_FAIL_ARCHITECTURE_MISMATCH);
+	param->messages = append_message(param->messages, param->buffer);
 	
+	sprintf(param->buffer,"%d	barcode / UMI not found\n" ,li->num_EXTRACT_FAIL_BAR_FINGER_NOT_FOUND);
+	param->messages = append_message(param->messages, param->buffer);
 	
-	time_t current = time(NULL);
-	ptr = localtime(&current);
-	hour = ptr->tm_hour;
-	if (hour <= 11)
-		am_or_pm = 'a';
-	else {
-		hour -= 12;
-		am_or_pm = 'p';
-	}
-	if (hour == 0){
-		hour = 12;
-	}
+	sprintf(param->buffer,"%d	too short\n" , li->num_EXTRACT_FAIL_READ_TOO_SHORT);
+	param->messages = append_message(param->messages, param->buffer);
 	
-	if(param->log){
-		sprintf (logfile, "%s/%s_tagdust_log.txt",param->log,shorten_pathname(param->infile[file_num]));
-		fprintf(stderr,"LOGFILE::::%s\n",logfile);
-		
-		if ((outfile = fopen( logfile, "w")) == NULL){
-			fprintf(stderr,"can't open output\n");
-			exit(-1);
-		}
-		
-		fprintf(outfile,"%s	Input file name.\n",param->infile[file_num]);
-		fprintf(outfile,"%.2d-%.2d-%d;%2d:%.2d%cm	Date and Time\n",ptr->tm_mon + 1,ptr->tm_mday, ptr->tm_year + 1900,hour,ptr->tm_min, am_or_pm );
-		fprintf(outfile,"%f	selected threshold\n", param->confidence_threshold);
-		
-		fprintf(outfile,"%d	total input reads\n", li->total_read);
-		
-		fprintf(outfile,"%d	successfully extracted\n" ,li->num_EXTRACT_SUCCESS);
-		fprintf(outfile,"%0.1f%%	extracted\n",  (float) li->num_EXTRACT_SUCCESS / (float) li->total_read  *100.0f);
-		fprintf(outfile,"%d	barcode / UMI not found\n" ,li->num_EXTRACT_FAIL_BAR_FINGER_NOT_FOUND);
-		fprintf(outfile,"%d	too short\n" , li->num_EXTRACT_FAIL_READ_TOO_SHORT);
-		fprintf(outfile,"%d	ambiguous barcode\n" , li->num_EXTRACT_FAIL_AMBIGIOUS_BARCODE);
-		fprintf(outfile,"%d	problems with architecture\n" , li->num_EXTRACT_FAIL_ARCHITECTURE_MISMATCH);
-		fprintf(outfile,"%d	low complexity\n" , li->num_EXTRACT_FAIL_LOW_COMPLEXITY);
-		fprintf(outfile,"%d	match artifacts:\n" , li->num_EXTRACT_FAIL_MATCHES_ARTIFACTS);
-		if(reference_fasta){
-			for(i = 0; i < reference_fasta->numseq;i++){
-				if(reference_fasta->mer_hash[i]){
-					fprintf(outfile,"%d	%s\n" , reference_fasta->mer_hash[i], reference_fasta->sn[i]);
-				}
-				
-			}
-		}
-		fclose(outfile);
-	}
+	sprintf(param->buffer,"%d	low complexity\n" , li->num_EXTRACT_FAIL_LOW_COMPLEXITY);
+	param->messages = append_message(param->messages, param->buffer);
+	
+	sprintf(param->buffer,"%d	match artifacts:\n" , li->num_EXTRACT_FAIL_MATCHES_ARTIFACTS);
+	param->messages = append_message(param->messages, param->buffer);
 	
 	if(reference_fasta){
+		for(i = 0; i < reference_fasta->numseq;i++){
+			if(reference_fasta->mer_hash[i]){
+				sprintf(param->buffer,"%d	%s\n" , reference_fasta->mer_hash[i], reference_fasta->sn[i]);
+				param->messages = append_message(param->messages, param->buffer);
+			}
+			
+		}
 		free_fasta(reference_fasta);
-	}
 
-	
+	}
+		
 	free_model_bag(mb);
 	free(li);
-	for(i = 0; i < param->num_query;i++){
-		free(ri[i]->strand);
-		free(ri[i]->hits);
-		
-		
-		if(ri[i]->labels){
-			free(ri[i]->labels);
-		}
-		if(ri[i]->name){
-			free(ri[i]->name);
-		}
-		if(ri[i]->seq){
-			free(ri[i]->seq);
-		}
-		if(ri[i]->qual){
-			free(ri[i]->qual );
-		}
-		
-		free(ri[i]);
-	}
-	//free(back);
-	free(ri);
+	
+	free_read_info(ri,param->num_query);
 	if(param->sam == 2 || param->sam == 1 || param->gzipped ){
 		pclose(file);
 	}else{
@@ -1611,7 +1487,7 @@ void* do_rna_dust(void *threadarg)
 	int i;
 	
 	for(i = start; i < end;i++){
-		ri[i]->prob =   EXTRACT_SUCCESS;
+		ri[i]->read_type =   EXTRACT_SUCCESS;
 		//ri[i] = extract_reads(mb,data->param,ri[i]);
 	}
 	
@@ -1683,7 +1559,7 @@ void* do_rna_dust(void *threadarg)
 			}
 			fprintf(stderr,"\tLOW:%f\n",s);
 #endif
-			ri[i]->prob = EXTRACT_FAIL_LOW_COMPLEXITY;
+			ri[i]->read_type = EXTRACT_FAIL_LOW_COMPLEXITY;
 		}
 	}
 	return ri;
@@ -1765,8 +1641,8 @@ Exhaustively compares reads to a fasta file of known artifact sequences. Uses a 
 		}
 		for(c = 0;c < 4;c++){
 			if(errors[c] <= error_cut){
-				if(ri[i+c]->prob == EXTRACT_SUCCESS){
-					ri[i+c]->prob  =  (sequence_id[c]  << 8) | EXTRACT_FAIL_MATCHES_ARTIFACTS;
+				if(ri[i+c]->read_type == EXTRACT_SUCCESS){
+					ri[i+c]->read_type  =  (sequence_id[c]  << 8) | EXTRACT_FAIL_MATCHES_ARTIFACTS;
 				}
 			}
 		}
@@ -1795,8 +1671,8 @@ Exhaustively compares reads to a fasta file of known artifact sequences. Uses a 
 			ri[i]->seq = (char* )reverse_complement((unsigned char* ) ri[i]->seq,   ri[i]->len);
 		}
 		if(!test){
-			if(ri[i]->prob == EXTRACT_SUCCESS){
-				ri[i]->prob  = (sequence_id[0] << 8) |  EXTRACT_FAIL_MATCHES_ARTIFACTS;
+			if(ri[i]->read_type == EXTRACT_SUCCESS){
+				ri[i]->read_type  = (sequence_id[0] << 8) |  EXTRACT_FAIL_MATCHES_ARTIFACTS;
 			}
 		}
 		i++;
@@ -1839,8 +1715,6 @@ struct read_info* emit_random_sequence(struct model_bag* mb, struct read_info* r
 	ri->qual = 0;
 	ri->labels = 0;
 	ri->len = 0;
-	ri->prob = 0;
-	//ri[i]->xp = 0;
 	ri->read_type = 0;
 	ri->seq = malloc(sizeof(char) * allocated_length);
 	assert(ri->seq != NULL);
@@ -1954,7 +1828,6 @@ struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,
 	ri->qual = 0;
 	ri->labels = 0;
 	ri->len = 0;
-	ri->prob = 0;
 	//ri[i]->xp = 0;
 	ri->read_type = 0;
 	
@@ -2270,7 +2143,7 @@ struct model_bag* estimate_model_from_labels(struct model_bag* mb, struct parame
 	int current_hmm = 0;
 	int current_segment = -1;
 	for(i =0; i < numseq;i++){
-		if(ri[i]->prob == EXTRACT_SUCCESS){
+		if(ri[i]->read_type == EXTRACT_SUCCESS){
 			current_position = 0;
 			current_hmm = -1;
 			current_segment = -1;
@@ -2434,24 +2307,26 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 					s_pos++;
 				}
 			}
+			
 			for(j = len; j < ri->len;j++){
 				s_pos++;
 			}
 			
 			if(s_pos >= param->minlen){
 				if(hmm_has_barcode == -1){
-					ri->prob  = EXTRACT_FAIL_BAR_FINGER_NOT_FOUND;
+					ri->read_type  = EXTRACT_FAIL_BAR_FINGER_NOT_FOUND;
 				}else if(hmm_has_barcode && required_finger_len){
 					if(fingerlen == required_finger_len && bar != -1){
-						buffer[0] = 0;
-						sprintf (buffer, "%s;FP:%d;BC:%s;",ri->name,key,param->read_structure->sequence_matrix[mem][bar]);
+						//buffer[0] = 0;
+						//sprintf (buffer, "%s;FP:%d;BC:%s;",ri->name,key,param->read_structure->sequence_matrix[mem][bar]);
 						//strcat (buffer, tmp);
-						ri->name = realloc(ri->name, sizeof(char) * (strlen(buffer) + 1) );
+						//ri->name = realloc(ri->name, sizeof(char) * (strlen(buffer) + 1) );
 						
-						strcpy(ri->name, buffer);
+						//strcpy(ri->name, buffer);
 						
 						ri = make_extracted_read(mb, param,ri);
-						ri->bar_prob = bar;
+						ri->barcode =  (mem << 16) |   bar;
+						ri->fingerprint = key;
 						//added to extract multiple reads - if present reads will be written to same string separated by 0. We can detect multireads by detectinga 0 before the length (ri->len)...
 						//if(multireadread == 1){
 						/*for(j = 0; j < s_pos;j++){
@@ -2460,80 +2335,79 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 						}
 						ri->len = s_pos;*/
 						
-						ri->prob = EXTRACT_SUCCESS;
+						ri->read_type = EXTRACT_SUCCESS;
 						//ret = 1;
 						//fprintf(out,"@%s;BC:%s;FP:%d\n",ri->name,param->read_structure->sequence_matrix[mem][bar],key);
 						//fprintf(out,"%s\n+\n%s\n", out_seq,out_qual);
 					}else{
-						ri->prob  = EXTRACT_FAIL_BAR_FINGER_NOT_FOUND; // something wrong with the architecture
+						ri->read_type  = EXTRACT_FAIL_BAR_FINGER_NOT_FOUND; // something wrong with the architecture
 					}
 				}else if(hmm_has_barcode){
 					if(bar != -1){
 						
-						buffer[0] = 0;
-						sprintf (buffer, "%s;BC:%s;",ri->name,param->read_structure->sequence_matrix[mem][bar]);
+						//buffer[0] = 0;
+						//sprintf (buffer, "%s;BC:%s;",ri->name,param->read_structure->sequence_matrix[mem][bar]);
 						//strcat (buffer, tmp);
-						ri->name = realloc(ri->name, sizeof(char) * (strlen(buffer) + 1) );
+						//ri->name = realloc(ri->name, sizeof(char) * (strlen(buffer) + 1) );
 						
-						strcpy(ri->name, buffer);
+						//strcpy(ri->name, buffer);
 						
 						ri = make_extracted_read(mb, param,ri);
-						ri->bar_prob = bar;
+						ri->barcode =  (mem << 16) |   bar;
 						/*for(j = 0; j < s_pos;j++){
 							ri->seq[j] = ri->seq[read_start+j];
 							ri->qual[j] = ri->qual[read_start+j];
 						}
 						ri->len = s_pos;*/
-						ri->prob = EXTRACT_SUCCESS;
+						ri->read_type = EXTRACT_SUCCESS;
 					}else{
-						ri->prob  = EXTRACT_FAIL_BAR_FINGER_NOT_FOUND;
+						ri->read_type  = EXTRACT_FAIL_BAR_FINGER_NOT_FOUND;
 					}
 					
 				}else if(required_finger_len){
 					if(fingerlen == required_finger_len){
-						buffer[0] = 0;
-						sprintf (buffer, "%s;FP:%d;",ri->name,key);
+						//buffer[0] = 0;
+						//sprintf (buffer, "%s;FP:%d;",ri->name,key);
 						//strcat (buffer, tmp);
-						ri->name = realloc(ri->name, sizeof(char) * (strlen(buffer) + 1) );
+						//ri->name = realloc(ri->name, sizeof(char) * (strlen(buffer) + 1) );
 						
-						strcpy(ri->name, buffer);
+						//strcpy(ri->name, buffer);
 						
 						ri = make_extracted_read(mb, param,ri);
-						ri->bar_prob = -1;
+						ri->fingerprint = key;
 						/*for(j = 0; j < s_pos;j++){
 							ri->seq[j] = ri->seq[read_start+j];
 							ri->qual[j] = ri->qual[read_start+j];
 						}
 						ri->len = s_pos;*/
-						ri->prob = EXTRACT_SUCCESS;
+						ri->read_type = EXTRACT_SUCCESS;
 					}else{
-						ri->prob  = EXTRACT_FAIL_BAR_FINGER_NOT_FOUND;
+						ri->read_type  = EXTRACT_FAIL_BAR_FINGER_NOT_FOUND;
 					}
 				}else{
-					buffer[0] = 0;
-					sprintf (buffer, "%s",ri->name);
+					//buffer[0] = 0;
+					//sprintf (buffer, "%s",ri->name);
 					//strcat (buffer, tmp);
-					ri->name = realloc(ri->name, sizeof(char) * (strlen(buffer) + 1) );
+					//ri->name = realloc(ri->name, sizeof(char) * (strlen(buffer) + 1) );
 					
-					strcpy(ri->name, buffer);
+					//strcpy(ri->name, buffer);
 					
 					ri = make_extracted_read(mb, param,ri);
-					ri->bar_prob = -1;
 					/*for(j = 0; j < s_pos;j++){
 						ri->seq[j] = ri->seq[read_start+j];
 						ri->qual[j] = ri->qual[read_start+j];
 					}
 					ri->len = s_pos;*/
-					ri->prob = EXTRACT_SUCCESS;
+					ri->read_type = EXTRACT_SUCCESS;
 				}
 			}else{
-				ri->prob = EXTRACT_FAIL_READ_TOO_SHORT;
+				ri->read_type = EXTRACT_FAIL_READ_TOO_SHORT;
 			}
 		//}else{
 		//	ri->prob = EXTRACT_FAIL_AMBIGIOUS_BARCODE;
 		//}
 	}else{
-		ri->prob = EXTRACT_FAIL_ARCHITECTURE_MISMATCH;
+		ri->read_type = EXTRACT_FAIL_ARCHITECTURE_MISMATCH;
 	}
 	
 	ri->qual[ri->len] = 0;

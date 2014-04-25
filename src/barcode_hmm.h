@@ -131,12 +131,15 @@
  \brief Get sequence probabilities but no labels in threads. 
  
  */
+
+
 #define MODE_GET_LABEL 1
 #define MODE_TRAIN 2
 #define MODE_RUN_RANDOM 3
 #define MODE_GET_PROB 4
 #define MODE_ARCH_COMP  5
 #define NUM_RANDOM_SCORES 500000
+
 
 
 /** \def EXTRACT_SUCCESS
@@ -168,6 +171,12 @@
 /** \def EXTRACT_FAIL_LOW_COMPLEXITY
  \brief Index for counting low-complexity reads.
  */
+
+#ifndef EXTRACTION_OUTCOMES
+
+#define EXTRACTION_OUTCOMES
+
+
 #define EXTRACT_SUCCESS 0
 #define EXTRACT_FAIL_BAR_FINGER_NOT_FOUND 1 
 #define EXTRACT_FAIL_READ_TOO_SHORT 2
@@ -175,6 +184,8 @@
 #define EXTRACT_FAIL_ARCHITECTURE_MISMATCH 4 
 #define EXTRACT_FAIL_MATCHES_ARTIFACTS 5 
 #define EXTRACT_FAIL_LOW_COMPLEXITY 6
+
+#endif
 
 /**
  @brief Stores HMM parameters and slices of the dyn. programming matrix.

@@ -30,7 +30,9 @@
 #include <getopt.h>
 #include <stdlib.h>
 #include <string.h>
+#if HAVE_CONFIG_H
 #include "config.h"
+#endif
 
 #define OPT_SEG1 1
 #define OPT_SEG2 2
@@ -65,7 +67,7 @@
 #define OPT_sim_InDel_frac 30
 #define OPT_sim_numseq 31
 #define OPT_sim_random_frac 32
-#define OPT_sim_sequenced_len 33
+#define OPT_sim_endloss 33
 
 #define OPT_join_paired 34
 #define OPT_split 35
@@ -135,7 +137,7 @@ struct parameters {
 	float sim_InDel_frac;
 	int sim_numseq;
 	float sim_random_frac;
-	int sim_sequenced_len;
+	int sim_end_loss;
 	
 	int multiread;
 	

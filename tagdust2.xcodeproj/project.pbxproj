@@ -15,9 +15,11 @@
 		A10B994716C09F2900AF1A1E /* nuc_code.c in Sources */ = {isa = PBXBuildFile; fileRef = A10B994016C09F2900AF1A1E /* nuc_code.c */; };
 		A10B994D16C0C7FF00AF1A1E /* barcode_hmm.c in Sources */ = {isa = PBXBuildFile; fileRef = A10B994C16C0C7FF00AF1A1E /* barcode_hmm.c */; };
 		A1441D4518B5DD1C0084B030 /* paired_pre_processing.c in Sources */ = {isa = PBXBuildFile; fileRef = A1441D4418B5DD1C0084B030 /* paired_pre_processing.c */; };
+		A14739EA19079AE700646B4C /* simulate_reads.c in Sources */ = {isa = PBXBuildFile; fileRef = A14739E919079AE700646B4C /* simulate_reads.c */; };
 		A16115CC1741BAC40077DEFD /* exact.c in Sources */ = {isa = PBXBuildFile; fileRef = A16115CB1741BAC40077DEFD /* exact.c */; };
 		A16115CF1741E85D0077DEFD /* sim.c in Sources */ = {isa = PBXBuildFile; fileRef = A16115CE1741E85D0077DEFD /* sim.c */; };
 		A19A5D6718FCDD15008EB897 /* test_architectures.c in Sources */ = {isa = PBXBuildFile; fileRef = A19A5D6618FCDD15008EB897 /* test_architectures.c */; };
+		A1D2539919088F3200EBC4E5 /* evalresults.c in Sources */ = {isa = PBXBuildFile; fileRef = A1D2539819088F3200EBC4E5 /* evalresults.c */; };
 		A1DDE7F318E568D7000E3709 /* calibrateQ.c in Sources */ = {isa = PBXBuildFile; fileRef = A1DDE7F218E568D6000E3709 /* calibrateQ.c */; };
 /* End PBXBuildFile section */
 
@@ -56,6 +58,16 @@
 		A117B363178BE7E100014093 /* run_bwa.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; name = run_bwa.sh; path = scripts/run_bwa.sh; sourceTree = "<group>"; };
 		A1359BCF17E9944200EA7432 /* new_sim_plots.R */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.rez; name = new_sim_plots.R; path = scripts/new_sim_plots.R; sourceTree = "<group>"; };
 		A1441D4418B5DD1C0084B030 /* paired_pre_processing.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = paired_pre_processing.c; path = src/paired_pre_processing.c; sourceTree = "<group>"; };
+		A14739DF1907885E00646B4C /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Makefile.am; path = src/Makefile.am; sourceTree = "<group>"; };
+		A14739E119078EB800646B4C /* EDITTAG_3nt_ed_1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = EDITTAG_3nt_ed_1.txt; path = dev/EDITTAG_3nt_ed_1.txt; sourceTree = "<group>"; };
+		A14739E219078EB800646B4C /* EDITTAG_3nt_ed_2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = EDITTAG_3nt_ed_2.txt; path = dev/EDITTAG_3nt_ed_2.txt; sourceTree = "<group>"; };
+		A14739E319078EB800646B4C /* EDITTAG_4nt_ed_2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = EDITTAG_4nt_ed_2.txt; path = dev/EDITTAG_4nt_ed_2.txt; sourceTree = "<group>"; };
+		A14739E419078EB800646B4C /* EDITTAG_4nt_ed_3.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = EDITTAG_4nt_ed_3.txt; path = dev/EDITTAG_4nt_ed_3.txt; sourceTree = "<group>"; };
+		A14739E519078EB800646B4C /* EDITTAG_6nt_ed_3.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = EDITTAG_6nt_ed_3.txt; path = dev/EDITTAG_6nt_ed_3.txt; sourceTree = "<group>"; };
+		A14739E619078EB800646B4C /* EDITTAG_6nt_ed_4.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = EDITTAG_6nt_ed_4.txt; path = dev/EDITTAG_6nt_ed_4.txt; sourceTree = "<group>"; };
+		A14739E719078EB800646B4C /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Makefile.am; path = dev/Makefile.am; sourceTree = "<group>"; };
+		A14739E819078F8300646B4C /* README.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = README.txt; path = dev/README.txt; sourceTree = "<group>"; };
+		A14739E919079AE700646B4C /* simulate_reads.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = simulate_reads.c; path = src/simulate_reads.c; sourceTree = "<group>"; };
 		A14DAD9317B8710900D51E41 /* processBarcodeMapping.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = processBarcodeMapping.sh; path = scripts/processBarcodeMapping.sh; sourceTree = "<group>"; };
 		A14F589B17783085003A7B1A /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Makefile.am; sourceTree = "<group>"; };
 		A14F589D177835CF003A7B1A /* configure.ac */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = configure.ac; sourceTree = "<group>"; };
@@ -75,6 +87,7 @@
 		A17B7B6D17557D4600E58E88 /* cmath.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = cmath.h; path = src/cmath.h; sourceTree = "<group>"; };
 		A19956B717B4AAC1006A7F85 /* plot_scatter_plots.R */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.rez; name = plot_scatter_plots.R; path = scripts/plot_scatter_plots.R; sourceTree = "<group>"; };
 		A19A5D6618FCDD15008EB897 /* test_architectures.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = test_architectures.c; path = src/test_architectures.c; sourceTree = "<group>"; };
+		A1D2539819088F3200EBC4E5 /* evalresults.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = evalresults.c; path = src/evalresults.c; sourceTree = "<group>"; };
 		A1D9CE1C17A73C9A00C6BBFD /* make_sim_plots.R */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.rez; name = make_sim_plots.R; path = scripts/make_sim_plots.R; sourceTree = "<group>"; };
 		A1DDE7F218E568D6000E3709 /* calibrateQ.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = calibrateQ.c; path = src/calibrateQ.c; sourceTree = "<group>"; };
 		A1DF436717C74CFE00FAC6DF /* make_bench.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; name = make_bench.sh; path = test/make_bench.sh; sourceTree = "<group>"; };
@@ -126,6 +139,7 @@
 				A1E17141178A8B28006F393D /* README */,
 				A14F589B17783085003A7B1A /* Makefile.am */,
 				A14F589D177835CF003A7B1A /* configure.ac */,
+				A14739E019078E9900646B4C /* dev */,
 				A14F589C17783093003A7B1A /* src */,
 				A1E3055316DB317C00FDAA86 /* gmm.h */,
 				A1E3055116DB316B00FDAA86 /* gmm.c */,
@@ -162,9 +176,27 @@
 			path = tagdust2;
 			sourceTree = "<group>";
 		};
+		A14739E019078E9900646B4C /* dev */ = {
+			isa = PBXGroup;
+			children = (
+				A14739E819078F8300646B4C /* README.txt */,
+				A14739E119078EB800646B4C /* EDITTAG_3nt_ed_1.txt */,
+				A14739E219078EB800646B4C /* EDITTAG_3nt_ed_2.txt */,
+				A14739E319078EB800646B4C /* EDITTAG_4nt_ed_2.txt */,
+				A14739E419078EB800646B4C /* EDITTAG_4nt_ed_3.txt */,
+				A14739E519078EB800646B4C /* EDITTAG_6nt_ed_3.txt */,
+				A14739E619078EB800646B4C /* EDITTAG_6nt_ed_4.txt */,
+				A14739E719078EB800646B4C /* Makefile.am */,
+			);
+			name = dev;
+			sourceTree = "<group>";
+		};
 		A14F589C17783093003A7B1A /* src */ = {
 			isa = PBXGroup;
 			children = (
+				A1D2539819088F3200EBC4E5 /* evalresults.c */,
+				A14739E919079AE700646B4C /* simulate_reads.c */,
+				A14739DF1907885E00646B4C /* Makefile.am */,
 				A19A5D6618FCDD15008EB897 /* test_architectures.c */,
 				A1DDE7F218E568D6000E3709 /* calibrateQ.c */,
 				A1441D4418B5DD1C0084B030 /* paired_pre_processing.c */,
@@ -252,8 +284,10 @@
 				A19A5D6718FCDD15008EB897 /* test_architectures.c in Sources */,
 				A10B994516C09F2900AF1A1E /* main.c in Sources */,
 				A10B994616C09F2900AF1A1E /* misc.c in Sources */,
+				A1D2539919088F3200EBC4E5 /* evalresults.c in Sources */,
 				A1441D4518B5DD1C0084B030 /* paired_pre_processing.c in Sources */,
 				A10B994716C09F2900AF1A1E /* nuc_code.c in Sources */,
+				A14739EA19079AE700646B4C /* simulate_reads.c in Sources */,
 				A10B994D16C0C7FF00AF1A1E /* barcode_hmm.c in Sources */,
 				A16115CC1741BAC40077DEFD /* exact.c in Sources */,
 				A16115CF1741E85D0077DEFD /* sim.c in Sources */,

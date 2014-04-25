@@ -77,7 +77,6 @@ Copyright 2013 Timo Lassmann (timolassmann@gmail.com)
 #include "tagdust2.h"
 #include "barcode_hmm.h"
 #include "exact.h"
-#include "sim.h"
 #include <math.h>
 
 
@@ -100,9 +99,6 @@ int main (int argc,char * argv[]) {
 	param->messages = append_message(param->messages, param->buffer);
 
 	
-	if(param->sim_numseq){
-		simulation_for_benchmark(param);
-	}
 	
 	if(param->join){
 		concatenate_reads(param,&read_fasta_fastq);
@@ -113,10 +109,6 @@ int main (int argc,char * argv[]) {
 		split(param,&read_fasta_fastq);
 		free_param(param);
 		return EXIT_SUCCESS;
-	}
-	
-	if(param->sim){
-		simulate(param);
 	}
 	
 	if(param->infiles > 1){
@@ -140,82 +132,6 @@ int main (int argc,char * argv[]) {
 		}
 	}
 	
-	/*
-	for(i = 0; i < param->infiles;i++){
-		if(i > 0){
-			fprintf(stderr,"Sorry - using multiple input files is presently disabeled");
-			break;
-		}
-		param->sam = 0;
-		if(!strcmp(".sam", param->infile[i] + (strlen(param->infile[i] ) - 4))){
-			param->sam = 1;
-		}else if (!strcmp(".bam", param->infile[i] + (strlen(param->infile[i] ) - 4))){
-			param->sam = 2;
-		}else if (!strcmp(".fa", param->infile[i] + (strlen(param->infile[i] ) - 3))){
-			param->sam = 0;
-			param->fasta = 1;
-		}else if (!strcmp(".fq", param->infile[i] + (strlen(param->infile[i] ) - 3))){
-			param->sam = 0;
-		}else if (!strcmp(".fastq", param->infile[i] + (strlen(param->infile[i] ) - 6))){
-			param->sam = 0;
-		}else if (!strcmp(".fastaq", param->infile[i] + (strlen(param->infile[i] ) - 7))){
-			param->sam = 0;
-		}else if (!strcmp(".fasta", param->infile[i] + (strlen(param->infile[i] ) - 6))){
-			param->sam = 0;
-			param->fasta = 1;
-		}else if(!strcmp(".sam.gz", param->infile[i] + (strlen(param->infile[i] ) - 7))){
-			param->sam = 1;
-			param->gzipped  = 1;
-		}else if (!strcmp(".bam.gz", param->infile[i] + (strlen(param->infile[i] ) - 7))){
-			param->sam = 2;
-			param->gzipped  = 1;
-		}else if (!strcmp(".fa.gz", param->infile[i] + (strlen(param->infile[i] ) - 6))){
-			param->sam = 0;
-			param->fasta = 1;
-			param->gzipped  = 1;
-		}else if (!strcmp(".fq.gz", param->infile[i] + (strlen(param->infile[i] ) - 6))){
-			param->sam = 0;
-			param->gzipped  = 1;
-		}else if (!strcmp(".fastq.gz", param->infile[i] + (strlen(param->infile[i] ) - 9))){
-			param->sam = 0;
-			param->gzipped  = 1;
-		}else if (!strcmp(".fastaq.gz", param->infile[i] + (strlen(param->infile[i] ) - 10))){
-			param->sam = 0;
-			param->gzipped  = 1;
-		}else if (!strcmp(".fasta.gz", param->infile[i] + (strlen(param->infile[i] ) - 9))){
-			param->sam = 0;
-			param->gzipped  = 1;
-		}else if (!strcmp(".fastq.bz2", param->infile[i] + (strlen(param->infile[i] ) - 10))){
-			param->sam = 0;
-			param->bzipped  = 1;
-		}else if (!strcmp(".fq.bz2", param->infile[i] + (strlen(param->infile[i] ) - 7))){
-			param->sam = 0;
-			param->bzipped  = 1;
-		}else{
-			param->sam = -1;
-		}
-		fprintf(stderr,"Working on : %d:%s\n",i, param->infile[i] );
-		
-		if(param->sam != -1){
-			if(param->sam == 0){
-				if(param->exact5){
-					exact_controller(param,&read_fasta_fastq,i);
-				}else if (param->read_structure->num_segments == 0){
-					filter_controller(param,i);
-				}else{
-					hmm_controller(param,i);
-				}
-			}else{
-				if(param->exact5){
-					exact_controller(param,&read_sam_chunk,i);
-				}else if(param->read_structure->num_segments == 0){
-					filter_controller(param,i);
-				}else{
-					hmm_controller(param,i);
-				}
-			}
-		}
-	}*/
 	free_param(param);
 	return EXIT_SUCCESS;
 }

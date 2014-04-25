@@ -1,7 +1,8 @@
 #include "tagdust2.h"
+#include "interface.h"
 #include "io.h"
 #include "barcode_hmm.h"
-#include "interface.h"
+
 
 #include <stdio.h>
 #include "misc.h"
@@ -20,7 +21,7 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 	int num_test_sequences = 400;
 #else
 	//printf("No Debug\n");
-	int num_test_sequences = 40000;
+	int num_test_sequences = 400000;
 #endif
 	struct model_bag* mb = 0;
 	
@@ -272,11 +273,11 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 		
 	}
 	
-	//if(thres[4] < 20){
-		param->confidence_threshold  = thres[4];
-	//}else{
-	//	param->confidence_threshold  = 20;
-	//}
+	if(thres[4] < 20){
+		param->confidence_threshold  = floor(thres[4] + 0.5);
+	}else{
+		param->confidence_threshold  = 20;
+	}
 	
 	/*for(i = 9990; i < 10000;i++){
 		fprintf(stderr,"%d	%d	%f	%f	", i, ri[i]->len, ri[i]->mapq,  1.0 - pow(10.0, -1.0 *  ri[i]->mapq / 10.0));
@@ -289,7 +290,7 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 		}
 		fprintf(stderr,"\n");
 	}*/
-	fprintf(stderr,"Min: %f	%f\n", stats[0] , 1.0 - pow(10.0, -1.0 *stats[0]  / 10.0));
+	/*fprintf(stderr,"Min: %f	%f\n", stats[0] , 1.0 - pow(10.0, -1.0 *stats[0]  / 10.0));
 	fprintf(stderr,"Max: %f	%f\n",stats[1] , 1.0 - pow(10.0, -1.0 *stats[1]  / 10.0) );
 	fprintf(stderr,"Average: %f	%f\n", stats[2] , 1.0 - pow(10.0, -1.0 *stats[2]  / 10.0));
 	
@@ -308,11 +309,12 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 	fprintf(stderr,"Kappa: %f at %f\n",  kappa,thres[5]   );
 	
 	fprintf(stderr,"Selected Threshold: %f\n", param->confidence_threshold );
-	//fprintf(stderr,"Sensitivity: %f\n", sensitivity);
+	*///fprintf(stderr,"Sensitivity: %f\n", sensitivity);
 	//fprintf(stderr,"Specificity: %f\n", specificity);
-
 	
-	
+	sprintf(param->buffer,"Selected Threshold:: %f\n", param->confidence_threshold );
+	param->messages = append_message(param->messages, param->buffer);
+		
 	
 	for(i = 0; i < num_test_sequences;i++){
 		free(ri[i]->strand);

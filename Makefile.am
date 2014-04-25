@@ -4,13 +4,7 @@ ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 EXTRA_DIST = doc/User-Manual.pdf doc/latex/refman.pdf
 
 
-
-
-bin_PROGRAMS = tagdust
-tagdust_SOURCES =   src/sim.h src/exact.h src/barcode_hmm.h  src/interface.h src/misc.h src/io.h src/nuc_code.h src/tagdust2.h src/main.c src/interface.c src/nuc_code.c src/misc.c src/io.c src/barcode_hmm.c  src/exact.c src/sim.c  src/paired_pre_processing.c src/calibrateQ.c src/test_architectures.c
-
-tagdust_LDADD = -lpthread -lm
-
+SUBDIRS = src
 
 dist_noinst_SCRIPTS = autogen.sh
 

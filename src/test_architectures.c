@@ -36,24 +36,10 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 #else
 	param->num_query = 100000;
 #endif
-	ri = malloc(sizeof(struct read_info*) * param->num_query);
 	
-	assert(ri !=0);
+	ri = malloc_read_info(ri,param->num_query);
 	
-	for(i = 0; i < param->num_query;i++){
-		ri[i] = malloc(sizeof(struct read_info));
-		ri[i]->seq = 0;
-		ri[i]->name = 0;
-		ri[i]->qual = 0;
-		ri[i]->labels = 0;
-		ri[i]->len = 0;
-		ri[i]->bar_prob = 0;
-		ri[i]->mapq = -1.0;
-		ri[i]->strand = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
-		ri[i]->hits = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
-	}
-	
-	
+		
 	struct sequence_stats_info* ssi = 0;
 	
 	struct arch_bag* ab = malloc(sizeof(struct arch_bag) );
@@ -252,26 +238,9 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 		free_param(param);
 		exit(EXIT_FAILURE);
 	}
-	for(i = 0; i < param->num_query;i++){
-		free(ri[i]->strand);
-		free(ri[i]->hits);
-		
-		if(ri[i]->labels){
-			free(ri[i]->labels);
-		}
-		if(ri[i]->name){
-			free(ri[i]->name);
-		}
-		if(ri[i]->seq){
-			free(ri[i]->seq);
-		}
-		if(ri[i]->qual){
-			free(ri[i]->qual );
-		}
-		
-		free(ri[i]);
-	}
-	free(ri);
+	
+	free_read_info(ri, param->num_query);
+	
 	
 	free_model_bag(mb);
 

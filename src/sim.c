@@ -510,7 +510,7 @@ void simulation_for_benchmark(struct parameters* param)
 		
 	}
 	fclose(file);
-
+	
 	
 	
 	//run tests:
@@ -576,12 +576,9 @@ void simulation_for_benchmark(struct parameters* param)
 							fprintf(file2,"%c", alpha[(int) ri[j]->seq[c]]);
 						}
 						fprintf(file2,"\n+\n%s\n" ,ri[j]->qual);
-						
 					}
 				}
-				
 				pclose(file);
-								
 			}
 		}
 		fclose(file2);

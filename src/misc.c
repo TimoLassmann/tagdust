@@ -294,7 +294,7 @@ char* append_message(char* old_message, char* new_message)
 	}
 	
 	strftime(time_string, 200, "[%F %H:%M:%S]\t", ptr);
-	fprintf(stderr,"%s %s",time_string,new_message );
+	fprintf(stderr,"%s%s",time_string,new_message );
 	//%H:%M:%S.000
 	//sprintf(time_string,"[%.2d-%.2d-%d %2d:%.2d%cm\t",ptr->tm_mon + 1,ptr->tm_mday, ptr->tm_year + 1900,hour,ptr->tm_min, am_or_pm );
 	size_t time_len = strlen(time_string);

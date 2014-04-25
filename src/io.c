@@ -268,13 +268,16 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
 
 
 
+
+
+
 /** \fn int qsort_ri_prob_compare(const void *a, const void *b)
  \brief Compares reads based their probability.
  Used to sort arrays of string using qsort.
  \param a void pointer to first @ref read_info.
  \param b void pointer to second @ref read_info.
  */
-int qsort_ri_prob_compare(const void *a, const void *b)
+int qsort_ri_barcode_compare(const void *a, const void *b)
 {
 	
 	//struct mys **a = (struct mys **)i1;
@@ -285,43 +288,21 @@ int qsort_ri_prob_compare(const void *a, const void *b)
 	
 	const struct read_info **elem2 = (const struct read_info**) b;
 	
-	if ( (*elem1)->prob > (*elem2)->prob)
+	if ( (*elem1)->read_type <  (*elem2)->read_type){
 		return -1;
-	
-	else if ((*elem1)->prob < (*elem2)->prob)
-		return 1;
-	
-	else
-		return 0;
-}
-
-
-
-
-/** \fn int qsort_ri_prob_compare(const void *a, const void *b)
- \brief Compares reads based their probability.
- Used to sort arrays of string using qsort.
- \param a void pointer to first @ref read_info.
- \param b void pointer to second @ref read_info.
- */
-int qsort_ri_bar_prob_compare(const void *a, const void *b)
-{
-	
-	//struct mys **a = (struct mys **)i1;
-	//struct mys **b = (struct mys **)i2;
-	//return (*b)->id - (*a)->id;
-	
-	const struct read_info **elem1 = (const struct read_info**) a;
-	
-	const struct read_info **elem2 = (const struct read_info**) b;
-	
-	if ( (*elem1)->bar_prob <  (*elem2)->bar_prob){
-		return -1;
-	}else if ((*elem1)->bar_prob > (*elem2)->bar_prob){
+	}else if ((*elem1)->read_type > (*elem2)->read_type){
 		return 1;
 	}else{
-		return 0;
+		if ( (*elem1)->barcode <  (*elem2)->barcode){
+			return -1;
+		}else if ((*elem1)->barcode > (*elem2)->barcode){
+			return 1;
+		}else{
+			return 0;
+		}
 	}
+	
+	
 }
 
 /** \fn int qsort_ri_prob_compare(const void *a, const void *b)
@@ -611,190 +592,324 @@ void print_sequence(struct read_info* ri,FILE* out)
 
 
 
-/** \fn int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  struct read_info* ri,FILE* out)
- \brief Prints out read based on labels.
- 
- This function compared the sequence labels to the specification of the users and prints out the extracted read sequence.
- \deprecated Not used anymore - everything is done within threads. 
- 
- */
-int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  struct read_info* ri,FILE* out)
+void print_split_files(struct parameters* param, struct read_info** ri, int numseq)
 {
-	int j,c1,c2,c3,key,bar,mem,fingerlen,required_finger_len,ret;
-	char alpha[6] = "ACGTNN";
+	struct stat buf;
+	FILE* out_read1 = NULL;
+	FILE* out_read2 = NULL;
+	char alphabet[] = "ACGTNN";
+	int i,j;
+	int old_type = -100;
+	int old_bar = -100;
+	int read_file = 0;
 	
-	char* out_qual = malloc(sizeof(char) * mb->current_dyn_length);//  [MAX_HMM_SEQ_LEN];
-	assert(out_qual != NULL);
-	char* out_seq = malloc(sizeof(char) * mb->current_dyn_length);// [MAX_HMM_SEQ_LEN];
-	assert(out_seq != NULL);
-	int q_pos = 0;
-	int s_pos = 0;
-	key = 0;
-	bar = -1;
-	mem = -1;
-	ret = 0;
-	int offset = 0;
-	int len;
-	int hmm_has_barcode = 0;
+	int start = 0;
+	int stop = -1;
+	int last = 0;
+	int segment = 1;
+	int print_segment_name = 0;
 	
-	len = ri->len;
-	if(param->matchstart != -1 || param->matchend != -1){
-		offset = param->matchstart;
-		len = param->matchend - param->matchstart;
-	}
-	required_finger_len = 0;
-	for(j = 0; j < param->read_structure->num_segments;j++){
-		if(param->read_structure->type[j] == 'F'){
-			required_finger_len += (int) strlen(param->read_structure->sequence_matrix[j][0]);
-		}
-	}
+	static int check_for_files = 1;
 	
-	//ri[i]->prob = expf( ri[i]->prob) / (1.0f + expf(ri[i]->prob ));
+	char* buffer = malloc(sizeof(char)* 1000 );
+	assert(buffer != NULL);
 	
-	if(param->confidence_threshold <=  ri->prob ){
-		
-		if(0.5 <=  ri->bar_prob){
-			fingerlen = 0;
-			//required_finger_len = 0;
-			
-			for(j = 0; j < len;j++){
-				c1 = mb->label[(int)ri->labels[j+1]];
-				c2 = c1 & 0xFFFF;
-				c3 = (c1 >> 16) & 0x7FFF;
-				//fprintf(stderr,"%c",   param->read_structure->type[c2] );
-				if(param->read_structure->type[c2] == 'F'){
-					//	required_finger_len += (int) strlen(param->read_structure->sequence_matrix[c2][0]);
-					fingerlen++;
-					key = (key << 2 )|  (ri->seq[j+offset] & 0x3);
-				}
-				if(param->read_structure->type[c2] == 'B'){
-					hmm_has_barcode = 1;
-					bar = c3;
-					mem = c2;
-				}
-				if(param->read_structure->type[c2] == 'R'){
-					out_seq[s_pos] = alpha[(int)ri->seq[j+offset]];
-					s_pos++;
-					if(ri->qual){
-						out_qual[q_pos] =  ri->qual[j+offset] ;
-						
+	// sort based on barcode...
+	
+	qsort(ri,numseq, sizeof(struct read_info*), qsort_ri_barcode_compare);
+	
+	//1 ) has barcode or nor
+	//	has: barcode >= 0 && extract_successs
+	//	has_nor barcore == -1 && extract_success
+	// 2) fail : ! extract_success..
+	// ri[i]->read_type,ri[i]->barcode
+	fprintf(stderr,"NUMSEQ:%d\n",numseq);
+	int h = 0;
+	for(i = 0; i < numseq;i++){
+		read_file = 0;
+		if(ri[i]->read_type != old_type || ri[i]->barcode != old_bar  ){
+			if(ri[i]->read_type  == EXTRACT_SUCCESS){
+				buffer[0] = 0;
+				if(ri[i]->barcode != -1){
+					if(param->multiread == 2){
+						sprintf (buffer, "%s_BC_%s_READ1.fq",param->outfile,param->read_structure->sequence_matrix[(ri[i]->barcode >> 16) &0XFF][ri[i]->barcode &0XFF]);
 					}else{
-						out_qual[q_pos] = '.';
-					}
-					q_pos++;
-					
-					//fprintf(out,"%c",  );
-					//key = (key << 2 )|  (ri->seq[j] & 0x3);
-				}
-			}
-			for(j = len; j < ri->len;j++){
-				out_seq[s_pos] = alpha[(int)ri->seq[j+offset]];
-				s_pos++;
-				if(ri->qual){
-					out_qual[q_pos] =  ri->qual[j+offset] ;
-					
-				}else{
-					out_qual[q_pos] = '.';
-				}
-				q_pos++;
-				
-			}
-			
-			
-			out_seq[s_pos] = 0;
-			out_qual[q_pos] = 0;
-			
-			// can add to loop above...
-			
-			//for(j = 0; j < len;j++){
-			//	c1 = mb->label[(int)ri->labels[j+1]];
-			//	c2 = c1 & 0xFFFF;
-			//	c3 = (c1 >> 16) & 0x7FFF;
-			//fprintf(stderr,"%d", c3   );
-			
-			//}
-			
-			//check - has barcode
-			
-			//fprintf(stderr,"%d	%d	%d	%d\n",hmm_has_barcode,required_finger_len, bar,fingerlen );
-			if(s_pos >= param->minlen){
-				
-				if(hmm_has_barcode && required_finger_len){
-					if(fingerlen == required_finger_len && bar != -1){
-						ret = 1;
-						fprintf(out,"@%s;BC:%s;FP:%d\n",ri->name,param->read_structure->sequence_matrix[mem][bar],key);
-						fprintf(out,"%s\n+\n%s\n", out_seq,out_qual);
-					}else{
-						ret = -3; // something wrong with the architecture
-					}
-				}else if(hmm_has_barcode){
-					if(bar != -1){
-						ret = 1;
-						fprintf(out,"@%s;BC:%s\n",ri->name,param->read_structure->sequence_matrix[mem][bar]);
-						fprintf(out,"%s\n+\n%s\n", out_seq,out_qual);
-					}else{
-						ret = -3; // something wrong with the architecture
-					}
-					
-				}else if(required_finger_len){
-					if(fingerlen == required_finger_len){
-						ret = 1;
-						fprintf(out,"@%s;FP:%d\n",ri->name,key);
-						fprintf(out,"%s\n+\n%s\n", out_seq,out_qual);
-					}else{
-						ret = -3; // something wrong with the architecture
+						sprintf (buffer, "%s_BC_%s.fq",param->outfile,param->read_structure->sequence_matrix[(ri[i]->barcode >> 16) &0XFF][ri[i]->barcode &0XFF]);
 					}
 				}else{
-					ret = 1;
-					fprintf(out,"@%s\n",ri->name);
-					fprintf(out,"%s\n+\n%s\n", out_seq,out_qual);
+					if(param->multiread == 2){
+						sprintf (buffer, "%s_READ1.fq",param->outfile);
+					}else{
+						sprintf (buffer, "%s.fq",param->outfile);
+					}
 				}
 			}else{
-				ret = -2; //read to short
+				buffer[0] = 0;
+				sprintf (buffer, "%s_un.fq",param->outfile);
 			}
-		}else{
-			ret = -1; // probability not acceptable
-			//discard....
-		}
-	}else{
-		ret = -3;
-	}
-	/*
-	fprintf(stderr,"%f	%f\n",  expf( ri->prob) / (1.0 + expf(ri->prob )) ,ri->prob);
-	
-	
-	fprintf(stderr,"%s\n", ri->name);
-	for(j = 0; j < ri->len;j++){
-		c1 = mb->label[(int)ri->labels[j+1]];
-		c2 = c1 & 0xFFFF;
-		c3 = (c1 >> 16) & 0x7FFF;
-		fprintf(stderr,"%c",  alpha[(int)ri->seq[j]] );
-	}
-	fprintf(stderr,"\n");
-	for(j = 0; j < ri->len;j++){
-		c1 = mb->label[(int)ri->labels[j+1]];
-		c2 = c1 & 0xFFFF;
-		c3 = (c1 >> 16) & 0x7FFF;
-		fprintf(stderr,"%c",   param->read_structure->type[c2] );
-		if(param->read_structure->type[c2] == 'F'){
-			key = (key << 2 )|  (ri->seq[j] & 0x3);
+				
+			if(check_for_files){
+				check_for_files = 0;
+				if(!stat ( buffer, &buf )){
+					//file found.
+					sprintf(param->buffer,"ERROR: output file: %s already exists.\n", buffer);
+					param->messages = append_message(param->messages, param->buffer);
+					free_param(param);
+					exit(EXIT_FAILURE);
+				}
+				if ((out_read1 = fopen(buffer, "w")) == NULL){
+					fprintf(stderr,"can't open output\n");
+					exit(-1);
+				}
+				buffer[0] = 0;
+				if(param->multiread ==2){
+					sprintf (buffer, "%s_BC_%s_READ2.fq",param->outfile,param->read_structure->sequence_matrix[(ri[i]->barcode >> 16) &0XFF][ri[i]->barcode &0XFF]);
+					if ((out_read2 = fopen(buffer, "w")) == NULL){
+						fprintf(stderr,"can't open output\n");
+						exit(-1);
+					}
+				}
+			}else{
+				if(i){
+					if(param->multiread ==2){
+						fclose(out_read2);
+					}
+					fclose(out_read1);
+				}
+				
+				if ((out_read1 = fopen(buffer, "a")) == NULL){
+					fprintf(stderr,"can't open output\n");
+					exit(-1);
+				}
+				if(param->multiread ==2){
+					buffer[0] = 0;
+					sprintf (buffer, "%s_BC_%s_READ2.fq",param->outfile,param->read_structure->sequence_matrix[(ri[i]->barcode >> 16) &0XFF][ri[i]->barcode &0XFF]);
+					if ((out_read2 = fopen(buffer, "a")) == NULL){
+						fprintf(stderr,"can't open output\n");
+						exit(-1);
+					}
+				}
+			}
+		//	file open / close
+			old_type = ri[i]->read_type;
+			old_bar = ri[i]->barcode;
 		}
 		
-	}
-	fprintf(stderr,"	key = %d\n",key);
-	
-	for(j = 0; j < ri->len;j++){
-		c1 = mb->label[(int)ri->labels[j+1]];
-		c2 = c1 & 0xFFFF;
-		c3 = (c1 >> 16) & 0x7FFF;
-		fprintf(stderr,"%d", c3   );
-		if(param->read_structure->type[c2] == 'B'){
-			bar = c3;
-			mem = c2;
+		if(ri[i]->read_type == EXTRACT_SUCCESS){
+			buffer[0] = 0;
+			j = 0;
+			if(ri[i]->fingerprint != -1){
+				j |= 2;
+			}
+			if(ri[i]->barcode != -1){
+				j |= 1;
+			}
+			switch (j) {
+				case 0:
+					sprintf (buffer, "%s",ri[i]->name);
+					break;
+				case 1:
+					sprintf (buffer, "%s;BC:%s;",ri[i]->name, param->read_structure->sequence_matrix[(ri[i]->barcode >> 16) &0XFF][ri[i]->barcode &0XFF]);
+					break;
+				case 2:
+					sprintf (buffer, "%s;FP:%d;",ri[i]->name,ri[i]->fingerprint);
+					break;
+				case 3:
+					sprintf (buffer, "%s;FP:%d;BC:%s;",ri[i]->name,ri[i]->fingerprint ,param->read_structure->sequence_matrix[(ri[i]->barcode >> 16) &0XFF][ri[i]->barcode &0XFF]);
+					break;
+				default:
+					break;
+			}
+			
+			//strcat (buffer, tmp);
+			ri[i]->name = realloc(ri[i]->name, sizeof(char) * (strlen(buffer) + 1) );
+			
+			strcpy(ri[i]->name, buffer);
+			
+			
+			start = 0;
+			stop = -1;
+			last = 0;
+			segment = 1;
+			print_segment_name = 0;
+			for(j =0;j < ri[i]->len;j++){
+				if( ri[i]->seq[j] == 65){
+					print_segment_name = 1;
+					break;
+				}
+			}
+			if(print_segment_name){
+				//if we have a multiread scroll to the first read if starting with 65....
+				while(ri[i]->seq[start] == 65 && start < ri[i]->len){
+					start++;
+					
+				}
+			}
+			while(stop != ri[i]->len){
+				last = 0;
+				for(j =start;j < ri[i]->len;j++){
+					if( ri[i]->seq[j] == 65){
+						stop = j;
+						last = 1;
+						break;
+					}
+				}
+				if(!last){
+					stop = ri[i]->len;
+				}
+				//print to file segment 'X'
+				
+				//if(print_segment_name){
+				//	fprintf(out,"@%sRS:%d\n",ri->name,segment);
+				//}else{
+				if(segment ==1){
+					h++;
+					fprintf(out_read1,"@%s\n",ri[i]->name);
+					
+					for(j = start; j < stop;j++){
+						fprintf(out_read1,"%c",alphabet[(int) ri[i]->seq[j]]);
+					}
+					fprintf(out_read1,"\n+\n");
+					if(ri[i]->qual){
+						for(j =start;j < stop;j++){
+							fprintf(out_read1,"%c",ri[i]->qual[j]);
+						}
+					}else{
+						for(j =start;j < stop;j++){
+							fprintf(out_read1,".");
+						}
+					}
+					fprintf(out_read1,"\n");
+				}else if ( segment == 2){
+					fprintf(out_read2,"@%s\n",ri[i]->name);
+					
+					for(j = start; j < stop;j++){
+						fprintf(out_read2,"%c",alphabet[(int) ri[i]->seq[j]]);
+					}
+					fprintf(out_read2,"\n+\n");
+					if(ri[i]->qual){
+						for(j =start;j < stop;j++){
+							fprintf(out_read2,"%c",ri[i]->qual[j]);
+						}
+					}else{
+						for(j =start;j < stop;j++){
+							fprintf(out_read2,".");
+						}
+					}
+					fprintf(out_read2,"\n");
+				}
+				segment++;
+				
+				start = stop;
+				while(ri[i]->seq[start] == 65 && start < ri[i]->len){
+					start++;
+				}
+				
+				if(segment > 100){
+					exit(EXIT_FAILURE);
+				}
+			}
+			
+			
+		}else{
+			start = 0;
+			stop = -1;
+			last = 0;
+			segment = 1;
+			print_segment_name = 0;
+			for(j =0;j < ri[i]->len;j++){
+				if( ri[i]->seq[j] == 65){
+					print_segment_name = 1;
+					
+					break;
+				}
+			}
+			if(print_segment_name){
+				//if we have a multiread scroll to the first read if starting with 65....
+				while(ri[i]->seq[start] == 65 && start < ri[i]->len){
+					start++;
+					
+				}
+			}
+			while(stop != ri[i]->len){
+				last = 0;
+				for(j =start;j < ri[i]->len;j++){
+					if( ri[i]->seq[j] == 65){
+						stop = j;
+						last = 1;
+						//	segment++;
+						break;
+					}
+				}
+				if(!last){
+					stop = ri[i]->len;
+				}
+				//print to file segment 'X'
+				
+				//if(print_segment_name){
+				//	fprintf(out,"@%sRS:%d\n",ri->name,segment);
+				//}else{
+				if(segment ==1){
+					h++;
+					fprintf(out_read1,"@%s\n",ri[i]->name);
+					
+					for(j = start; j < stop;j++){
+						fprintf(out_read1,"%c",alphabet[(int) ri[i]->seq[j]]);
+					}
+					fprintf(out_read1,"\n+\n");
+					if(ri[i]->qual){
+						for(j =start;j < stop;j++){
+							fprintf(out_read1,"%c",ri[i]->qual[j]);
+						}
+					}else{
+						for(j =start;j < stop;j++){
+							fprintf(out_read1,".");
+						}
+					}
+					fprintf(out_read1,"\n");
+				}else if ( segment == 2){
+					fprintf(out_read2,"@%s\n",ri[i]->name);
+					
+					for(j = start; j < stop;j++){
+						fprintf(out_read2,"%c",alphabet[(int) ri[i]->seq[j]]);
+					}
+					fprintf(out_read2,"\n+\n");
+					if(ri[i]->qual){
+						for(j =start;j < stop;j++){
+							fprintf(out_read2,"%c",ri[i]->qual[j]);
+						}
+					}else{
+						for(j =start;j < stop;j++){
+							fprintf(out_read2,".");
+						}
+					}
+					fprintf(out_read2,"\n");
+				}
+				segment++;
+				
+				start = stop;
+				while(ri[i]->seq[start] == 65 && start < ri[i]->len){
+					start++;
+				}
+				
+				if(segment > 100){
+					exit(EXIT_FAILURE);
+				}
+			}
 		}
 	}
-	fprintf(stderr,"	bar= %d (%s)\n",bar,   param->read_structure->sequence_matrix[mem][bar] );*/
-	return ret;
+	free(buffer);
+	
+	fprintf(stderr,"printed: %d\n",h);
+	if(param->multiread ==2){
+		fclose(out_read2);
+	}
+	fclose(out_read1);
+	fprintf(stderr,"Clopsing file: read1....\n");
+	
+	
+	
+	
 }
 
 
@@ -910,23 +1025,9 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file)
 	int read = 0;
 	int c = 0;
 	int hit = 0;
+	int strand = 0;
 	
-	for(i = 0; i < param->num_query;i++){
-		free(ri[i]->seq);
-		free(ri[i]->name);
-		free(ri[i]->qual);
-		free(ri[i]->labels);
-		
-		
-				
-		ri[i]->seq = 0;
-		ri[i]->name = 0;
-		ri[i]->qual = 0;
-		ri[i]->len = 0;
-		ri[i]->read_type = -1;
-		ri[i]->mapq = -1;
-		
-	}
+	ri = clear_read_info(ri, param->num_query);
 	
 	while(fgets(line, MAX_LINE, file)){
 		if(line[0] != '@'){
@@ -960,13 +1061,19 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file)
 					switch(column){
 						case 2: // <FLAG>
 							tmp = atoi(line+i+1);
+							strand = (tmp & 0x10);
+
+							//WARNING - read should be reverse complemented if mapped to negative strand before tagdusting...
+							
+							/*tmp = atoi(line+i+1);
 							ri[c]->strand[hit] = (tmp & 0x10);
 							if(tmp == 4){
 								ri[c]->hits[hit] = 0;
 							}else{
 								ri[c]->hits[hit] = 1;
 							}
-							hit++;
+							hit++;*/
+							
 							break;
 						case 3: // <RNAME> 
 							
@@ -1052,11 +1159,14 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file)
 				ri[c]->read_type = -1;
 			}	
 			
+			if(strand != 0){
+			//	ri[c]->seq = reverse_complement(ri[c]->seq,ri[c]->len);
+			}
+
 			
 			
 			
-			
-			ri[c]->hits[hit] = 0xFFFFFFFFu;
+			//ri[c]->hits[hit] = 0xFFFFFFFFu;
 			
 			c++;
 			read++;
@@ -1093,24 +1203,7 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
 	int len = 0;
 	int size = 0;
 	
-	for(i = 0; i < param->num_query;i++){
-		
-		free(ri[i]->seq);
-		free(ri[i]->name);
-		free(ri[i]->qual);
-		free(ri[i]->labels);
-		ri[i]->seq = 0;
-		ri[i]->name = 0;
-		ri[i]->qual = 0;
-		ri[i]->labels = 0;
-		ri[i]->len = 0;
-		//ri[i]->xp = 0;
-		ri[i]->read_type = 0;
-		ri[i]->mapq = -1;
-		//ri[i]->read_start = -1;
-		//ri[i]->read_end = -1;
-		//ri[i]->strand = 0;
-	}
+	ri = clear_read_info(ri, param->num_query);
 	
 	while(fgets(line, MAX_LINE, file)){
 		if((line[0] == '@' && !set)|| (line[0] == '>' && !set)){
@@ -1133,8 +1226,8 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
 				
 			}
 			
-			ri[park_pos]->hits[0] = 0;
-			ri[park_pos]->strand[0] = 0;
+			//ri[park_pos]->hits[0] = 0;
+			//ri[park_pos]->strand[0] = 0;
 			ri[park_pos]->name = malloc(sizeof(unsigned char)* (len+1));
 			for(i = 1;i < MAX_LINE;i++){
 				
@@ -1400,3 +1493,105 @@ void free_fasta(struct fasta*f)
 	
 	free(f);
 }
+
+
+
+struct read_info** malloc_read_info(struct read_info** ri, int numseq)
+{
+	int i;
+	ri = malloc(sizeof(struct read_info*) * numseq);
+	
+	assert(ri !=0);
+	
+	for(i = 0; i < numseq;i++){
+		ri[i] = malloc(sizeof(struct read_info));
+		assert(ri[i] !=0);
+
+		ri[i]->seq = 0;
+		ri[i]->name = 0;
+		ri[i]->qual = 0;
+		ri[i]->labels = 0;
+		ri[i]->len = 0;
+		ri[i]->bar_prob = 0;
+		ri[i]->mapq = -1.0;
+		ri[i]->barcode = -1;
+		ri[i]->fingerprint = -1;
+		ri[i]->read_type = 0;
+		//ri[i]->strand = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
+		//ri[i]->hits = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
+	}
+	return ri;
+}
+
+struct read_info** clear_read_info(struct read_info** ri, int numseq)
+{
+	int i;
+	
+	for(i = 0; i < numseq;i++){
+		if(ri[i]->seq){
+			free(ri[i]->seq);
+		}
+		if(ri[i]->name){
+			free(ri[i]->name);
+		}
+		if(ri[i]->qual){
+			free(ri[i]->qual);
+		}
+		if(ri[i]->labels){
+			free(ri[i]->labels);
+		}
+		ri[i]->seq = 0;
+		ri[i]->name = 0;
+		ri[i]->qual = 0;
+		ri[i]->labels = 0;
+		ri[i]->len = 0;
+		ri[i]->bar_prob = 0;
+		ri[i]->mapq = -1.0;
+		ri[i]->barcode = -1;
+		ri[i]->fingerprint = -1;
+		ri[i]->read_type = 0;
+		//ri[i]->strand = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
+		//ri[i]->hits = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
+	}
+	return ri;
+}
+
+void free_read_info(struct read_info** ri, int numseq)
+{
+	int i;
+	
+	for(i = 0; i < numseq;i++){
+		//free(ri[i]->strand);
+		//free(ri[i]->hits);
+		
+		
+		if(ri[i]->labels){
+			free(ri[i]->labels);
+		}
+		if(ri[i]->name){
+			free(ri[i]->name);
+		}
+		if(ri[i]->seq){
+			free(ri[i]->seq);
+		}
+		if(ri[i]->qual){
+			free(ri[i]->qual );
+		}
+		
+		free(ri[i]);
+	}
+	free(ri);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+

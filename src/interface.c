@@ -74,7 +74,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->indel_frequency = 0.1f;
 	param->average_read_length = 50;
 	param->numbarcode = 8;
-	param->confidence_threshold = 20.0;//ence
+	param->confidence_threshold = 0.0;//ence
 	
 	param->read_structure = 0;
 	param->filter_error = 2;
@@ -93,7 +93,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->sim_random_frac = 0.0f;
 	param->sim_readlen =0;
 	param->sim_readlen_mod = 0;
-	param->sim_sequenced_len = 0;
+	param->sim_end_loss = 0;
 	param->log = 0;
 	param->print_artifact = 0;
 	param->multiread = 0;
@@ -102,6 +102,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->messages = 0;
 	param->buffer = 0;
 	
+	param->arch_file = 0;
 	
 	param->read_structure = malloc_read_structure();
 		
@@ -141,7 +142,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			{"sim_InDel_frac",required_argument,0,OPT_sim_InDel_frac},
 			{"sim_numseq",required_argument,0,OPT_sim_numseq},
 			{"sim_random_frac",required_argument,0,OPT_sim_random_frac},
-			{"sim_sequenced_len",required_argument,0,OPT_sim_sequenced_len},
+			{"sim_endloss",required_argument,0,OPT_sim_endloss},
 			{"arch",required_argument,0,OPT_archfile},
 			{"join",0,0,OPT_join_paired},
 			{"split",0,0,OPT_split},
@@ -169,8 +170,8 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			case OPT_join_paired:
 				param->join = 1;
 				break;
-			case OPT_sim_sequenced_len:
-				param->sim_sequenced_len = atoi(optarg);
+			case OPT_sim_endloss:
+				param->sim_end_loss = atoi(optarg);
 				break;
 			case OPT_sim_barlen:
 				param->sim_barlen = atoi(optarg);
@@ -351,6 +352,18 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 	
+	if(param->outfile == 0){
+		sprintf(param->buffer , "ERROR: You need to specify an output file prefix using the -o / -out option.\n");
+		param->messages = append_message(param->messages, param->buffer  );
+		sprintf(param->buffer , "\tfor additional help: tagdust -help\n");
+		param->messages = append_message(param->messages, param->buffer  );
+		
+		free_param(param);
+		exit(EXIT_FAILURE);
+		
+	}
+	
+	
 	last = -1;
 	c = 0;
 	for(i = 0; i < param->read_structure->num_segments;i++){
@@ -480,6 +493,8 @@ struct read_structure* assign_segment_sequences(struct read_structure* read_stru
 /** \fn void usage()
  \brief Prints usage.
  */
+
+#ifndef SIMREADS
 void usage()
 {
 	fprintf(stdout, "\n%s %s, Copyright (C) 2013 Timo Lassmann <%s>\n",PACKAGE_NAME, PACKAGE_VERSION,PACKAGE_BUGREPORT);
@@ -506,6 +521,31 @@ void usage()
 	fprintf(stdout, "\n");
 
 }
+#else
+void usage()
+{
+	fprintf(stdout, "\n%s %s, Copyright (C) 2013 Timo Lassmann <%s>\n",PACKAGE_NAME, PACKAGE_VERSION,PACKAGE_BUGREPORT);
+	fprintf(stdout, "\n");
+	fprintf(stdout, "Usage:   simreads  [options] <barcodefile from EDITTAG>-o <file>  .... \n\n");
+	fprintf(stdout, "Options:\n");
+	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-sim_barlen","INT","", "Barcode length.");
+	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-sim_barnum","INT" ,"","Number of samples.");
+	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-sim_5seq","STR" ,"", "Sequence of 5' linker.");
+	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-sim_3seq","STR" ,"", "Sequence of 3' linker.");
+	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-sim_readlen","INT" ,"", "Length of read.");
+	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-sim_readlen_mod","INT" ,"", "+/- mod of read length.");
+	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-sim_error_rate","FLT" ,"", "Simulated error rate.");
+	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-sim_InDel_frac","FLT" ,"", "INDEL fraction.");
+	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-sim_numseq","INT" ,"", "Number of simulated sequences.");
+	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-sim_random_frac","FLT" ,"", "Fraction of totally random sequences.");
+	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-sim_endloss","INT" ,"", "mean number of nucleotides lost on either end of the read.");
+
+	
+	fprintf(stdout, "\n");
+	
+}
+
+#endif
 
 
 /** \fn void free_param(struct parameters* param)
@@ -515,16 +555,15 @@ void free_param(struct parameters* param)
 {
 	char logfile[200];
 	FILE* outfile = 0;
-	if(param->log){
-		sprintf (logfile, "%s/tagdust_log.txt",param->log);
-		if ((outfile = fopen( logfile, "w")) == NULL){
-			fprintf(stderr,"can't open logfile\n");
-			exit(-1);
-		}
-	}else{
-		outfile = stdout;
+	//if(param->log){
+	sprintf (logfile, "%s_logfile.txt",param->outfile);
+	if ((outfile = fopen( logfile, "w")) == NULL){
+		fprintf(stderr,"can't open logfile\n");
+		exit(-1);
 	}
 	fprintf(outfile,"%s\n",param->messages);
+	
+	fclose(outfile);
 	
 	free_read_structure(param->read_structure);
 	free(param->infile);
@@ -597,7 +636,7 @@ int QC_read_structure(struct parameters* param )
 				}
 			}
 			if(min_error != 1000){
-				fprintf(stderr,"Minumum edit distance among barcodes: %d, %d pairs\n", min_error,num_pairs);
+				sprintf(param->buffer,"Minumum edit distance among barcodes: %d, %d pairs\n", min_error,num_pairs);
 				
 				param->messages = append_message(param->messages, param->buffer);
 
