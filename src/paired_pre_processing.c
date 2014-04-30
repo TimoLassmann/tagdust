@@ -182,7 +182,6 @@ void concatenate_reads(struct parameters* param,int (*fp)(struct read_info** ,st
 					ri1[i]->name[j] = 0;
 					ri2[i]->name[j] = 0;
 				}
-				
 			}
 			if(strcmp(ri1[i]->name,ri2[i]->name)){
 				sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",ri1[i]->name,ri2[i]->name );
@@ -281,14 +280,9 @@ void concatenate_reads(struct parameters* param,int (*fp)(struct read_info** ,st
 	free(ri1);
 	free(ri2);
 	
-	if(param->sam == 2 || param->sam == 1 || param->gzipped ){
-		pclose(file1);
-		pclose(file2);
+	pclose(file1);
+	pclose(file2);
 
-	}else{
-		fclose(file1);
-		fclose(file2);
-	}
 	if(param->outfile){
 		fclose(outfile);
 	}
@@ -442,11 +436,7 @@ void split(struct parameters* param,int (*fp)(struct read_info** ,struct paramet
 		}
 	}
 	
-	if(param->sam == 2 || param->sam == 1 || param->gzipped ){
-		pclose(file);
-	}else{
-		fclose(file);
-	}
+	pclose(file);
 	
 	
 	

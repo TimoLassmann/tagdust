@@ -72,6 +72,7 @@
 #define OPT_join_paired 34
 #define OPT_split 35
 #define OPT_archfile 36
+#define OPT_seed 37
 
 
 /**
@@ -94,7 +95,9 @@ struct read_structure{
  */
 struct parameters {
 	char** infile; /**< @brief Names of input files. */
-	struct read_structure* read_structure; 
+	struct read_structure* read_structure;
+	struct read_structure* read_structure_R1;
+	struct read_structure* read_structure_R2;
 	char* outfile;/**< @brief Output file name. */
 	char* reference_fasta;/**< @brief Name of fasta file containing known artifacts to be matched against. . */
 	int infiles;/**<  @brief Number of input files. */
@@ -116,6 +119,8 @@ struct parameters {
 	int average_read_length;/**< @brief Average read length. */
 	int num_threads;/**< @brief Number of threads. */
 	float confidence_threshold;/**< @brief This threshold is used to determine whether the read matched the HMM. */
+	float confidence_threshold_R1;
+	float confidence_threshold_R2;
 	float random_prior;
 	int matchstart;
 	int matchend;
@@ -123,6 +128,7 @@ struct parameters {
 	int sim;
 	int numbarcode;
 	int filter_error;
+	unsigned int seed;
 	char* print_artifact;
 	char* arch_file;
 	

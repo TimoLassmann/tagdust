@@ -3,17 +3,21 @@ bin_PROGRAMS = tagdust simreads evalres
 
 
 evalres_SOURCES = \
+malloc_macro.h \
 evalresults.c \
 interface.h \
 interface.c \
 misc.h \
 misc.c \
+nuc_code.h \
+nuc_code.c \
 io.h \
 io.c
 
 evalres_LDADD = -lm
 
 simreads_SOURCES= \
+malloc_macro.h \
 tagdust2.h \
 interface.h \
 interface.c \
@@ -26,7 +30,7 @@ simreads_CPPFLAGS = -DSIMREADS
 simreads_LDADD = -lm
 
 tagdust_SOURCES =  \
-exact.h \
+malloc_macro.h \
 barcode_hmm.h \
 interface.h \
 misc.h \
@@ -39,7 +43,6 @@ nuc_code.c \
 misc.c \
 io.c \
 barcode_hmm.c \
-exact.c \
 paired_pre_processing.c \
 calibrateQ.c \
 test_architectures.c
@@ -54,10 +57,12 @@ TESTS_ENVIRONMENT = \
 	
 #TESTS = tagdust_test
 
-#check_PROGRAMS = simulate_reads run_programs eval_results
+check_PROGRAMS = tagdust_rtest
+tagdust_rtest_SOURCES = $(tagdust_SOURCES)
+tagdust_rtest_LDADD = $(tagdust_LDADD)
+tagdust_rtest_CPPFLAGS  =  -DRTEST
 
-#tagdust_test_SOURCES = sserdt.c sserdt.h
-#tagdust_test_CPPFLAGS  =  -DITEST
+
 
 	
 

@@ -35,10 +35,16 @@
 
 #include "tagdust2.h"
 
+#ifndef MMALLOC
+#include "malloc_macro.h"
+#endif
+
 
 struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct read_info** ri, int file_num )
 {
-	struct sequence_stats_info* ssi = malloc(sizeof(struct sequence_stats_info));
+	struct sequence_stats_info* ssi = 0;
+	
+	MMALLOC(ssi, sizeof(struct sequence_stats_info));
 	FILE* file = 0;
 	
 	int (*fp)(struct read_info** ,struct parameters*,FILE* ) = 0;
@@ -89,7 +95,7 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
 	if(param->read_structure->type[0] == 'P'){
 		five_len = (int) strlen(param->read_structure->sequence_matrix[0][0]);
 		ssi->expected_5_len = five_len;
-		five_test_sequence = malloc(sizeof(char) * (five_len+1));
+		MMALLOC(five_test_sequence, sizeof(char) * (five_len+1));
 		
 		for(i = 0; i < five_len;i++){
 			five_test_sequence[i] = nuc_code[(int) param->read_structure->sequence_matrix[0][0][i]];
@@ -100,7 +106,7 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
 	if(param->read_structure->type[param->read_structure->num_segments-1] == 'P'){
 		three_len = (int) strlen(param->read_structure->sequence_matrix[ param->read_structure->num_segments-1][0]);
 		ssi->expected_3_len = three_len;
-		three_test_sequence =malloc(sizeof(char) * (three_len+1));
+		MMALLOC(three_test_sequence ,sizeof(char) * (three_len+1));
 		for(i = 0; i < three_len;i++){
 			three_test_sequence[i] = nuc_code[(int) param->read_structure->sequence_matrix[ param->read_structure->num_segments-1][0][i]];
 		}
@@ -253,10 +259,10 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
 	}
 	
 	if(five_test_sequence){
-		free(five_test_sequence);
+		MFREE(five_test_sequence);
 	}
 	if(three_test_sequence){
-		free(three_test_sequence);
+		MFREE(three_test_sequence);
 	}
 	
 	
@@ -365,6 +371,7 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 	param->gzipped = 0;
 	param->bzipped = 0;
 	param->sam = 0;
+	param->fasta = 0;
 	
 	if(!strcmp(".sam", param->infile[file_num] + (strlen(param->infile[file_num] ) - 4))){
 		param->sam = 1;
@@ -602,7 +609,7 @@ void print_split_files(struct parameters* param, struct read_info** ri, int nums
 	int old_type = -100;
 	int old_bar = -100;
 	int read_file = 0;
-	
+	void* tmp = 0;
 	int start = 0;
 	int stop = -1;
 	int last = 0;
@@ -611,8 +618,9 @@ void print_split_files(struct parameters* param, struct read_info** ri, int nums
 	
 	static int check_for_files = 1;
 	
-	char* buffer = malloc(sizeof(char)* 1000 );
-	assert(buffer != NULL);
+	char* buffer =  0;
+	MMALLOC(buffer,sizeof(char)* 1000 );
+	//assert(buffer != NULL);
 	
 	// sort based on barcode...
 	
@@ -645,7 +653,12 @@ void print_split_files(struct parameters* param, struct read_info** ri, int nums
 				}
 			}else{
 				buffer[0] = 0;
-				sprintf (buffer, "%s_un.fq",param->outfile);
+				if(param->multiread == 2){
+					sprintf (buffer, "%s_un_READ1.fq",param->outfile);
+				}else{
+					sprintf (buffer, "%s_un.fq",param->outfile);
+				}
+				
 			}
 				
 			if(check_for_files){
@@ -663,7 +676,19 @@ void print_split_files(struct parameters* param, struct read_info** ri, int nums
 				}
 				buffer[0] = 0;
 				if(param->multiread ==2){
-					sprintf (buffer, "%s_BC_%s_READ2.fq",param->outfile,param->read_structure->sequence_matrix[(ri[i]->barcode >> 16) &0XFF][ri[i]->barcode &0XFF]);
+					if(ri[i]->read_type  == EXTRACT_SUCCESS){
+						buffer[0] = 0;
+						if(ri[i]->barcode != -1){
+							sprintf (buffer, "%s_BC_%s_READ2.fq",param->outfile,param->read_structure->sequence_matrix[(ri[i]->barcode >> 16) &0XFF][ri[i]->barcode &0XFF]);
+						}else{
+							sprintf (buffer, "%s_READ1.fq",param->outfile);
+							
+						}
+					}else{
+						buffer[0] = 0;
+						sprintf (buffer, "%s_un_READ1.fq",param->outfile);
+						
+					}
 					if ((out_read2 = fopen(buffer, "w")) == NULL){
 						fprintf(stderr,"can't open output\n");
 						exit(-1);
@@ -682,9 +707,20 @@ void print_split_files(struct parameters* param, struct read_info** ri, int nums
 					exit(-1);
 				}
 				if(param->multiread ==2){
-					buffer[0] = 0;
-					sprintf (buffer, "%s_BC_%s_READ2.fq",param->outfile,param->read_structure->sequence_matrix[(ri[i]->barcode >> 16) &0XFF][ri[i]->barcode &0XFF]);
-					if ((out_read2 = fopen(buffer, "a")) == NULL){
+					if(ri[i]->read_type  == EXTRACT_SUCCESS){
+						buffer[0] = 0;
+						if(ri[i]->barcode != -1){
+							sprintf (buffer, "%s_BC_%s_READ2.fq",param->outfile,param->read_structure->sequence_matrix[(ri[i]->barcode >> 16) &0XFF][ri[i]->barcode &0XFF]);
+						}else{
+							sprintf (buffer, "%s_READ1.fq",param->outfile);
+							
+						}
+					}else{
+						buffer[0] = 0;
+						sprintf (buffer, "%s_un_READ1.fq",param->outfile);
+						
+					}
+					if ((out_read2 = fopen(buffer, "w")) == NULL){
 						fprintf(stderr,"can't open output\n");
 						exit(-1);
 					}
@@ -722,11 +758,13 @@ void print_split_files(struct parameters* param, struct read_info** ri, int nums
 			}
 			
 			//strcat (buffer, tmp);
-			ri[i]->name = realloc(ri[i]->name, sizeof(char) * (strlen(buffer) + 1) );
-			
+			//ri[i]->name = realloc(ri[i]->name, sizeof(char) * (strlen(buffer) + 1) );
+			MREALLOC(ri[i]->name,tmp,sizeof(char) * (strlen(buffer) + 1)) ;
+			assert(ri[i]->name  != NULL);
 			strcpy(ri[i]->name, buffer);
 			
 			
+						
 			start = 0;
 			stop = -1;
 			last = 0;
@@ -898,7 +936,7 @@ void print_split_files(struct parameters* param, struct read_info** ri, int nums
 			}
 		}
 	}
-	free(buffer);
+	MFREE(buffer);
 	
 	fprintf(stderr,"printed: %d\n",h);
 	if(param->multiread ==2){
@@ -1042,7 +1080,7 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file)
 				}
 			}
 			
-			ri[c]->name = malloc(sizeof(unsigned char)* tmp);
+			MMALLOC(ri[c]->name,sizeof(unsigned char)* tmp);
 			for(j = 0;j < MAX_LINE;j++){
 				
 				if(isspace((int)line[j])){
@@ -1105,8 +1143,8 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file)
 								}
 							}
 							
-							ri[c]->seq = malloc(sizeof(unsigned char)* tmp);
-							ri[c]->labels = malloc(sizeof(unsigned char)* tmp);
+							MMALLOC(ri[c]->seq,sizeof(unsigned char)* tmp);
+							MMALLOC(ri[c]->labels,sizeof(unsigned char)* tmp);
 							
 							g = 0;
 							for(j = i+1;j < MAX_LINE;j++){
@@ -1133,7 +1171,7 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file)
 								}
 							}
 							g= 0;
-							ri[c]->qual = malloc(sizeof(unsigned char)* tmp);
+							MMALLOC(ri[c]->qual,sizeof(unsigned char)* tmp);
 							for(j = i+1;j < MAX_LINE;j++){
 								
 								if(isspace((int)line[j])){
@@ -1204,7 +1242,6 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
 	int size = 0;
 	
 	ri = clear_read_info(ri, param->num_query);
-	
 	while(fgets(line, MAX_LINE, file)){
 		if((line[0] == '@' && !set)|| (line[0] == '>' && !set)){
 			//set sequence length of previous read
@@ -1212,7 +1249,6 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
 			//check if there is still space....
 			//if(param->num_query == size){
 			//	fseek (file , -  strlen(line) , SEEK_CUR);
-				
 			//	return size;
 			//}
 			park_pos++;
@@ -1228,7 +1264,7 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
 			
 			//ri[park_pos]->hits[0] = 0;
 			//ri[park_pos]->strand[0] = 0;
-			ri[park_pos]->name = malloc(sizeof(unsigned char)* (len+1));
+			MMALLOC(ri[park_pos]->name,sizeof(unsigned char)* (len+1));
 			for(i = 1;i < MAX_LINE;i++){
 				
 				if(iscntrl((int)line[i])){
@@ -1257,9 +1293,9 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
 						}
 					}
 					//fprintf(stderr,"SEQ LEN:%d	%s\n",len,line);
-					ri[park_pos]->seq = malloc(sizeof(unsigned char)* (len+1));
+					MMALLOC(ri[park_pos]->seq,sizeof(unsigned char)* (len+1));
 					
-					ri[park_pos]->labels = malloc(sizeof(unsigned char)* (len+1));
+					MMALLOC(ri[park_pos]->labels, sizeof(unsigned char)* (len+1));
 					
 					for(i = 0;i < MAX_LINE;i++){
 						if(iscntrl((int)line[i])){
@@ -1281,7 +1317,7 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
 						
 					}
 					//fprintf(stderr,"QUAL LEN:%d\n",len);
-					ri[park_pos]->qual = malloc(sizeof(unsigned char)* (len+1));
+					MMALLOC(ri[park_pos]->qual,sizeof(unsigned char)* (len+1));
 					for(i = 0;i < MAX_LINE;i++){
 						if(iscntrl((int)line[i])){
 							ri[park_pos]->qual[i] = 0;
@@ -1317,8 +1353,7 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
 
 struct fasta* get_fasta(struct fasta* p,char *infile)
 {
-	p = (struct fasta*) malloc(sizeof(struct fasta));
-	assert(p != 0);
+	MMALLOC(p,sizeof(struct fasta));
 	p->string = 0;
 	p->string =  get_input_into_string(p->string,infile);
 	if(!p->string){
@@ -1362,8 +1397,8 @@ unsigned char* get_input_into_string(unsigned char* string,char* infile)
 		(void)exit(EXIT_FAILURE);
 	}
 	if(!string){
-		string = malloc ((i+1+18)* sizeof(unsigned char));
-		assert(string != 0);
+		MMALLOC(string,(i+1+18)* sizeof(unsigned char));
+	
 	}
 	fread(string,sizeof(unsigned char), i, file);
 	string[i] = 0;
@@ -1413,12 +1448,10 @@ struct fasta* read_fasta(struct fasta* f)
 	}
 	
 	f->suffix = 0;
-	f->sn = malloc(sizeof(unsigned char*)*f->numseq);
-	assert(f->sn  !=0);
+	MMALLOC(f->sn, sizeof(unsigned char*)*f->numseq);
 	//aln->c = 0;
 	
-	f->s_index = malloc(sizeof(int)*(f->numseq+1));
-	assert(f->s_index != 0);
+	MMALLOC(f->s_index, sizeof(int)*(f->numseq+1));
 	for (i =0;i < nbytes;i++){
 		if (f->string[i] == '>'){
 			if(f->max_len < len){
@@ -1432,8 +1465,7 @@ struct fasta* read_fasta(struct fasta* f)
 				j++;
 			}
 			//fprintf(stderr,"	%d\n",j-i);
-			f->sn[c] = malloc(sizeof(char)*(j-i));
-			assert(f->sn[c] != 0);
+			MMALLOC(f->sn[c],sizeof(char)*(j-i));
 			f->s_index[c] = n;
 			j = i+1;
 			len = 0;
@@ -1477,21 +1509,21 @@ void free_fasta(struct fasta*f)
 {
 	int i;
 	for (i =0;i < f->numseq;i++){
-		free(f->sn[i]);
+		MFREE(f->sn[i]);
 	}
 	if(f->mer_hash){
-		free(f->mer_hash);
+		MFREE(f->mer_hash);
 	}
 	if(f->suffix){
-		free(f->suffix);
+		MFREE(f->suffix);
 	}
 	
 	//free(aln->mer_hash);
-	free(f->s_index);
-	free(f->string);
-	free(f->sn);
+	MFREE(f->s_index);
+	MFREE(f->string);
+	MFREE(f->sn);
 	
-	free(f);
+	MFREE(f);
 }
 
 
@@ -1499,14 +1531,12 @@ void free_fasta(struct fasta*f)
 struct read_info** malloc_read_info(struct read_info** ri, int numseq)
 {
 	int i;
-	ri = malloc(sizeof(struct read_info*) * numseq);
-	
-	assert(ri !=0);
+	MMALLOC(ri, sizeof(struct read_info*) * numseq);
 	
 	for(i = 0; i < numseq;i++){
-		ri[i] = malloc(sizeof(struct read_info));
-		assert(ri[i] !=0);
-
+		ri[i] = 0;
+		MMALLOC(ri[i], sizeof(struct read_info));
+		
 		ri[i]->seq = 0;
 		ri[i]->name = 0;
 		ri[i]->qual = 0;
@@ -1529,16 +1559,16 @@ struct read_info** clear_read_info(struct read_info** ri, int numseq)
 	
 	for(i = 0; i < numseq;i++){
 		if(ri[i]->seq){
-			free(ri[i]->seq);
+			MFREE(ri[i]->seq);
 		}
 		if(ri[i]->name){
-			free(ri[i]->name);
+			MFREE(ri[i]->name);
 		}
 		if(ri[i]->qual){
-			free(ri[i]->qual);
+			MFREE(ri[i]->qual);
 		}
 		if(ri[i]->labels){
-			free(ri[i]->labels);
+			MFREE(ri[i]->labels);
 		}
 		ri[i]->seq = 0;
 		ri[i]->name = 0;
@@ -1566,21 +1596,21 @@ void free_read_info(struct read_info** ri, int numseq)
 		
 		
 		if(ri[i]->labels){
-			free(ri[i]->labels);
+			MFREE(ri[i]->labels);
 		}
 		if(ri[i]->name){
-			free(ri[i]->name);
+			MFREE(ri[i]->name);
 		}
 		if(ri[i]->seq){
-			free(ri[i]->seq);
+			MFREE(ri[i]->seq);
 		}
 		if(ri[i]->qual){
-			free(ri[i]->qual );
+			MFREE(ri[i]->qual );
 		}
 		
-		free(ri[i]);
+		MFREE(ri[i]);
 	}
-	free(ri);
+	MFREE(ri);
 }
 
 

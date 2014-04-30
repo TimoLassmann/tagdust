@@ -30,6 +30,10 @@
 #include "io.h"
 #include "misc.h"
 
+#ifndef MMALLOC
+#include "malloc_macro.h"
+#endif
+
 
 /** \fn struct parameters* interface(struct parameters* param,int argc, char *argv[])
  \brief Read command line options into @ref parameters.
@@ -49,7 +53,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 		exit(EXIT_SUCCESS);
 	}
 		
-	param = malloc(sizeof(struct parameters));
+	MMALLOC(param,sizeof(struct parameters));
 	param->infiles = 0;
 	param->infile = 0;
 	param->outfile = 0;
@@ -75,8 +79,12 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->average_read_length = 50;
 	param->numbarcode = 8;
 	param->confidence_threshold = 0.0;//ence
+	param->confidence_threshold_R1 = 0.0;
+	param->confidence_threshold_R2 = 0.0;
 	
 	param->read_structure = 0;
+	param->read_structure_R1 = 0;
+	param->read_structure_R2 = 0;
 	param->filter_error = 2;
 	param->reference_fasta  = 0;
 	param->random_prior = 0;
@@ -101,6 +109,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->split = 0;
 	param->messages = 0;
 	param->buffer = 0;
+	param->seed = 0;
 	
 	param->arch_file = 0;
 	
@@ -144,6 +153,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			{"sim_random_frac",required_argument,0,OPT_sim_random_frac},
 			{"sim_endloss",required_argument,0,OPT_sim_endloss},
 			{"arch",required_argument,0,OPT_archfile},
+			{"seed",required_argument,0, OPT_seed},
 			{"join",0,0,OPT_join_paired},
 			{"split",0,0,OPT_split},
 			{"help",0,0,'h'},
@@ -160,6 +170,9 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 		
 		switch(c) {
 			case 0:
+				break;
+			case OPT_seed:
+				param->seed = atoi(optarg);
 				break;
 			case OPT_archfile:
 				param->arch_file = optarg;
@@ -317,7 +330,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	}
 	
 	
-	param->buffer  = malloc(sizeof(char) * MAX_LINE);
+	MMALLOC(param->buffer,sizeof(char) * MAX_LINE);
 	
 	
 	sprintf(param->buffer , "%s %s, Copyright (C) 2013 Timo Lassmann <%s>\n",PACKAGE_NAME, PACKAGE_VERSION,PACKAGE_BUGREPORT);
@@ -388,7 +401,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	
 	if(help){
 		usage();
-		free(param);
+		free_param(param);
 		exit(EXIT_SUCCESS);
 	}
 	if(param->reference_fasta || param->dust){
@@ -403,7 +416,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	//param->messages = append_message(param->messages, param->buffer );
 	}
 	
-	param->infile = malloc(sizeof(char*)* (argc-optind));
+	MMALLOC(param->infile,sizeof(char*)* (argc-optind));
 	
 	c = 0;
 	while (optind < argc){
@@ -442,10 +455,10 @@ struct read_structure* assign_segment_sequences(struct read_structure* read_stru
 	
 	//fprintf(stderr,"Segment %d: %d	sequences\n",segment,count+1);
 	read_structure->numseq_in_segment[segment] = count+1;
-	read_structure->sequence_matrix[segment] = malloc(sizeof(char*) * (count+1));
-	assert(read_structure->sequence_matrix[segment] !=0);
+	MMALLOC(read_structure->sequence_matrix[segment],sizeof(char*) * (count+1));
 	for(i = 0; i < count+1;i++){
-		read_structure->sequence_matrix[segment][i] = malloc(sizeof(char)* strlen(tmp));
+		read_structure->sequence_matrix[segment][i] = 0;
+		MMALLOC(read_structure->sequence_matrix[segment][i],sizeof(char)* strlen(tmp));
 	}
 	read_structure->type[segment] = tmp[0];
 	
@@ -556,20 +569,31 @@ void free_param(struct parameters* param)
 	char logfile[200];
 	FILE* outfile = 0;
 	//if(param->log){
-	sprintf (logfile, "%s_logfile.txt",param->outfile);
-	if ((outfile = fopen( logfile, "w")) == NULL){
-		fprintf(stderr,"can't open logfile\n");
-		exit(-1);
+	if(param->outfile){
+		sprintf (logfile, "%s_logfile.txt",param->outfile);
+		if ((outfile = fopen( logfile, "w")) == NULL){
+			fprintf(stderr,"can't open logfile\n");
+			exit(-1);
+		}
+		fprintf(outfile,"%s\n",param->messages);
+	
+		fclose(outfile);
+	
 	}
-	fprintf(outfile,"%s\n",param->messages);
+	if(param->read_structure){
+		free_read_structure(param->read_structure);
+	}
+	if(param->read_structure_R1){
+		free_read_structure(param->read_structure_R1);
+	}
+	if(param->read_structure_R2){
+		free_read_structure(param->read_structure_R2);
+	}
 	
-	fclose(outfile);
-	
-	free_read_structure(param->read_structure);
-	free(param->infile);
-	free(param->messages);
-	free(param->buffer);
-	free(param);
+	MFREE (param->infile);
+	MFREE(param->messages);
+	MFREE(param->buffer);
+	MFREE(param);
 }
 
 
@@ -635,13 +659,13 @@ int QC_read_structure(struct parameters* param )
 					}
 				}
 			}
-			if(min_error != 1000){
-				sprintf(param->buffer,"Minumum edit distance among barcodes: %d, %d pairs\n", min_error,num_pairs);
+			//if(min_error != 1000){
+				//sprintf(param->buffer,"Minumum edit distance among barcodes: %d, %d pairs\n", min_error,num_pairs);
 				
-				param->messages = append_message(param->messages, param->buffer);
+				//param->messages = append_message(param->messages, param->buffer);
 
 				
-			}
+			//}
 			
 		}
 	}
@@ -652,16 +676,14 @@ struct read_structure* malloc_read_structure(void)
 {
 	struct read_structure* read_structure = 0;
 	int i;
-	read_structure = malloc(sizeof(struct read_structure));
-	assert(read_structure !=0);
-	read_structure->sequence_matrix = malloc(sizeof(char**) * 10 );
-	assert(read_structure->sequence_matrix !=0);
+	MMALLOC(read_structure, sizeof(struct read_structure));
+	read_structure->sequence_matrix = 0;
+	read_structure->numseq_in_segment = 0;
+	read_structure->type = 0;
+	MMALLOC(read_structure->sequence_matrix ,sizeof(char**) * 10 );
+	MMALLOC(read_structure->numseq_in_segment, sizeof(int) * 10);
+	MMALLOC(read_structure->type ,sizeof(char) * 10 );
 	
-	read_structure->numseq_in_segment  = malloc(sizeof(int) * 10);
-	assert(read_structure->numseq_in_segment !=0);
-	read_structure->type = malloc(sizeof(char) * 10 );
-	
-	assert(read_structure->type !=0);
 	
 	for(i = 0;i  <10;i++){
 		read_structure->sequence_matrix[i] = 0;
@@ -680,17 +702,17 @@ void free_read_structure(struct read_structure* read_structure)
 	for(i = 0; i < 10;i++){
 		if(read_structure->sequence_matrix[i]){
 			for(j = 0; j < read_structure->numseq_in_segment[i];j++){
-				free(read_structure->sequence_matrix[i][j]);
+				MFREE(read_structure->sequence_matrix[i][j]);
 			}
 			
-			free(read_structure->sequence_matrix[i]);
+			MFREE(read_structure->sequence_matrix[i]);
 		}
 	}
-	free(read_structure->sequence_matrix);
+	MFREE(read_structure->sequence_matrix);
 	
-	free(read_structure->numseq_in_segment );
-	free(read_structure->type);
-	free(read_structure);
+	MFREE(read_structure->numseq_in_segment );
+	MFREE(read_structure->type);
+	MFREE(read_structure);
 }
 
 

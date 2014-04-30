@@ -10,6 +10,10 @@
 #include <time.h>
 #include "barcode_hmm.h"
 
+#ifndef MMALLOC
+#include "malloc_macro.h"
+#endif
+
 
 #define MAX_NUM_ARCH 100
 
@@ -21,13 +25,14 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 	int index = 0;
 	int i,j,c,architecture_found;
 	char line[MAX_LINE];
-	char* tmp = malloc(sizeof(char) * 100);
+	char* tmp = 0;
+	
+	MMALLOC(tmp, sizeof(char) * 100);
 	struct model_bag* mb = 0;
 	
 	
 	int best_architecture = -1;
 	float best_score = -1.0;
-	
 	
 	init_logsum();
 	
@@ -42,11 +47,20 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 		
 	struct sequence_stats_info* ssi = 0;
 	
-	struct arch_bag* ab = malloc(sizeof(struct arch_bag) );
+	struct arch_bag* ab = 0;
+	MMALLOC(ab,sizeof(struct arch_bag) );
+	ab->archs = 0;
+	ab->arch_posterior = 0;
+	ab->command_line = 0;
+	MMALLOC(ab->archs,sizeof(struct model_bag*) * MAX_NUM_ARCH);
+	MMALLOC(ab->arch_posterior,sizeof(float) * MAX_NUM_ARCH);
+	MMALLOC(ab->command_line,sizeof(char*) *MAX_NUM_ARCH);
 	
-	ab->archs = malloc(sizeof(struct model_bag*) * MAX_NUM_ARCH);
-	ab->arch_posterior = malloc(sizeof(float) * MAX_NUM_ARCH);
-	ab->command_line = malloc(sizeof(char*) *MAX_NUM_ARCH);
+	for(i = 0; i < MAX_NUM_ARCH;i++){
+		ab->command_line[i] = 0;
+		ab->archs[i] = 0;
+	}
+	
 	ab->num_arch = 0;
 	
 	//1) file 0 = architecture file (tagdust commands on  each line)
@@ -107,7 +121,7 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 				if(! ab->num_arch){
 					mb = init_model_bag(param, ssi);
 				}
-				ab->command_line[ab->num_arch] = malloc(sizeof(char) * (strlen(line)+2));
+				MMALLOC(ab->command_line[ab->num_arch],sizeof(char) * (strlen(line)+2));
 				strcpy(ab->command_line[ab->num_arch] , line);
 				ab->archs[ab->num_arch] = init_model_bag(param, ssi);
 				ab->num_arch++;
@@ -116,7 +130,7 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 					free_param(param);
 					exit(EXIT_FAILURE);
 				}
-				free(ssi);
+				MFREE (ssi);
 			}
 		}
 	}
@@ -146,7 +160,7 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 		int (*fp)(struct read_info** ,struct parameters*,FILE* ) = 0;
 		FILE* file = NULL;
 		int numseq;
-		file =  io_handler(file, 0,param);
+		file =  io_handler(file, file_num,param);
 		
 		if(param->sam == 0){
 			fp = &read_fasta_fastq;
@@ -159,11 +173,8 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 		
 		mb =  run_pHMM(ab,mb,ri,param,0,numseq,MODE_ARCH_COMP);
 		
-		if(param->sam == 2 || param->sam == 1 || param->gzipped ){
-			pclose(file);
-		}else{
-			fclose(file);
-		}
+		pclose(file);
+		
 		//3) print models and scores...
 		
 		float sum = prob2scaledprob(0.0f);
@@ -186,11 +197,11 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 				//fprintf(stderr,"BEST%d:	%f	%s", i, ab->arch_posterior[i] ,ab->command_line[i]);
 				sprintf(param->buffer,"Using: %s", ab->command_line[i]);
 				param->messages = append_message(param->messages, param->buffer);
-				sprintf(param->buffer,"Confidence: %0.2f\n", ab->arch_posterior[i]);
+				sprintf(param->buffer,"%0.2f Confidence.\n", ab->arch_posterior[i]);
 				param->messages = append_message(param->messages, param->buffer);
-			}else{
-				fprintf(stderr,"Arch%d:	%f	%s", i, ab->arch_posterior[i] ,ab->command_line[i]);
-			}
+			}//else{
+				//fprintf(stderr,"Arch%d:	%f	%s", i, ab->arch_posterior[i] ,ab->command_line[i]);
+			//}
 		}
 	}else{
 		best_architecture = 0;
@@ -246,15 +257,15 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 
 	for(i = 0; i < ab->num_arch;i++){
 		free_model_bag(ab->archs[i]);
-		free(ab->command_line[i]);
+		MFREE(ab->command_line[i]);
 	}
-	free(ab->command_line);
+	MFREE(ab->command_line);
 	
-	free(ab->arch_posterior);// = malloc(sizeof(float) * MAX_NUM_ARCH);
+	MFREE(ab->arch_posterior);// = malloc(sizeof(float) * MAX_NUM_ARCH);
 	
-	free(ab->archs);
-	free(ab);
-	free(tmp);
+	MFREE(ab->archs);
+	MFREE(ab);
+	MFREE(tmp);
 	return param;
 }
 

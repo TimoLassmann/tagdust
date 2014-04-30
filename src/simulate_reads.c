@@ -4,17 +4,52 @@
 #include "misc.h"
 #include <time.h>
 
+#include <sys/stat.h>
+
+
+#ifndef MMALLOC
+#include "malloc_macro.h"
+#endif
+
 /*! \brief  Initializes nucleotide alphabet needed to parse input. Calls parameter parser. Calls functions to process the data.
  * \param argc number of command line parameters
  * \param argv command line parameters
  * \return EXIT_SUCCESS */
+
+/*char* datadir;
+char datafile[1000];
+int i;
+
+init_nuc_code();
+
+datadir = getenv("testdatafiledir");
+
+fprintf(stdout,"%s\n",datadir);
+TOMEDB* db = 0;
+
+if(db_exists ("testdb")){
+	fprintf(stderr,"A database with the same name already exists.\n");
+	abort();
+}
+
+i = sprintf(datafile, "%s/%s",datadir,"hg19_chr22_M.fa");
+*/
+
 int main (int argc,char * argv[]) {
 	struct parameters* param = 0;
+	
+	unsigned int seed = 0;
 	
 	init_nuc_code();
 	
 	param = interface(param,argc,argv);
 	
+	
+	if(param->seed){
+		seed = param->seed;
+	}else{
+		seed = (unsigned int) (time(NULL) * ( 42));
+	}
 	
 	FILE* file = stdout;
 	int i,j,c,n,start,barcode_used;
@@ -26,12 +61,17 @@ int main (int argc,char * argv[]) {
 	
 	char** barcode = 0;
 	
+	struct stat buf;
+	
 	
 	if(param->infiles == 0){
 		exit(EXIT_FAILURE);
 	}
 	
-	barcode = malloc(sizeof(char*) * 1000);
+	MMALLOC(barcode, sizeof(char*) * 1000);
+	for(i = 0; i < 1000;i++){
+		barcode[i] = 0;
+	}
 	
 	if ((file = fopen(param->infile[0], "r")) == NULL){
 		fprintf(stderr,"can't open barcode file. \n");
@@ -43,7 +83,7 @@ int main (int argc,char * argv[]) {
 	while(fgets(line, 10000, file)){
 		c = byg_end(":", line  );
 		if(c){
-			barcode[read_barcodes] = malloc(sizeof(char) * 100);
+			MMALLOC(barcode[read_barcodes],sizeof(char) * 100);
 			j = 0;
 			for(i = c; i< strlen(line);i++){
 				
@@ -89,11 +129,12 @@ int main (int argc,char * argv[]) {
 	//exit(EXIT_SUCCESS);
 	
 	
-	read = malloc(sizeof(char)* 200);
-	sequenced_read = malloc(sizeof(char)* 200);
-	sequenced_read_mutated = malloc(sizeof(char)* 220);
+	MMALLOC(read,sizeof(char)* 200);
+	MMALLOC(sequenced_read,sizeof(char)* 200);
+	MMALLOC(sequenced_read_mutated,sizeof(char)* 220);
 	
-	unsigned int seed = (unsigned int) (time(NULL) * ( 42));
+	
+	
 	if(param->outfile){
 		if ((file = fopen(param->outfile, "w")) == NULL){
 			fprintf(stderr,"can't open barcode file. \n");
@@ -104,7 +145,7 @@ int main (int argc,char * argv[]) {
 		file = stdout;
 	}
 	//Here I simulate sequences containing the read....
-	for(i = 0; i < (int)((float) param->sim_numseq * (1.0-param->sim_random_frac));i++){
+	for(i = 0; i <= (int)((float) param->sim_numseq * (1.0-param->sim_random_frac));i++){
 		for(j = 0; j < 200;j++){
 			sequenced_read[j] = 0;
 		}
@@ -270,7 +311,7 @@ int main (int argc,char * argv[]) {
 	
 	
 	
-	for(i = (int)((float) param->sim_numseq * (1.0-param->sim_random_frac)); i < param->sim_numseq   ;i++){
+	for(i = (int)((float) param->sim_numseq * (1.0-param->sim_random_frac)) + 1; i < param->sim_numseq   ;i++){
 		if(param->sim_5seq){
 			strcat ( sequenced_read,  param->sim_5seq);
 		}
@@ -331,48 +372,112 @@ int main (int argc,char * argv[]) {
 	}
 	
 	
+	param->buffer[0] = 0;
+	sprintf(param->buffer, "%s_tagdust_arch.txt",param->outfile );
+	
+	
+	
+	
+	if(!stat ( param->buffer, &buf )){
+		if ((file = fopen(param->buffer, "a")) == NULL){
+			fprintf(stderr,"can't open output\n");
+			exit(-1);
+		}
+
+	}else {
+		if ((file = fopen(param->buffer, "w")) == NULL){
+			fprintf(stderr,"can't open output\n");
+			exit(-1);
+		}
+	}
+	
+	
+	
 	c = 1;
 	
+	fprintf(file,"tagdust ");
+	
 	if(param->sim_5seq){
-		fprintf(stderr,"-%d ",c);
+		fprintf(file,"-%d ",c);
 		c++;
-		fprintf(stderr,"P:%s ",param->sim_5seq);
+		fprintf(file,"P:%s ",param->sim_5seq);
 	}
 	
 	if(param->sim_barnum){
-		fprintf(stderr,"-%d ",c);
+		fprintf(file,"-%d ",c);
 		c++;
 		
-		fprintf(stderr,"B:");
+		fprintf(file,"B:");
 		for(i = 0; i < param->sim_barnum-1;i++){
-			fprintf(stderr,"%s,",barcode[i]);
+			fprintf(file,"%s,",barcode[i]);
 		}
-		fprintf(stderr,"%s ",barcode[param->sim_barnum-1]);
+		fprintf(file,"%s ",barcode[param->sim_barnum-1]);
 	}
 	
-	fprintf(stderr,"-%d ",c);
+	fprintf(file,"-%d ",c);
 	c++;
 	
-	fprintf(stderr,"R:N ");
+	fprintf(file,"R:N ");
 	
 	if(param->sim_3seq){
-		fprintf(stderr,"-%d ",c);
+		fprintf(file,"-%d ",c);
 		c++;
-		fprintf(stderr,"P:%s ",param->sim_3seq);
+		fprintf(file,"P:%s ",param->sim_3seq);
 	}
 	
-	fprintf(stderr,"\n");
+	fprintf(file,"%s ", param->outfile);
+	
+	fprintf(file,"-o bananas");
+
+	
+	
+	fprintf(file,"\n");
+	
+	
+	
+	
+	if(param->outfile){
+		fclose(file);
+	}
+	
+	
+	if(param->outfile){
+		param->buffer[0] = 0;
+		sprintf(param->buffer, "%s_btrim_pattern.txt",param->outfile );
+		if ((file = fopen(param->buffer, "w")) == NULL){
+			fprintf(stderr,"can't open barcode file. \n");
+			exit(-1);
+		}
+		
+	}else{
+		file = stdout;
+	}
+	
+	
+	if(param->sim_barnum){
+		for(i = 0 ;i < param->sim_barnum;i++){
+			fprintf(file,"%s%s %s\n",param->sim_5seq,barcode[i], param->sim_3seq);
+			
+		}
+	}else{
+		fprintf(file,"%s %s\n",param->sim_5seq, param->sim_3seq);
+		
+	}
+	
+	if(param->outfile){
+		fclose(file);
+	}
 	
 	
 	
 	for(i = 0; i <read_barcodes;i++){
-		free(barcode[i]);
+		MFREE(barcode[i]);
 	}
-	free(barcode);
+	MFREE(barcode);
 	
-	free(read);// = malloc(sizeof(char)* 200);
-	free(sequenced_read);// = malloc(sizeof(char)* 200);
-	free(sequenced_read_mutated);// = malloc(sizeof(char)* 220);
+	MFREE(read);// = malloc(sizeof(char)* 200);
+	MFREE(sequenced_read);// = malloc(sizeof(char)* 200);
+	MFREE(sequenced_read_mutated);// = malloc(sizeof(char)* 220);
 	free_param(param);
 	return EXIT_SUCCESS;
 }

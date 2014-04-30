@@ -7,12 +7,27 @@
 #include <stdio.h>
 #include "misc.h"
 
+#ifndef MMALLOC
+#include "malloc_macro.h"
+#endif
+
+
 
 struct parameters* estimateQthreshold(struct parameters* param, struct sequence_stats_info* ssi)
 {
 	int i,j;
-	unsigned int seed = (unsigned int) (time(NULL) * ( 42));
-
+	
+	//Warning - I set the seed to number 42 because the results are completely robust with 400000 sequences...
+	// if we reduce the latter we need to test for consistency between runs...
+	//unsigned int seed = (unsigned int) (time(NULL) * ( 42));
+	unsigned int seed = 0;
+	if(param->seed){
+		seed = param->seed;
+	}else{
+		seed = 42;
+	}
+	
+	
 	int binsize = 0;
 	int hasbarcode = 0;
 
@@ -20,35 +35,25 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 	//printf("Debug\n");
 	int num_test_sequences = 400;
 #else
-	//printf("No Debug\n");
+#if RTEST
+	int num_test_sequences = 4000;
+#else
 	int num_test_sequences = 400000;
+ 
+#endif
 #endif
 	struct model_bag* mb = 0;
 	
 	
-	struct read_info** ri = malloc(sizeof(struct read_info*) * num_test_sequences);
+	struct read_info** ri = 0;
+	
+	ri = malloc_read_info(ri,num_test_sequences);
 	double TP,FP,TN,FN;
 	TP = 0.0;
 	FP = 0.0;
 	TN = 0.0;
 	FN = 0.0;
 	
-	
-	assert(ri !=0);
-	
-	for(i = 0; i < num_test_sequences;i++){
-		ri[i] = malloc(sizeof(struct read_info));
-		ri[i]->seq = 0;
-		ri[i]->name = 0;
-		ri[i]->qual = 0;
-		ri[i]->labels = 0;
-		ri[i]->len = 0;
-		ri[i]->bar_prob = 0;
-		ri[i]->mapq = -1.0;
-		ri[i]->strand = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
-		ri[i]->hits = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
-	}
-
 	binsize = (int) (num_test_sequences / 4);
 	
 	//float sim_errors[] = {0.0001,0.001, 0.01, 0.02,0.03,0.04,0.05,0.06,0.07,0.08};
@@ -316,25 +321,7 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 	param->messages = append_message(param->messages, param->buffer);
 		
 	
-	for(i = 0; i < num_test_sequences;i++){
-		free(ri[i]->strand);
-		free(ri[i]->hits);
-		if(ri[i]->name){
-			free(ri[i]->name);
-		}
-		if(ri[i]->seq){
-			free(ri[i]->seq);
-		}
-		if(ri[i]->qual){
-			free(ri[i]->qual );
-		}
-		if(ri[i]->labels){
-			free(ri[i]->labels );
-		}
-		
-		free(ri[i]);
-	}
-	free(ri);
+	free_read_info(ri,  num_test_sequences);
 	return param;
 }
 

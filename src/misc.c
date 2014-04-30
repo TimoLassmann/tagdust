@@ -32,6 +32,12 @@
 #include "misc.h"
 #include <ctype.h>
 
+
+#ifndef MMALLOC
+#include "malloc_macro.h"
+#endif
+
+
 /** \var float logsum_lookup
  \brief Lookup table.
  */
@@ -276,7 +282,7 @@ char* append_message(char* old_message, char* new_message)
 {
 	static size_t message_len = 0;
 	struct tm *ptr;
-	
+	void* tmp = 0;
 	char time_string[200];
 	int hour;
 	char am_or_pm;
@@ -302,9 +308,9 @@ char* append_message(char* old_message, char* new_message)
 	size_t added_len = strlen(new_message);
 	
 	if(message_len == 0){
-		old_message = malloc(time_len+added_len+1);
+		MMALLOC(old_message,sizeof(char) *( time_len+added_len+1));
 	}else{
-		old_message = realloc(old_message,  message_len + time_len+added_len + 1);
+		MREALLOC(old_message, tmp,  sizeof(char) *( message_len + time_len+added_len + 1));
 
 	}
 	
@@ -700,7 +706,8 @@ char* shorten_pathname(char* p)
 
 unsigned char* reverse_complement(unsigned char* p,int len)
 {
-	unsigned char* tmp = malloc(sizeof(unsigned char)*(len +2));
+	unsigned char* tmp = 0;
+	MMALLOC(tmp,sizeof(unsigned char)*(len +2));
 	int i,c;
 	c = 0;
 	for(i =len-1; i >= 0;i--){
@@ -711,7 +718,7 @@ unsigned char* reverse_complement(unsigned char* p,int len)
 	for(i= 0; i < len;i++){
 		p[i] = tmp[i];
 	}
-	free(tmp);
+	MFREE(tmp);
 	return p;
 }
 

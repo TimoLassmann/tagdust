@@ -34,6 +34,10 @@
 #ifndef tagdust2_barcode_hmm_h
 #define tagdust2_barcode_hmm_h
 
+#ifndef MMALLOC
+#include "malloc_macro.h"
+#endif
+
 
 #ifndef _MM_ALIGN16
 #ifdef __GNUC__
@@ -313,6 +317,8 @@ struct log_information{
 	int num_EXTRACT_FAIL_LOW_COMPLEXITY;
 };
 
+
+void hmm_controller_pe(struct parameters* param);
 void hmm_controller(struct parameters* param, int file_num);
 void filter_controller(struct parameters* param, int file_num);
 
