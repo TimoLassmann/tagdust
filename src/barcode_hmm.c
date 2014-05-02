@@ -74,7 +74,11 @@ void hmm_controller_pe(struct parameters* param)
 	
 #if DEBUG
 	//printf("Debug\n");
+#if RTEST
+	param->num_query = 1000;
+#else
 	param->num_query = 1001;
+#endif
 #else
 #if RTEST
 	param->num_query = 1000;
@@ -191,6 +195,7 @@ void hmm_controller_pe(struct parameters* param)
 			}
 			
 		}
+		
 		if(j){
 			sprintf(param->buffer,"Long sequence found. Need to realloc model...\n");
 			param->messages = append_message(param->messages, param->buffer);
@@ -438,7 +443,11 @@ void filter_controller(struct parameters* param, int file_num)
 	
 #if DEBUG
 	//printf("Debug\n");
+#if RTEST
+	param->num_query = 1000;
+#else
 	param->num_query = 501;
+#endif
 #else
 #if RTEST
 	param->num_query = 1000;
@@ -662,7 +671,12 @@ void hmm_controller(struct parameters* param,int file_num)
 	
 #if DEBUG
 	//printf("Debug\n");
+#if RTEST
+	param->num_query = 1000;
+#else
 	param->num_query = 1001;
+#endif
+	
 #else
 #if RTEST
 	param->num_query = 1000;
@@ -2069,10 +2083,14 @@ Exhaustively compares reads to a fasta file of known artifact sequences. Uses a 
 
 struct read_info* emit_random_sequence(struct model_bag* mb, struct read_info* ri,int average_length,unsigned int* seed )
 {
-	
+#ifdef RTEST
+	unsigned int my_rand_max = 32768;
+#else
+	unsigned int my_rand_max = RAND_MAX;
+#endif
 	int current_length = 0;
 	int allocated_length = 100;
-	double r = (float)rand_r(seed)/(float)RAND_MAX;
+	double r = (float)rand()/(float)my_rand_max;
 	double sum = prob2scaledprob(0.0f);
 	//char alpha[] = "ACGTN";
 	int nuc,i;
@@ -2108,7 +2126,7 @@ struct read_info* emit_random_sequence(struct model_bag* mb, struct read_info* r
 				MREALLOC(ri->seq,tmp,sizeof(char) * allocated_length );
 			}
 			//transition
-			r = (float)rand_r(seed)/(float)RAND_MAX;
+			r = (float)rand()/(float)my_rand_max;
 			// prob2scaledprob(1.0 - (1.0 / (float)len));
 			if(r > 1.0 - (1.0 / (float)average_length)){
 				break;
@@ -2180,7 +2198,19 @@ struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,
 	//char alpha[] = "ACGTN";
 	//int parashute = 0;
 	
-	double r = (float)rand_r(seed)/(float)RAND_MAX;
+#ifdef RTEST
+	unsigned int my_rand_max = 32768;
+#else
+	unsigned int my_rand_max = RAND_MAX;
+#endif
+	
+	
+	
+	
+	double r = (float)rand()/(float)my_rand_max;
+	
+	//fprintf(stderr,"RANd%f MAX:%d\n", r,my_rand_max );
+	
 	double sum = prob2scaledprob(0.0f);
 	
 	double prob = prob2scaledprob(1.0f);
@@ -2213,7 +2243,7 @@ struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,
 		while(1){
 			
 			//transition
-			r = (float)rand_r(seed)/(float)RAND_MAX;
+			r = (float)rand()/(float)my_rand_max;
 			sum = prob2scaledprob(0.0f);
 			switch (state) {
 				case 0:
@@ -2389,7 +2419,7 @@ struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,
 			//fprintf(stderr,"%d column \n",column );
 			//fprintf(stderr,"%d state \n",state );
 			//emit...
-			r = (float)rand_r(seed)/(float)RAND_MAX;
+			r = (float)rand()/(float)my_rand_max;
 			sum = prob2scaledprob(0.0f);
 			
 			if(state == 1){

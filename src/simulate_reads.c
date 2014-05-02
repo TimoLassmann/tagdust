@@ -35,6 +35,8 @@ if(db_exists ("testdb")){
 i = sprintf(datafile, "%s/%s",datadir,"hg19_chr22_M.fa");
 */
 
+char* mutate(struct parameters* param, char* seq,char* seq_mutated,int len,unsigned int my_rand_max );
+
 int main (int argc,char * argv[]) {
 	struct parameters* param = 0;
 	
@@ -51,6 +53,15 @@ int main (int argc,char * argv[]) {
 		seed = (unsigned int) (time(NULL) * ( 42));
 	}
 	
+	srand(seed);
+	
+#ifdef RTEST
+	unsigned int my_rand_max = 32768;
+#else
+	unsigned int my_rand_max = RAND_MAX;
+#endif
+	
+	
 	FILE* file = stdout;
 	int i,j,c,n,start,barcode_used;
 	int read_barcodes = 0;
@@ -58,12 +69,12 @@ int main (int argc,char * argv[]) {
 	char* read = 0;
 	char* sequenced_read = 0;
 	char* sequenced_read_mutated = 0;
+	char* tmp_str = 0;
 	
 	char** barcode = 0;
 	
 	struct stat buf;
-	
-	
+		
 	if(param->infiles == 0){
 		exit(EXIT_FAILURE);
 	}
@@ -129,9 +140,12 @@ int main (int argc,char * argv[]) {
 	//exit(EXIT_SUCCESS);
 	
 	
-	MMALLOC(read,sizeof(char)* 200);
-	MMALLOC(sequenced_read,sizeof(char)* 200);
-	MMALLOC(sequenced_read_mutated,sizeof(char)* 220);
+	MMALLOC(read,sizeof(char)* 1000);
+	
+	
+	MMALLOC(tmp_str,sizeof(char)* 1000);
+	MMALLOC(sequenced_read,sizeof(char)* 1000);
+	MMALLOC(sequenced_read_mutated,sizeof(char)* 1020);
 	
 	
 	
@@ -145,28 +159,42 @@ int main (int argc,char * argv[]) {
 		file = stdout;
 	}
 	//Here I simulate sequences containing the read....
-	for(i = 0; i <= (int)((float) param->sim_numseq * (1.0-param->sim_random_frac));i++){
-		for(j = 0; j < 200;j++){
+	for(i = 0; i < (int)((float) param->sim_numseq * (1.0-param->sim_random_frac));i++){
+		for(j = 0; j < 1000;j++){
 			sequenced_read[j] = 0;
+			sequenced_read_mutated[j]  = 0;
+			tmp_str[j] = 0;
+			read[j]  =0;
 		}
 		
 		if(param->sim_5seq){
-			strcat ( sequenced_read,  param->sim_5seq);
+			tmp_str[0] = 0;
+			strcat ( tmp_str,  param->sim_5seq);
 		}
 		barcode_used = 0;
 		if(param->sim_barnum){
-			barcode_used = (int) (rand_r(&seed) % (int) (param->sim_barnum)) ;
+			barcode_used = (int) (rand() % (int) (param->sim_barnum)) ;
 			
-			strcat ( sequenced_read, barcode[barcode_used]);
+			strcat ( tmp_str, barcode[barcode_used]);
 		}
+		
+		sequenced_read_mutated = mutate(param, tmp_str, sequenced_read_mutated, (int)strlen(tmp_str), my_rand_max);
+		//fprintf(stderr,"%s\n%s\n",sequenced_read,sequenced_read_mutated);
+		
+		
+		strcat ( sequenced_read, sequenced_read_mutated);
+
+		sequenced_read_mutated[0] = 0;
+		
+		
 		if(param->sim_readlen_mod){
-			c = param->sim_readlen - param->sim_readlen_mod +  (int) (rand_r(&seed) % (int) (param->sim_readlen_mod*2)) ;
+			c = param->sim_readlen - param->sim_readlen_mod +  (int) (rand() % (int) (param->sim_readlen_mod*2)) ;
 		}else{
 			c = param->sim_readlen;
 		}
 		//fprintf(stderr,"%d\n",c);
 		for(j = 0; j < c;j++){
-			r = (float)rand_r(&seed)/(float)RAND_MAX;
+			r = (float)rand()/(float)my_rand_max;
 			if(r < 0.25){
 				n = 'A';
 			}else if(r < 0.5){
@@ -179,92 +207,34 @@ int main (int argc,char * argv[]) {
 			read[j] = n;
 		}
 		read[c] = 0;
-		//fprintf(stderr,"%s\n", read);
 		
 		strcat ( sequenced_read, read);
 		
-		if(param->sim_3seq){
-			strcat ( sequenced_read,  param->sim_3seq);
-		}
-		//fprintf(stderr,"%s\n", sequenced_read);
-		c = 0;
-		for(j = 0;j <  strlen(sequenced_read) ;j++){
-			r = (float)rand_r(&seed)/(float)RAND_MAX;
-			if(r <= param->sim_error_rate){
-				//we have an error
-				
-				
-				r = (float)rand_r(&seed)/(float)RAND_MAX;
-				if(r <= param->sim_InDel_frac){
-					//indel++;
-					// we have an indel (only considering single nucleotide.....
-					r = (float)rand_r(&seed)/(float)RAND_MAX;
-					if(r <= 0.5){
-						//insertion
-						//n_dash = read[j];
-						r = (float)rand_r(&seed)/(float)RAND_MAX;
-						if(r < 0.25){
-							n = 'A';
-						}else if(r < 0.5){
-							n = 'C';
-						}else if(r < 0.75){
-							n = 'G';
-						}else{
-							n = 'T';
-						}
-						sequenced_read_mutated[c] = sequenced_read[j];
-						c++;
-						sequenced_read_mutated[c] = n;
-						c++;
-						
-						
-						
-						
-					}else{
-						//deletion
-					}
-					
-				}else{
-					//mismatches++;
-					n = sequenced_read[j];
-					
-					while(n == sequenced_read[j]){
-						r = (float)rand_r(&seed)/(float)RAND_MAX;
-						if(r < 0.25){
-							n = 'A';
-						}else if(r < 0.5){
-							n = 'C';
-						}else if(r < 0.75){
-							n = 'G';
-						}else{
-							n = 'T';
-						}
-					}
-					sequenced_read_mutated[c] = n;
-					c++;
-				}
-			}else{
-				sequenced_read_mutated[c] = sequenced_read[j];
-				c++;
-			}
-		}
-		sequenced_read_mutated[c]  =0;
 		
+		
+		if(param->sim_3seq){
+			tmp_str[0] = 0;
+			strcat ( tmp_str,  param->sim_3seq);
+			sequenced_read_mutated = mutate(param, tmp_str, sequenced_read_mutated, (int)strlen(tmp_str), my_rand_max);
+			//fprintf(stderr,"%s\n%s\n",read,sequenced_read_mutated);
+		}
+		strcat ( sequenced_read, sequenced_read_mutated);
 		
 		
 		if(param->sim_end_loss){
-			start = (int) (rand_r(&seed) % (int) (param->sim_end_loss*2));
+			start = (int) (rand() % (int) (param->sim_end_loss*2));
 			n = 0;
+			c = (int)strlen(sequenced_read);
 			for(j = start; j < c;j++ ){
-				sequenced_read_mutated[n]  = sequenced_read_mutated[j];
+				sequenced_read[n]  = sequenced_read[j];
 				n++;
 			}
-			sequenced_read_mutated[n]  = 0;
+			sequenced_read[n]  = 0;
 			
-			start = (int) (rand_r(&seed) % (int) (param->sim_end_loss*2));
+			start = (int) (rand() % (int) (param->sim_end_loss*2));
 			
 			for(j = 0; j < start;j++){
-				sequenced_read_mutated[n-1-j]  = 0;
+				sequenced_read[n-1-j]  = 0;
 			
 			}
 			
@@ -281,13 +251,14 @@ int main (int argc,char * argv[]) {
 		//fprintf(stderr,"%d	%s\n",i, sequenced_read_mutated);
 		//fprintf(file,"@READ%d;SEQ:%s;",i, read);
 		if(param->sim_barnum){
-			fprintf(file,"@READ%d;SEQ:%s;RBC:%s;BARNUM:%d;",i, read,barcode[barcode_used],barcode_used+1);
+			fprintf(file,"@READ%d;SEQ:%s;RBC:%s;BARNUM:%d",i, read,barcode[barcode_used],barcode_used+1);
 			//fprintf(file,"RBC:%s;BARNUM:%d;",barcode[barcode_used],barcode_used+1);
 		}else{
-			fprintf(file,"@READ%d;SEQ:%s;BARNUM:%d;",i, read,1);
+			fprintf(file,"@READ%d;SEQ:%s;BARNUM:%d",i, read,1);
 		}
 		fprintf(file,"\n");
-		fprintf(file,"%s\n+\n",sequenced_read_mutated);
+		fprintf(file,"%s\n+\n",sequenced_read);
+		c = (int)strlen(sequenced_read);
 		for(j = 0; j < c;j++){
 			fprintf(file,"I");
 		}
@@ -311,12 +282,12 @@ int main (int argc,char * argv[]) {
 	
 	
 	
-	for(i = (int)((float) param->sim_numseq * (1.0-param->sim_random_frac)) + 1; i < param->sim_numseq   ;i++){
+	for(i =  (int)((float) param->sim_numseq * (1.0-param->sim_random_frac)) ; i < param->sim_numseq   ;i++){
 		if(param->sim_5seq){
 			strcat ( sequenced_read,  param->sim_5seq);
 		}
 		for(j = 0; j < c;j++){
-			r = (float)rand_r(&seed)/(float)RAND_MAX;
+			r = (float)rand()/(float)my_rand_max;
 			if(r < 0.25){
 				n = 'A';
 			}else if(r < 0.5){
@@ -331,7 +302,7 @@ int main (int argc,char * argv[]) {
 	
 		sequenced_read[c] = 0;
 		if(param->sim_end_loss){
-			start = (int) (rand_r(&seed) % (int) (param->sim_end_loss*2));
+			start = (int) (rand() % (int) (param->sim_end_loss*2));
 			n = 0;
 			for(j = start; j < c;j++ ){
 				sequenced_read_mutated[n]  = sequenced_read_mutated[j];
@@ -339,7 +310,7 @@ int main (int argc,char * argv[]) {
 			}
 			sequenced_read_mutated[n]  = 0;
 			
-			start = (int) (rand_r(&seed) % (int) (param->sim_end_loss*2));
+			start = (int) (rand() % (int) (param->sim_end_loss*2));
 			
 			for(j = 0; j < start;j++){
 				sequenced_read_mutated[n-1-j]  = 0;
@@ -353,9 +324,9 @@ int main (int argc,char * argv[]) {
 		//fprintf(stderr,"%s\n", sequenced_read);
 		//fprintf(file,"@RAND%d;SEQ:NONE;",i);
 		if(param->sim_barnum){
-			fprintf(file,"@RAND%d;SEQ:NONE;RBC:NONE;BARNUM:0;",i);
+			fprintf(file,"@RAND%d;SEQ:NONE;RBC:NONE;BARNUM:0",i);
 		}else{
-			fprintf(file,"@RAND%d;SEQ:NONE;BARNUM:0;",i);
+			fprintf(file,"@RAND%d;SEQ:NONE;BARNUM:0",i);
 
 		}
 		fprintf(file,"\n");
@@ -474,10 +445,92 @@ int main (int argc,char * argv[]) {
 		MFREE(barcode[i]);
 	}
 	MFREE(barcode);
-	
+	MFREE(tmp_str);
 	MFREE(read);// = malloc(sizeof(char)* 200);
 	MFREE(sequenced_read);// = malloc(sizeof(char)* 200);
 	MFREE(sequenced_read_mutated);// = malloc(sizeof(char)* 220);
 	free_param(param);
 	return EXIT_SUCCESS;
+}
+
+
+char* mutate(struct parameters* param, char* seq,char* seq_mutated,int len,unsigned int my_rand_max )
+{
+	
+	int j;
+	float r = 0.0f;
+	char n = 0;
+	int newlen = 0;
+	
+	float cutoff = 0.5;
+	
+	for(j = 0;j <  strlen(seq) ;j++){
+		r = (float)rand()/(float)my_rand_max;
+		if(r <= param->sim_error_rate){
+			//we have an error
+			
+			
+			r = (float)rand()/(float)my_rand_max;
+			if(r <= param->sim_InDel_frac){
+				//indel++;
+				// we have an indel (only considering single nucleotide.....
+				r = (float)rand()/(float)my_rand_max;
+				if(j ==  strlen(seq)  -1){
+					cutoff = 0.0;
+				}else{
+					cutoff = 0.5;
+
+				}
+				if(r <= cutoff){
+					//insertion
+					//n_dash = read[j];
+					r = (float)rand()/(float)my_rand_max;
+					if(r < 0.25){
+						n = 'A';
+					}else if(r < 0.5){
+						n = 'C';
+					}else if(r < 0.75){
+						n = 'G';
+					}else{
+						n = 'T';
+					}
+					seq_mutated[newlen] = seq[j];
+					newlen++;
+					seq_mutated[newlen] = n;
+					newlen++;
+					
+					
+					
+					
+				}else{
+					//deletion
+				}
+				
+			}else{
+				//mismatches++;
+				n = seq[j];
+				
+				while(n == seq[j]){
+					r = (float)rand()/(float)my_rand_max;
+					if(r < 0.25){
+						n = 'A';
+					}else if(r < 0.5){
+						n = 'C';
+					}else if(r < 0.75){
+						n = 'G';
+					}else{
+						n = 'T';
+					}
+				}
+				seq_mutated[newlen] = n;
+				newlen++;
+			}
+		}else{
+			seq_mutated[newlen] = seq[j];
+			newlen++;
+		}
+	}
+	seq_mutated[newlen]  =0;
+	
+	return seq_mutated;
 }

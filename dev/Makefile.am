@@ -17,8 +17,9 @@ barread_paired_tagdust_results_gold.txt
 
 TESTS_ENVIRONMENT = \
 	devdir='$(top_srcdir)'/dev; \
-         export devdir;
-	$(VALGRIND)
+         export devdir; \
+	valparam='$(VALGRIND)'; \
+	export valparam; 
 	
 TESTS = bar_read_test.sh
 

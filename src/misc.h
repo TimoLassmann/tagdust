@@ -77,8 +77,6 @@
 #define INV_SQRT_2PI 0.3989422804014327
 
 
-
-
 #ifndef _MM_ALIGN16
 #ifdef __GNUC__
 #define _MM_ALIGN16 __attribute__((aligned (16)))
@@ -90,6 +88,17 @@
 
 
 #endif
+
+#ifdef RTEST
+#define rand() myrand()
+#define srand(x) mysrand(x)
+
+#endif
+
+
+
+int myrand(void);
+void mysrand(unsigned seed);
 
 int byg_end(const char* pattern,const char*text);
 

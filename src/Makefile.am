@@ -54,17 +54,21 @@ TESTS_ENVIRONMENT = \
 	devdir='$(top_srcdir)'/dev; \
          export devdir;
 	$(VALGRIND)
-	
-#TESTS = tagdust_test
 
-check_PROGRAMS = tagdust_rtest
+check_PROGRAMS = tagdust_rtest simreads_rtest evalres_rtest
+
 tagdust_rtest_SOURCES = $(tagdust_SOURCES)
 tagdust_rtest_LDADD = $(tagdust_LDADD)
 tagdust_rtest_CPPFLAGS  =  -DRTEST
 
+simreads_rtest_SOURCES = $(simreads_SOURCES)
+simreads_rtest_LDADD = $(simreads_LDADD)
+simreads_rtest_CPPFLAGS  =  -DRTEST
 
+evalres_rtest_SOURCES = $(evalres_SOURCES)
+evalres_rtest_LDADD = $(evalres_LDADD)
+evalres_rtest_CPPFLAGS  =  -DRTEST
 
-	
 
 
 

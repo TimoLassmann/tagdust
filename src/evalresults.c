@@ -163,53 +163,47 @@ int main (int argc,char * argv[])
 			
 			while ((numseq = fp(ri, param,file)) != 0){
 				for(j = 0;j < numseq;j++){
-					c = byg_end("SEQ:", ri[i]->name  );
+					c = byg_end("SEQ:", ri[j]->name  );
 					if(c){
 						org_read_len = 0;
-						for(g = c ;g < (int)strlen(ri[i]->name);g++){
+						for(g = c ;g < (int)strlen(ri[j]->name);g++){
 							org_read_len++;
-							if(isspace((int) ri[i]->name[g]) ||  ri[i]->name[g]  == ';'){
+							if(isspace((int) ri[j]->name[g]) ||  ri[j]->name[g]  == ';'){
 								break;
 							}
 							
 						}
 						//orgread = malloc(sizeof(unsigned char)* g);
 						org_read_len = 0;
-						for(g = c ;g < (int)strlen(ri[i]->name);g++){
+						for(g = c ;g < (int)strlen(ri[j]->name);g++){
 							
-							if(isspace((int) ri[i]->name[g]) ||  ri[i]->name[g]  == ';'){
+							if(isspace((int) ri[j]->name[g]) ||  ri[j]->name[g]  == ';'){
 								orgread[org_read_len] = 0;
 								break;
 							}
 							
-							orgread[org_read_len] = nuc_code[(int)ri[i]->name[g]];
+							orgread[org_read_len] = nuc_code[(int)ri[j]->name[g]];
 							org_read_len++;
 						}
 					}
-					c =  byg_count("READ", ri[i]->name);
+					c =  byg_count("READ", ri[j]->name);
 					
 					if(c){
 						num_extracted++;
 						
 						
 						if(ri[i]->len < org_read_len){
-							c = bpm_check_error_global((unsigned char*)ri[i]->seq,(unsigned char*) orgread, ri[i]->len, org_read_len);
+							c = bpm_check_error_global((unsigned char*)ri[j]->seq,(unsigned char*) orgread, ri[j]->len, org_read_len);
 						}else{
-							c = bpm_check_error_global((unsigned char*) orgread,(unsigned char*)ri[i]->seq,org_read_len, ri[i]->len);
+							c = bpm_check_error_global((unsigned char*) orgread,(unsigned char*)ri[j]->seq,org_read_len, ri[j]->len);
 						}
-						/*fprintf(stderr,"%s\t%d\n", program,c);
-						 for(j = 0;  j < org_read_len;j++){
-						 fprintf(stderr,"%c",  alpha[orgread[j]]);
-						 }
-						 fprintf(stderr,"\n");
+						/*fprintf(stderr,"%s\t%d\t%d\n", ri[j]->name,j,c);
+						for(g = 0;g < ri[j]->len;g++){
+							fprintf(stderr,"%d %d\n",orgread[g],ri[j]->seq[g] );
+						}*/
 						 
-						 for(j = 0;  j < ri[i]->len;j++){
-						 fprintf(stderr,"%c",  alpha[ri[i]->seq[j]]);
-						 }
-						 fprintf(stderr,"\n");
 						 
-						 */
-						g = (org_read_len > ri[i]->len) ?org_read_len : ri[i]->len ;
+						g = (org_read_len > ri[j]->len) ?org_read_len : ri[j]->len ;
 						average_error_in_extracted += (double) c / (double)g;
 					}
 				}
@@ -250,9 +244,9 @@ int main (int argc,char * argv[])
 	}
 	
 	if(param->sim_numseq ){
-		i = (int)((float) param->sim_numseq * (1.0-param->sim_random_frac)) + 1 ;
-		j = param->sim_numseq - (int)((float) param->sim_numseq * (1.0-param->sim_random_frac)) - 1;
-		fprintf(stderr,"%d	%d	%d\n",i,j,i+j);
+		i = (int)((float) param->sim_numseq * (1.0-param->sim_random_frac));
+		j = param->sim_numseq - (int)((float) param->sim_numseq * (1.0-param->sim_random_frac)) ;
+		fprintf(stderr,"%d	%d	%d	%d\n",i,j,i+j,libs[0]->total);
 		
 		//TN =
 		TN +=  (j - libs[0]->total); // total negatives deteced minus number detccted in files...

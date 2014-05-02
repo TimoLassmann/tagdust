@@ -126,7 +126,8 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 				ab->archs[ab->num_arch] = init_model_bag(param, ssi);
 				ab->num_arch++;
 				if(ab->num_arch == MAX_NUM_ARCH){
-					fprintf(stderr,"Error - your architechture file has too many architectures. Currently only %d allowed.\n", MAX_NUM_ARCH);
+					sprintf(param->buffer,"Error - your architechture file has too many architectures. Currently only %d allowed.\n", MAX_NUM_ARCH);
+					param->messages = append_message(param->messages, param->buffer);
 					free_param(param);
 					exit(EXIT_FAILURE);
 				}
@@ -139,15 +140,28 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 	fclose(inarch);
 	
 	if(!ab->num_arch){
-		fprintf(stderr,"Error - could not find any architectures in file: %s\n", param->arch_file);
+		sprintf(param->buffer,"Error - could not find any architectures in file: %s\n", param->arch_file);
+		param->messages = append_message(param->messages, param->buffer);
 		free_param(param);
 		exit(EXIT_FAILURE);
 
 	}
 	
+		
+	
 	
 	if(ab->num_arch > 1){
-		
+		for(i = 0 ;i < ab->num_arch;i++){
+			for(j = i+1;j < ab->num_arch;j++){
+				if(!strcmp(ab->command_line[i], ab->command_line[j])){
+					sprintf(param->buffer,"ERROR: two architectures in %s are the same:%s\n%s\n", param->arch_file,ab->command_line[i], ab->command_line[j] );
+					param->messages = append_message(param->messages, param->buffer);
+					free_param(param);
+					exit(EXIT_FAILURE);
+
+				}
+			}
+		}
 		// clean up posteriors!!
 		
 		for(i= 0; i < ab->num_arch;i++){

@@ -38,6 +38,9 @@
 #endif
 
 
+static unsigned long next = 1;
+
+
 /** \var float logsum_lookup
  \brief Lookup table.
  */
@@ -740,6 +743,20 @@ void reverse_sequence(char* p,int len)
 		p[i] = p[j];
 		p[j] = c;
 	}
+}
+
+
+
+/* RAND_MAX assumed to be 32767 */
+int myrand(void)
+{
+	next = next * 1103515245 + 12345;
+	return((unsigned)(next/65536) % 32768);
+}
+
+void mysrand(unsigned seed)
+{
+	next = seed;
 }
 
 

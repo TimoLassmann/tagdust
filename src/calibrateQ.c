@@ -21,11 +21,16 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 	// if we reduce the latter we need to test for consistency between runs...
 	//unsigned int seed = (unsigned int) (time(NULL) * ( 42));
 	unsigned int seed = 0;
+	
 	if(param->seed){
 		seed = param->seed;
 	}else{
-		seed = 42;
+		seed = (unsigned int) (time(NULL) * ( 42));
 	}
+	
+	srand(seed);
+	
+
 	
 	
 	int binsize = 0;
@@ -33,7 +38,11 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 
 #if DEBUG
 	//printf("Debug\n");
+#if RTEST
+	int num_test_sequences = 4000;
+#else
 	int num_test_sequences = 400;
+#endif
 #else
 #if RTEST
 	int num_test_sequences = 4000;
@@ -283,6 +292,7 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 	}else{
 		param->confidence_threshold  = 20;
 	}
+	
 	
 	/*for(i = 9990; i < 10000;i++){
 		fprintf(stderr,"%d	%d	%f	%f	", i, ri[i]->len, ri[i]->mapq,  1.0 - pow(10.0, -1.0 *  ri[i]->mapq / 10.0));

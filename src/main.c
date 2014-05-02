@@ -86,16 +86,15 @@ Copyright 2013 Timo Lassmann (timolassmann@gmail.com)
  * \param argc number of command line parameters
 * \param argv command line parameters
  * \return EXIT_SUCCESS */
+
 int main (int argc,char * argv[]) {
 	struct parameters* param = 0;
 
 	int i;
 	
-		
 	init_nuc_code();
-
-	param = interface(param,argc,argv);
 	
+	param = interface(param,argc,argv);
 	
 	sprintf(param->buffer,"Start Run\n--------------------------------------------------\n");
 	param->messages = append_message(param->messages, param->buffer);
@@ -116,16 +115,10 @@ int main (int argc,char * argv[]) {
 			
 		}else{
 			hmm_controller(param,0);
-			
 		}
-		
-		
-		
 	}else if(param->infiles == 2){
 		sprintf(param->buffer,"Running in paired end mode.\n");
 		param->messages = append_message(param->messages, param->buffer);
-		
-		
 		
 		if(param->arch_file){
 			param = test_architectures(param, 0);
@@ -152,14 +145,7 @@ int main (int argc,char * argv[]) {
 			
 		}
 		
-		//if (param->read_structure->num_segments == 0){
-			//filter_controller(param,i);
-			
-		//}else{
 		hmm_controller_pe(param);
-			
-		//}
-		
 		
 	}else{
 		fprintf(stderr,"Sorry - using more than two input files is presently disabled.\n");
