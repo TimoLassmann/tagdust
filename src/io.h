@@ -91,8 +91,8 @@ struct read_info{
  */
 struct sequence_stats_info{
 	double background[5];
-	int expected_5_len;
-	int expected_3_len;
+	double expected_5_len;
+	double expected_3_len;
 	double mean_5_len;
 	double stdev_5_len;
 	double mean_3_len;

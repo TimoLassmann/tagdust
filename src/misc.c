@@ -427,6 +427,7 @@ int bpm(const  char* t,const  char* p,int n,int m)
 	VN = 0ul;
 	m--;
 	MASK = 1ul << m;
+	
 	for(i = 0; i < n;i++){
 		X = (B[(int)(t[i])  ] | VN);
 		D0 = ((VP+(X&VP)) ^ VP) | X ;
@@ -439,15 +440,124 @@ int bpm(const  char* t,const  char* p,int n,int m)
 		diff -= (HN & MASK) >> m;
 		if(diff < k){
 			k = diff;
-			//fprintf(stderr,"%ld	%ld\n",i,k);
 			//if(k <= limit){
 			//	return (int)k;
 			//}
 			
 		}
+		
 	}
 	return (int)k;
 }
+
+
+
+/** \fn int bpm(const  char* t,const  char* p,int n,int m)
+ \brief Calculates edit distance between two strings.
+ \param t string1.
+ \param p string 2.
+ \param n length of t.
+ \param m length of p.
+ \return exit distance.
+ */
+int bpm_global(const  char* t,const  char* p,int n,int m)
+{
+	register unsigned long int i;//,c;
+	unsigned long int diff;
+	unsigned long int B[255];
+	
+	int c;
+	char* p1= 0;
+	char* p2 = 0;
+	
+	MMALLOC(p1, sizeof(char) * (n+11));
+	MMALLOC(p2, sizeof(char) * (m+11));
+	
+	
+	for(i = 0; i < 5;i++){
+		p1[i] = 'F';
+		p2[i] = 'F';
+	}
+	c = 5;
+	for(i = 0; i < n;i++){
+		p1[c] = t[i];
+		c++;
+	}
+	for(i = 0; i < 5;i++){
+		p1[c] = 'Q';
+		c++;
+	}
+	p1[c] = 0;
+	n = c;
+	
+	
+	c = 5;
+	for(i = 0; i < m;i++){
+		p2[c] = p[i];
+		c++;
+	}
+	for(i = 0; i < 5;i++){
+		p2[c] = 'Q';
+		c++;
+	}
+	p2[c] = 0;
+	m = c;
+	
+	
+	
+	
+	if(m > 31){
+		m = 31;
+	}
+	
+	unsigned long int k = m;
+	//static int counter = 0;
+	register unsigned long int VP,VN,D0,HN,HP,X;
+	
+	long int MASK = 0;
+	//c = 0;
+	
+	diff = m;
+	
+	for(i = 0; i < 255;i++){
+		B[i] = 0;
+	}
+	
+	for(i = 0; i < m;i++){
+		B[(int)(p2[i] )] |= (1ul << i);
+	}
+	
+	//c = 0;
+	VP = 0xFFFFFFFFFFFFFFFFul;
+	VN = 0ul;
+	m--;
+	MASK = 1ul << m;
+	
+	for(i = 0; i < n;i++){
+		X = (B[(int)(p1[i])  ] | VN);
+		D0 = ((VP+(X&VP)) ^ VP) | X ;
+		HN = VP & D0;
+		HP = VN | ~(VP | D0);
+		X = HP << 1ul;
+		VN = X & D0;
+		VP = (HN << 1ul) | ~(X | D0);
+		diff += (HP & MASK) >> m;
+		diff -= (HN & MASK) >> m;
+		if(diff < k){
+			k = diff;
+			//if(k <= limit){
+			//	return (int)k;
+			//}
+			
+		}
+		
+	}
+	MFREE(p1);
+	MFREE(p2);
+	
+	return (int)k;
+}
+
 
 
 /** \fn int bpm_check_error(const unsigned char* t,const unsigned char* p,int n,int m)

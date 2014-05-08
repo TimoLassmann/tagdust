@@ -27,9 +27,8 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 	char line[MAX_LINE];
 	char* tmp = 0;
 	
-	MMALLOC(tmp, sizeof(char) * 100);
+	MMALLOC(tmp, sizeof(char) * MAX_LINE);
 	struct model_bag* mb = 0;
-	
 	
 	int best_architecture = -1;
 	float best_score = -1.0;
@@ -275,7 +274,7 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 	}
 	MFREE(ab->command_line);
 	
-	MFREE(ab->arch_posterior);// = malloc(sizeof(float) * MAX_NUM_ARCH);
+	MFREE(ab->arch_posterior);
 	
 	MFREE(ab->archs);
 	MFREE(ab);

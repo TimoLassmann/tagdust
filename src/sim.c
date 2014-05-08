@@ -898,8 +898,6 @@ void simulation_for_benchmark(struct parameters* param)
 	//	unlink(outfile);
 	}
 	
-		
-	
 	sprintf (outfile, "%s/%stagdustout.fq",dp,runid);
 	if( access( outfile, F_OK ) != -1 ) {
 		evalres=  get_results(evalres, param, outfile, "TagDust");

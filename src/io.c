@@ -201,9 +201,10 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
 		
 		ssi->mean_5_len = five_s1 / five_s0;
 		ssi->stdev_5_len = sqrt(  (five_s0 * five_s2 - pow(five_s1,2.0))   /  (  five_s0 *(five_s0-1.0) )) ;
-		if(ssi->stdev_5_len < 1){
-			ssi->stdev_5_len = 1;
-		}
+		//fprintf(stderr,"5: %f %f	%f\n", ssi->mean_5_len,  ssi->stdev_5_len,five_s0);
+		//if(ssi->stdev_5_len < 1){
+		//	ssi->stdev_5_len = 1;
+		//}
 		
 		//fprintf(stderr,"5: %f %f	%f\n", ssi->mean_5_len,  ssi->stdev_5_len,five_s0);
 		if(ssi->mean_5_len <= 1){
@@ -228,9 +229,10 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
 		
 		ssi->mean_3_len = three_s1 / three_s0;
 		ssi->stdev_3_len = sqrt(  (three_s0 * three_s2 - pow(three_s1,2.0))   /  (  three_s0 *(three_s0-1.0) )) ;
-		if(ssi->stdev_3_len < 1){
-			ssi->stdev_3_len = 1;
-		}
+		//fprintf(stderr,"3: %f %f	%f\n", ssi->mean_3_len,  ssi->stdev_3_len,three_s0);
+		//if(ssi->stdev_3_len < 1){
+		//	ssi->stdev_3_len = 1;
+		//}
 		//fprintf(stderr,"3: %f %f	%f\n", ssi->mean_3_len,  ssi->stdev_3_len,three_s0);
 		if(ssi->mean_3_len <= 1){
 			sprintf(param->buffer,"ERROR: 3' partial segment seems not to be present in the data (length < 1).\n");
@@ -889,7 +891,7 @@ void print_split_files(struct parameters* param, struct read_info** ri, int nums
 				//}else{
 				if(segment ==1){
 					h++;
-					fprintf(out_read1,"@%s\n",ri[i]->name);
+					fprintf(out_read1,"@%s;RQ:%f\n",ri[i]->name,ri[i]->mapq);
 					
 					for(j = start; j < stop;j++){
 						fprintf(out_read1,"%c",alphabet[(int) ri[i]->seq[j]]);
@@ -906,7 +908,7 @@ void print_split_files(struct parameters* param, struct read_info** ri, int nums
 					}
 					fprintf(out_read1,"\n");
 				}else if ( segment == 2){
-					fprintf(out_read2,"@%s\n",ri[i]->name);
+					fprintf(out_read2,"@%s;RQ:%f\n",ri[i]->name,ri[i]->mapq);
 					
 					for(j = start; j < stop;j++){
 						fprintf(out_read2,"%c",alphabet[(int) ri[i]->seq[j]]);

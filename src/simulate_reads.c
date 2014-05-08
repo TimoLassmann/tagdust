@@ -427,19 +427,67 @@ int main (int argc,char * argv[]) {
 	
 	if(param->sim_barnum){
 		for(i = 0 ;i < param->sim_barnum;i++){
-			fprintf(file,"%s%s %s\n",param->sim_5seq,barcode[i], param->sim_3seq);
-			
+			if(param->sim_5seq){
+				if(param->sim_3seq){
+					fprintf(file,"%s%s %s\n",param->sim_5seq,barcode[i], param->sim_3seq);
+				}else{
+					fprintf(file,"%s%s\n",param->sim_5seq,barcode[i]);
+				}
+			}else{
+				if(param->sim_3seq){
+					fprintf(file,"%s %s\n",barcode[i], param->sim_3seq);
+				}else{
+					fprintf(file,"%s\n",barcode[i]);
+				}
+			}
 		}
 	}else{
-		fprintf(file,"%s %s\n",param->sim_5seq, param->sim_3seq);
+		if(param->sim_5seq){
+			if(param->sim_3seq){
+				fprintf(file,"%s %s\n",param->sim_5seq, param->sim_3seq);
+			}else{
+				fprintf(file,"%s\n",param->sim_5seq);
+			}
+		}else{
+			if(param->sim_3seq){
+				fprintf(file,"%s\n",param->sim_3seq);
+			}else{
+				fprintf(file,"\n");
+			}
+		}
+		
 		
 	}
 	
 	if(param->outfile){
 		fclose(file);
 	}
-	
-	
+	if(param->sim_barnum){
+		
+		if(param->outfile){
+			param->buffer[0] = 0;
+			sprintf(param->buffer, "%s_fastxbarcodefile.txt",param->outfile );
+			if ((file = fopen(param->buffer, "w")) == NULL){
+				fprintf(stderr,"can't open barcode file. \n");
+				exit(-1);
+			}
+			
+		}else{
+			file = stdout;
+		}
+		
+		
+		
+		for(i = 0 ;i < param->sim_barnum;i++){
+			fprintf(file,"BC%d %s\n",i,barcode[i]);
+			
+		}
+		if(param->outfile){
+			fclose(file);
+		}
+		
+		
+	}
 	
 	for(i = 0; i <read_barcodes;i++){
 		MFREE(barcode[i]);

@@ -360,7 +360,7 @@ void hmm_controller_pe(struct parameters* param)
 	sprintf(param->buffer,"%d	total input reads\n", li->total_read);
 	param->messages = append_message(param->messages, param->buffer);
 	
-	sprintf(param->buffer,"%d	selected threshold\n", (int)param->confidence_threshold);
+	sprintf(param->buffer,"%0.2f	selected threshold\n", param->confidence_threshold);
 	param->messages = append_message(param->messages, param->buffer);
 	
 	sprintf(param->buffer,"%d	successfully extracted\n" ,li->num_EXTRACT_SUCCESS);
@@ -1263,7 +1263,7 @@ struct hmm* set_hmm_transition_parameters(struct hmm* hmm, int len,double base_e
 		}else if(mean > -1.0 && stdev == -1.0){
 			col->transition[MSKIP] = prob2scaledprob(mean / (float)(len-1));
 		}else{
-			col->transition[MSKIP] = prob2scaledprob(   gaussian_pdf(1 , mean ,stdev) / sum_prob);
+			col->transition[MSKIP] = prob2scaledprob(   gaussian_pdf(0 , mean ,stdev) / sum_prob);
 		}
 		
 		col->transition[MM] = prob2scaledprob( 1.0 - base_error * indel_freq ) + prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
@@ -1302,7 +1302,7 @@ struct hmm* set_hmm_transition_parameters(struct hmm* hmm, int len,double base_e
 		}else if(mean > -1.0 && stdev == -1.0){
 			col->transition[MSKIP] = prob2scaledprob(mean / (float)(len-1));
 		}else{
-			col->transition[MSKIP] = prob2scaledprob(   gaussian_pdf(1 , mean ,stdev) / sum_prob);
+			col->transition[MSKIP] = prob2scaledprob(   gaussian_pdf(0 , mean ,stdev) / sum_prob);
 		}
 		
 		col->transition[MM] = prob2scaledprob( 1.0 - base_error * indel_freq)+ prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
@@ -1328,7 +1328,7 @@ struct hmm* set_hmm_transition_parameters(struct hmm* hmm, int len,double base_e
 			}else if(mean > -1.0 && stdev == -1.0){
 				col->transition[MSKIP] = prob2scaledprob(mean / (float)(len-1));
 			}else{
-				col->transition[MSKIP] = prob2scaledprob(   gaussian_pdf(i +1.0 , mean ,stdev) / sum_prob);
+				col->transition[MSKIP] = prob2scaledprob(   gaussian_pdf(i , mean ,stdev) / sum_prob);
 			}
 			
 			col->transition[MM] = prob2scaledprob( 1.0 - base_error * indel_freq)+ prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
@@ -1688,6 +1688,11 @@ void* do_probability_estimation(void *threadarg)
 	
 	float pbest = 0;
 	float Q = 0;
+	for(i = start; i < end;i++){
+		ri[i]->mapq = prob2scaledprob(0.0);
+	}
+	
+	
 	if(matchstart != -1 || matchend != -1){
 		for(i = start; i < end;i++){
 			tmp = matchend - matchstart ;
@@ -1707,26 +1712,30 @@ void* do_probability_estimation(void *threadarg)
 	}else{
 		for(i = start; i < end;i++){
 			
-			//fprintf(stderr,"%d	%d	%d	%d\n",i,ri[i]->len,start,end);
-			mb = backward(mb, ri[i]->seq ,ri[i]->len);			
+			mb = backward(mb, ri[i]->seq ,ri[i]->len);
 			mb = forward_max_posterior_decoding(mb, ri[i], ri[i]->seq ,ri[i]->len);
 			
-			pbest = 1.0 - scaledprob2prob(  (ri[i]->bar_prob + mb->f_score) - logsum(mb->f_score,  mb->r_score));
 			
-			if(pbest < 0.0){
-				exit(-1);
-			}
+			pbest =ri[i]->mapq;
+			
+			pbest = logsum(pbest, mb->f_score);
+			pbest = logsum(pbest, mb->r_score);
+			
+			//fprintf(stderr,"%f	%f	%f\n",mb->f_score+ri[i]->bar_prob,ri[i]->mapq,mb->r_score);
+			
+			pbest = 1.0 - scaledprob2prob(  (ri[i]->bar_prob + mb->f_score ) - pbest);
 			if(!pbest){
 				Q = 40.0;
 			}else if(pbest == 1.0){
 				Q = 0.0;
-	
+				
 			}else{
 				Q = -10.0 * log10(pbest) ;
 			}
-			//fprintf(stderr,"%d	score: 1 - %f+%f  / %f = %f    => Q:%f\n", i, ri[i]->bar_prob , mb->f_score , logsum(mb->f_score,  mb->r_score),pbest,Q);
-			
+			//fprintf(stderr,"%d	f:%f	%f	init:%f	r:%f:Q: %f\n",i,mb->f_score,scaledprob2prob( ri[i]->bar_prob),ri[i]->mapq,mb->r_score,Q);
 			ri[i]->mapq = Q;
+			
+			
 		}
 	}
 		
@@ -2232,7 +2241,7 @@ struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,
 	
 	
 	MMALLOC(ri->seq,sizeof(char) * allocated_length);
-	assert(ri->seq != NULL);
+	MMALLOC(ri->labels,sizeof(char) * allocated_length);
 	
 	while(current_length < average_length){
 		state = 0; //0 silent ; 1 M , 2 I , 3 D
@@ -2428,6 +2437,7 @@ struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,
 					if(r <  scaledprob2prob(sum)){
 						prob += mb->model[segment]->hmms[hmm]->hmm_column[column]->m_emit[nuc];
 						ri->seq[current_length] = nuc;
+						ri->labels[current_length] = segment;
 						
 						//fprintf(stderr,"%c",alpha[(int)nuc]);
 						current_length++;
@@ -2453,6 +2463,7 @@ struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,
 					prob += mb->model[segment]->hmms[hmm]->hmm_column[column]->i_emit[nuc];
 					if(r <  scaledprob2prob(sum)){
 						ri->seq[current_length] = nuc;
+						ri->labels[current_length] = segment;
 						//fprintf(stderr,"%c",alpha[(int)nuc]);
 						current_length++;
 						//fprintf(stderr,"Letter: %d	Segment:%d	hmm:%d	column:%d	state:%d\n",nuc, segment,hmm,column,state );
@@ -2464,6 +2475,7 @@ struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,
 			if(current_length == allocated_length){
 				allocated_length = allocated_length*2;
 				MREALLOC(ri->seq ,tmp, sizeof(char) * allocated_length );
+				MREALLOC(ri->labels ,tmp, sizeof(char) * allocated_length );
 			}
 			
 			//fprintf(stderr,"segement: %d %d\n", segment,mb->num_models);
@@ -2489,6 +2501,10 @@ struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,
 	MREALLOC(ri->seq,tmp, sizeof(char) * (current_length+1));
 	ri->seq[current_length] = 0;
 	
+	MREALLOC(ri->labels,tmp, sizeof(char) * (current_length+1));
+	ri->labels[current_length] = 0;
+	
+	
 	MMALLOC(ri->qual,sizeof(char) * (current_length+1));
 	//assert(ri->qual != NULL);
 	for(i = 0; i < current_length;i++){
@@ -2505,7 +2521,7 @@ struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,
 	ri->name[0] = 'P';
 	ri->name[1] = 0;
 	
-	MMALLOC(ri->labels,sizeof(char) * (current_length+1));
+	//MMALLOC(ri->labels,sizeof(char) * (current_length+1));
 	
 	
 	//ri->qual = malloc(sizeof(char) *2);
@@ -5257,37 +5273,72 @@ struct model_bag* init_model_bag(struct parameters* param,struct sequence_stats_
 			segment_length = read_length;
 		}
 		mb->model[i] = init_model_according_to_read_structure(mb->model[i], param, i,ssi->background,segment_length);
-		//print_model(mb->model[i]);
+		
 		mb->total_hmm_num += mb->model[i]->num_hmms;
 	}
 	double sum_prob = 0.0;
 	double temp1;
 	// 1) setting 5' parameters...
 	if(ssi->expected_5_len){
-		sum_prob = 0;
+		/*sum_prob = 0;
 		
-		for(i = 0; i <  ssi->expected_5_len;i++){
+		for(i = 1; i <=  ssi->expected_5_len;i++){
 			sum_prob +=gaussian_pdf(i , ssi->mean_5_len, ssi->stdev_5_len);
-		}
+		}*/
 		model_p = mb->model[0];
-		model_p->skip = prob2scaledprob(  gaussian_pdf(0 ,ssi->mean_5_len, ssi->stdev_5_len) / sum_prob    );
+		//model_p->skip = prob2scaledprob(  gaussian_pdf(0 ,ssi->mean_5_len, ssi->stdev_5_len));
 		
-		temp1 = prob2scaledprob(0.0);
-		temp1 = logsum(temp1, model_p->skip);
+		//sum_prob +=gaussian_pdf(0 ,ssi->mean_5_len, ssi->stdev_5_len);
+		
+		//temp1 = prob2scaledprob(0.0);
+		//temp1 = logsum(temp1, model_p->skip);*/
+		
+		sum_prob = prob2scaledprob(0.0);
+		
 		for(i = 0 ; i < model_p->num_hmms;i++){
 			for(j = 0; j < ssi->expected_5_len;j++){
 				col = model_p->hmms[i]->hmm_column[j];
-				model_p->silent_to_M[i][j]  = prob2scaledprob(1.0 / (float) model_p->num_hmms) + prob2scaledprob(   gaussian_pdf(ssi->expected_5_len-j ,ssi->mean_5_len, ssi->stdev_5_len) / sum_prob);
-				temp1 = logsum(temp1, model_p->silent_to_M[i][j]);
+				model_p->silent_to_M[i][j]  = prob2scaledprob(1.0 / (float) model_p->num_hmms) + prob2scaledprob(   gaussian_pdf(j ,ssi->mean_5_len - ssi->expected_5_len, ssi->stdev_5_len));
+				sum_prob = logsum(sum_prob, model_p->silent_to_M[i][j]);
+				//fprintf(stderr,"5': %d %f\n",j,gaussian_pdf(j ,ssi->mean_5_len - ssi->expected_5_len, ssi->stdev_5_len)  );
+				
+			//	temp1 = logsum(temp1, model_p->silent_to_M[i][j]);
 			}
 			model_p->hmms[i] = set_hmm_transition_parameters(model_p->hmms[i],ssi->expected_5_len, param->sequencer_error_rate, param->indel_frequency, -1.0, -1.0);
 		}
-		model_p->skip = model_p->skip - temp1;
+		model_p->skip = prob2scaledprob(  gaussian_pdf(ssi->expected_5_len,ssi->mean_5_len - ssi->expected_5_len, ssi->stdev_5_len));
+		//fprintf(stderr,"5': skip: %f\n",gaussian_pdf(ssi->expected_5_len,ssi->mean_5_len - ssi->expected_5_len, ssi->stdev_5_len)  );
+		sum_prob = logsum(sum_prob, model_p->skip);
+		
+		
+		
+		//fprintf(stderr,"Sanity: %f	%f\n",sum_prob, scaledprob2prob(sum_prob));
+		
+		temp1 = prob2scaledprob(0.0);
+
+		for(i = 0 ; i < model_p->num_hmms;i++){
+			for(j = 0; j < ssi->expected_5_len;j++){
+				col = model_p->hmms[i]->hmm_column[j];
+				model_p->silent_to_M[i][j]  = model_p->silent_to_M[i][j]  - sum_prob;
+				temp1 = logsum(temp1, model_p->silent_to_M[i][j]);
+		//		fprintf(stderr,"5': %d %f\n",j,scaledprob2prob(model_p->silent_to_M[i][j] ) );
+				
+				//	temp1 = logsum(temp1, model_p->silent_to_M[i][j]);
+			}
+	
+		}
+		model_p->skip = model_p->skip- sum_prob;
+		//fprintf(stderr,"5': skip: %f\n",scaledprob2prob(model_p->skip )  );
+		temp1 = logsum(temp1, model_p->skip);
+		
+		//fprintf(stderr,"Sanity: %f	%f\n",temp1, scaledprob2prob(temp1));
+
+		/*model_p->skip = model_p->skip - temp1;
 		for(i = 0 ; i < model_p->num_hmms;i++){
 			for(j = 0; j < ssi->expected_5_len;j++){
 				model_p->silent_to_M[i][j]  = model_p->silent_to_M[i][j]  - temp1;
 			}
-		}
+		}*/
 	}
 	
 	// 2) setting 3' parameters...
@@ -5305,6 +5356,7 @@ struct model_bag* init_model_bag(struct parameters* param,struct sequence_stats_
 			model_p->hmms[i] = set_hmm_transition_parameters(model_p->hmms[i],ssi->expected_3_len, param->sequencer_error_rate,  param->indel_frequency,ssi->mean_3_len ,ssi->stdev_3_len);
 		}
 	}
+	// 3) sets parameters fot all internal P segments (note the 1 -> num_models -1 ) 
 	for(c = 1; c < mb->num_models-1;c++){
 		if(param->read_structure->type[c] == 'P'){
 			
@@ -5316,8 +5368,9 @@ struct model_bag* init_model_bag(struct parameters* param,struct sequence_stats_
 			}
 		}
 	}
-	
-	
+	//for(i = 0; i < mb->num_models;i++){
+	//	print_model(mb->model[i]);
+	//}
 	
 	//exit(0);
 

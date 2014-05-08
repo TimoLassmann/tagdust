@@ -61,6 +61,8 @@ AC_FUNC_REALLOC
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([src/Makefile])
 AC_CONFIG_FILES([dev/Makefile])
+AC_CONFIG_FILES([benchmark/Makefile])
+
 AC_OUTPUT
 
 

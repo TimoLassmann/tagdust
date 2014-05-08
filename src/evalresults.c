@@ -59,6 +59,13 @@ int main (int argc,char * argv[])
 	param = interface(param,argc,argv);
 	
 	
+	if(!param->format){
+		sprintf(param->buffer,"Error: You need to specify the name of program with the -name option. \n");
+		param->messages = append_message(param->messages, param->buffer);
+		free_param(param);
+		exit(EXIT_FAILURE);
+	}
+	
 	param->num_query = 1000000;
 	
 	int (*fp)(struct read_info** ,struct parameters*,FILE* ) = 0;
@@ -281,11 +288,12 @@ int main (int argc,char * argv[])
 			fprintf(stderr,"can't open output\n");
 			exit(-1);
 		}
+		fprintf(file,"Program\tSensitivity\tSpecificity\tPrecision\tKappa\tAvgError\tTP\tFP\tFN\tTN\n");
 	}
 	
 	
 	
-	fprintf(file,"Sen:%f	Spe:%f	Precision:%f	Kappa:%f	AvgError:%f	TP:%f	FP:%f	FN:%f	TN:%f\n",sensitivity,specificity,precision,kappa,average_error_in_extracted / num_extracted,TP,FP,FN,TN);
+	fprintf(file,"%s\t%0.4f\t%0.4f\t%0.4f\t%0.4f\t%0.4f\t%0.2f\t%0.2f\t%0.2f\t%0.2f\n",param->format,sensitivity,specificity,precision,kappa,average_error_in_extracted / num_extracted,TP,FP,FN,TN);
 
 	
 	//fprintf(stderr,"%f	%f\n",average_error_in_extracted,average_error_in_extracted / num_extracted);

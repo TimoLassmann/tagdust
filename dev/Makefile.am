@@ -23,7 +23,7 @@ TESTS_ENVIRONMENT = \
 	
 TESTS = bar_read_test.sh
 
-CLEANFILES = *.fq  *_btrim_pattern.txt *_logfile.txt *_tagdust_arch.txt *_results.txt
+CLEANFILES = *.fq  *_btrim_pattern.txt *_logfile.txt *_tagdust_arch.txt *_results.txt  *_fastxbarcodefile.txt
 
 
 

@@ -34,6 +34,10 @@
 #include "malloc_macro.h"
 #endif
 
+#if HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 
 /** \fn struct parameters* interface(struct parameters* param,int argc, char *argv[])
  \brief Read command line options into @ref parameters.
@@ -75,7 +79,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->dust = 100;
 	
 	param->sequencer_error_rate = 0.05f;
-	param->indel_frequency = 0.1f;
+	param->indel_frequency = 0.01f;
 	param->average_read_length = 50;
 	param->numbarcode = 8;
 	param->confidence_threshold = 0.0;//ence
@@ -128,6 +132,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			{"9",required_argument,0, OPT_SEG9},
 			{"10",required_argument,0, OPT_SEG10},
 			{"train",required_argument,0, OPT_TRAIN},
+			{"name",required_argument,0, OPT_FORMAT},
 			{"format",required_argument,0, OPT_FORMAT},
 			{"minlen",required_argument,0, OPT_MINLEN},
 			{"start",required_argument,0, OPT_START},

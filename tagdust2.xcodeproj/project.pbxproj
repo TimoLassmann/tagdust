@@ -16,8 +16,6 @@
 		A10B994D16C0C7FF00AF1A1E /* barcode_hmm.c in Sources */ = {isa = PBXBuildFile; fileRef = A10B994C16C0C7FF00AF1A1E /* barcode_hmm.c */; };
 		A1441D4518B5DD1C0084B030 /* paired_pre_processing.c in Sources */ = {isa = PBXBuildFile; fileRef = A1441D4418B5DD1C0084B030 /* paired_pre_processing.c */; };
 		A14739EA19079AE700646B4C /* simulate_reads.c in Sources */ = {isa = PBXBuildFile; fileRef = A14739E919079AE700646B4C /* simulate_reads.c */; };
-		A16115CC1741BAC40077DEFD /* exact.c in Sources */ = {isa = PBXBuildFile; fileRef = A16115CB1741BAC40077DEFD /* exact.c */; };
-		A16115CF1741E85D0077DEFD /* sim.c in Sources */ = {isa = PBXBuildFile; fileRef = A16115CE1741E85D0077DEFD /* sim.c */; };
 		A19A5D6718FCDD15008EB897 /* test_architectures.c in Sources */ = {isa = PBXBuildFile; fileRef = A19A5D6618FCDD15008EB897 /* test_architectures.c */; };
 		A1D2539919088F3200EBC4E5 /* evalresults.c in Sources */ = {isa = PBXBuildFile; fileRef = A1D2539819088F3200EBC4E5 /* evalresults.c */; };
 		A1DDE7F318E568D7000E3709 /* calibrateQ.c in Sources */ = {isa = PBXBuildFile; fileRef = A1DDE7F218E568D6000E3709 /* calibrateQ.c */; };
@@ -101,6 +99,8 @@
 		A1E919D716C38FD200739ACC /* pst.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = pst.h; path = src/pst.h; sourceTree = "<group>"; };
 		A1EB019316DEDE49001F6892 /* dbscan.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dbscan.c; path = src/dbscan.c; sourceTree = "<group>"; };
 		A1EB019616DEEA82001F6892 /* dbscan.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = dbscan.h; path = src/dbscan.h; sourceTree = "<group>"; };
+		A1F0D675191A058C00A44BAD /* make_barcode_read_comparison.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; name = make_barcode_read_comparison.sh; path = benchmark/make_barcode_read_comparison.sh; sourceTree = "<group>"; };
+		A1F0D677191A05EF00A44BAD /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Makefile.am; path = benchmark/Makefile.am; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -141,6 +141,7 @@
 				A1E17141178A8B28006F393D /* README */,
 				A14F589B17783085003A7B1A /* Makefile.am */,
 				A14F589D177835CF003A7B1A /* configure.ac */,
+				A1F0D676191A059800A44BAD /* benchmark */,
 				A14739E019078E9900646B4C /* dev */,
 				A14F589C17783093003A7B1A /* src */,
 				A1E3055316DB317C00FDAA86 /* gmm.h */,
@@ -232,6 +233,15 @@
 			name = test;
 			sourceTree = "<group>";
 		};
+		A1F0D676191A059800A44BAD /* benchmark */ = {
+			isa = PBXGroup;
+			children = (
+				A1F0D677191A05EF00A44BAD /* Makefile.am */,
+				A1F0D675191A058C00A44BAD /* make_barcode_read_comparison.sh */,
+			);
+			name = benchmark;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -293,8 +303,6 @@
 				A10B994716C09F2900AF1A1E /* nuc_code.c in Sources */,
 				A14739EA19079AE700646B4C /* simulate_reads.c in Sources */,
 				A10B994D16C0C7FF00AF1A1E /* barcode_hmm.c in Sources */,
-				A16115CC1741BAC40077DEFD /* exact.c in Sources */,
-				A16115CF1741E85D0077DEFD /* sim.c in Sources */,
 				A1DDE7F318E568D7000E3709 /* calibrateQ.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -92,6 +92,9 @@ int main (int argc,char * argv[]) {
 
 	int i;
 	
+	
+	
+	
 	init_nuc_code();
 	
 	param = interface(param,argc,argv);

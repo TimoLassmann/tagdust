@@ -8,7 +8,7 @@ ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 EXTRA_DIST = doc/User-Manual.pdf doc/latex/refman.pdf
 
 
-SUBDIRS = src dev
+SUBDIRS = src dev benchmark
 
 dist_noinst_SCRIPTS = autogen.sh
 
@@ -20,6 +20,9 @@ rsync:
 
 val: rsync
 	ssh lm3 'cd tmp/testing && make clean && make check '
+	
+benchmark:
+	@echo HelloWorld
 
 
 

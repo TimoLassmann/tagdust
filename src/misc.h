@@ -117,6 +117,7 @@ int qsort_string_cmp(const void *a, const void *b);
 int qsort_flt_cmp(const void * a, const void * b);
 
 int bpm(const char* t,const char* p,int n,int m);
+int bpm_global(const  char* t,const  char* p,int n,int m);
 
 
 int binsearch_down(const char*p,const char** suffix,int h,int len);

@@ -30,9 +30,7 @@
 #include <getopt.h>
 #include <stdlib.h>
 #include <string.h>
-#if HAVE_CONFIG_H
-#include "config.h"
-#endif
+
 
 #define OPT_SEG1 1
 #define OPT_SEG2 2
