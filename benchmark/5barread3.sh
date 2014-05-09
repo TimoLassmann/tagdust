@@ -5,18 +5,19 @@
 
 echo "Running tagdust benchmarks:";
 
-array=(0.00 0.01 0.02 0.03 0.04 0.05)
+array=(0.01 0.015 0.02 0.025 0.03)
 len=${#array[*]}
 
-numbar=(8 24 48 96)
+numbar=(8 24 48)
+lenbar=${#numbar[*]}
 
-barcodes="EDITTAG_4nt_ed_2.txt"
+barcodes="EDITTAG_3nt_ed_1.txt"
 
 make --silent clean
 
-for (( c=0; c < 4; c+=1 )); do
+for (( c=0; c < $lenbar; c+=1 )); do
 
-j=1
+j=0
 
 while [ $j -lt $len ]
 do
@@ -103,7 +104,7 @@ fi
 suffix="_tagdust_BC_";
 outfile=$name$suffix
 
-error=$( ../src/evalres -name tagdust_${array[$j]}_${numbar[$c]}_$barcodes  $outfile*.fq -o giraffe  -sim_random_frac 0.1 -sim_numseq 100000 2>&1)
+error=$( ../src/evalres -name tagdust_${array[$j]}_${numbar[$c]}_$barcodes  $outfile*.fq -o 5barread3  -sim_random_frac 0.1 -sim_numseq 100000 2>&1)
 status=$?
 if [[ $status -eq 0 ]]; then
 printf "%20s%10s\n"  eval_run SUCCESS;
@@ -117,7 +118,7 @@ fi
 suffix="_btrim";
 outfile=$name$suffix
 
-error=$( ../src/evalres -name btrim_${array[$j]}_${numbar[$c]}_$barcodes $outfile* -o giraffe  -sim_random_frac 0.1 -sim_numseq 100000 2>&1)
+error=$( ../src/evalres -name btrim_${array[$j]}_${numbar[$c]}_$barcodes $outfile* -o 5barread3  -sim_random_frac 0.1 -sim_numseq 100000 2>&1)
 status=$?
 if [[ $status -eq 0 ]]; then
 printf "%20s%10s\n"  eval_run SUCCESS;
@@ -131,7 +132,7 @@ suffix="_fastxBC";
 outfile=$name$suffix
 
 
-error=$( ../src/evalres -name fastx_${array[$j]}_${numbar[$c]}_$barcodes $outfile* -o giraffe  -sim_random_frac 0.1 -sim_numseq 100000 2>&1)
+error=$( ../src/evalres -name fastx_${array[$j]}_${numbar[$c]}_$barcodes $outfile* -o 5barread3  -sim_random_frac 0.1 -sim_numseq 100000 2>&1)
 status=$?
 if [[ $status -eq 0 ]]; then
 printf "%20s%10s\n"  eval_run SUCCESS;

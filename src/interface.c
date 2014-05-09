@@ -79,7 +79,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->dust = 100;
 	
 	param->sequencer_error_rate = 0.05f;
-	param->indel_frequency = 0.01f;
+	param->indel_frequency = 0.1f;
 	param->average_read_length = 50;
 	param->numbarcode = 8;
 	param->confidence_threshold = 0.0;//ence

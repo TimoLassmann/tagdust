@@ -83,6 +83,7 @@
 		A17B7B6817557D3000E58E88 /* fitspl.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fitspl.c; path = src/fitspl.c; sourceTree = "<group>"; };
 		A17B7B6917557D3000E58E88 /* conjgg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = conjgg.c; path = src/conjgg.c; sourceTree = "<group>"; };
 		A17B7B6D17557D4600E58E88 /* cmath.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = cmath.h; path = src/cmath.h; sourceTree = "<group>"; };
+		A1957EC6191C6277008F46FA /* barread.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; name = barread.sh; path = benchmark/barread.sh; sourceTree = "<group>"; };
 		A19956B717B4AAC1006A7F85 /* plot_scatter_plots.R */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.rez; name = plot_scatter_plots.R; path = scripts/plot_scatter_plots.R; sourceTree = "<group>"; };
 		A19A5D6618FCDD15008EB897 /* test_architectures.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = test_architectures.c; path = src/test_architectures.c; sourceTree = "<group>"; };
 		A1D2539819088F3200EBC4E5 /* evalresults.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = evalresults.c; path = src/evalresults.c; sourceTree = "<group>"; };
@@ -99,7 +100,7 @@
 		A1E919D716C38FD200739ACC /* pst.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = pst.h; path = src/pst.h; sourceTree = "<group>"; };
 		A1EB019316DEDE49001F6892 /* dbscan.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dbscan.c; path = src/dbscan.c; sourceTree = "<group>"; };
 		A1EB019616DEEA82001F6892 /* dbscan.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = dbscan.h; path = src/dbscan.h; sourceTree = "<group>"; };
-		A1F0D675191A058C00A44BAD /* make_barcode_read_comparison.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; name = make_barcode_read_comparison.sh; path = benchmark/make_barcode_read_comparison.sh; sourceTree = "<group>"; };
+		A1F0D675191A058C00A44BAD /* 5barread3.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; name = 5barread3.sh; path = benchmark/5barread3.sh; sourceTree = "<group>"; };
 		A1F0D677191A05EF00A44BAD /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Makefile.am; path = benchmark/Makefile.am; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -237,7 +238,8 @@
 			isa = PBXGroup;
 			children = (
 				A1F0D677191A05EF00A44BAD /* Makefile.am */,
-				A1F0D675191A058C00A44BAD /* make_barcode_read_comparison.sh */,
+				A1F0D675191A058C00A44BAD /* 5barread3.sh */,
+				A1957EC6191C6277008F46FA /* barread.sh */,
 			);
 			name = benchmark;
 			sourceTree = "<group>";
