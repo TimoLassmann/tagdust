@@ -26,7 +26,6 @@
  */
 
 #include <ctype.h>
-
 #include "interface.h"
 #include "nuc_code.h"
 #include "misc.h"
@@ -173,45 +172,35 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
 		}
 #endif
 	}
-	if(!five_s0  && five_len){
-		sprintf(param->buffer,"ERROR: there seems to e not a single read containing the 5' partial sequence.\n");
-		param->messages = append_message(param->messages, param->buffer);
-		free_param(param);
-		exit(EXIT_FAILURE);
-		
-		
-	}
 	
-	if(!three_s0  && three_len){
-		sprintf(param->buffer,"ERROR: there seems to e not a single read containing the 3' partial sequence.\n");
-		param->messages = append_message(param->messages, param->buffer);
-		free_param(param);
-		exit(EXIT_FAILURE);
-	}
-
+	
 	if(five_len){
 		if(five_s0 <= 1){
-			sprintf(param->buffer,"ERROR: 5' partial segment seems not to be present in the data.\n");
+			sprintf(param->buffer,"WARNING: there seems to e not a single read containing the 5' partial sequence.\n");
 			param->messages = append_message(param->messages, param->buffer);
-			free_param(param);
-			exit(EXIT_FAILURE);
+			ssi->mean_5_len  = ssi->expected_5_len;
+			ssi->stdev_5_len  = 1.0;
 			
 			
-		}
+		}else{
 		
 		ssi->mean_5_len = five_s1 / five_s0;
 		ssi->stdev_5_len = sqrt(  (five_s0 * five_s2 - pow(five_s1,2.0))   /  (  five_s0 *(five_s0-1.0) )) ;
+		if(!ssi->stdev_5_len){
+			ssi->stdev_5_len = 10000.0;
+		}
 		//fprintf(stderr,"5: %f %f	%f\n", ssi->mean_5_len,  ssi->stdev_5_len,five_s0);
 		//if(ssi->stdev_5_len < 1){
 		//	ssi->stdev_5_len = 1;
 		//}
 		
 		//fprintf(stderr,"5: %f %f	%f\n", ssi->mean_5_len,  ssi->stdev_5_len,five_s0);
-		if(ssi->mean_5_len <= 1){
-			sprintf(param->buffer,"ERROR: 5' partial segment seems not to be present in the data (length < 1).\n");
-			param->messages = append_message(param->messages, param->buffer);
-			free_param(param);
-			exit(EXIT_FAILURE);
+			if(ssi->mean_5_len <= 1){
+				sprintf(param->buffer,"WARNING: 5' partial segment seems not to be present in the data (length < 1).\n");
+				param->messages = append_message(param->messages, param->buffer);
+				//free_param(param);
+				//exit(EXIT_FAILURE);
+			}
 		}
 	}else{
 		ssi->mean_5_len =  -1.0;
@@ -219,27 +208,33 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
 	}
 	
 	
+	
 	if(three_len){
 		if(three_s0 <= 1){
-			sprintf(param->buffer,"ERROR: 3' partial segment seems not to be present in the data.\n");
+			sprintf(param->buffer,"WARNING: 3' partial segment seems not to be present in the data.\n");
 			param->messages = append_message(param->messages, param->buffer);
-			free_param(param);
-			exit(EXIT_FAILURE);
-		}
+			ssi->mean_3_len  = ssi->expected_3_len;
+			ssi->stdev_3_len  = 1.0;
+
+		}else{
 		
 		ssi->mean_3_len = three_s1 / three_s0;
 		ssi->stdev_3_len = sqrt(  (three_s0 * three_s2 - pow(three_s1,2.0))   /  (  three_s0 *(three_s0-1.0) )) ;
+		if(!ssi->stdev_3_len){
+			ssi->stdev_3_len = 10000.0;
+		}
 		//fprintf(stderr,"3: %f %f	%f\n", ssi->mean_3_len,  ssi->stdev_3_len,three_s0);
 		//if(ssi->stdev_3_len < 1){
 		//	ssi->stdev_3_len = 1;
 		//}
 		//fprintf(stderr,"3: %f %f	%f\n", ssi->mean_3_len,  ssi->stdev_3_len,three_s0);
-		if(ssi->mean_3_len <= 1){
-			sprintf(param->buffer,"ERROR: 3' partial segment seems not to be present in the data (length < 1).\n");
-		//	fprintf(stderr,"%s",param->buffer);
-			param->messages = append_message(param->messages, param->buffer);
-			free_param(param);
-			exit(EXIT_FAILURE);
+			if(ssi->mean_3_len <= 1){
+				sprintf(param->buffer,"WARNING: 3' partial segment seems not to be present in the data (length < 1).\n");
+			//	fprintf(stderr,"%s",param->buffer);
+				param->messages = append_message(param->messages, param->buffer);
+				//free_param(param);
+				//exit(EXIT_FAILURE);
+			}
 		}
 	}else{
 		ssi->mean_3_len =  -1.0;
@@ -266,6 +261,20 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
 	if(three_test_sequence){
 		MFREE(three_test_sequence);
 	}
+#ifdef DEBUG
+	fprintf(stderr,"Backgound:\n");
+	fprintf(stderr,"A:%f\n",scaledprob2prob( ssi->background[0]));
+	fprintf(stderr,"C:%f\n",scaledprob2prob( ssi->background[1]));
+	fprintf(stderr,"G:%f\n",scaledprob2prob( ssi->background[2]));
+	fprintf(stderr,"T:%f:\n",scaledprob2prob( ssi->background[3]));
+	fprintf(stderr,"N:%f\n",scaledprob2prob( ssi->background[4]));
+	
+	fprintf(stderr,"\nExpected Length:5':%f	3':%f\n",ssi->expected_5_len,ssi->expected_3_len );
+	fprintf(stderr,"Observed Length:5':%f	3':%f\n",ssi->mean_5_len,ssi->mean_3_len );
+	fprintf(stderr,"STDEV:5':%f	3':%f\n",ssi->stdev_5_len,ssi->stdev_3_len );
+	    
+	        
+#endif
 	
 	
 	

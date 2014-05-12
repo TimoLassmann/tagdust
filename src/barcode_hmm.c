@@ -854,7 +854,7 @@ void hmm_controller(struct parameters* param,int file_num)
 	sprintf(param->buffer,"%d	total input reads\n", li->total_read);
 	param->messages = append_message(param->messages, param->buffer);
 	
-	sprintf(param->buffer,"%d	selected threshold\n", (int)param->confidence_threshold);
+	sprintf(param->buffer,"%0.2f	selected threshold\n", param->confidence_threshold);
 	param->messages = append_message(param->messages, param->buffer);
 	
 	sprintf(param->buffer,"%d	successfully extracted\n" ,li->num_EXTRACT_SUCCESS);
@@ -5298,7 +5298,10 @@ struct model_bag* init_model_bag(struct parameters* param,struct sequence_stats_
 		for(i = 0 ; i < model_p->num_hmms;i++){
 			for(j = 0; j < ssi->expected_5_len;j++){
 				col = model_p->hmms[i]->hmm_column[j];
-				model_p->silent_to_M[i][j]  = prob2scaledprob(1.0 / (float) model_p->num_hmms) + prob2scaledprob(   gaussian_pdf(j ,ssi->mean_5_len - ssi->expected_5_len, ssi->stdev_5_len));
+				//fprintf(stderr,"%d MEAN:%f	STDEV:%f	g:%f\n",j,ssi->mean_5_len - ssi->expected_5_len, ssi->stdev_5_len,gaussian_pdf(j ,ssi->expected_5_len-ssi->mean_5_len , ssi->stdev_5_len));
+				
+				model_p->silent_to_M[i][j]  = prob2scaledprob(1.0 / (float) model_p->num_hmms) + prob2scaledprob(   gaussian_pdf(j ,ssi->expected_5_len-ssi->mean_5_len , ssi->stdev_5_len));
+				//fprintf(stderr,"%f	%f	%f	%f\n",sum_prob, model_p->silent_to_M[i][j],scaledprob2prob(sum_prob), scaledprob2prob( model_p->silent_to_M[i][j]));
 				sum_prob = logsum(sum_prob, model_p->silent_to_M[i][j]);
 				//fprintf(stderr,"5': %d %f\n",j,gaussian_pdf(j ,ssi->mean_5_len - ssi->expected_5_len, ssi->stdev_5_len)  );
 				

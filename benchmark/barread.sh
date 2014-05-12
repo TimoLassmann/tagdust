@@ -5,15 +5,35 @@
 
 echo "Running tagdust benchmarks:";
 
+
+barcodes=
+
+function usage()
+{
+cat <<EOF
+usage: $0 -b  <barcode file>
+EOF
+exit 1;
+}
+
+while getopts b: opt
+do
+case ${opt} in
+b) barcodes=${OPTARG};;
+*) usage;;
+esac
+done
+
+if [ "${barcodes}" = "" ]; then usage; fi
+
 array=(0.01 0.015 0.02 0.025 0.03)
 len=${#array[*]}
 
 numbar=(8 24 48)
 lenbar=${#numbar[*]}
 
-barcodes="EDITTAG_3nt_ed_1.txt"
 
-make --silent clean
+
 
 for (( c=0; c < $lenbar; c+=1 )); do
 
@@ -21,8 +41,8 @@ j=0
 
 while [ $j -lt $len ]
 do
-make --silent clean
-name="barread${array[$j]}.fq"
+
+name="barread${array[$j]}_${numbar[$c]}.fq"
 
 error=$(../src/simreads ../dev/$barcodes  -seed 42 -sim_barnum ${numbar[$c]}  -sim_readlen 20 -sim_readlen_mod 0 -sim_numseq 100000 -sim_endloss 0 -sim_random_frac 0.1 -o $name   -sim_error_rate ${array[$j]}  2>&1 )
 status=$?
@@ -40,7 +60,7 @@ suffix="_tagdust";
 outfile=$name$suffix
 
 
-error=$( ../src/tagdust -t 80  -seed 42  $name -arch $arch -o $outfile )
+error=$( ../src/tagdust -t 80  -seed 42  $name -arch $arch -o $outfile 2>&1 )
 status=$?
 if [[ $status -eq 0 ]]; then
 printf "%20s%10s\n"  tagdust SUCCESS;
@@ -49,6 +69,23 @@ printf "%20s%10s\n"  tagdust FAILED;
 printf "with ERROR $status and Message:\n\n$error\n\n";
 exit 1;
 fi
+
+
+suffix="_tagdustarchsel";
+outfile=$name$suffix
+
+
+error=$( ../src/tagdust -t 80  -seed 42  $name -arch all_arch.txt -o $outfile )
+status=$?
+if [[ $status -eq 0 ]]; then
+printf "%20s%10s\n"  tagdust SUCCESS;
+else
+printf "%20s%10s\n"  tagdust FAILED;
+printf "with ERROR $status and Message:\n\n$error\n\n";
+exit 1;
+fi
+
+
 
 
 suffix="_fastxbarcodefile.txt"
@@ -84,6 +121,25 @@ printf "%20s%10s\n"  eval_run FAILED;
 printf "with ERROR $status and Message:\n\n$error\n\n";
 exit 1;
 fi
+
+
+
+suffix="_tagdustarchsel_BC_";
+outfile=$name$suffix
+
+error=$( ../src/evalres -name tagdustallarch_${array[$j]}_${numbar[$c]}_$barcodes  $outfile*.fq -o barread  -sim_random_frac 0.1 -sim_numseq 100000 2>&1)
+status=$?
+if [[ $status -eq 0 ]]; then
+printf "%20s%10s\n"  eval_run SUCCESS;
+else
+printf "%20s%10s\n"  eval_run FAILED;
+printf "with ERROR $status and Message:\n\n$error\n\n";
+exit 1;
+fi
+
+
+
+
 
 
 suffix="_fastxBC";

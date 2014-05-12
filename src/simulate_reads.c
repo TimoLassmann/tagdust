@@ -396,9 +396,9 @@ int main (int argc,char * argv[]) {
 		fprintf(file,"P:%s ",param->sim_3seq);
 	}
 	
-	fprintf(file,"%s ", param->outfile);
+	fprintf(file,"%s ", "in.fq");
 	
-	fprintf(file,"-o bananas");
+	fprintf(file,"-o out.fq");
 
 	
 	

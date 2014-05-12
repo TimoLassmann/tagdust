@@ -36,7 +36,7 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 	init_logsum();
 	
 #if DEBUG
-	param->num_query = 11;
+	param->num_query = 100000;
 #else
 	param->num_query = 100000;
 #endif
@@ -113,6 +113,7 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 			if(architecture_found){
 				
 				ssi = get_sequence_stats(param, ri, 0 );
+				
 				if(QC_read_structure(param)){
 					free_param(param);
 					exit(EXIT_FAILURE);
@@ -122,6 +123,7 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 				}
 				MMALLOC(ab->command_line[ab->num_arch],sizeof(char) * (strlen(line)+2));
 				strcpy(ab->command_line[ab->num_arch] , line);
+				fprintf(stderr,"TESTING:\n%s\n",ab->command_line[ab->num_arch]);
 				ab->archs[ab->num_arch] = init_model_bag(param, ssi);
 				ab->num_arch++;
 				if(ab->num_arch == MAX_NUM_ARCH){

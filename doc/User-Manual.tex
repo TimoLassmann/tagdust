@@ -2,9 +2,55 @@
 %
 %--------------------   start of the 'preamble'
 %
+\usepackage[table]{xcolor}
 \usepackage{graphicx,amssymb,amstext,amsmath,float,color,array,ctable,booktabs,wrapfig,caption}
 %
-\usepackage[table]{xcolor}
+
+
+\usepackage{filecontents}
+\begin{filecontents}{ref.bib}
+@article{li2008mapping,
+  title={Mapping short DNA sequencing reads and calling variants using mapping quality scores},
+  author={Li, Heng and Ruan, Jue and Durbin, Richard},
+  journal={Genome research},
+  volume={18},
+  number={11},
+  pages={1851--1858},
+  year={2008},
+  publisher={Cold Spring Harbor Lab}
+}
+
+@article{Kivioja:2012kg,
+author = {Kivioja, Teemu and V{\"a}h{\"a}rautio, Anna and Karlsson, Kasper and Bonke, Martin and Enge, Martin and Linnarsson, Sten and Taipale, Jussi},
+title = {{Counting absolute numbers of molecules using unique molecular identifiers.}},
+journal = {Nature methods},
+year = {2012},
+volume = {9},
+number = {1},
+pages = {72--74},
+month = jan
+}
+
+
+@book{durbin,
+    author = {Durbin, R. and Eddy, S. and Krogh, A. and Mitchison, G.},
+    edition = {eleventh},
+publisher = {Press, Cambridge U.},
+    title = {{Biological sequence analysis}},
+    year = {2006}
+}
+
+
+
+@article{Kall:2005vg,
+author = {K{\"a}ll, Lukas and Krogh, Anders and Sonnhammer, Erik L L},
+title = {{An HMM posterior decoder for sequence feature prediction that includes homology information}},
+journal = {Bioinformatics (Oxford, England)},
+year = {2005}
+}
+
+\end{filecontents}
+
 \usepackage{graphics}
 \usepackage{hyperref}
 \usepackage{pgf}
@@ -119,7 +165,7 @@ by Timo Lassmann\\[1.5ex]}
 \pagebreak
 \begin{small} 
 
-Copyright \copyright 2013 Timo Lassmann (timolassmann@gmail.com)
+Copyright \copyright  2013, 2014 Timo Lassmann (timolassmann@gmail.com)
  
  This document is free;  you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -152,7 +198,7 @@ Copyright \copyright 2013 Timo Lassmann (timolassmann@gmail.com)
 
  %\addcontentsline{toc}{chapter}{Introduction}
 
-Raw sequences produced by next generation sequencing (NGS) machines may contain adapter, linker, barcode and fingerprint sequences. TagDust2 is a program to extract and correctly label the sequences to be mapped in downstream pipelines.
+Raw sequences produced by next generation sequencing (NGS) machines can contain adapter, linker, barcode and fingerprint sequences. TagDust2 is a program to extract and correctly label the sequences to be mapped in downstream pipelines.
 
 TagDust allows users to specify the expected architecture of a read and converts it into a hidden Markov model. The latter can assign sequences to a particular barcode (or index) even in the presence of sequencing errors. Sequences not matching the architecture (primer dimers, contaminants etc.) are automatically discarded (see Figure \ref{figure1}).
 
@@ -196,15 +242,49 @@ bash-3.1$ ./configure
 \begin{verbatim}
 bash-3.1$ make
 \end{verbatim}
-At this point the TagDust executable appears in the TagDust directory. You can copy it to any directory in your path. To install it system wide type:  
+
+\begin{verbatim}
+bash-3.1$ make check
+\end{verbatim}
+At this point the TagDust executable appears in the src/ directory. You can copy it to any directory in your path. To install it system wide type:  
 \begin{verbatim}
 bash-3.1$ make install
 \end{verbatim}
 %\let\clearpage\relax
+\chapter{Quick Usage}
+
+\section{Single-end data}
+
+Simply:
+
+\begin{verbatim}
+bash-3.1$ tagdust -arch architectures.txt in.fq -o output
+\end{verbatim}
+
+The file ``architectures.txt'' needs to contain at least one valid tagdust architecture. For example: 
+
+
+\begin{verbatim}
+bash-3.1$ more architectures.txt
+
+./tagdust -1 B:AAA,TTT -2 R:N 
+\end{verbatim}
+
+In the case above TagDust will try to split the input reads into those containing either AAA or TTT barcodes at the start of the raw reads. 
+
+\section{Paired-end data}
+
+Simply:
+
+\begin{verbatim}
+bash-3.1$ tagdust -arch architectures.txt read1.fq read2.fq -o output
+\end{verbatim}
+ 
+
 \chapter{Usage}
 
 \section{Command Line}
-TagDust requires an input file containing sequences and a user specified HMM architecture used to extract the reads. For the architecture all that TagDust needs to know is the sequence of pre-defined building blocks. Options '{\tt -1,-2, ...}' are used to specify the first, second, etc. building block.
+TagDust requires an input file containing sequences and a user specified HMM architecture used to extract the reads. For the architecture all that TagDust needs to know is the sequence of pre-defined building blocks. Options '{\tt -1,-2, ...}' are used to specify the first, second, etc. building block. 
 
 \begin{verbatim}
 bash-3.1$ tagdust [-options] <input file>  
@@ -216,18 +296,17 @@ bash-3.1$ tagdust [-options] <input file>
 \begin{tabular}{| l | l | p{12cm}|}
 \hline
 \rowcolor{blue} \textcolor{white}{\scshape Option}		&\textcolor{white}{\scshape Type}		&	\textcolor{white}{\scshape Description}\\ \hline
--Q & FLT & read quality threshold [20].\\
--l & STR & Write a log file to directory.\\
--start & INT & start of search area [0].\\
--end & INT & end of  search area [length of sequence].\\
+%-start & INT & start of search area [0].\\
+%-end & INT & end of  search area [length of sequence].\\
+-arch & STR & path and name of file containing tag dust architectures. \\
 -format & STR & format of input sequence file.\\
 -minlen & INT & minimal accepted read length [16].\\
 -ref     &  STR &    reference fasta file to be compared against[].\\
 -fe &       INT &    number of errors allowed when comparing to reference[2].\\
 -dust &	INT &	remove low complexity sequences[].\\
--e & FLT & expected sequencer error rate [0.05].\\ 
--o & STR & output file name.\\
--a & STR & output file for artifacts [NA].\\
+%-e & FLT & expected sequencer error rate [0.05].\\ 
+-o & STR & output file prefix.\\
+%-a & STR & output file for artifacts [NA].\\
 -t & INT & number of threads [8].\\
 -1 & STR & type of the first HMM building block. \\
 -2 & STR & type of the second HMM building block.\\
@@ -243,7 +322,7 @@ Here are some examples of HMM building blocks. Also have a look at the more deta
 \rowcolor{blue} \textcolor{white}{\scshape Example}		&\textcolor{white}{\scshape Type}		&	\textcolor{white}{\scshape Description}\\ \hline
 R:N & Read  & a block containing a read to be extracted.\\
 S:AATT & Spacer & a block containing the sequence AATT.\\ 
-B:ACT,GGG & Barcode/Index & a three nucleotide long block containing index ACT or GGG\\ 
+B:ACT,GGG & Barcode/Index & a three nucleotide long block containing either ACT or GGG\\ 
 F:NNNNNN & Fingerprint / UMI & a six nucleotide long {\bf U}nique {\bf M}olecular {\bf I}dentifier.\\ 
 O:T  & Optional & a block modeling the optimal inclusion of a single or multiple Ts.\\
 \hline
@@ -253,11 +332,11 @@ O:T  & Optional & a block modeling the optimal inclusion of a single or multiple
 
 
 \section{Notes}
-\subsection{Threshold}
-The {\tt -Q} option sets the minimum acceptable read quality analogous to the mapping quality Q. If the reads are very short or the model very simple (e.g. 3 nucleotide barcode followed by the read) the default threshold of 20 might have to be lowered.
+%\subsection{Threshold}
+%The {\tt -Q} option sets the minimum acceptable read quality analogous to the mapping quality Q. If the reads are very short or the model very simple (e.g. 3 nucleotide barcode followed by the read) the default threshold of 20 might have to be lowered.
 
-\subsection{Logfile}
-The log option ({\tt -l} flag) specifies the directory into which log files will be written. The log file name is the input file name and the suffix  "\_tagdust\_log.txt". It contains some basic statistics on the number of reads making it through the various TagDust steps. It also lists the number of matches to known contaminants (see below).  
+%\subsection{Logfile}
+%The log option ({\tt -l} flag) specifies the directory into which log files will be written. The log file name is the input file name and the suffix  "\_tagdust\_log.txt". It contains some basic statistics on the number of reads making it through the various TagDust steps. It also lists the number of matches to known contaminants (see below).  
 
 \subsection{Removing Known Contaminants (e.g. ribosomal RNA sequences).}
 Known contaminants or unwanted reads can be filtered from the output by pointing TagDust to a reference fasta to be matched against ({\tt -ref <filename>} ). The maximum number of errors allowed for a match to reference is set with the {\tt -fe} option. {\bf In the current implementation only the first 32 nucleotides off the extracted read are compared against the reference sequences!}
@@ -270,9 +349,9 @@ As a default, TagDust attempts to match the entire sequence to the HMM (global).
 
 In the presence of barcodes or fingerprints, TagDust will recognize the most likely code and append it to the name of the read. 
 
-\subsection{Extracting multiple reads from a  single input read}
+%\subsection{Extracting multiple reads from a  single input read}
 
-If a user specified architecture contains multiple read segments (e.g. -1 R:N -2 S:TTTTTT -3 R:N) TagDust will print out multiple reads per input. The tag {\bf RS:$1...X$} is appended to the raw read name to distinguish the reads.
+%If a user specified architecture contains multiple read segments (e.g. -1 R:N -2 S:TTTTTT -3 R:N) TagDust will print out multiple reads per input. The tag {\bf RS:$1...X$} is appended to the raw read name to distinguish the reads.
 
 
 \section{Formats}
@@ -889,7 +968,7 @@ hifiifiiggbedffffffffffffffff
 
 \section{Sequence scoring} 
 
-In short read mapping the mapping quality Q reflects the confidence we have in one particular mapping location over all others \cite{Li:2008ip}. Analogously, TagDust2 compares the probability of each read matching to the user specified HMM to the total summed probability including a random model:
+In short read mapping the mapping quality Q reflects the confidence we have in one particular mapping location over all others \cite{li2008mapping}. Analogously, TagDust2 compares the probability of each read matching to the user specified HMM to the total summed probability including a random model:
 
 \begin{equation}
 P = 1 - \frac{P(x|M)*V}{P(x|M) + P(x|R)}
@@ -1032,7 +1111,7 @@ If fingerprints are present TagDust checks at this stage if the length after dec
 %-----------------------------------------------------------
 \addcontentsline{toc}{chapter}{\numberline{}Bibliography}
 \bibliographystyle{plain}
-\bibliography{ref.bib}
+\bibliography{ref}
 
 
 %-----------------------------------------------------------

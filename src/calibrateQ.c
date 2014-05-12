@@ -15,8 +15,8 @@
 
 struct parameters* estimateQthreshold(struct parameters* param, struct sequence_stats_info* ssi)
 {
-	int i,j,c;
-	char alphabet[] = "ACGTNN";
+	int i,j;
+	
 	//Warning - I set the seed to number 42 because the results are completely robust with 400000 sequences...
 	// if we reduce the latter we need to test for consistency between runs...
 	//unsigned int seed = (unsigned int) (time(NULL) * ( 42));
@@ -31,12 +31,7 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 	srand(seed);
 	
 	int binsize = 0;
-	int hasbarcode = -1;
-	int found = 0;
 	int min_error = 0;
-	int errors = 0;
-	
-	char* emitted_barcode = 0;
 	
 #if DEBUG
 #if RTEST
@@ -73,7 +68,7 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 	//fprintf(stderr,"Testing the model %e\n", sim_errors[c]);
 	for(i = 0; i < mb->num_models;i++){
 		if(param->read_structure->type[i] == 'B'){
-			hasbarcode = i;
+			//hasbarcode = i;
 			for(j = 0 ; j < mb->model[i]->num_hmms-1;j++){
 				mb->model[i]->silent_to_M[j][0] = prob2scaledprob(1.0 / (float)( mb->model[i]->num_hmms-1));
 			}
@@ -92,116 +87,8 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 		FN++;
 		readnum++;
 	}
-	hasbarcode = -1;
 	
-	if(hasbarcode!= -1){
-		min_error = 100;
-		for(i = 0;i <  param->read_structure->numseq_in_segment[hasbarcode];i++){
-			for(j = i+1;j < param->read_structure->numseq_in_segment[hasbarcode];j++){
-				/*errors = 0;
-				for(c = 0; c <  (int)strlen(param->read_structure->sequence_matrix[hasbarcode][0]);c++){
-					if(param->read_structure->sequence_matrix[hasbarcode][i][c] != param->read_structure->sequence_matrix[hasbarcode][j][c]){
-						errors++;
-					}
-				}*/
-				
-				errors = bpm_global(param->read_structure->sequence_matrix[hasbarcode][i], param->read_structure->sequence_matrix[hasbarcode][j], (int)strlen(param->read_structure->sequence_matrix[hasbarcode][0]), (int)strlen(param->read_structure->sequence_matrix[hasbarcode][0]));
-				
-				if(errors < min_error){
-					min_error = errors;
-					//num_pairs = 1;
-					//fprintf(stderr,"%s\n%s	%d	%d\n",param->read_structure->sequence_matrix[hasbarcode][i], param->read_structure->sequence_matrix[hasbarcode][j],min_error, (int)strlen(param->read_structure->sequence_matrix[hasbarcode][0]));
-					
-				}
-			}
-		}
-		
-		
-		
-		MMALLOC(emitted_barcode, sizeof(char) * 100);
-		
-		for(i = 0; i < mb->num_models;i++){
-			if(param->read_structure->type[i] == 'B'){
-				//mb->model[i]->silent_to_M[j][0]
-				for(j = 0 ; j < mb->model[i]->num_hmms-1;j++){
-					mb->model[i]->silent_to_M[j][0] = prob2scaledprob(0.0);
-				}
-				mb->model[i]->silent_to_M[mb->model[i]->num_hmms-1][0] = prob2scaledprob(1.0);
-				//	mb->model[i]->num_hmms =  mb->model[i]->num_hmms -1;
-			}
-		}
-		
-		for(i = 0; i < binsize;i++){
-			
-			found = 1;
-			while(found){
-				ri[readnum] = emit_read_sequence(mb, ri[readnum],ssi->average_length,&seed);
-				ri[readnum]->read_type = 2;
-				/*for(j = 0;j < ri[readnum]->len;j++){
-					fprintf(stderr,"%d",ri[readnum]->seq[j]);
-				}
-				fprintf(stderr,"\n");
-				for(j = 0;j < ri[readnum]->len;j++){
-					fprintf(stderr,"%d",ri[readnum]->labels[j]);
-				}
-				fprintf(stderr,"\n");
-				*/c = 0;
-				for(j = 0;j < ri[readnum]->len;j++){
-				//	fprintf(stderr,"%c", param->read_structure->type[(int)ri[readnum]->labels[j]]);
-					if(ri[readnum]->labels[j] == hasbarcode){
-						//if(!c && j){
-						//	emitted_barcode[c] = alphabet[(int)ri[readnum]->seq[j-1]];
-						//	c++;
-
-						//}
-						emitted_barcode[c] = alphabet[(int)ri[readnum]->seq[j]];
-						c++;
-						//emitted_barcode[c] = alphabet[(int)ri[readnum]->seq[j+1]];
-						//c++;
-					}
-				}
-				
-				//cfprintf(stderr,"\n");
-				
-				emitted_barcode[c]  =0;
-				
-				//fprintf(stderr,"BARCODE:%s\n", emitted_barcode);
-				found = 0;
-				for(j = 0 ; j < mb->model[hasbarcode]->num_hmms-1;j++){
-					
-					if(min_error == 1){
-						if(!strcmp(emitted_barcode, param->read_structure->sequence_matrix[hasbarcode][j] )){
-							found = 1;
-							break;
-						}
-					}else{
-						errors = bpm_global(emitted_barcode, param->read_structure->sequence_matrix[hasbarcode][j],  (int)strlen(emitted_barcode), (int)strlen(param->read_structure->sequence_matrix[hasbarcode][j]) );
-						if(errors <= min_error){
-							found = 1;
-							//fprintf(stderr,"COMP: %s		%s %d\n",emitted_barcode,param->read_structure->sequence_matrix[hasbarcode][j],min_error);
-							break;
-						}
-					}
-				}
-				
-			}
-			
-			//fprintf(stderr,"READNUM:%d\n", readnum);
-			
-			
-			
-			TN++;
-			readnum++;
-		}
-		MFREE(emitted_barcode);
-	
-	}
-	
-	if(hasbarcode == -1){
-		binsize = binsize + binsize;
-	}
-	
-	for(i = 0; i <  binsize ;i++){
+	for(i = 0; i <  binsize+binsize ;i++){
 		ri[readnum] = emit_random_sequence(mb, ri[readnum],ssi->average_length,&seed);
 		ri[readnum]->read_type = 1;
 		TN++;
@@ -254,7 +141,7 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 	double P_e = 0.0;
 	
 	double P_o = 0.0;
-	
+#if DEBUG
 	int class_a,class_b,class_c;
 	class_a = 0;
 	class_b = 0;
@@ -298,7 +185,7 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 	stats[8] /=(float)class_a;
 	//stats[5] /=(float)readnum/2.0;
 	
-	
+
 	fprintf(stderr,"Min: %f	%f\n", stats[0] , 1.0 - pow(10.0, -1.0 *stats[0]  / 10.0));
 	fprintf(stderr,"Max: %f	%f\n",stats[1] , 1.0 - pow(10.0, -1.0 *stats[1]  / 10.0) );
 	fprintf(stderr,"Average: %f	%f\n", stats[2] , 1.0 - pow(10.0, -1.0 *stats[2]  / 10.0));
@@ -310,6 +197,7 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 	fprintf(stderr,"Min: %f	%f\n", stats[0+6] , 1.0 - pow(10.0, -1.0 *stats[0+6]  / 10.0));
 	fprintf(stderr,"Max: %f	%f\n",stats[1+6] , 1.0 - pow(10.0, -1.0 *stats[1+6]  / 10.0) );
 	fprintf(stderr,"Average: %f	%f\n", stats[2+6] , 1.0 - pow(10.0, -1.0 *stats[2+6]  / 10.0));
+#endif
 
 	
 	
@@ -325,6 +213,8 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 	min_error = 0;
 	for(i = 0; i < readnum;i++){
 		if(ri[i]->read_type){
+#if DEBUG
+		char alphabet[] = "ACGTNN";
 			if(min_error < 2){
 			fprintf(stderr, "%s	%f	%d\n",ri[i]->name ,ri[i]->mapq,ri[i]->read_type);
 			for(j = 0; j < ri[i]->len;j++){
@@ -333,6 +223,7 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 			fprintf(stderr,"\n");
 				min_error++;
 			}
+#endif
 			
 			FP += 1.0;
 			TN -= 1.0;
@@ -376,24 +267,10 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 	}else{
 		param->confidence_threshold  = 20;
 	}
-	
-	
-	/*for(i = 9990; i < 10000;i++){
-		fprintf(stderr,"%d	%d	%f	%f	", i, ri[i]->len, ri[i]->mapq,  1.0 - pow(10.0, -1.0 *  ri[i]->mapq / 10.0));
-		
-		for(j = 0; j < ri[i]->len;j++){
-			fprintf(stderr,"%c",AL[(int)ri[i]->seq[j]]);
-			if(j >30){
-				break;
-			}
-		}
-		fprintf(stderr,"\n");
-	}*/
-	/*
+
 
 	
-	
-	fprintf(stderr,"Median: %f	%f\n",ri[readnum /2  ]->mapq, 1.0 - pow(10.0, -1.0 *ri[readnum /2 ]->mapq / 10.0));*/
+#if DEBUG
 	fprintf(stderr,"FDR:0.01: %f\n", thres[0]);
 	fprintf(stderr,"FDR:0.05: %f\n", thres[1]);
 	fprintf(stderr,"FDR:0.1: %f\n", thres[2]);
@@ -406,6 +283,7 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 	//fprintf(stderr,"Specificity: %f\n", specificity);
 	
 	sprintf(param->buffer,"Selected Threshold:: %f\n", param->confidence_threshold );
+#endif
 	param->messages = append_message(param->messages, param->buffer);
 		
 	

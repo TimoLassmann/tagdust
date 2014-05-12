@@ -37,7 +37,6 @@ int main (int argc,char * argv[])
 	FILE* file = 0;
 	
 	struct stat buf;
-
 	
 	int i,j,c,g;
 	int numseq = 0;
@@ -54,7 +53,6 @@ int main (int argc,char * argv[])
 	MMALLOC(orgread,sizeof(char)* 300);
 	
 	init_nuc_code();
-	
 	
 	param = interface(param,argc,argv);
 	
@@ -244,7 +242,7 @@ int main (int argc,char * argv[])
 				if(lib_file_assignment[i] == j){
 					TP += libs[i]->count_in_file[j];
 				}else{
-					FN += libs[i]->count_in_file[j];
+					FP += libs[i]->count_in_file[j];
 				}
 			}
 		}
@@ -253,7 +251,7 @@ int main (int argc,char * argv[])
 	if(param->sim_numseq ){
 		i = (int)((float) param->sim_numseq * (1.0-param->sim_random_frac));
 		j = param->sim_numseq - (int)((float) param->sim_numseq * (1.0-param->sim_random_frac)) ;
-		fprintf(stderr,"%d	%d	%d	%d\n",i,j,i+j,libs[0]->total);
+		//fprintf(stderr,"%d	%d	%d	%d\n",i,j,i+j,libs[0]->total);
 		
 		//TN =
 		TN +=  (j - libs[0]->total); // total negatives deteced minus number detccted in files...
