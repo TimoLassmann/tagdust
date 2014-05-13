@@ -77,7 +77,6 @@ void exact_controller(struct parameters* param,int (*fp)(struct read_info** ,str
 	
 	ri = malloc(sizeof(struct read_info*) * param->num_query);
 	
-	assert(ri !=0);
 	
 	for(i = 0; i < param->num_query;i++){
 		ri[i] = malloc(sizeof(struct read_info));

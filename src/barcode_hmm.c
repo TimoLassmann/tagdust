@@ -251,27 +251,22 @@ void hmm_controller_pe(struct parameters* param)
 		}
 		
 		for(i = 0; i < numseq1;i++){
-			if(r1[i]->read_type == EXTRACT_SUCCESS && r2[i]->read_type == EXTRACT_SUCCESS){
-				MREALLOC(r1[i]->seq,tmp, sizeof(char) * (r1[i]->len +  r2[i]->len +2));
-				MREALLOC(r1[i]->qual,tmp,sizeof(char) * (r1[i]->len +  r2[i]->len +2));
-				r1[i]->seq[r1[i]->len] = 65;
-				r1[i]->qual[r1[i]->len] = 65;
-				r1[i]->len++;
-				
-				for(j = 0; j < r2[i]->len;j++){
-					r1[i]->seq[r1[i]->len] = r2[i]->seq[j];
-					r1[i]->qual[r1[i]->len] = r2[i]->qual[j];
-					r1[i]->len++;
-				}
-				r1[i]->seq[r1[i]->len] = 65;
-				r1[i]->qual[r1[i]->len] = 65;
-				//if(r1[i]->barcode == -1 && r2[i]->barcode != -1){
-				//	r1[i]->barcode =r2[i]->barcode ;
-				//}
-				
-			}else{
+			if(r1[i]->read_type != EXTRACT_SUCCESS || r2[i]->read_type != EXTRACT_SUCCESS){
 				r1[i]->read_type = EXTRACT_FAIL_ARCHITECTURE_MISMATCH;
 			}
+			MREALLOC(r1[i]->seq,tmp, sizeof(char) * (r1[i]->len +  r2[i]->len +2));
+			MREALLOC(r1[i]->qual,tmp,sizeof(char) * (r1[i]->len +  r2[i]->len +2));
+			r1[i]->seq[r1[i]->len] = 65;
+			r1[i]->qual[r1[i]->len] = 65;
+			r1[i]->len++;
+			
+			for(j = 0; j < r2[i]->len;j++){
+				r1[i]->seq[r1[i]->len] = r2[i]->seq[j];
+				r1[i]->qual[r1[i]->len] = r2[i]->qual[j];
+				r1[i]->len++;
+			}
+			r1[i]->seq[r1[i]->len] = 65;
+			r1[i]->qual[r1[i]->len] = 65;
 		}
 		
 		//param->read_structure = 0;
@@ -1410,7 +1405,6 @@ struct model_bag* run_pHMM(struct arch_bag* ab,struct model_bag* mb,struct read_
 	
 	
 	MMALLOC(thread_data,sizeof(struct thread_data)* param->num_threads);
-	//assert(thread_data != NULL);
 	pthread_t threads[param->num_threads];
 	pthread_attr_t attr;
 	int i,t;
@@ -2152,7 +2146,6 @@ struct read_info* emit_random_sequence(struct model_bag* mb, struct read_info* r
 	}
 	
 	MREALLOC(ri->seq,tmp ,sizeof(char) * (current_length+1));
-	//assert(ri->seq != NULL);
 	ri->seq[current_length] = 0;
 	ri->len = current_length;
 	
@@ -2168,14 +2161,6 @@ struct read_info* emit_random_sequence(struct model_bag* mb, struct read_info* r
 	ri->name[1] = 0;
 	
 	MMALLOC(ri->labels,sizeof(char) * (current_length+1));
-	//assert(ri->labels != NULL);
-	//ri->labels[0] = 'N';
-	//ri->labels[1] = 0;
-	
-	//ri->qual = malloc(sizeof(char) *2);
-	//ri->qual[0] = 'N';
-	//ri->qual[1] = 0;
-	
 	return ri;
 }
 
@@ -3978,34 +3963,26 @@ struct model* malloc_model(int main_length, int sub_length, int number_sub_model
 	assert(number_sub_models  <=MAX_NUM_SUB_MODELS );
 	
 	MMALLOC(model,sizeof(struct model));
-	assert(model != 0);
 	
 	model->num_hmms =  (1+ number_sub_models);
 	MMALLOC(model->hmms,sizeof(struct hmm*) * (1+ number_sub_models));
-	assert(model->hmms !=0);
 	for(i = 0; i < model->num_hmms;i++){
 		MMALLOC(model->hmms[i],sizeof(struct hmm) );
-		assert(model->hmms[i]  != 0);
 	}
 	
 	
 	model->hmms[0]->num_columns = main_length;
 	MMALLOC(model->hmms[0]->hmm_column,sizeof(struct hmm_column*) * main_length);
-	assert(model->hmms[0]->hmm_column !=0);
 	
 	for(j = 0; j < main_length;j++){
 		MMALLOC(model->hmms[0]->hmm_column[j],sizeof(struct hmm_column));
-		assert(model->hmms[0]->hmm_column[j] !=0);
 	}
 
 	for(i = 1; i < model->num_hmms;i++){
 		model->hmms[i]->num_columns = sub_length;
 		MMALLOC(model->hmms[i]->hmm_column,sizeof(struct hmm_column*) * sub_length);
-		assert(model->hmms[i]->hmm_column !=0);
 		for(j = 0; j < sub_length;j++){
 			MMALLOC(model->hmms[i]->hmm_column[j],sizeof(struct hmm_column));
-			assert(model->hmms[i]->hmm_column[j] !=0);
-			//model->hmms[i]->hmm_column[j]->identifier = -1;
 		}
 	}
 	
@@ -4657,33 +4634,17 @@ void free_model(struct model* model)
 			MFREE(model->hmms[i]->hmm_column[j]->D_foward);// = malloc(sizeof(float) * (dyn_length+1));
 			MFREE(model->hmms[i]->hmm_column[j]->D_backward);// = malloc(sizeof(float) * (dyn_length+1));
 			MFREE(model->hmms[i]->hmm_column[j]);// = malloc(sizeof(struct hmm_column));
-			//assert(model->hmms[i]->hmm_column[j] !=0);
-			//model->hmms[i]->hmm_column[j]->identifier = -1;
-			
 		}
 		//model->hmms[i]->num_columns = sub_length;
 		MFREE(model->hmms[i]->hmm_column);// = malloc(sizeof(struct hmm_column*) * sub_length);
-		//assert(model->hmms[i]->hmm_column !=0);
 	}
-	//for(j = 0; j < 	model->hmms[0]->num_columns;j++){
-	//	MFREE(model->hmms[0]->hmm_column[j]);// = malloc(sizeof(struct hmm_column));
-		//assert(model->hmms[0]->hmm_column[j] !=0);
-	//}
-
-	//model->hmms[0]->num_columns = main_length;
-	//MFREE(model->hmms[0]->hmm_column);// = malloc(sizeof(struct hmm_column*) * main_length);
-	//assert(model->hmms[0]->hmm_column !=0);
 	
-	//assert(model->hmms !=0);
-	
-
 	for(i = 0; i < model->num_hmms;i++){
 		MFREE(model->hmms[i]);// = malloc(sizeof(struct hmm) );
-		//assert(model->hmms[i]  != 0);
 	}
+	
 	MFREE(model->hmms);// = malloc(sizeof(struct hmm*) * (1+ number_sub_models));
-	//if(model->silent_to_M){
-		
+	
 	for(i = 0; i < model->num_hmms;i++){
 		MFREE(model->silent_to_M[i]);
 		MFREE(model->silent_to_M_e[i]);
@@ -4698,10 +4659,6 @@ void free_model(struct model* model)
 	MFREE(model->silent_forward);// = malloc(sizeof(float) * (dyn_length+1));
 	MFREE(model->silent_backward);// = malloc(sizeof(float) * (dyn_length+1));
 	MFREE(model);// = malloc(sizeof(struct model));
-	//assert(model != 0);
-
-	
-	//return model;
 }
 
 
@@ -5230,7 +5187,6 @@ struct model_bag* init_model_bag(struct parameters* param,struct sequence_stats_
 	mb->model = 0;
 	MMALLOC(mb->model,sizeof(struct model* ) * param->read_structure->num_segments);
 	
-	assert(mb->model != 0);
 	
 	
 	mb->f_score = prob2scaledprob(0.0f);

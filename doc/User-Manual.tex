@@ -123,8 +123,6 @@ year = {2005}
 %\marginsize{left}{right}{top}{bottom}:
 \marginsize{2cm}{2cm}{2cm}{2cm}
 
-\newcommand{\aln}[2]{\shortstack{ #1\\  #2}}
-
 \begin{document}
 \frontmatter
 %-----------------------------------------------------------
@@ -287,7 +285,7 @@ bash-3.1$ tagdust -arch architectures.txt read1.fq read2.fq -o output
 TagDust requires an input file containing sequences and a user specified HMM architecture used to extract the reads. For the architecture all that TagDust needs to know is the sequence of pre-defined building blocks. Options '{\tt -1,-2, ...}' are used to specify the first, second, etc. building block. 
 
 \begin{verbatim}
-bash-3.1$ tagdust [-options] <input file>  
+bash-3.1$ tagdust <options> <read1.fq>  [read2.fq] -o <output prefix> 
 \end{verbatim}
 
 \rowcolors{1}{lightgrey}{white}
@@ -299,13 +297,13 @@ bash-3.1$ tagdust [-options] <input file>
 %-start & INT & start of search area [0].\\
 %-end & INT & end of  search area [length of sequence].\\
 -arch & STR & path and name of file containing tag dust architectures. \\
--format & STR & format of input sequence file.\\
+%-format & STR & format of input sequence file.\\
 -minlen & INT & minimal accepted read length [16].\\
 -ref     &  STR &    reference fasta file to be compared against[].\\
 -fe &       INT &    number of errors allowed when comparing to reference[2].\\
 -dust &	INT &	remove low complexity sequences[].\\
 %-e & FLT & expected sequencer error rate [0.05].\\ 
--o & STR & output file prefix.\\
+-o & STR & output prefix.\\
 %-a & STR & output file for artifacts [NA].\\
 -t & INT & number of threads [8].\\
 -1 & STR & type of the first HMM building block. \\
@@ -315,8 +313,10 @@ bash-3.1$ tagdust [-options] <input file>
 \end{tabular}
 \end{center}
 
-Here are some examples of HMM building blocks. Also have a look at the more detailed description further down and the usage examples. 
-\begin{center}
+
+
+
+Here are some examples of HMM building blocks. \begin{center}
 \begin{tabular}{| l | l | p{12cm}|}
 \hline
 \rowcolor{blue} \textcolor{white}{\scshape Example}		&\textcolor{white}{\scshape Type}		&	\textcolor{white}{\scshape Description}\\ \hline
@@ -329,6 +329,25 @@ O:T  & Optional & a block modeling the optimal inclusion of a single or multiple
 \end{tabular}
 \end{center}
 
+Also have a look at the more detailed description further down and the usage examples. 
+
+
+\newpage 
+\section{Output}
+TagDust will split the input file(s) into several output files. The number and names of output files depend on the type of library: 
+
+
+\begin{center}
+\begin{tabular}{ | c | p{4.5cm} | p{4.5cm}|}
+\hline
+ \textcolor{white}{\scshape }		&\cellcolor{blue}\textcolor{white}{\scshape No barcodes}		&	\cellcolor{blue}\textcolor{white}{\scshape Barcodes}\\ \hline
+\cellcolor{blue}\textcolor{white}{\scshape Single End} & $<$p$>$.fq \newline $<$p$>$\_un.fq & $<$p$>$\_BC\_GTA.fq $<$p$>$\_BC\_AAA.fq $<$p$>$\_BC\_\dots.fq \newline $<$p$>$\_un.fq \\
+\cellcolor{blue}\textcolor{white}{\scshape Paired End} &  $<$p$>$\_READ1.fq $<$p$>$\_READ2.fq $<$p$>$\_un\_READ1.fq $<$p$>$\_un\_READ2.fq   & $<$p$>$\_BC\_GTA\_READ1.fq $<$p$>$\_BC\_GTA\_READ2.fq  $<$p$>$\_BC\_AAA\_READ1.fq $<$p$>$\_BC\_AAA\_READ2.fq $<$p$>$\_BC\_\dots\_READ1.fq $<$p$>$\_BC\_\dots\_READ2.fq $<$p$>$\_un\_READ1.fq $<$p$>$\_un\_READ2.fq\\ 
+\hline
+\end{tabular}
+\end{center}
+$<$p$>$ is the prefix specified by the -o option. ``{\bf BC}'' stands for barcode and ``{\bf un}'' for un-extracted reads. All auxiliary sequences such as spacers, barcodes are removed from the sequences in the output files. 
+	
 
 
 \section{Notes}
@@ -357,42 +376,179 @@ In the presence of barcodes or fingerprints, TagDust will recognize the most lik
 \section{Formats}
 \subsection{Input file formats}
 
-TagDust can work with fasta, fastq and SAM/BAM files. Gzipped files are also supported. The format is automatically recognized by the file suffix. If the input is streamed, the '{\tt -format}' option has to be used to specify the format.\\
+TagDust can work with fasta, fastq and SAM/BAM files. Gzipped files are also supported. The format is automatically recognized by the file suffix. %If the input is streamed, the '{\tt -format}' option has to be used to specify the format.\\
  
-\subsection{Output format}
-The output format is always a fastq file. If barcodes or fingerprints are present, TagDust appends them to the read name: 
+%\subsection{Output format}
+%The output format is always a fastq file. If barcodes or fingerprints are present, TagDust appends them to the read name: 
+
+%{\small
+%\begin{verbatim}
+%@110922_SN549_0034_BB03F7ABXX:7:1101:1137:1974#0/1 BC:AGT;FP:367
+%CNCTGAAACGTAGATATAGGGGAACCCCGCCTGTTTACCAAAAACATCACCTCTAGCAT
+%+
+%bBS`cceegggggiiiiiiiiiiiiiiiiiiiihhihhhiihhhiiihiiihiiiiggg
+%\end{verbatim}
+%}
+
+%Note that BC:[A,C,G,T]+ is the sequence of the barcode and FP:[0-9]+ is the fingerprint sequence converted into a unique decimal number.
+
+%If multiple reads are present TagDust appends the tag {\tt RS:X} to the read name: 
+
+%{\small
+%\begin{verbatim}
+%@110922_SN549_0034_BB03F7ABXX:7:1101:1137:1974#0/1 BC:AGT;FP:367;RS:1 
+%CNCTGAAACGTAGATATAGGGGAACCCCGCCTGTTTACCAAAAACATCACCTCTAGCAT
+%+
+%bBS`cceegggggiiiiiiiiiiiiiiiiiiiihhihhhiihhhiiihiiihiiiiggg
+%
+%\end{verbatim}
+%}
+ 
+
+\section{Examples: putting it all together}
+
+Here are some examples: 
+
+\subsection{A library containing both barcodes and a 8 nucleotide fingerprint.}
+
+In this example we expect the sequenced reads to contain a 6 nucleotide barcode sequence (out of a selection of 8) followed by a 8 nucleotide fingerprint, followed by the spacer sequence `TATA` followed by the read. \\
+
+Here is the corresponding TagDust command: 
+
 
 {\small
 \begin{verbatim}
-@110922_SN549_0034_BB03F7ABXX:7:1101:1137:1974#0/1 BC:AGT;FP:367
-CNCTGAAACGTAGATATAGGGGAACCCCGCCTGTTTACCAAAAACATCACCTCTAGCAT
-+
-bBS`cceegggggiiiiiiiiiiiiiiiiiiiihhihhhiihhhiiihiiihiiiiggg
+bash-3.1$ tagdust test.fq.gz   -1 O:N -2 B:ACAGAT,ATCGTG,CACGAT,CACTGA,CTGACG,GAGTGA,GTATAC,TCGAGC
+-3 F:NNNNNNNN -4 S:TATA -5 R:N  -o output.fq
 \end{verbatim}
 }
 
-Note that BC:[A,C,G,T]+ is the sequence of the barcode and FP:[0-9]+ is the fingerprint sequence converted into a unique decimal number.
+Note that we added an optional state at the beginning of the read in case extra nucleotides were added before the barcode.  \\ 
 
-If multiple reads are present TagDust appends the tag {\tt RS:X} to the read name: 
+To remove ribosomal reads simply add the -ref and -fe options:
 
 {\small
 \begin{verbatim}
-@110922_SN549_0034_BB03F7ABXX:7:1101:1137:1974#0/1 BC:AGT;FP:367;RS:1 
-CNCTGAAACGTAGATATAGGGGAACCCCGCCTGTTTACCAAAAACATCACCTCTAGCAT
-+
-bBS`cceegggggiiiiiiiiiiiiiiiiiiiihhihhhiihhhiiihiiihiiiiggg
-
+bash-3.1$ tagdust test.fq.gz   -1 O:N -2 B:ACAGAT,ATCGTG,CACGAT,CACTGA,CTGACG,GAGTGA,GTATAC,TCGAGC
+-3 F:NNNNNNNN -4 S:TATA -5 R:N  -o output.fq -ref U13369.1.fa -fe 2 
 \end{verbatim}
 }
- 
+
+
+
+
+\subsection{A RNA-seq library with a 'spaced' fingerprint.}
+
+Here I downloaded a dataset from \cite{Kivioja:2012kg}. Reads start after the following construct:
+
+{
+\begin{verbatim}
+(NNN)dU(NNNN)dU(NNN)[GACTT]rGrGrGrG
+\end{verbatim}
+}
+dU and rG represent deoxyuridine and guanine ribonucleotide, respectively. N's in brackets are the fingerprint nucleotides while GACTT is the barcode used. As you can see the ten nucleotide fingerprint is split into 3 parts separated by T's. \\
+
+Here is the corresponding TagDust command: 
+
+
+{\small
+\begin{verbatim}
+
+bash-3.1$ tagdust ERR048990.fastq  -1 F:NNN -2 S:T -3 F:NNNN -4 S:T -5 F:NNN -6 B:GACTT
+-7 S:GGGG -8 R:N -start 1 -end 25  -o output.fq
+\end{verbatim}
+}
+
+Note on the last line I restricted the search to the first 25 nucleotides for efficiency. 
+
+
+\subsection{Extracting multiple reads from a single input.}
+
+Here is a simulated case where we have reads at the 5' and 3' end of the input read separated by {\tt GGGGGGGGAAAAAAAA}:
+
+\vspace{10 mm}
+
+{\small
+%\begin{verbatim}
+\tt @SRR1043305.1 RunXXXXX 
+
+{\color{red}ATTGCTGTCTCTTATACACATC}GGGGGGGGAAAAAAAA{\color{blue}TGACGCTGCCCAGATCGTATGCCGTCTTC}
+
++
+
+\_\_bccceefaeeefhfhhhhfhdddhhhaghhhdgffgfYffghfd\_cffhffffffffffffffff
+
+@SRR1043305.2 RunXXXXX 
+
+{\color{red}GATCGGGGGAACTTTCAGGATC}GGGGGGGGAAAAAAAA{\color{blue}TGTCTCTTATACACATCTGACGCTGCCCA}
+
++
+
+bb\_eeeeegfgegiiiiiihhhieffhhfhiihhhffhhifiifiiggbedffffffffffffffff
+
+%\end{verbatim}
+}
+
+\vspace{10 mm}
+
+To extract the reads: 
+
+\vspace{10 mm}
+
+{\small
+\begin{verbatim}
+
+bash-3.1$ tagdust test.fq -1 R:N -2 S:GGGGGGGGAAAAAAAA -3 R:N -o out
+\end{verbatim}
+}
+
+The original reads will be split among two output files: 
+
+\begin{center}
+\begin{tabular}{|p{7cm}|p{7cm}|}
+\hline \rowcolor{blue} \textcolor{white}{ out\_READ1.fq} & \textcolor{white}{ out\_READ2.fq} \\
+{\small \tt @SRR1043305.1 RunXXXXX \newline {\color{red}ATTGCTGTCTCTTATACACATC}  \newline + \newline \_\_bccceefaeeefhfhhhhfh  \newline @SRR1043305.2 RunXXXXX  \newline {\color{red}GATCGGGGGAACTTTCAGGATC}  \newline +  \newline bb\_eeeeegfgegiiiiiihhh}
+  & 
+  {\small  \tt @SRR1043305.1 RunXXXXX  \newline {\color{blue}TGACGCTGCCCAGATCGTATGCCGTCTTC}  \newline + \newline fYffghfd\_cffhffffffffffffffff  \newline
+@SRR1043305.2 RunXXXXX  \newline {\color{blue}TGTCTCTTATACACATCTGACGCTGCCCA}  \newline +  \newline  hifiifiiggbedffffffffffffffff }\\  \hline
+\end{tabular}
+\end{center}
+
+\subsection{Using the -arch option}
+
+When TagDust is given an architecture file containing multiple architectures it will scan a proportion of the  input data with all architectures and automatically select the best matching one. For example, the file below contains three architectures:
+
+\vspace{5mm}
+
+{\small \tt
+tagdust -1 B:TGCT,AAAA,AACC,AAGG,AATT,ACAC,ACCA,ACGT -2 R:N in.fq -o out.fq \\
+tagdust -1 P:agggaggacgatgcgg -2 B:TGCT,AAAA,AACC,AAGG,AATT,ACAC,ACCA,ACGT -3 R:N \\ -4 P:gtgtcagtcacttccagcgg in.fq -o out.fq\\
+tagdust -1 P:agggaggacgatgcgg -2 B:TGCT,AAAA,AACC,AAGG,AATT,ACAC,ACCA,ACGT,ACTG,AGAG,AGGA\\,AGTC,ATAT,ATCG,ATGC,ATTA,CAAC,CACA,CAGT,CATG,CCAA,CCCC,CCGG,CCTT -3 R:N \\ -4 P:gtgtcagtcacttccagcgg in.fq -o out.fq\\
+}
+
+\vspace{5mm}
+
+Tagdust will scan the file looking for the keyword ``tagdust'' and assume the remaining words in the line are parameters. 
+
+The first two architectures contain eight barcodes / indices but the second one additionally assumes the presence of 5' and 3' linkers. The third architecture assumes the presence of 24 barcodes and linkers. When running: 
+
+\begin{verbatim}
+bash-3.1$ tagdust -arch architectures.txt in.fq -o output
+\end{verbatim}
+
+TagDust will automatically select the correct architecture and proceed as normal. 
+
+When the input is paired-end data, TagDust will scan both input files with all architectures and attempt to find a match for both reads. {\bf If a match is found for only one file, TagDust will assume the other file only contains valid reads. }
+
+
 
 \newpage
 
-\section{HMM Building Blocks}
+\chapter{HMM Building Blocks}
 TagDust comes with a set of pre-defined HMM building blocks. Each includes a silent state at the beginning and end used to link blocks together. Each block is specified by a unique letter following by a colon and some information about the sequence. 
 
 
-\subsection{Read}
+\section{Read}
 Segment modeling the read. \\
 
 \begin{figure}[H]
@@ -418,7 +574,7 @@ Segment modeling the read. \\
 \end{tikzpicture}
 \end{figure}
 
-\subsection{Optional}
+\section{Optional}
 Segment modeling an optional single or short stretch of nucleotides.  \\
 Example code: O:N\\
 
@@ -446,8 +602,8 @@ Example code: O:N\\
 \end{tikzpicture}
 \end{figure}
 
-
-\subsection{G addition}
+\newpage
+\section{G addition}
 Segment modeling the occasional addition of guanines to the reads. (89.3\% chance of a single G , 19.5 \% chance of  2 Gs..).\\
 Example code: O:N\\
 
@@ -476,10 +632,8 @@ Example code: O:N\\
 \end{figure}
 
 
-\newpage 
 
-
-\subsection{Barcode or Index}
+\section{Barcode or Index}
 
 Segment modeling a set of barcode sequences. For each sequence a separate HMM is created. The barcode sequences must be given as a comma separated list. A null model of the same length as the barcode is automatically added and initialized to the background nucleotide frequencies. \\
 
@@ -590,8 +744,8 @@ Segment modeling a set of barcode sequences. For each sequence a separate HMM is
 
 \end{tikzpicture}
 \end{figure}
-
-\subsection{Fingerprint or {\underline U}nique {\underline M}olecular {\underline I}dentifier - UMI}
+\newpage
+\section{Fingerprint or {\underline U}nique {\underline M}olecular {\underline I}dentifier - UMI}
 
 Segment modeling a fingerprint (or unique molecular identifiers). Insertions and deletions are by default not allowed within a fingerprint segment.
 
@@ -661,7 +815,7 @@ Segment modeling a fingerprint (or unique molecular identifiers). Insertions and
 \end{tikzpicture}
 \end{figure}
 
-\subsection{Spacer}
+\section{Spacer}
 
 Segment modeling a pre-defined sequence. 
 
@@ -732,10 +886,8 @@ Segment modeling a pre-defined sequence.
 \end{tikzpicture}
 \end{figure}
 
-\newpage 
-
-\subsection{Partial}
-This segment is used to model sequences that may only be partially present at the 5` or 3` end of the read. The transition probabilities (orange and blue) are set automatically based on the length distribution of exactly matching adapters.\\
+\section{Partial}
+This segment is used to model sequences that may only be partially present at the 5` or 3` end of the read. The transition probabilities (orange and blue) are set automatically based on the length distribution of {\bf exactly} matching adapters.\\
 
 \begin{figure}[H]
 \centering
@@ -858,110 +1010,6 @@ This segment is used to model sequences that may only be partially present at th
 
 
 
-\chapter{Examples: putting it all together}
-
-Here are some examples: 
-
-\section{A library containing both barcodes and a 8 nucleotide fingerprint.}
-
-In this example we expect the sequenced reads to contain a 6 nucleotide barcode sequence (out of a selection of 8) followed by a 8 nucleotide fingerprint, followed by the spacer sequence `TATA` followed by the read. \\
-
-Here is the corresponding TagDust command: 
-
-
-{\small
-\begin{verbatim}
-bash-3.1$ tagdust test.fq.gz   -1 O:N -2 B:ACAGAT,ATCGTG,CACGAT,CACTGA,CTGACG,GAGTGA,GTATAC,TCGAGC
--3 F:NNNNNNNN -4 S:TATA -5 R:N  -o output.fq
-\end{verbatim}
-}
-
-Note that we added an optional state at the beginning of the read in case extra nucleotides were added before the barcode.  \\ 
-
-To remove ribosomal reads simply add the -ref and -fe options:
-
-{\small
-\begin{verbatim}
-bash-3.1$ tagdust test.fq.gz   -1 O:N -2 B:ACAGAT,ATCGTG,CACGAT,CACTGA,CTGACG,GAGTGA,GTATAC,TCGAGC
--3 F:NNNNNNNN -4 S:TATA -5 R:N  -o output.fq -ref U13369.1.fa -fe 2 
-\end{verbatim}
-}
-
-
-
-
-\section{A RNA-seq library with a 'spaced' fingerprint.}
-
-Here I downloaded a dataset from \cite{Kivioja:2012kg}. Reads start after the following construct:
-
-{
-\begin{verbatim}
-T(NNN)dU(NNNN)dU(NNN)[GACTT]rGrGrGrG
-\end{verbatim}
-}
-dU and rG represent deoxyuridine and guanine ribonucleotide, respectively. N's in brackets are the fingerprint nucleotides while GACTT is the barcode used. As you can see the ten nucleotide fingerprint is split into 3 parts separated by T's. \\
-
-Here is the corresponding TagDust command: 
-
-
-{\small
-\begin{verbatim}
-
-bash-3.1$ tagdust ERR048990.fastq  -1 F:NNN -2 S:T -3 F:NNNN -4 S:T -5 F:NNN -6 B:GACTT
--7 S:GGGG -8 R:N -start 1 -end 25  -o output.fq
-\end{verbatim}
-}
-
-Note on the last line I restricted the search to the first 25 nucleotides for efficiency. 
-
-
-\section{Extracting multiple reads from a single input.}
-
-Here is a simulated case where we have reads at he 5' and 3' end of the input read separated by {\tt GGGGGGGGAAAAAAAA}:
-
-{\small
-\begin{verbatim}
-@SRR1043305.1 RunXXXXX 
-ATTGCTGTCTCTTATACACATCGGGGGGGGAAAAAAAATGACGCTGCCCAGATCGTATGCCGTCTTC
-+
-__bccceefaeeefhfhhhhfhdddhhhaghhhdgffgfY^fghfd_cffhffffffffffffffff
-@SRR1043305.2 RunXXXXX 
-GATCGGGGGAACTTTCAGGATCGGGGGGGGAAAAAAAATGTCTCTTATACACATCTGACGCTGCCCA
-+
-bb_eeeeegfgegiiiiiihhhieffhhfhiihhhffhhifiifiiggbedffffffffffffffff
-\end{verbatim}
-}
-To extract the reads: 
-{\small
-\begin{verbatim}
-
-bash-3.1$ tagdust test.fq -1 R:N -2 S:GGGGGGGGAAAAAAAA -3 R:N -o out.fq
-\end{verbatim}
-}
-
-Each original read will result in two output reads identified by RS:1 and RS:2 : 
-{\small
-\begin{verbatim}
-
-
-@SRR1043305.1 RunXXXXX;RS:1
-ATTGCTGTCTCTTATACACATC
-+
-__bccceefaeeefhfhhhhfh
-@SRR1043305.1 RunXXXXX;RS:2
-TGACGCTGCCCAGATCGTATGCCGTCTTC
-+
-fY^fghfd_cffhffffffffffffffff
-@SRR1043305.2 RunXXXXX;RS:1
-GATCGGGGGAACTTTCAGGATC
-+
-bb_eeeeegfgegiiiiiihhh
-@SRR1043305.2 RunXXXXX;RS:2
-TGTCTCTTATACACATCTGACGCTGCCCA
-+
-hifiifiiggbedffffffffffffffff
-\end{verbatim}
-}
 
 
 \chapter{Algorithm}

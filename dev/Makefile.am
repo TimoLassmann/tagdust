@@ -12,7 +12,8 @@ EDITTAG_6nt_ed_4.txt \
 bar_read_test.sh \
 barread1_tagdust_results_gold.txt \
 barread2_tagdust_results_gold.txt \
-barread_paired_tagdust_results_gold.txt
+barread_paired_tagdust_results_gold.txt \
+read_paired_tagdust_results_gold.txt
 
 
 TESTS_ENVIRONMENT = \

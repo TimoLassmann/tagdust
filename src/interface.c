@@ -411,11 +411,10 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	}
 	if(param->reference_fasta || param->dust){
 		if(param->multiread){
-			sprintf(param->buffer,"ERROR: cannot dust or filter sequences by comparison to a known sequence if multiple reads are present in one input seqeunce.\n");
+			sprintf(param->buffer,"WARNING: cannot dust or filter sequences by comparison to a known sequence if multiple reads are present in one input seqeunce.\n");
 			param->messages = append_message(param->messages, param->buffer);
-			free_param(param);
-			exit(EXIT_FAILURE);
-
+			param->dust = 0;
+			param->reference_fasta = 0;
 			
 		}
 	//param->messages = append_message(param->messages, param->buffer );

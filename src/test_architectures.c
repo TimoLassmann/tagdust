@@ -123,7 +123,7 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 				}
 				MMALLOC(ab->command_line[ab->num_arch],sizeof(char) * (strlen(line)+2));
 				strcpy(ab->command_line[ab->num_arch] , line);
-				fprintf(stderr,"TESTING:\n%s\n",ab->command_line[ab->num_arch]);
+				//fprintf(stderr,"TESTING:\n%s\n",ab->command_line[ab->num_arch]);
 				ab->archs[ab->num_arch] = init_model_bag(param, ssi);
 				ab->num_arch++;
 				if(ab->num_arch == MAX_NUM_ARCH){

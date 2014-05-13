@@ -631,10 +631,6 @@ void print_split_files(struct parameters* param, struct read_info** ri, int nums
 	
 	char* buffer =  0;
 	MMALLOC(buffer,sizeof(char)* 1000 );
-	//assert(buffer != NULL);
-	
-	// sort based on barcode...
-	
 	qsort(ri,numseq, sizeof(struct read_info*), qsort_ri_barcode_compare);
 	
 	//1 ) has barcode or nor
@@ -642,7 +638,6 @@ void print_split_files(struct parameters* param, struct read_info** ri, int nums
 	//	has_nor barcore == -1 && extract_success
 	// 2) fail : ! extract_success..
 	// ri[i]->read_type,ri[i]->barcode
-	fprintf(stderr,"NUMSEQ:%d\n",numseq);
 	int h = 0;
 	for(i = 0; i < numseq;i++){
 		read_file = 0;
@@ -692,12 +687,12 @@ void print_split_files(struct parameters* param, struct read_info** ri, int nums
 						if(ri[i]->barcode != -1){
 							sprintf (buffer, "%s_BC_%s_READ2.fq",param->outfile,param->read_structure->sequence_matrix[(ri[i]->barcode >> 16) &0XFF][ri[i]->barcode &0XFF]);
 						}else{
-							sprintf (buffer, "%s_READ1.fq",param->outfile);
+							sprintf (buffer, "%s_READ2.fq",param->outfile);
 							
 						}
 					}else{
 						buffer[0] = 0;
-						sprintf (buffer, "%s_un_READ1.fq",param->outfile);
+						sprintf (buffer, "%s_un_READ2.fq",param->outfile);
 						
 					}
 					if ((out_read2 = fopen(buffer, "w")) == NULL){
@@ -723,15 +718,15 @@ void print_split_files(struct parameters* param, struct read_info** ri, int nums
 						if(ri[i]->barcode != -1){
 							sprintf (buffer, "%s_BC_%s_READ2.fq",param->outfile,param->read_structure->sequence_matrix[(ri[i]->barcode >> 16) &0XFF][ri[i]->barcode &0XFF]);
 						}else{
-							sprintf (buffer, "%s_READ1.fq",param->outfile);
+							sprintf (buffer, "%s_READ2.fq",param->outfile);
 							
 						}
 					}else{
 						buffer[0] = 0;
-						sprintf (buffer, "%s_un_READ1.fq",param->outfile);
+						sprintf (buffer, "%s_un_READ2.fq",param->outfile);
 						
 					}
-					if ((out_read2 = fopen(buffer, "w")) == NULL){
+					if ((out_read2 = fopen(buffer, "a")) == NULL){
 						fprintf(stderr,"can't open output\n");
 						exit(-1);
 					}
@@ -794,6 +789,7 @@ void print_split_files(struct parameters* param, struct read_info** ri, int nums
 					
 				}
 			}
+
 			while(stop != ri[i]->len){
 				last = 0;
 				for(j =start;j < ri[i]->len;j++){
@@ -811,6 +807,7 @@ void print_split_files(struct parameters* param, struct read_info** ri, int nums
 				//if(print_segment_name){
 				//	fprintf(out,"@%sRS:%d\n",ri->name,segment);
 				//}else{
+				
 				if(segment ==1){
 					h++;
 					fprintf(out_read1,"@%s\n",ri[i]->name);
@@ -829,6 +826,7 @@ void print_split_files(struct parameters* param, struct read_info** ri, int nums
 						}
 					}
 					fprintf(out_read1,"\n");
+
 				}else if ( segment == 2){
 					fprintf(out_read2,"@%s\n",ri[i]->name);
 					
@@ -873,6 +871,18 @@ void print_split_files(struct parameters* param, struct read_info** ri, int nums
 					break;
 				}
 			}
+#ifdef DEBUG
+			//if(i < 10){
+			fprintf(stderr,"READ unextracted!:%d\n" , i);
+			for(j = 0; j < ri[i]->len;j++){
+				fprintf(stderr,"%d,",ri[i]->seq[j]);
+			}
+			fprintf(stderr,"\n");
+			
+			//}
+#endif
+			
+			
 			if(print_segment_name){
 				//if we have a multiread scroll to the first read if starting with 65....
 				while(ri[i]->seq[start] == 65 && start < ri[i]->len){
@@ -949,7 +959,6 @@ void print_split_files(struct parameters* param, struct read_info** ri, int nums
 	}
 	MFREE(buffer);
 	
-	fprintf(stderr,"printed: %d\n",h);
 	if(param->multiread ==2){
 		fclose(out_read2);
 	}
