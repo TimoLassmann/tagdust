@@ -2655,7 +2655,8 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 	int offset = 0;
 	int len;
 	int hmm_has_barcode = 0;
-	int read_start = -1;
+	int too_short = 0;
+	int in_read = 0;
 	
 	len = ri->len;
 	if(param->matchstart != -1 || param->matchend != -1){
@@ -2669,8 +2670,6 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 		}
 	}
 	
-	
-	//ri[i]->prob = expf( ri[i]->prob) / (1.0f + expf(ri[i]->prob ));
 	
 	if(param->confidence_threshold <=  ri->mapq){
 		
@@ -2698,65 +2697,47 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 					}
 					mem = c2;
 				}
+				
 				if(param->read_structure->type[c2] == 'R'){
-					if(read_start == -1){
-						read_start = j+offset;
-					}
 					s_pos++;
+					if(!in_read){
+						in_read= 1;
+					}
+				}else{
+					if(in_read){
+						if(s_pos <param->minlen){
+							too_short = 1;
+							break;
+						}
+					}
+					in_read = 0;
+					s_pos = 0;
+				}
+			}
+			if(in_read){
+				if(s_pos <param->minlen){
+					too_short = 1;
+					
 				}
 			}
 			
-			for(j = len; j < ri->len;j++){
-				s_pos++;
-			}
 			
-			if(s_pos >= param->minlen){
+			if(!too_short){
 				if(hmm_has_barcode == -1){
 					ri->read_type  = EXTRACT_FAIL_BAR_FINGER_NOT_FOUND;
 				}else if(hmm_has_barcode && required_finger_len){
 					if(fingerlen == required_finger_len && bar != -1){
-						//buffer[0] = 0;
-						//sprintf (buffer, "%s;FP:%d;BC:%s;",ri->name,key,param->read_structure->sequence_matrix[mem][bar]);
-						//strcat (buffer, tmp);
-						//ri->name = realloc(ri->name, sizeof(char) * (strlen(buffer) + 1) );
-						
-						//strcpy(ri->name, buffer);
-						
 						ri = make_extracted_read(mb, param,ri);
 						ri->barcode =  (mem << 16) |   bar;
 						ri->fingerprint = key;
-						//added to extract multiple reads - if present reads will be written to same string separated by 0. We can detect multireads by detectinga 0 before the length (ri->len)...
-						//if(multireadread == 1){
-						/*for(j = 0; j < s_pos;j++){
-							ri->seq[j] = ri->seq[read_start+j];
-							ri->qual[j] = ri->qual[read_start+j];
-						}
-						ri->len = s_pos;*/
-						
 						ri->read_type = EXTRACT_SUCCESS;
-						//ret = 1;
-						//fprintf(out,"@%s;BC:%s;FP:%d\n",ri->name,param->read_structure->sequence_matrix[mem][bar],key);
-						//fprintf(out,"%s\n+\n%s\n", out_seq,out_qual);
 					}else{
 						ri->read_type  = EXTRACT_FAIL_BAR_FINGER_NOT_FOUND; // something wrong with the architecture
 					}
 				}else if(hmm_has_barcode){
 					if(bar != -1){
-						
-						//buffer[0] = 0;
-						//sprintf (buffer, "%s;BC:%s;",ri->name,param->read_structure->sequence_matrix[mem][bar]);
-						//strcat (buffer, tmp);
-						//ri->name = realloc(ri->name, sizeof(char) * (strlen(buffer) + 1) );
-						
-						//strcpy(ri->name, buffer);
-						
 						ri = make_extracted_read(mb, param,ri);
 						ri->barcode =  (mem << 16) |   bar;
-						/*for(j = 0; j < s_pos;j++){
-							ri->seq[j] = ri->seq[read_start+j];
-							ri->qual[j] = ri->qual[read_start+j];
-						}
-						ri->len = s_pos;*/
 						ri->read_type = EXTRACT_SUCCESS;
 					}else{
 						ri->read_type  = EXTRACT_FAIL_BAR_FINGER_NOT_FOUND;
@@ -2764,48 +2745,23 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 					
 				}else if(required_finger_len){
 					if(fingerlen == required_finger_len){
-						//buffer[0] = 0;
-						//sprintf (buffer, "%s;FP:%d;",ri->name,key);
-						//strcat (buffer, tmp);
-						//ri->name = realloc(ri->name, sizeof(char) * (strlen(buffer) + 1) );
-						
-						//strcpy(ri->name, buffer);
-						
 						ri = make_extracted_read(mb, param,ri);
 						ri->fingerprint = key;
-						/*for(j = 0; j < s_pos;j++){
-							ri->seq[j] = ri->seq[read_start+j];
-							ri->qual[j] = ri->qual[read_start+j];
-						}
-						ri->len = s_pos;*/
 						ri->read_type = EXTRACT_SUCCESS;
 					}else{
 						ri->read_type  = EXTRACT_FAIL_BAR_FINGER_NOT_FOUND;
 					}
 				}else{
-					//buffer[0] = 0;
-					//sprintf (buffer, "%s",ri->name);
-					//strcat (buffer, tmp);
-					//ri->name = realloc(ri->name, sizeof(char) * (strlen(buffer) + 1) );
-					
-					//strcpy(ri->name, buffer);
-					
 					ri = make_extracted_read(mb, param,ri);
-					/*for(j = 0; j < s_pos;j++){
-						ri->seq[j] = ri->seq[read_start+j];
-						ri->qual[j] = ri->qual[read_start+j];
-					}
-					ri->len = s_pos;*/
+					
 					ri->read_type = EXTRACT_SUCCESS;
 				}
 			}else{
 				ri->read_type = EXTRACT_FAIL_READ_TOO_SHORT;
 			}
-		//}else{
-		//	ri->prob = EXTRACT_FAIL_AMBIGIOUS_BARCODE;
-		//}
 	}else{
 		ri->read_type = EXTRACT_FAIL_ARCHITECTURE_MISMATCH;
+		
 	}
 	
 	ri->qual[ri->len] = 0;

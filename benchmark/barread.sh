@@ -7,19 +7,21 @@ echo "Running tagdust benchmarks:";
 
 
 barcodes=
+run=0
 
 function usage()
 {
 cat <<EOF
-usage: $0 -b  <barcode file>
+usage: $0 -b  <barcode file> -r
 EOF
 exit 1;
 }
 
-while getopts b: opt
+while getopts b:r opt
 do
 case ${opt} in
 b) barcodes=${OPTARG};;
+r) run=1;;
 *) usage;;
 esac
 done
@@ -32,6 +34,10 @@ len=${#array[*]}
 numbar=(8 24 48)
 lenbar=${#numbar[*]}
 
+
+if [[ $run -eq 1 ]]; then
+make --silent clean
+fi
 
 
 
@@ -53,6 +59,8 @@ printf "%20s%10s\n"  sim FAILED;
 printf "with ERROR $status and Message:\n\n$error\n\n";
 exit 1;
 fi
+
+if [[ $run -eq 1 ]]; then
 
 suffix="_tagdust_arch.txt"
 arch=$name$suffix
@@ -155,6 +163,7 @@ printf "%20s%10s\n"  eval_run FAILED;
 printf "with ERROR $status and Message:\n\n$error\n\n";
 exit 1;
 fi
+fi
 
 let j++
 let myrun++
@@ -162,6 +171,9 @@ done
 
 done
 
+if [[ $run -eq 1 ]]; then
+make --silent clean
+fi
 
 #
 

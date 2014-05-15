@@ -112,6 +112,7 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 			j = 1;
 		}
 	}
+	
 	if(j){
 		sprintf(param->buffer,"Long sequence found. Need to realloc model...\n");
 		param->messages = append_message(param->messages, param->buffer);

@@ -69,6 +69,7 @@
 		A14DAD9317B8710900D51E41 /* processBarcodeMapping.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = processBarcodeMapping.sh; path = scripts/processBarcodeMapping.sh; sourceTree = "<group>"; };
 		A14F589B17783085003A7B1A /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Makefile.am; sourceTree = "<group>"; };
 		A14F589D177835CF003A7B1A /* configure.ac */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = configure.ac; sourceTree = "<group>"; };
+		A154A7E51922F8C1003D1BBA /* plotting.R */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.rez; name = plotting.R; path = benchmark/plotting.R; sourceTree = "<group>"; };
 		A16115CB1741BAC40077DEFD /* exact.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = exact.c; path = src/exact.c; sourceTree = "<group>"; };
 		A16115CD1741BAF90077DEFD /* exact.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = exact.h; path = src/exact.h; sourceTree = "<group>"; };
 		A16115CE1741E85D0077DEFD /* sim.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = sim.c; path = src/sim.c; sourceTree = "<group>"; };
@@ -237,6 +238,7 @@
 		A1F0D676191A059800A44BAD /* benchmark */ = {
 			isa = PBXGroup;
 			children = (
+				A154A7E51922F8C1003D1BBA /* plotting.R */,
 				A1F0D677191A05EF00A44BAD /* Makefile.am */,
 				A1F0D675191A058C00A44BAD /* 5barread3.sh */,
 				A1957EC6191C6277008F46FA /* barread.sh */,
