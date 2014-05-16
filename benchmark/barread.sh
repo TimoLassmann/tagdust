@@ -83,7 +83,7 @@ suffix="_tagdustarchsel";
 outfile=$name$suffix
 
 
-error=$( ../src/tagdust -t 80  -seed 42  $name -arch all_arch.txt -o $outfile )
+error=$( ../src/tagdust -t 80  -seed 42  $name -arch all_arch.txt -o $outfile 2>&1 )
 status=$?
 if [[ $status -eq 0 ]]; then
 printf "%20s%10s\n"  tagdust SUCCESS;

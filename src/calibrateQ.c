@@ -282,9 +282,9 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 	fprintf(stderr,"Selected Threshold: %f\n", param->confidence_threshold );
 	//fprintf(stderr,"Sensitivity: %f\n", sensitivity);
 	//fprintf(stderr,"Specificity: %f\n", specificity);
-	
-	sprintf(param->buffer,"Selected Threshold:: %f\n", param->confidence_threshold );
 #endif
+	sprintf(param->buffer,"Selected Threshold:: %f\n", param->confidence_threshold );
+
 	param->messages = append_message(param->messages, param->buffer);
 		
 	

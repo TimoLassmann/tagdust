@@ -15,17 +15,24 @@ DISTCLEANFILES = all_arch.txt
 
 benchmark: rplot
 	R --slave --vanilla < plotting.R
+	rm Rplots.pdf
 	@echo HelloWorld
 
-
-rplot: barread4r.tsv 5barread34r.tsv
+rplot: barread_4nt_4r.tsv 5barread3_4nt_4r.tsv barread_6nt_4r.tsv 5barread3_6nt_4r.tsv
 	@echo HelloWorld
 
-barread4r.tsv: barread_results.txt
-	cat barread_results.txt | awk 'BEGIN{print "Program\tsimerror\tbarcodes\tSensitivity\tSpecificity\tPrecision\tKappa"} {if(NR>1){x = split($$1,a,"_");printf "%s\t%f\t%f\t%f\t%f\t%f\t%f\n" ,  a[1],a[2],a[3],$$2,$$3,$$4,$$5 }}' > barread4r.tsv
+barread_4nt_4r.tsv: barread_results.txt
+	cat barread_results.txt | grep _4nt_ | awk 'BEGIN{print "Program\tsimerror\tbarcodes\tRecall\tSpecificity\tPrecision\tKappa"} {if(NR>0){x = split($$1,a,"_");printf "%s\t%f\t%f\t%f\t%f\t%f\t%f\n" ,  a[1],a[2],a[3],$$2,$$3,$$4,$$5 }}' > barread_4nt_4r.tsv
 	
-5barread34r.tsv: 5barread3_results.txt
-	cat 5barread3_results.txt | awk 'BEGIN{print "Program\tsimerror\tbarcodes\tSensitivity\tSpecificity\tPrecision\tKappa"} {if(NR>1){x = split($$1,a,"_");printf "%s\t%f\t%f\t%f\t%f\t%f\t%f\n" ,  a[1],a[2],a[3],$$2,$$3,$$4,$$5 }}' > 5barread34r.tsv
+5barread3_4nt_4r.tsv: 5barread3_results.txt
+	cat 5barread3_results.txt |  grep _4nt_ | awk 'BEGIN{print "Program\tsimerror\tbarcodes\tRecall\tSpecificity\tPrecision\tKappa"} {if(NR>0){x = split($$1,a,"_");printf "%s\t%f\t%f\t%f\t%f\t%f\t%f\n" ,  a[1],a[2],a[3],$$2,$$3,$$4,$$5 }}' > 5barread3_4nt_4r.tsv
+
+barread_6nt_4r.tsv: barread_results.txt
+	cat barread_results.txt | grep _6nt_ | awk 'BEGIN{print "Program\tsimerror\tbarcodes\tRecall\tSpecificity\tPrecision\tKappa"} {if(NR>0){x = split($$1,a,"_");printf "%s\t%f\t%f\t%f\t%f\t%f\t%f\n" ,  a[1],a[2],a[3],$$2,$$3,$$4,$$5 }}' > barread_6nt_4r.tsv
+	
+5barread3_6nt_4r.tsv: 5barread3_results.txt
+	cat 5barread3_results.txt |  grep _6nt_ | awk 'BEGIN{print "Program\tsimerror\tbarcodes\tRecall\tSpecificity\tPrecision\tKappa"} {if(NR>0){x = split($$1,a,"_");printf "%s\t%f\t%f\t%f\t%f\t%f\t%f\n" ,  a[1],a[2],a[3],$$2,$$3,$$4,$$5 }}' > 5barread3_6nt_4r.tsv
+
 
 
 barread_results.txt: all_arch.txt

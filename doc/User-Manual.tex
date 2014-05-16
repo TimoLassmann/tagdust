@@ -347,8 +347,37 @@ TagDust will split the input file(s) into several output files. The number and n
 \end{tabular}
 \end{center}
 $<$p$>$ is the prefix specified by the -o option. ``{\bf BC}'' stands for barcode and ``{\bf un}'' for un-extracted reads. All auxiliary sequences such as spacers, barcodes are removed from the sequences in the output files. 
-	
 
+In addition TagDust summarizes key information about the run in a log file named $<$p$>$\_logfile.txt. For example:
+	
+{\small
+\begin{verbatim}
+[2014-05-15 16:18:05]   Tagdust 2.10, Copyright (C) 2013 Timo Lassmann
+[2014-05-15 16:18:05]   cmd: tagdust-2.10/src/tagdust -arch arch.txt -t 80 
+-o all_demultiplexed all_raw.fq 
+
+[2014-05-15 16:18:05]   Start Run
+--------------------------------------------------
+[2014-05-15 16:18:05]   Running in single end mode.
+[2014-05-15 16:18:05]   Searching for best architecture in file 'arch.txt'
+[2014-05-15 16:18:07]   Using: -1 O:N -2 B:TTTAGG,ATTCCA,GCTCAA,CATCCC  -3 S:GGG -4 R:N 
+[2014-05-15 16:18:07]   Confidence: 1.00
+[2014-05-15 16:18:39]   Long sequence found. Need to realloc model...
+[2014-05-15 16:21:11]   Selected Threshold:: 1.636996
+[2014-05-15 22:24:06]   Done.
+
+[2014-05-15 22:24:07]   all_raw.fq      Input file name.
+[2014-05-15 22:24:07]   110622138       total input reads
+[2014-05-15 22:24:07]   1.64    selected threshold
+[2014-05-15 22:24:07]   100699341       successfully extracted
+[2014-05-15 22:24:07]   91.0%   extracted
+[2014-05-15 22:24:07]   2529699 problems with architecture
+[2014-05-15 22:24:07]   42906   barcode / UMI not found
+[2014-05-15 22:24:07]   0       too short
+[2014-05-15 22:24:07]   7350192 low complexity
+[2014-05-15 22:24:07]   0       match artifacts
+\end{verbatim}
+}
 
 \section{Notes}
 %\subsection{Threshold}

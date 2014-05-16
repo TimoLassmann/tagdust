@@ -963,7 +963,7 @@ void print_split_files(struct parameters* param, struct read_info** ri, int nums
 		fclose(out_read2);
 	}
 	fclose(out_read1);
-	fprintf(stderr,"Clopsing file: read1....\n");
+	//fprintf(stderr,"Clopsing file: read1....\n");
 	
 	
 	
@@ -1336,6 +1336,14 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
 						}
 						
 					}
+					
+					if(len-1 != ri[park_pos]->len ){
+						sprintf(param->buffer,"ERROR: Length of sequence and base qualities differ!.\n");
+						param->messages = append_message(param->messages, param->buffer);
+						free_param(param);
+						exit(EXIT_FAILURE);
+					}
+					
 					//fprintf(stderr,"QUAL LEN:%d\n",len);
 					MMALLOC(ri[park_pos]->qual,sizeof(unsigned char)* (len+1));
 					for(i = 0;i < MAX_LINE;i++){
@@ -1375,6 +1383,15 @@ struct fasta* get_fasta(struct fasta* p,char *infile)
 {
 	MMALLOC(p,sizeof(struct fasta));
 	p->string = 0;
+	p->mer_hash = 0;
+	p->s_index = 0;
+	p->sn = 0;
+	p->string = 0;
+	p->boost = 0;
+	p->max_len = 0;
+	p->numseq = 0;
+	p->string_len = 0;
+	
 	p->string =  get_input_into_string(p->string,infile);
 	if(!p->string){
 		fprintf(stderr,"Analysing input %s ... nothing\n",infile);
@@ -1449,9 +1466,8 @@ struct fasta* read_fasta(struct fasta* f)
 	int nbytes;
 	
 	nbytes = (int) strlen((char*) f->string);
-	f->numseq = 0;
-	f->max_len = -1;
-	f->mer_hash = 0;
+	
+
 	//aln->org_seq = 0;
 	stop = 0;
 	
@@ -1467,11 +1483,19 @@ struct fasta* read_fasta(struct fasta* f)
 		}
 	}
 	
-	f->suffix = 0;
+	
 	MMALLOC(f->sn, sizeof(unsigned char*)*f->numseq);
 	//aln->c = 0;
 	
 	MMALLOC(f->s_index, sizeof(int)*(f->numseq+1));
+	
+	for(i = 0; i < f->numseq;i++){
+		f->sn[i] = 0;
+		f->s_index[i] = 0;
+	}
+	f->s_index[f->numseq] = 0;
+	
+	
 	for (i =0;i < nbytes;i++){
 		if (f->string[i] == '>'){
 			if(f->max_len < len){

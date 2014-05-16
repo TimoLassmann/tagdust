@@ -210,7 +210,8 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 		for(i = 0; i < ab->num_arch;i++){
 			if(i == best_architecture){
 				//fprintf(stderr,"BEST%d:	%f	%s", i, ab->arch_posterior[i] ,ab->command_line[i]);
-				sprintf(param->buffer,"Using: %s", ab->command_line[i]);
+				param->buffer = pretty_print_selected_architecture(ab->command_line[i],param->buffer);
+				//sprintf(param->buffer,"Using: %s", ab->command_line[i]);
 				param->messages = append_message(param->messages, param->buffer);
 				sprintf(param->buffer,"%0.2f Confidence.\n", ab->arch_posterior[i]);
 				param->messages = append_message(param->messages, param->buffer);
@@ -220,7 +221,11 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 		}
 	}else{
 		best_architecture = 0;
-		sprintf(param->buffer,"Using: %s", ab->command_line[0]);
+		//fprintf(stderr,"BEST%d:	%f	%s", 0, ab->arch_posterior[0] ,ab->command_line[0]);
+
+		param->buffer = pretty_print_selected_architecture(ab->command_line[0],param->buffer);
+		//param->buffer = pretty_print_selected_architecture(param->buffer,ab->command_line[0]);
+		//sprintf(param->buffer,"Using: %s", ab->command_line[0]);
 		param->messages = append_message(param->messages, param->buffer);
 		sprintf(param->buffer,"Confidence: %0.2f\n", 1.0);
 		param->messages = append_message(param->messages, param->buffer);
@@ -240,6 +245,9 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 		
 		index = byg_end(tmp, ab->command_line[best_architecture] );
 		if(index){
+			
+			
+			
 			j = 0;
 			while(isspace((int)ab->command_line[best_architecture][index])){
 				index++;
@@ -285,8 +293,59 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 }
 
 
+char* pretty_print_selected_architecture(char* command_line, char* buffer)
+{
+	char* tmp = 0;
+	int i,j,c,index;
+	
+	MMALLOC(tmp, sizeof(char) * MAX_LINE);
+	buffer[0] = 'U';
+	buffer[1] = 's';
+	buffer[2] = 'i';
+	buffer[3] = 'n';
+	buffer[4] = 'g';
+	buffer[5] = ':';
+	buffer[6] = ' ';
+	c = 7;
 
-
-
+	for(i = 0;i < 10;i++){
+		
+		tmp[0] = '-';
+		tmp[1] = (char)(i+49);
+		tmp[2] = 0;
+		
+		index = byg_end(tmp, command_line  );
+		//fprintf(stderr,"%s\n%s\n%d\n", command_line,tmp,index);
+		if(index){
+			buffer[c] = tmp[0];
+			c++;
+			buffer[c] = tmp[1];
+			c++;
+			buffer[c] = ' ';
+			c++;
+			
+			
+			
+			while(isspace((int)command_line[index])){
+				index++;
+			}
+			for(j = index ;j < MAX_LINE;j++){
+				if(isspace((int)command_line[j])){
+					buffer[c] = ' ';
+					c++;
+					break;
+				}
+				buffer[c] =command_line[j];
+				c++;
+				
+			}
+		}
+	}
+	buffer[c] = '\n';
+	c++;
+	buffer[c] = 0;
+	MFREE(tmp);
+	return buffer;
+}
 
 

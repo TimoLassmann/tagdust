@@ -381,6 +381,7 @@ struct hmm* set_hmm_transition_parameters(struct hmm* hmm, int len,double base_e
 struct parameters* estimateQthreshold(struct parameters* param, struct sequence_stats_info* ssi);
 
 struct parameters* test_architectures(struct parameters* param, int file_num);
+char* pretty_print_selected_architecture(char* command_line, char* buffer);
 
 #endif
 
