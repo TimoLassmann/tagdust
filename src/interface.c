@@ -455,6 +455,10 @@ struct read_structure* assign_segment_sequences(struct read_structure* read_stru
 	if(tmp[0] == 'B'){ // add extra space for all N barcode....
 		count++;
 	}
+	
+	if(tmp[0] == 'S'){ // add extra space for all N barcode....
+		count++;
+	}
 	f = 0;
 	
 	//fprintf(stderr,"Segment %d: %d	sequences\n",segment,count+1);
@@ -490,6 +494,16 @@ struct read_structure* assign_segment_sequences(struct read_structure* read_stru
 	}
 	
 	if(tmp[0] == 'B'){
+		f = f + 1;
+		g = 0;
+		for(i = 0; i < strlen(read_structure->sequence_matrix[segment][0]);i++){
+			read_structure->sequence_matrix[segment][f][g] = 'N';
+			g++;
+		}
+		read_structure->sequence_matrix[segment][f][g] = 0;
+	}
+	
+	if(tmp[0] == 'S'){
 		f = f + 1;
 		g = 0;
 		for(i = 0; i < strlen(read_structure->sequence_matrix[segment][0]);i++){

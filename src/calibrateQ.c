@@ -74,6 +74,13 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 			}
 			mb->model[i]->silent_to_M[mb->model[i]->num_hmms-1][0] = prob2scaledprob(0.0);
 		}
+		if(param->read_structure->type[i] == 'S'){
+			//hasbarcode = i;
+			for(j = 0 ; j < mb->model[i]->num_hmms-1;j++){
+				mb->model[i]->silent_to_M[j][0] = prob2scaledprob(1.0 / (float)( mb->model[i]->num_hmms-1));
+			}
+			mb->model[i]->silent_to_M[mb->model[i]->num_hmms-1][0] = prob2scaledprob(0.0);
+		}
 		//print_model(mb->model[i]);
 	}
 	
@@ -232,6 +239,7 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 			TP += 1.0;
 			FN -= 1.0;
 		}
+		//fprintf(stderr,"%d	%f	%d\n",i,ri[i]->mapq, ri[i]->read_type);
 		
 		sensitivity = TP/( TP + FN );
 		specificity =  TN / ( TN + FP);

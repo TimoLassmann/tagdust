@@ -383,6 +383,8 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 struct parameters* test_architectures(struct parameters* param, int file_num);
 char* pretty_print_selected_architecture(char* command_line, char* buffer);
 
+void print_labelled_reads(struct model_bag* mb, struct parameters* param,  struct read_info* ri);
+
 #endif
 
 

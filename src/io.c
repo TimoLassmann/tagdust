@@ -751,13 +751,13 @@ void print_split_files(struct parameters* param, struct read_info** ri, int nums
 					sprintf (buffer, "%s",ri[i]->name);
 					break;
 				case 1:
-					sprintf (buffer, "%s;BC:%s;",ri[i]->name, param->read_structure->sequence_matrix[(ri[i]->barcode >> 16) &0XFF][ri[i]->barcode &0XFF]);
+					sprintf (buffer, "%s BC:%s;",ri[i]->name, param->read_structure->sequence_matrix[(ri[i]->barcode >> 16) &0XFF][ri[i]->barcode &0XFF]);
 					break;
 				case 2:
-					sprintf (buffer, "%s;FP:%d;",ri[i]->name,ri[i]->fingerprint);
+					sprintf (buffer, "%s FP:%d;",ri[i]->name,ri[i]->fingerprint);
 					break;
 				case 3:
-					sprintf (buffer, "%s;FP:%d;BC:%s;",ri[i]->name,ri[i]->fingerprint ,param->read_structure->sequence_matrix[(ri[i]->barcode >> 16) &0XFF][ri[i]->barcode &0XFF]);
+					sprintf (buffer, "%s FP:%d;BC:%s;",ri[i]->name,ri[i]->fingerprint ,param->read_structure->sequence_matrix[(ri[i]->barcode >> 16) &0XFF][ri[i]->barcode &0XFF]);
 					break;
 				default:
 					break;
@@ -810,7 +810,7 @@ void print_split_files(struct parameters* param, struct read_info** ri, int nums
 				
 				if(segment ==1){
 					h++;
-					fprintf(out_read1,"@%s\n",ri[i]->name);
+					fprintf(out_read1,"@%sRQ:%0.2f;\n",ri[i]->name,ri[i]->mapq);
 					
 					for(j = start; j < stop;j++){
 						fprintf(out_read1,"%c",alphabet[(int) ri[i]->seq[j]]);
@@ -828,7 +828,8 @@ void print_split_files(struct parameters* param, struct read_info** ri, int nums
 					fprintf(out_read1,"\n");
 
 				}else if ( segment == 2){
-					fprintf(out_read2,"@%s\n",ri[i]->name);
+					fprintf(out_read2,"@%sRQ:%0.2f;\n",ri[i]->name,ri[i]->mapq);
+					
 					
 					for(j = start; j < stop;j++){
 						fprintf(out_read2,"%c",alphabet[(int) ri[i]->seq[j]]);
@@ -910,7 +911,7 @@ void print_split_files(struct parameters* param, struct read_info** ri, int nums
 				//}else{
 				if(segment ==1){
 					h++;
-					fprintf(out_read1,"@%s;RQ:%f\n",ri[i]->name,ri[i]->mapq);
+					fprintf(out_read1,"@%sRQ:%0.2f;\n",ri[i]->name,ri[i]->mapq);
 					
 					for(j = start; j < stop;j++){
 						fprintf(out_read1,"%c",alphabet[(int) ri[i]->seq[j]]);
@@ -927,7 +928,7 @@ void print_split_files(struct parameters* param, struct read_info** ri, int nums
 					}
 					fprintf(out_read1,"\n");
 				}else if ( segment == 2){
-					fprintf(out_read2,"@%s;RQ:%f\n",ri[i]->name,ri[i]->mapq);
+					fprintf(out_read2,"@%sRQ:%0.2f;\n",ri[i]->name,ri[i]->mapq);
 					
 					for(j = start; j < stop;j++){
 						fprintf(out_read2,"%c",alphabet[(int) ri[i]->seq[j]]);

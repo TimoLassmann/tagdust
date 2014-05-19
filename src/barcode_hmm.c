@@ -1726,6 +1726,9 @@ void* do_probability_estimation(void *threadarg)
 			}else{
 				Q = -10.0 * log10(pbest) ;
 			}
+			//fprintf(stderr,"%d	%f	%f %f	%f\n",i,mb->f_score,ri[i]->bar_prob,ri[i]->mapq,mb->r_score);
+			//fprintf(stderr,"%d	f:%f	%f	init:%f	r:%f:Q: %f\n",i,mb->f_score,scaledprob2prob( ri[i]->bar_prob),ri[i]->mapq,mb->r_score,Q);
+			
 			//fprintf(stderr,"%d	f:%f	%f	init:%f	r:%f:Q: %f\n",i,mb->f_score,scaledprob2prob( ri[i]->bar_prob),ri[i]->mapq,mb->r_score,Q);
 			ri[i]->mapq = Q;
 			
@@ -1823,7 +1826,7 @@ void* do_label_thread(void *threadarg)
 			pbest = logsum(pbest, mb->f_score);
 			pbest = logsum(pbest, mb->r_score);
 			
-			//fprintf(stderr,"%f	%f	%f\n",mb->f_score+ri[i]->bar_prob,ri[i]->mapq,mb->r_score);
+			
 			
 			pbest = 1.0 - scaledprob2prob(  (ri[i]->bar_prob + mb->f_score ) - pbest);
 			if(!pbest){
@@ -1834,6 +1837,7 @@ void* do_label_thread(void *threadarg)
 			}else{
 				Q = -10.0 * log10(pbest) ;
 			}
+			//fprintf(stderr,"%d	%f	%f %f	%f\n",i,mb->f_score,ri[i]->bar_prob,ri[i]->mapq,mb->r_score);
 			//fprintf(stderr,"%d	f:%f	%f	init:%f	r:%f:Q: %f\n",i,mb->f_score,scaledprob2prob( ri[i]->bar_prob),ri[i]->mapq,mb->r_score,Q);
 			ri[i]->mapq = Q;
 		}
@@ -1841,6 +1845,7 @@ void* do_label_thread(void *threadarg)
 	
 	for(i = start; i < end;i++){
 		ri[i]->bar_prob = 100;
+		//print_labelled_reads(mb,data->param ,ri[i]);
 		ri[i] = extract_reads(mb,data->param,ri[i]);
 	}
 	
@@ -2760,6 +2765,8 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 				ri->read_type = EXTRACT_FAIL_READ_TOO_SHORT;
 			}
 	}else{
+		//fprintf(stderr,"UN\n");
+		//print_labelled_reads(mb, param,ri);
 		ri->read_type = EXTRACT_FAIL_ARCHITECTURE_MISMATCH;
 		
 	}
@@ -2781,6 +2788,9 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 
 struct read_info* make_extracted_read(struct model_bag* mb, struct parameters* param,  struct read_info* ri)
 {
+	
+	//print_labelled_reads(mb, param,ri);
+	
 	int s_pos,j,c1,c2;
 	//int multireadread = 0;
 	s_pos = 0;
@@ -2806,6 +2816,29 @@ struct read_info* make_extracted_read(struct model_bag* mb, struct parameters* p
 	ri->len = s_pos;
 	//exit(0);
 	return ri;
+}
+
+void print_labelled_reads(struct model_bag* mb, struct parameters* param,  struct read_info* ri)
+{
+	int s_pos,j,c1,c2;
+	char alphabet[] = "ACGTNN";
+	//int multireadread = 0;
+	fprintf(stderr,"%f RQ\n", ri->mapq);
+	s_pos = 0;
+	for(j = 0; j < ri->len;j++){
+		fprintf(stderr,"%c",alphabet[(int)ri->seq[j]]);
+	}
+	fprintf(stderr,"\n");
+	
+	for(j = 0; j < ri->len;j++){
+		c1 = mb->label[(int)ri->labels[j+1]];
+		c2 = c1 & 0xFFFF; //which segment
+		
+		fprintf(stderr,"%c",param->read_structure->type[c2]);
+		
+	}
+	fprintf(stderr,"\n\n");
+
 }
 
 
@@ -3768,26 +3801,68 @@ struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct re
 	mb->f_score = mb->model[mb->num_models-1]->silent_forward[len];
 	
 	// get barcode score....
+		
+	//try to norm ....
+	hmm_counter = 0;
+	//g = 1;
+	next_silent[0] = prob2scaledprob(0.0);
+	next_silent[1] = prob2scaledprob(0.0);
+	//next_silent[2] = prob2scaledprob(1.0);
+	for(j = 0; j < mb->num_models;j++){
+		//fprintf(stderr,"MODEL:%d\n",j);
+		//next_silent[0] = prob2scaledprob(0.0);
+		//next_silent[1] = prob2scaledprob(0.0);
+		
+		if(mb->model[j]->num_hmms > 1){
+			g = hmm_counter;
+			next_silent[1] = prob2scaledprob(0.0);
+			
+			
+			for(f = 0;f < mb->model[j]->num_hmms;f++){
+				next_silent[1] = logsum(next_silent[1] , total_prob[hmm_counter]);
+				
+				//fprintf(stderr,"%d %f	%f\n",f,total_prob[hmm_counter],scaledprob2prob( total_prob[hmm_counter]));
+				hmm_counter++;
+			}
+			for(f = 0;f < mb->model[j]->num_hmms;f++){
+				total_prob[g] = total_prob[g]  -next_silent[1];
+				g++;
+			}
+		}else{
+			hmm_counter+= mb->model[j]->num_hmms;
+		}
+	}
+	
+	
 	hmm_counter = 0;
 	g = 1;
 	next_silent[0] = prob2scaledprob(0.0);
 	next_silent[1] = prob2scaledprob(0.0);
+	next_silent[2] = prob2scaledprob(1.0);
+
 	for(j = 0; j < mb->num_models;j++){
+		//fprintf(stderr,"MODEL:%d\n",j);
+		//next_silent[0] = prob2scaledprob(0.0);
+		//next_silent[1] = prob2scaledprob(0.0);
+
 		if(mb->model[j]->num_hmms > 1){
 			g = 0;
 			next_silent[1] = prob2scaledprob(0.0);
+			
+			
 			for(f = 0;f < mb->model[j]->num_hmms;f++){
-				if(total_prob[hmm_counter] > next_silent[0]){
+				if(total_prob[hmm_counter] > next_silent[0] && f != mb->model[j]->num_hmms-1 ){
 					next_silent[0] = total_prob[hmm_counter];
-					next_silent[1] = logsum(next_silent[1] , total_prob[hmm_counter]);
 				}
+				next_silent[1] = logsum(next_silent[1] , total_prob[hmm_counter]);
+
 				//fprintf(stderr,"%d %f	%f\n",f,total_prob[hmm_counter],scaledprob2prob( total_prob[hmm_counter]));
 				hmm_counter++;
 			}
 			next_silent[0] = next_silent[0] - next_silent[1]; // this ensures that barprob is never > 1 (happens due to numerical inaccuracy... )
 			//fprintf(stderr,"SUM:%f	%f\n\n", next_silent[1] , scaledprob2prob(next_silent[1] ));
 			
-			
+			next_silent[2] = next_silent[2] +next_silent[0] ;
 			
 		}else{
 			hmm_counter+= mb->model[j]->num_hmms;
@@ -3797,7 +3872,12 @@ struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct re
 	if(g){
 		ri->bar_prob = prob2scaledprob(1.0);
 	}else{
-		ri->bar_prob  = next_silent[0];
+		if(next_silent[2] > 0){
+			ri->bar_prob = prob2scaledprob(1.0);
+		}else{
+			ri->bar_prob  = next_silent[2];
+		}
+		//fprintf(stderr,"SELECTED: %f	%f\n", next_silent[2] , scaledprob2prob(next_silent[2] ));
 	}
 	
 	for(i = 0; i <= len;i++){
@@ -4285,6 +4365,7 @@ struct model* init_model_according_to_read_structure(struct model* model,struct 
 	if(rs->type[key] == 'S'){// fingerprint all have same length & equal prior probability... (of course we specify 1 with NNNNNNNN
 		for(i = 0 ; i < model->num_hmms;i++){
 			model->silent_to_M[i][0] = prob2scaledprob(1.0 / (float) model->num_hmms);
+			model->silent_to_I[i][0] = prob2scaledprob(0.0f);
 			//model->M_to_silent[i] = prob2scaledprob(1.0);
 		}
 		model->skip = prob2scaledprob(0.0);

@@ -137,7 +137,6 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 		}
 	}
 	
-	
 	fclose(inarch);
 	
 	if(!ab->num_arch){
@@ -147,9 +146,6 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 		exit(EXIT_FAILURE);
 
 	}
-	
-		
-	
 	
 	if(ab->num_arch > 1){
 		for(i = 0 ;i < ab->num_arch;i++){
@@ -190,8 +186,6 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 		
 		pclose(file);
 		
-		//3) print models and scores...
-		
 		float sum = prob2scaledprob(0.0f);
 		for(i = 0; i < ab->num_arch;i++){
 			sum = logsum(sum, ab->arch_posterior[i]);
@@ -209,27 +203,18 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 		
 		for(i = 0; i < ab->num_arch;i++){
 			if(i == best_architecture){
-				//fprintf(stderr,"BEST%d:	%f	%s", i, ab->arch_posterior[i] ,ab->command_line[i]);
 				param->buffer = pretty_print_selected_architecture(ab->command_line[i],param->buffer);
-				//sprintf(param->buffer,"Using: %s", ab->command_line[i]);
 				param->messages = append_message(param->messages, param->buffer);
 				sprintf(param->buffer,"%0.2f Confidence.\n", ab->arch_posterior[i]);
 				param->messages = append_message(param->messages, param->buffer);
-			}//else{
-				//fprintf(stderr,"Arch%d:	%f	%s", i, ab->arch_posterior[i] ,ab->command_line[i]);
-			//}
+			}
 		}
 	}else{
 		best_architecture = 0;
-		//fprintf(stderr,"BEST%d:	%f	%s", 0, ab->arch_posterior[0] ,ab->command_line[0]);
-
 		param->buffer = pretty_print_selected_architecture(ab->command_line[0],param->buffer);
-		//param->buffer = pretty_print_selected_architecture(param->buffer,ab->command_line[0]);
-		//sprintf(param->buffer,"Using: %s", ab->command_line[0]);
 		param->messages = append_message(param->messages, param->buffer);
 		sprintf(param->buffer,"Confidence: %0.2f\n", 1.0);
 		param->messages = append_message(param->messages, param->buffer);
-
 	}
 	//4) set param->read_structure to best arch...
 	
@@ -283,9 +268,7 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 		MFREE(ab->command_line[i]);
 	}
 	MFREE(ab->command_line);
-	
 	MFREE(ab->arch_posterior);
-	
 	MFREE(ab->archs);
 	MFREE(ab);
 	MFREE(tmp);
@@ -315,7 +298,7 @@ char* pretty_print_selected_architecture(char* command_line, char* buffer)
 		tmp[2] = 0;
 		
 		index = byg_end(tmp, command_line  );
-		//fprintf(stderr,"%s\n%s\n%d\n", command_line,tmp,index);
+		
 		if(index){
 			buffer[c] = tmp[0];
 			c++;
@@ -323,9 +306,6 @@ char* pretty_print_selected_architecture(char* command_line, char* buffer)
 			c++;
 			buffer[c] = ' ';
 			c++;
-			
-			
-			
 			while(isspace((int)command_line[index])){
 				index++;
 			}
@@ -337,7 +317,6 @@ char* pretty_print_selected_architecture(char* command_line, char* buffer)
 				}
 				buffer[c] =command_line[j];
 				c++;
-				
 			}
 		}
 	}

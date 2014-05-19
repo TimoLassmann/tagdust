@@ -203,11 +203,11 @@ TagDust allows users to specify the expected architecture of a read and converts
 
 %\begin{wrapfigure}{l}{1\textwidth}
 
-\begin{figure}[h]
+\begin{figure}[h!]
 
-
+\begin{center}
 \includegraphics[scale = 0.7]{figures/figure1.pdf}
-
+\end{center}
 \caption{A HMM specifies the expected architecture of the raw sequence. After decoding sequences are segmented into the components of the architecture. Based on the segmentation, a barcode is assigned to each read and remaining sequences are trimmed.}
 \label{figure1}
 \end{figure}
@@ -313,6 +313,7 @@ bash-3.1$ tagdust <options> <read1.fq>  [read2.fq] -o <output prefix>
 \end{tabular}
 \end{center}
 
+If two fast files are given TagDust assumes the input is a paired end library.
 
 
 
@@ -395,7 +396,7 @@ Tagdust implements a simplified version of the DUST module (R. Tatusov and D.J. 
 \subsection{Efficiency}
 As a default, TagDust attempts to match the entire sequence to the HMM (global). The options {\tt -start} and {\tt -end} restricts the matching to region specified. TagDust assumes that all residues upstream of 'start' do not belong to the read while all residues following 'end' are read residues.
 
-In the presence of barcodes or fingerprints, TagDust will recognize the most likely code and append it to the name of the read. 
+
 
 %\subsection{Extracting multiple reads from a  single input read}
 
@@ -521,12 +522,10 @@ bb\_eeeeegfgegiiiiiihhhieffhhfhiihhhffhhifiifiiggbedffffffffffffffff
 \vspace{10 mm}
 
 To extract the reads: 
-
 \vspace{10 mm}
 
 {\small
 \begin{verbatim}
-
 bash-3.1$ tagdust test.fq -1 R:N -2 S:GGGGGGGGAAAAAAAA -3 R:N -o out
 \end{verbatim}
 }
@@ -567,7 +566,7 @@ bash-3.1$ tagdust -arch architectures.txt in.fq -o output
 
 TagDust will automatically select the correct architecture and proceed as normal. 
 
-When the input is paired-end data, TagDust will scan both input files with all architectures and attempt to find a match for both reads. {\bf If a match is found for only one file, TagDust will assume the other file only contains valid reads. }
+When the input is paired-end data, TagDust will scan both input files with all architectures and attempt to find a match for both reads. {\bf If a match is found for only one file, TagDust will assume the file only contains valid reads. }
 
 
 
