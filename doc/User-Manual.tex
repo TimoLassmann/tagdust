@@ -282,7 +282,7 @@ bash-3.1$ tagdust -arch architectures.txt read1.fq read2.fq -o output
 \chapter{Usage}
 
 \section{Command Line}
-TagDust requires an input file containing sequences and a user specified HMM architecture used to extract the reads. For the architecture all that TagDust needs to know is the sequence of pre-defined building blocks. Options '{\tt -1,-2, ...}' are used to specify the first, second, etc. building block. 
+TagDust requires an input file containing sequences and a user specified HMM architecture used to extract the reads. For the architecture all that TagDust needs to know is the sequence of pre-defined building blocks. Options '{\tt -1,-2, ...}' are used to specify the first, second, etc. building block. Alternatively the architecture(s) can be supplied in a separate input file using the -arch option (see section \ref{arch}).  
 
 \begin{verbatim}
 bash-3.1$ tagdust <options> <read1.fq>  [read2.fq] -o <output prefix> 
@@ -315,9 +315,13 @@ bash-3.1$ tagdust <options> <read1.fq>  [read2.fq] -o <output prefix>
 
 If two fast files are given TagDust assumes the input is a paired end library.
 
+\vspace{10 mm}
 
 
-Here are some examples of HMM building blocks. \begin{center}
+Here are some examples of HMM building blocks:
+\begin{center}
+
+
 \begin{tabular}{| l | l | p{12cm}|}
 \hline
 \rowcolor{blue} \textcolor{white}{\scshape Example}		&\textcolor{white}{\scshape Type}		&	\textcolor{white}{\scshape Description}\\ \hline
@@ -542,7 +546,7 @@ The original reads will be split among two output files:
 \end{tabular}
 \end{center}
 
-\subsection{Using the -arch option}
+\subsection{Using the -arch option}\label{arch}
 
 When TagDust is given an architecture file containing multiple architectures it will scan a proportion of the  input data with all architectures and automatically select the best matching one. For example, the file below contains three architectures:
 
@@ -1046,7 +1050,7 @@ This segment is used to model sequences that may only be partially present at th
 
 In short read mapping the mapping quality Q reflects the confidence we have in one particular mapping location over all others \cite{li2008mapping}. Analogously, TagDust2 compares the probability of each read matching to the user specified HMM to the total summed probability including a random model:
 
-\begin{equation}
+\begin{equation}\label{eq:main}
 P = 1 - \frac{P(x|M)*V}{P(x|M) + P(x|R)}
 \end{equation} 
 
@@ -1059,6 +1063,11 @@ where $P(x|M)$ is the total summed probability of a read matching the model deri
 where $ a_{s,m_j}$ is the transition from a silent to the first match state $m_j$ of a HMM modeling a barcode.  
  
 
+\section{Threshold selection} 
+
+In versions prior to 2.11 users could specify a threshold with the -q option. Unfortunately, when using simple read architectures (48 3bp barcodes followed by a read) often no reads obtained a reasonable $P$ (equation \ref{eq:main}). 
+
+TagDust now simulated reads based on the model and random model and selects a threshold automatically giving the best specificity plus sensitivity.  
 
 \section{Implementation} 
 

@@ -50,6 +50,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 {
 	int i,j,c;
 	int help = 0;
+	int version = 0;
 	int last;
 	
 	if (argc < 2 && isatty(0)){
@@ -162,12 +163,13 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			{"join",0,0,OPT_join_paired},
 			{"split",0,0,OPT_split},
 			{"help",0,0,'h'},
+			{"version",0,0,'v'},
 			{"log",required_argument,0,'l'},
 			{0, 0, 0, 0}
 		};
 		
 		int option_index = 0;
-		c = getopt_long_only (argc, argv,"Q:e:o:p:q:hf:t:i:l:L:a:",long_options, &option_index);
+		c = getopt_long_only (argc, argv,"Q:e:o:p:q:hvf:t:i:l:L:a:",long_options, &option_index);
 		
 		if (c == -1){
 			break;
@@ -325,6 +327,9 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			case 'h':
 				help = 1;
 				break;
+			case 'v':
+				version = 1;
+				break;
 			case '?':
 				exit(1);
 				break;
@@ -333,7 +338,17 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 				abort ();
 		}
 	}
+	if(help){
+		usage();
+		free_param(param);
+		exit(EXIT_SUCCESS);
+	}
 	
+	if(version){
+		fprintf(stdout,"%s %s\n",PACKAGE_NAME,PACKAGE_VERSION);
+		free_param(param);
+		exit(EXIT_SUCCESS);
+	}
 	
 	MMALLOC(param->buffer,sizeof(char) * MAX_LINE);
 	
@@ -404,11 +419,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	
 	
 	
-	if(help){
-		usage();
-		free_param(param);
-		exit(EXIT_SUCCESS);
-	}
+	
 	if(param->reference_fasta || param->dust){
 		if(param->multiread){
 			sprintf(param->buffer,"WARNING: cannot dust or filter sequences by comparison to a known sequence if multiple reads are present in one input seqeunce.\n");
@@ -530,25 +541,28 @@ void usage()
 {
 	fprintf(stdout, "\n%s %s, Copyright (C) 2013 Timo Lassmann <%s>\n",PACKAGE_NAME, PACKAGE_VERSION,PACKAGE_BUGREPORT);
 	fprintf(stdout, "\n");
-	fprintf(stdout, "Usage:   tagdust [options] <file>  .... \n\n");
+	fprintf(stdout, "Usage:   tagdust [options] <file>  -o <output prefix> \n\n");
 	fprintf(stdout, "Options:\n");
 	
-	fprintf(stdout, "         -Q         FLT     confidence threshold [20].\n");
-	fprintf(stdout, "         -l         STR     log file directory name.\n");
-	fprintf(stdout, "         -start     INT     start of search area [0].\n");
-	fprintf(stdout, "         -end       INT     end of search area [length of sequence].\n");
-	fprintf(stdout, "         -format    STR     format of input sequence file.\n");
-	fprintf(stdout, "         -minlen    INT     minimal accepted read length [16].\n");
-	fprintf(stdout, "         -ref       STR     reference fasta file to be compared against[].\n");
-	fprintf(stdout, "         -fe        INT     number of errors allowed when comparing to reference[2].\n");
-	fprintf(stdout, "         -dust      INT     remove low complexity sequences. [100].\n");
-	fprintf(stdout, "         -e         FLT     expected sequencer error rate [0.05].\n");
-	fprintf(stdout, "         -o         STR     output file name.\n");
-	fprintf(stdout, "         -a         STR     output file for artifacts [NA].\n");
-	fprintf(stdout, "         -t         INT     number of threads [8].\n");
-	fprintf(stdout, "         -1         STR     type of the first HMM building block.\n");
-	fprintf(stdout, "         -2         STR     type of the second HMM building block.\n");
-	fprintf(stdout, "         -...       STR     type of the . . . HMM building block.\n");
+	
+	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-Q","FLT","", "confidence threshold [20].");
+	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-l","STR","", "log file directory name.");
+	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-start","INT","", "start of search area [0].");
+	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-end","INT","", "end of search area [length of sequence].");
+	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-format","STR","", "format of input sequence file.");
+	fprintf (stdout,"\t%-17s%10s%7s%-30s\n"," -minlen","INT","", "minimal accepted read length [16].");
+	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-ref","STR","", "reference fasta file to be compared against[].");
+	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-fe","INT","", "number of errors allowed when comparing to reference[2].");
+	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-dust","INT","", "remove low complexity sequences. [100].");
+	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-e","FLT","", "expected sequencer error rate [0.05].");
+	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-o","STR","", "output file name.");
+	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-a","STR","", "output file for artifacts [NA].");
+	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-t","INT","", "number of threads [8].");
+	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-h/help","NA","", "print help.");
+	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-v/version","NA","", "print version number.");
+	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-1","STR","", "type of the first HMM building block.");
+	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-2","STR","", "type of the second HMM building block.");
+	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-...","STR","", "type of the . . . HMM building block.");
 	fprintf(stdout, "\n");
 
 }
