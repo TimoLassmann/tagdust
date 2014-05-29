@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT(Tagdust, 2.11, timolassmann@gmail.com)
+AC_INIT(Tagdust, 2.12, timolassmann@gmail.com)
 AC_CONFIG_HEADER([src/config.h])
 AM_INIT_AUTOMAKE([1.9.6 -Wall no-define])
 
