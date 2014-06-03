@@ -108,12 +108,20 @@ int main (int argc,char * argv[]) {
 		if(param->arch_file){
 			param = test_architectures(param, 0);
 		}
-		//if (param->read_structure->num_segments == 0){
-		//	filter_controller(param,0);
-			
-		//}else{
-			hmm_controller(param,0);
-		//}
+		
+		
+		if (param->read_structure->num_segments == 0){
+			param->read_structure = assign_segment_sequences(param->read_structure, "R:N" , 0 );
+			if(QC_read_structure(param)){
+				sprintf(param->buffer,"Something wrong with architecture....\n");
+				param->messages = append_message(param->messages, param->buffer);
+				free_param(param);
+				exit(EXIT_FAILURE);
+			}
+			//param->read_structure=malloc_read_structure();
+		}
+	
+		hmm_controller(param,0);
 	}else if(param->infiles == 2){
 		sprintf(param->buffer,"Running in paired end mode.\n");
 		param->messages = append_message(param->messages, param->buffer);

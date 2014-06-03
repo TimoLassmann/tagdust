@@ -1650,6 +1650,410 @@ void free_read_info(struct read_info** ri, int numseq)
 
 
 
+int compare_read_names(struct parameters* param, char* name1, char* name2)
+{
+	
+#ifdef UTEST
+	 int detected = -1;
+#else
+	static int detected = -1;
+#endif
+	char instrument_R1[100];
+	int run_id_R1;
+	char flowcell_R1[100];
+	int flowcell_lane_R1;
+	int tile_number_R1;
+	int x_coordinate_R1;
+	int y_coordinate_R1;
+	
+	char instrument_R2[100];
+	int run_id_R2;
+	char flowcell_R2[100];
+	int flowcell_lane_R2;
+	int tile_number_R2;
+	int x_coordinate_R2;
+	int y_coordinate_R2;
+	
+	int i;
+	
+	int number_of_values_found = 0;
+	
+	if(detected == -1){
+		//option 1: casava 1.8
+		// name should look like this:@EAS139:136:FC706VJ:2:2104:15343:197393 1:Y:18:ATCACG
+		number_of_values_found =sscanf(name1,"@%[^:]:%d:%[^:]:%d:%d:%d:%d ", instrument_R1,&run_id_R1,flowcell_R1,&flowcell_lane_R1,&tile_number_R1,&x_coordinate_R1,&y_coordinate_R1 );
+		if(number_of_values_found == 7){
+			detected = 1;
+		}
+		
+//		fprintf(stderr,"%s\n%d\n%s\n%d\n%d\n%d\n%d\n", instrument_R1,run_id_R1,flowcell_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
+		
+	}
+	
+	if(detected == -1){
+		//option 2: casava 1.7
+		// name should look like this:@HWUSI-EAS100R:6:73:941:1973#0/1
+		number_of_values_found =sscanf(name1,"@%[^:]:%d:%d:%d:%d", instrument_R1,&flowcell_lane_R1,&tile_number_R1,&x_coordinate_R1,&y_coordinate_R1);
+		
+//		fprintf(stderr,"%s\n%d\n%d\n%d\n%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
+
+		if(number_of_values_found == 5){
+			detected = 2;
+		}
+	}
+	
+	if(detected == -1){
+		detected = 1000;
+	}
+
+	if(detected == 1){
+		number_of_values_found =sscanf(name1,"@%[^:]:%d:%[^:]:%d:%d:%d:%d ", instrument_R1,&run_id_R1,flowcell_R1,&flowcell_lane_R1,&tile_number_R1,&x_coordinate_R1,&y_coordinate_R1 );
+		if(number_of_values_found != 7){
+			sprintf(param->buffer,"File name %s\n does not match detected casava 1.8 format.\n",name1);
+			param->messages = append_message(param->messages, param->buffer);
+			return 1;
+			
+		}
+		
+		number_of_values_found =sscanf(name2,"@%[^:]:%d:%[^:]:%d:%d:%d:%d ", instrument_R2,&run_id_R2,flowcell_R2,&flowcell_lane_R2,&tile_number_R2,&x_coordinate_R2,&y_coordinate_R2 );
+		if(number_of_values_found != 7){
+			sprintf(param->buffer,"File name %s\n does not match detected casava 1.8 format.\n",name2);
+#ifdef UTEST
+			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
+			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R2,flowcell_lane_R2,tile_number_R2,x_coordinate_R2,y_coordinate_R2);
+#endif
+			param->messages = append_message(param->messages, param->buffer);
+			return 1;
+		}
+		
+		if(y_coordinate_R1 != y_coordinate_R2){
+			sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
+#ifdef UTEST
+			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
+			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R2,flowcell_lane_R2,tile_number_R2,x_coordinate_R2,y_coordinate_R2);
+#endif
+			param->messages = append_message(param->messages, param->buffer);
+			return 1;
+		}
+		
+		if(x_coordinate_R1 != x_coordinate_R2){
+			sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
+#ifdef UTEST
+			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
+			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R2,flowcell_lane_R2,tile_number_R2,x_coordinate_R2,y_coordinate_R2);
+#endif
+			param->messages = append_message(param->messages, param->buffer);
+			return 1;
+		}
+		
+		if(tile_number_R1 !=  tile_number_R2){
+			sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
+#ifdef UTEST
+			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
+			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R2,flowcell_lane_R2,tile_number_R2,x_coordinate_R2,y_coordinate_R2);
+#endif
+			param->messages = append_message(param->messages, param->buffer);
+			return 1;
+		}
+		
+		if(flowcell_lane_R1 !=  flowcell_lane_R2){
+			sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
+#ifdef UTEST
+			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
+			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R2,flowcell_lane_R2,tile_number_R2,x_coordinate_R2,y_coordinate_R2);
+#endif
+			param->messages = append_message(param->messages, param->buffer);
+			return 1;
+		}
+		
+		if(strcmp(flowcell_R1,flowcell_R2)){
+			sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
+#ifdef UTEST
+			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
+			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R2,flowcell_lane_R2,tile_number_R2,x_coordinate_R2,y_coordinate_R2);
+#endif
+			param->messages = append_message(param->messages, param->buffer);
+			return 1;
+		}
+		if(run_id_R1 !=  run_id_R2){
+			sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
+#ifdef UTEST
+			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
+			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R2,flowcell_lane_R2,tile_number_R2,x_coordinate_R2,y_coordinate_R2);
+#endif
+			param->messages = append_message(param->messages, param->buffer);
+			return 1;
+		}
+		if(strcmp(instrument_R1,instrument_R2)){
+			sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
+#ifdef UTEST
+			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
+			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R2,flowcell_lane_R2,tile_number_R2,x_coordinate_R2,y_coordinate_R2);
+#endif
+			param->messages = append_message(param->messages, param->buffer);
+			return 1;
+		}
+		
+		
+
+	}
+	
+	if(detected == 2){
+		number_of_values_found =sscanf(name1,"@%[^:]:%d:%d:%d:%d", instrument_R1,&flowcell_lane_R1,&tile_number_R1,&x_coordinate_R1,&y_coordinate_R1);
+
+		if(number_of_values_found != 5){
+			sprintf(param->buffer,"File name %s\n does not match detected casava <1.8 format.\n",name1);
+#ifdef UTEST
+			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
+			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R2,flowcell_lane_R2,tile_number_R2,x_coordinate_R2,y_coordinate_R2);
+#endif
+			param->messages = append_message(param->messages, param->buffer);
+			return 1;
+		}
+		number_of_values_found =sscanf(name2,"@%[^:]:%d:%d:%d:%d", instrument_R2,&flowcell_lane_R2,&tile_number_R2,&x_coordinate_R2,&y_coordinate_R2);
+		
+		if(number_of_values_found != 5){
+			sprintf(param->buffer,"File name %s\n does not match detected casava <1.8 format.\n",name2);
+#ifdef UTEST
+			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
+			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R2,flowcell_lane_R2,tile_number_R2,x_coordinate_R2,y_coordinate_R2);
+#endif
+			param->messages = append_message(param->messages, param->buffer);
+			return 1;
+		}
+		
+		if(y_coordinate_R1 != y_coordinate_R2){
+			sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
+#ifdef UTEST
+			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
+			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R2,flowcell_lane_R2,tile_number_R2,x_coordinate_R2,y_coordinate_R2);
+#endif
+			param->messages = append_message(param->messages, param->buffer);
+			return 1;
+		}
+		
+		if(x_coordinate_R1 != x_coordinate_R2){
+			sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
+#ifdef UTEST
+			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
+			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R2,flowcell_lane_R2,tile_number_R2,x_coordinate_R2,y_coordinate_R2);
+#endif
+			param->messages = append_message(param->messages, param->buffer);
+			return 1;
+		}
+		
+		if(tile_number_R1 !=  tile_number_R2){
+			sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
+#ifdef UTEST
+			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
+			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R2,flowcell_lane_R2,tile_number_R2,x_coordinate_R2,y_coordinate_R2);
+#endif
+			param->messages = append_message(param->messages, param->buffer);
+			return 1;
+		}
+		
+		if(flowcell_lane_R1 !=  flowcell_lane_R2){
+			sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
+#ifdef UTEST
+			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
+			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R2,flowcell_lane_R2,tile_number_R2,x_coordinate_R2,y_coordinate_R2);
+#endif
+			param->messages = append_message(param->messages, param->buffer);
+			return 1;
+		}
+		
+		if(strcmp(instrument_R1,instrument_R2)){
+			sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
+#ifdef UTEST
+			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
+			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R2,flowcell_lane_R2,tile_number_R2,x_coordinate_R2,y_coordinate_R2);
+#endif
+			param->messages = append_message(param->messages, param->buffer);
+			return 1;
+		}
+	}
+	if(detected == 1000){
+		for(i = 0; i < strlen(name1);i++){
+			if(isspace(name1[i])){
+				name1[i] = 0;
+				name2[i] = 0;
+			}
+			
+			if(name1[i] == ';'){
+				name1[i] = 0;
+				name2[i] = 0;
+			}
+		}
+		if(strcmp(name1,name2)){
+			sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",name1,name2);
+#ifdef UTEST
+			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
+			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R2,flowcell_lane_R2,tile_number_R2,x_coordinate_R2,y_coordinate_R2);
+#endif
+			param->messages = append_message(param->messages, param->buffer);
+			return 1;
+		}
+	}
+	
+	
+	return  0;
+}
+
+
+
+#ifdef UTEST
+int main (int argc,char * argv[]) {
+	struct parameters* param = 0;
+	char* name1 = 0;
+	
+	char* name2 = 0;
+	MMALLOC(param,sizeof(struct parameters));
+	
+	param->read_structure = 0;
+	param->read_structure_R1 = 0;
+	param->read_structure_R2 = 0;
+	param->outfile = 0;
+	param->infile =0 ;
+	param->buffer =0;
+	param->messages = 0;
+	
+	MMALLOC(param->buffer,sizeof(char) * MAX_LINE);
+	
+	MMALLOC(name1, sizeof(char)* 1000);
+	MMALLOC(name2, sizeof(char)* 1000);
+	
+	sprintf (name1, "@EAS139:136:FC706VJ:2:2104:15343:197393 1:Y:18:ATCACG");
+	sprintf (name2, "@EAS139:136:FC706VJ:2:2104:15343:197393 2:Y:18:ATCACG");
+	
+	int i = 0;
+	
+	fprintf(stdout,"Running I/O Unit tests.\n");
+	i = compare_read_names(param, name1, name2);
+	fprintf(stdout,"	cmp1:\n	%s\n	%s\n	Result:%d\n",name1,name2,i);
+	if(i == 1){
+		sprintf(param->buffer , "ERROR - names should match\n");
+		param->messages = append_message(param->messages, param->buffer  );
+		MFREE(name1);
+		MFREE(name2);
+		free_param(param);
+		exit(EXIT_FAILURE);
+	}
+	name1[0] = 0;
+	name2[0] = 0;
+	
+	sprintf (name1, "@EAS139:136:FC706VJ:2:2104:15343:197393 2:Y:18:ATCACG");
+	sprintf (name2, "@EAS139:136:FC706VJ:2:2104:15343:197393 1:Y:18:ATCACG");
+
+	i = compare_read_names(param, name1, name2);
+	fprintf(stdout,"	cmp2:\n	%s\n	%s\n	Result:%d\n",name1,name2,i);
+	if(i == 1){
+		sprintf(param->buffer , "ERROR - names should match\n");
+		param->messages = append_message(param->messages, param->buffer  );
+		MFREE(name1);
+		MFREE(name2);
+		free_param(param);
+		exit(EXIT_FAILURE);
+	}
+	
+	
+	name1[0] = 0;
+	name2[0] = 0;
+	
+	sprintf (name1, "@HWUSI-EAS100R:6:73:941:1973#0/1");
+	sprintf (name2, "@HWUSI-EAS100R:6:73:941:1973#0/2");
+	
+	i = compare_read_names(param, name1, name2);
+	fprintf(stdout,"	cmp3:\n	%s\n	%s\n	Result:%d\n",name1,name2,i);
+	if(i == 1){
+		sprintf(param->buffer , "ERROR - names should match\n");
+		param->messages = append_message(param->messages, param->buffer  );
+		MFREE(name1);
+		MFREE(name2);
+		free_param(param);
+		exit(EXIT_FAILURE);
+	}
+	
+	name1[0] = 0;
+	name2[0] = 0;
+	
+	sprintf (name1, "@HWUSI-EAS100R:6:73:941:1973#0/2");
+	sprintf (name2, "@HWUSI-EAS100R:6:73:941:1973#0/1");
+	
+	i = compare_read_names(param, name1, name2);
+	fprintf(stdout,"	cmp4:\n	%s\n	%s\n	Result:%d\n",name1,name2,i);
+	if(i == 1){
+		sprintf(param->buffer , "ERROR - names should match\n");
+		param->messages = append_message(param->messages, param->buffer  );
+		MFREE(name1);
+		MFREE(name2);
+		free_param(param);
+		exit(EXIT_FAILURE);
+	}
+	
+	name1[0] = 0;
+	name2[0] = 0;
+	
+	sprintf (name1, "@EAS139:136:FC706VJ:2:2104:15343:197393 2:Y:18:ATCACG");
+	sprintf (name2, "@HWUSI-EAS100R:6:73:941:1973#0/1");
+	
+	i = compare_read_names(param, name1, name2);
+	fprintf(stdout,"	cmp5:\n	%s\n	%s\n	Result:%d\n",name1,name2,i);
+	if(i == 0){
+		sprintf(param->buffer , "ERROR - names should not match\n");
+		param->messages = append_message(param->messages, param->buffer  );
+		MFREE(name1);
+		MFREE(name2);
+		free_param(param);
+		exit(EXIT_FAILURE);
+	}
+	
+	name1[0] = 0;
+	name2[0] = 0;
+	
+	sprintf (name1, "@EAS139:136:FC706VJ:2:2104:15343:197393 2:Y:18:ATCACG");
+	sprintf (name2, "@EAS139:136:FC706VJ:2:2104:15343:197393 1:N:18:GGGACG");
+	
+	i = compare_read_names(param, name1, name2);
+	fprintf(stdout,"	cmp6:\n	%s\n	%s\n	Result:%d\n",name1,name2,i);
+	if(i == 1){
+		sprintf(param->buffer , "ERROR - names should match\n");
+		param->messages = append_message(param->messages, param->buffer  );
+		MFREE(name1);
+		MFREE(name2);
+		free_param(param);
+		exit(EXIT_FAILURE);
+	}
+	
+	name1[0] = 0;
+	name2[0] = 0;
+	
+	sprintf (name1, "@EAS139:136:FC706VJ:2:2104:15343:197393 2:Y:18:ATCACG");
+	sprintf (name2, "@EAS139:136:FC706VJ:2:2104:15344:197393 1:N:18:GGGACG");
+	
+	i = compare_read_names(param, name1, name2);
+	fprintf(stdout,"	cmp7:\n	%s\n	%s\n	Result:%d\n",name1,name2,i);
+	if(i == 0){
+		sprintf(param->buffer , "ERROR - names should not match\n");
+		param->messages = append_message(param->messages, param->buffer  );
+		MFREE(name1);
+		MFREE(name2);
+		free_param(param);
+		exit(EXIT_FAILURE);
+	}
+	
+	
+	
+	
+	MFREE(name1);
+	MFREE(name2);
+	
+	free_param(param);
+}
+
+
+#endif
+
+
 
 
 

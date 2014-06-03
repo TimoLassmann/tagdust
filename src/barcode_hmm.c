@@ -219,21 +219,28 @@ void hmm_controller_pe(struct parameters* param)
 		}
 		if(!param->sim_numseq){
 		for(i = 0; i < numseq1;i++){
-			
-			
-			
-			for(j = 0; j < strlen(r1[i]->name);j++){
-				if(isspace(r1[i]->name[j])){
-					r1[i]->name[j] = 0;
-					r2[i]->name[j] = 0;
-				}
-			}
-			if(strcmp(r1[i]->name,r2[i]->name)){
+			if(compare_read_names(param,r1[i]->name,r2[i]->name) ){
 				sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",r1[i]->name,r2[i]->name );
 				param->messages = append_message(param->messages, param->buffer);
 				free_param(param);
 				exit(EXIT_FAILURE);
 			}
+			
+			
+			/*for(j = 0; j < strlen(r1[i]->name);j++){
+				if(isspace(r1[i]->name[j])){
+					r1[i]->name[j] = 0;
+					r2[i]->name[j] = 0;
+				}
+			}
+			
+		
+			if(strcmp(r1[i]->name,r2[i]->name)){
+				sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",r1[i]->name,r2[i]->name );
+				param->messages = append_message(param->messages, param->buffer);
+				free_param(param);
+				exit(EXIT_FAILURE);
+			}*/
 		}
 		}
 		

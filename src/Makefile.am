@@ -47,15 +47,23 @@ paired_pre_processing.c \
 calibrateQ.c \
 test_architectures.c
 
+
+
 tagdust_LDADD = -lpthread -lm
 
+TESTS = tagdustiotest
 
 TESTS_ENVIRONMENT = \
 	devdir='$(top_srcdir)'/dev; \
-         export devdir;
+         export devdir; \
 	$(VALGRIND)
 
-check_PROGRAMS = tagdust_rtest simreads_rtest evalres_rtest
+check_PROGRAMS = tagdust_rtest simreads_rtest evalres_rtest tagdustiotest
+
+
+tagdustiotest_SOURCES = io.c misc.c interface.c
+tagdustiotest_LDADD = $(tagdust_LDADD)
+tagdustiotest_CPPFLAGS  =  -DUTEST
 
 tagdust_rtest_SOURCES = $(tagdust_SOURCES)
 tagdust_rtest_LDADD = $(tagdust_LDADD)

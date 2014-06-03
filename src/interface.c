@@ -665,11 +665,11 @@ int QC_read_structure(struct parameters* param )
 				}
 			}
 			
-			/*fprintf(stderr,"Found %c segment %d with %d sequences\n", read_structure->type[i] ,i, read_structure->numseq_in_segment[i] );
+			fprintf(stderr,"Found %c segment %d with %d sequences\n", read_structure->type[i] ,i, read_structure->numseq_in_segment[i] );
 			for(g = 0;g < read_structure->numseq_in_segment[i];g++){
 				fprintf(stderr,"%s, ",read_structure->sequence_matrix[i][g] );
 			}
-			fprintf(stderr,"\n" );*/
+			fprintf(stderr,"\n" );
 			last = i;
 			
 		}
