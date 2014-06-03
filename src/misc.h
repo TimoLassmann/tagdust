@@ -133,5 +133,5 @@ int bpm_check_error_global(const unsigned char* t,const unsigned char* p,int n,i
 unsigned char* reverse_complement(unsigned char* p,int len);
 void reverse_sequence(char* p,int len);
 char* shorten_pathname(char* p);
-
+int file_exists(char* name);
 

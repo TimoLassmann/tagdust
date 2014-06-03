@@ -73,10 +73,10 @@ for file in $ALNDIR/*
 
 
 
-cat *sam | awk -v thres=20  'BEGIN{for (i = 0; i <= 80; i++) {storage[$i] = 1;}}  {  if($2 != 4){ x = split($1,a,"[:,;]");  print a[9],$1 } }'
+#cat *sam | awk -v thres=20  'BEGIN{for (i = 0; i <= 80; i++) {storage[$i] = 1;}}  {  if($2 != 4){ x = split($1,a,"[:,;]");  print a[9],$1 } }'
 
 
-cat *sam | awk ' {  if($2 != 4){ x = split($1,a,"[:,;]");  printf "%f\t%f\n" ,$5,a[9] } }'
+#cat *sam | awk ' {  if($2 != 4){ x = split($1,a,"[:,;]");  printf "%f\t%f\n" ,$5,a[9] } }'
 
 
 

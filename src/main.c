@@ -89,11 +89,6 @@ Copyright 2013 Timo Lassmann (timolassmann@gmail.com)
 
 int main (int argc,char * argv[]) {
 	struct parameters* param = 0;
-
-	int i;
-	
-	
-	
 	
 	init_nuc_code();
 	
@@ -113,12 +108,12 @@ int main (int argc,char * argv[]) {
 		if(param->arch_file){
 			param = test_architectures(param, 0);
 		}
-		if (param->read_structure->num_segments == 0){
-			filter_controller(param,0);
+		//if (param->read_structure->num_segments == 0){
+		//	filter_controller(param,0);
 			
-		}else{
+		//}else{
 			hmm_controller(param,0);
-		}
+		//}
 	}else if(param->infiles == 2){
 		sprintf(param->buffer,"Running in paired end mode.\n");
 		param->messages = append_message(param->messages, param->buffer);
@@ -127,11 +122,7 @@ int main (int argc,char * argv[]) {
 			param = test_architectures(param, 0);
 			param->read_structure_R1 = param->read_structure;
 			param->read_structure = 0;
-			fprintf(stderr,"ARCH1: %d segments\n", param->read_structure_R1->num_segments);
-			for(i = 0; i < param->read_structure_R1->num_segments;i++){
-				fprintf(stderr,"%c",  param->read_structure_R1->type[i]);
-			}
-			fprintf(stderr,"\n");
+			
 		}
 		
 		if(param->arch_file){
@@ -139,11 +130,7 @@ int main (int argc,char * argv[]) {
 			param = test_architectures(param, 1);
 			param->read_structure_R2 = param->read_structure;
 			param->read_structure = 0;
-			fprintf(stderr,"ARCH2: %d segments\n", param->read_structure_R2->num_segments);
-			for(i = 0; i < param->read_structure_R2->num_segments;i++){
-				fprintf(stderr,"%c",  param->read_structure_R2->type[i]);
-			}
-			fprintf(stderr,"\n");
+
 
 			
 		}
@@ -167,9 +154,6 @@ int main (int argc,char * argv[]) {
 		return EXIT_SUCCESS;
 	}
 	
-	if(param->infiles > 1){
-		
-	}
 	
 	
 	

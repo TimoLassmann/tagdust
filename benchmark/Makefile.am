@@ -3,7 +3,7 @@ ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 
 EXTRA_DIST = \
 README.txt \
-5barread3.sh \ 
+5barread3.sh \
 barread.sh \
 plotting.R
 

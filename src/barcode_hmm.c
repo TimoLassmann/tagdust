@@ -103,10 +103,17 @@ void hmm_controller_pe(struct parameters* param)
 	ssi_R2 = get_sequence_stats(param, r2, 1 );
 	
 	if(!param->confidence_threshold ){
+		sprintf(param->buffer,"Determining threshold for read1.\n");
+		param->messages = append_message(param->messages, param->buffer);
+
 		param->read_structure = param->read_structure_R1;
 		param = estimateQthreshold(param,ssi_R1);
 		param->confidence_threshold_R1 = param->confidence_threshold;
 		
+		sprintf(param->buffer,"Determining threshold for read2.\n");
+		param->messages = append_message(param->messages, param->buffer);
+		
+
 		param->read_structure = param->read_structure_R2;
 		param = estimateQthreshold(param,ssi_R2);
 		param->confidence_threshold_R2 = param->confidence_threshold;
@@ -231,6 +238,7 @@ void hmm_controller_pe(struct parameters* param)
 		}
 		
 		param->read_structure = param->read_structure_R1;
+		param->confidence_threshold = param->confidence_threshold_R1;
 		if(param->read_structure->num_segments == 1 && param->read_structure->type[0] == 'R'){
 			for(i = 0; i < numseq1;i++){
 				r1[i]->read_type = EXTRACT_SUCCESS;
@@ -242,6 +250,7 @@ void hmm_controller_pe(struct parameters* param)
 		
 		
 		param->read_structure = param->read_structure_R2;
+		param->confidence_threshold = param->confidence_threshold_R2;
 		if(param->read_structure->num_segments == 1 && param->read_structure->type[0] == 'R'){
 			for(i = 0; i < numseq1;i++){
 				r2[i]->read_type = EXTRACT_SUCCESS;
@@ -690,8 +699,14 @@ void hmm_controller(struct parameters* param,int file_num)
 	
 	struct sequence_stats_info* ssi = get_sequence_stats(param, ri, file_num );
 	
-	if(!param->confidence_threshold ){
-		param = estimateQthreshold(param, ssi);
+	if(param->read_structure->num_segments == 1 && param->read_structure->type[0] == 'R'){
+		sprintf(param->buffer,"When using \" -1 R:N\" TagDust will echo reads and apply post fileting steps.\n");
+		param->messages = append_message(param->messages, param->buffer);
+	}else{
+	
+		if(!param->confidence_threshold ){
+			param = estimateQthreshold(param, ssi);
+		}
 	}
 	
 		
@@ -804,7 +819,14 @@ void hmm_controller(struct parameters* param,int file_num)
 		}
 		
 		//	numseq = fp(ri, param,file);
-		mb =  run_pHMM(0,mb,ri,param,reference_fasta,numseq,MODE_GET_LABEL);
+		
+		if(param->read_structure->num_segments == 1 && param->read_structure->type[0] == 'R'){
+			for(i = 0; i < numseq;i++){
+				ri[i]->read_type = EXTRACT_SUCCESS;
+			}
+		}else{
+			mb =  run_pHMM(0,mb,ri,param,reference_fasta,numseq,MODE_GET_LABEL);
+		}
 		
 		print_split_files(param, ri, numseq);
 		
@@ -4510,7 +4532,6 @@ struct model* init_model_according_to_read_structure(struct model* model,struct 
 		col->transition[MSKIP] = prob2scaledprob(0.0);
 		
 		//col->transition[MQUIT] = prob2scaledprob(1.0 / (float) assumed_length);
-		
 		col->transition[II] = prob2scaledprob(1.0 - 1.0 / (float) assumed_length );
 		col->transition[IM] = prob2scaledprob(0.0);
 		col->transition[ISKIP] = prob2scaledprob(1.0 / (float) assumed_length);
@@ -5230,7 +5251,7 @@ struct model_bag* init_model_bag(struct parameters* param,struct sequence_stats_
 	mb->b_score = prob2scaledprob(0.0f);
 	mb->num_models = param->read_structure->num_segments;
 	// get read length estimate...
-	read_length = param->average_read_length;
+	read_length = ssi->average_length;
 	//fprintf(stderr,"READlength: %d\n",read_length);
 	for(i = 0; i < mb->num_models;i++){
 		//mb->model[i] = malloc_model_according_to_read_structure(param->read_structure,i);

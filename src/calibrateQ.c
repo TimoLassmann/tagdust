@@ -128,6 +128,12 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 	}
 	
 	mb =  run_pHMM(0,mb,ri,param,0, readnum,MODE_GET_PROB);
+#if DEBUG
+	print_model(mb->model[0]);
+	fprintf(stderr,"LENGTH: %f\n",(float)ssi->average_length);
+	fprintf(stderr,"in random:  %f\n",1.0 - (1.0 / (float)ssi->average_length));
+#endif
+	
 	free_model_bag(mb);
 	qsort(ri,readnum, sizeof(struct read_info*), qsort_ri_mapq_compare);
 	
@@ -156,16 +162,7 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 	class_c = 0;
 	
 	for(i = 0; i < readnum;i++){
-		if(ri[i]->read_type == 2){
-			if(ri[i]->mapq >stats[7] ){
-				stats[7]  =ri[i]->mapq;
-			}
-			if(ri[i]->mapq  < stats[6] ){
-				stats[6]  =ri[i]->mapq;
-			}
-			stats[8] +=ri[i]->mapq;
-			class_a++;
-		}else if(ri[i]->read_type == 1){
+		if(ri[i]->read_type == 1){
 			if(ri[i]->mapq >stats[4] ){
 				stats[4]  =ri[i]->mapq;
 			}
@@ -193,18 +190,17 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 	stats[8] /=(float)class_a;
 	//stats[5] /=(float)readnum/2.0;
 	
-
+	fprintf(stderr,"READ:\n");
 	fprintf(stderr,"Min: %f	%f\n", stats[0] , 1.0 - pow(10.0, -1.0 *stats[0]  / 10.0));
 	fprintf(stderr,"Max: %f	%f\n",stats[1] , 1.0 - pow(10.0, -1.0 *stats[1]  / 10.0) );
 	fprintf(stderr,"Average: %f	%f\n", stats[2] , 1.0 - pow(10.0, -1.0 *stats[2]  / 10.0));
-	
+	fprintf(stderr,"RANDOM:\n");
 	fprintf(stderr,"Min: %f	%f\n", stats[0+3] , 1.0 - pow(10.0, -1.0 *stats[0+3]  / 10.0));
 	fprintf(stderr,"Max: %f	%f\n",stats[1+3] , 1.0 - pow(10.0, -1.0 *stats[1+3]  / 10.0) );
 	fprintf(stderr,"Average: %f	%f\n", stats[2+3] , 1.0 - pow(10.0, -1.0 *stats[2+3]  / 10.0));
 	
-	fprintf(stderr,"Min: %f	%f\n", stats[0+6] , 1.0 - pow(10.0, -1.0 *stats[0+6]  / 10.0));
-	fprintf(stderr,"Max: %f	%f\n",stats[1+6] , 1.0 - pow(10.0, -1.0 *stats[1+6]  / 10.0) );
-	fprintf(stderr,"Average: %f	%f\n", stats[2+6] , 1.0 - pow(10.0, -1.0 *stats[2+6]  / 10.0));
+	//exit(0);
+	
 #endif
 
 	

@@ -384,6 +384,13 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 	param->sam = 0;
 	param->fasta = 0;
 	
+	if(!file_exists(param->infile[file_num])){
+		sprintf(param->buffer,"Error: Cannot find input file: %s\n",param->infile[file_num] );
+		param->messages = append_message(param->messages, param->buffer);
+		free_param(param);
+		exit(EXIT_FAILURE);
+	}
+	
 	if(!strcmp(".sam", param->infile[file_num] + (strlen(param->infile[file_num] ) - 4))){
 		param->sam = 1;
 	}else if (!strcmp(".bam", param->infile[file_num] + (strlen(param->infile[file_num] ) - 4))){
@@ -641,6 +648,7 @@ void print_split_files(struct parameters* param, struct read_info** ri, int nums
 	int h = 0;
 	for(i = 0; i < numseq;i++){
 		read_file = 0;
+		
 		if(ri[i]->read_type != old_type || ri[i]->barcode != old_bar  ){
 			if(ri[i]->read_type  == EXTRACT_SUCCESS){
 				buffer[0] = 0;
@@ -1268,6 +1276,10 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
 					ri[park_pos]->name[i-1] = 0;
 					break;
 				}
+				if(isspace((int)line[i])){
+					ri[park_pos]->name[i-1] = ';';
+				}
+				
 				ri[park_pos]->name[i-1] = line[i];
 			}
 			//fprintf(stderr,"LEN:%d	%s\n",len,ri[park_pos]->name);

@@ -466,23 +466,6 @@ void split(struct parameters* param,int (*fp)(struct read_info** ,struct paramet
 
 
 
-int file_exists (char * name)
-{
-	struct stat buf;
-	int ret,local_ret;
-	ret = 0;
-	local_ret= stat ( name, &buf );
-	/* File found */
-	if ( local_ret == 0 )
-	{
-		ret++;
-		//return 1;
-	}
-	return ret;
-}
-
-
-
 
 void print_split_sequences(struct rb_node* n,char* out,struct read_info** ri, struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ) )
 {
