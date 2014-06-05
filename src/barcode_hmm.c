@@ -63,8 +63,45 @@ void hmm_controller_pe(struct parameters* param)
 	int i,j;
 	int total_read = 0;
 	//double sum = 0.0;
+	// Check for output files....
+	j = 0;
+	for(i = 0; i < param->read_structure_R1->num_segments;i++){
+		if(param->read_structure_R1->type[i] == 'B'){
+			j |=1;
+		}
+		fprintf(stderr,"%c",  param->read_structure_R1->type[i]);
+	}
+	
+	fprintf(stderr,"ARCH2: %d segments\n", param->read_structure_R2->num_segments);
+	for(i = 0; i < param->read_structure_R2->num_segments;i++){
+		if(param->read_structure_R2->type[i] == 'B'){
+			j |=2;
+		}
+		fprintf(stderr,"%c",  param->read_structure_R2->type[i]);
+	}
 	
 	
+	if(j == 3){
+		//param->read_structure = 0;
+		sprintf(param->buffer,"Barcodes seem to be in both architectures... \n");
+		param->messages = append_message(param->messages, param->buffer);
+		free_param(param);
+		exit(EXIT_FAILURE);
+	}else if (j ==2){
+		param->read_structure = param->read_structure_R2;
+	}else{ // 0 or 1 - keep first arch
+		param->read_structure = param->read_structure_R1;
+		//param->read_structure_R1 = 0;
+	}
+	
+	j = check_for_existing_demultiplexed_files(param);
+	
+	if(j){
+		sprintf(param->buffer , "ERROR: %d output files with prefix %s already exist.\n", j,param->outfile);
+		param->messages = append_message(param->messages, param->buffer  );
+		free_param(param);
+		exit(EXIT_FAILURE);
+	}
 	
 	init_logsum();
 	
@@ -120,7 +157,7 @@ void hmm_controller_pe(struct parameters* param)
 		
 	}
 	
-	
+		
 	
 	// Inits model.
 	
@@ -218,39 +255,40 @@ void hmm_controller_pe(struct parameters* param)
 			
 		}
 		if(!param->sim_numseq){
-		for(i = 0; i < numseq1;i++){
-			if(compare_read_names(param,r1[i]->name,r2[i]->name) ){
-				sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",r1[i]->name,r2[i]->name );
-				param->messages = append_message(param->messages, param->buffer);
-				free_param(param);
-				exit(EXIT_FAILURE);
-			}
-			
-			
-			/*for(j = 0; j < strlen(r1[i]->name);j++){
-				if(isspace(r1[i]->name[j])){
-					r1[i]->name[j] = 0;
-					r2[i]->name[j] = 0;
+			for(i = 0; i < numseq1;i++){
+				if(compare_read_names(param,r1[i]->name,r2[i]->name) ){
+					sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",r1[i]->name,r2[i]->name );
+					param->messages = append_message(param->messages, param->buffer);
+					free_param(param);
+					exit(EXIT_FAILURE);
 				}
+				
+				
+				/*for(j = 0; j < strlen(r1[i]->name);j++){
+				 if(isspace(r1[i]->name[j])){
+				 r1[i]->name[j] = 0;
+				 r2[i]->name[j] = 0;
+				 }
+				 }
+				 
+				 
+				 if(strcmp(r1[i]->name,r2[i]->name)){
+				 sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",r1[i]->name,r2[i]->name );
+				 param->messages = append_message(param->messages, param->buffer);
+				 free_param(param);
+				 exit(EXIT_FAILURE);
+				 }*/
 			}
-			
-		
-			if(strcmp(r1[i]->name,r2[i]->name)){
-				sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",r1[i]->name,r2[i]->name );
-				param->messages = append_message(param->messages, param->buffer);
-				free_param(param);
-				exit(EXIT_FAILURE);
-			}*/
-		}
 		}
 		
 		param->read_structure = param->read_structure_R1;
 		param->confidence_threshold = param->confidence_threshold_R1;
 		if(param->read_structure->num_segments == 1 && param->read_structure->type[0] == 'R'){
-			for(i = 0; i < numseq1;i++){
-				r1[i]->read_type = EXTRACT_SUCCESS;
-			}
+			//for(i = 0; i < numseq1;i++){
+			//	r1[i]->read_type = EXTRACT_SUCCESS;
+			//}
 			
+			r1 =  run_rna_dust(r1,param,reference_fasta,numseq1);
 		}else{
 			mb_R1 =  run_pHMM(0,mb_R1,r1,param,reference_fasta,numseq1,MODE_GET_LABEL);
 		}
@@ -262,6 +300,7 @@ void hmm_controller_pe(struct parameters* param)
 			for(i = 0; i < numseq1;i++){
 				r2[i]->read_type = EXTRACT_SUCCESS;
 			}
+			r2 =  run_rna_dust(r2,param,reference_fasta,numseq1);
 		}else{
 			mb_R2 =  run_pHMM(0,mb_R2,r2,param,reference_fasta,numseq1,MODE_GET_LABEL);
 		}
@@ -305,18 +344,21 @@ void hmm_controller_pe(struct parameters* param)
 
 		
 		if(j == 3){
+			//param->read_structure = 0;
 			sprintf(param->buffer,"Barcodes seem to be in both architectures... \n");
 			param->messages = append_message(param->messages, param->buffer);
 			free_param(param);
 			exit(EXIT_FAILURE);
 		}else if (j ==2){
 			param->read_structure = param->read_structure_R2;
+			//param->read_structure_R2 = 0;
 			for(i= 0;i< numseq1;i++){
 				r1[i]->barcode =r2[i]->barcode ;
 			}
 			
-		}else if(j ==1){
+		}else{ // 0 or 1 - keep first arch
 			param->read_structure = param->read_structure_R1;
+			//param->read_structure_R1 = 0;
 		}
 		
 		
@@ -354,8 +396,6 @@ void hmm_controller_pe(struct parameters* param)
 					break;
 			}
 		}
-		
-		
 	}
 	
 	
@@ -671,6 +711,16 @@ void hmm_controller(struct parameters* param,int file_num)
 	int total_read = 0;
 	//double sum = 0.0;
 	
+	j = check_for_existing_demultiplexed_files(param);
+	
+	if(j){
+		sprintf(param->buffer , "ERROR: %d output files with prefix %s already exist.\n", j,param->outfile);
+		param->messages = append_message(param->messages, param->buffer  );
+		free_param(param);
+		
+		
+		exit(EXIT_FAILURE);
+	}
 
 		
 	init_logsum();
@@ -702,7 +752,10 @@ void hmm_controller(struct parameters* param,int file_num)
 	FILE* file = 0;
 	
 	ri = malloc_read_info(ri, param->num_query );
-
+	
+	
+	
+	
 	
 	struct sequence_stats_info* ssi = get_sequence_stats(param, ri, file_num );
 	
@@ -782,11 +835,11 @@ void hmm_controller(struct parameters* param,int file_num)
 	}
 	
 	pclose(file);
+	
+	
+	
+	
 	file =  io_handler(file, file_num,param);
-	
-	
-	
-	
 	
 	
 	struct log_information* li = 0;
@@ -828,9 +881,7 @@ void hmm_controller(struct parameters* param,int file_num)
 		//	numseq = fp(ri, param,file);
 		
 		if(param->read_structure->num_segments == 1 && param->read_structure->type[0] == 'R'){
-			for(i = 0; i < numseq;i++){
-				ri[i]->read_type = EXTRACT_SUCCESS;
-			}
+			ri =  run_rna_dust(ri,param,reference_fasta,numseq);
 		}else{
 			mb =  run_pHMM(0,mb,ri,param,reference_fasta,numseq,MODE_GET_LABEL);
 		}
@@ -1468,7 +1519,7 @@ struct model_bag* run_pHMM(struct arch_bag* ab,struct model_bag* mb,struct read_
 			MMALLOC(thread_data[t].ab->arch_posterior,sizeof(float) * ab->num_arch );
 			for(i = 0; i < ab->num_arch;i++){
 				thread_data[t].ab->archs[i] =copy_model_bag(ab->archs[i]);
-				thread_data[t].ab->arch_posterior[i] = prob2scaledprob(0.0);
+				thread_data[t].ab->arch_posterior[i] = prob2scaledprob(1.0);
 			}
 		}
 	}
@@ -1538,7 +1589,8 @@ struct model_bag* run_pHMM(struct arch_bag* ab,struct model_bag* mb,struct read_
 			for(i = 0; i < ab->num_arch;i++){
 				free_model_bag(thread_data[t].ab->archs[i]);// =copy_model_bag(ab->archs[i]);
 				//here I sum the posteriors from the different runs!!!
-				ab->arch_posterior[i] = logsum(ab->arch_posterior[i] , thread_data[t].ab->arch_posterior[i]);
+				//ab->arch_posterior[i] = logsum(ab->arch_posterior[i] , thread_data[t].ab->arch_posterior[i]);
+				ab->arch_posterior[i]  += thread_data[t].ab->arch_posterior[i];
 			}
 			
 			MFREE(thread_data[t].ab->archs);// = malloc(sizeof(struct model_bag*) * ab->num_arch );
@@ -1546,7 +1598,17 @@ struct model_bag* run_pHMM(struct arch_bag* ab,struct model_bag* mb,struct read_
 			MFREE(thread_data[t].ab);// = malloc(struct arch_bag);
 			
 		}
+		
+		float sum = 0.0;
+		sum = ab->arch_posterior[0];
+		for(i = 1; i < ab->num_arch;i++){
+			sum = logsum(sum, ab->arch_posterior[i]);
+		}
+		for(i = 0; i < ab->num_arch;i++){
+			ab->arch_posterior[i] = ab->arch_posterior[i]  - sum;
+		}
 	}
+	
 	
 	
 	for(t = 0;t < param->num_threads;t++) {
@@ -1647,22 +1709,23 @@ void* do_arch_comparison(void *threadarg)
 	int end = data->end;
 	int i,j;
 	
-	float raw[100];
-	float sum;
+	//float raw[100];
+	//float sum;
 	
 	for(i = start; i < end;i++){
 		for(j = 0; j < data->ab->num_arch;j++){
 			data->ab->archs[j] = backward(data->ab->archs[j] , ri[i]->seq ,ri[i]->len);
-			raw[j] = data->ab->archs[j]->b_score;
+			//raw[j] = data->ab->archs[j]->b_score;
+			data->ab->arch_posterior[j]  += data->ab->archs[j]->b_score;
 		}
-		
+		/*
 		sum = raw[0];
 		for(j = 1; j < data->ab->num_arch;j++){
 			sum = logsum(sum, raw[j]);
 		}
 		for(j = 0; j < data->ab->num_arch;j++){
 			data->ab->arch_posterior[j] = logsum(data->ab->arch_posterior[j], raw[j] - sum );
-		}
+		}*/
 	}
 	
 	

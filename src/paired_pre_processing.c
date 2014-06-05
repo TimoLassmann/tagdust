@@ -176,8 +176,16 @@ void concatenate_reads(struct parameters* param,int (*fp)(struct read_info** ,st
 			
 		}
 		for(i = 0; i < numseq1;i++){
+			if(compare_read_names(param,ri1[i]->name,ri2[i]->name) ){
+				sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",ri1[i]->name,ri2[i]->name );
+				param->messages = append_message(param->messages, param->buffer);
+				free_param(param);
+				exit(EXIT_FAILURE);
+			}
+			
+			
 			fprintf(outfile,"@");
-			for(j = 0; j < strlen(ri1[i]->name);j++){
+			/*for(j = 0; j < strlen(ri1[i]->name);j++){
 				if(isspace(ri1[i]->name[j])){
 					ri1[i]->name[j] = 0;
 					ri2[i]->name[j] = 0;
@@ -188,7 +196,7 @@ void concatenate_reads(struct parameters* param,int (*fp)(struct read_info** ,st
 				param->messages = append_message(param->messages, param->buffer);
 				free_param(param);
 				exit(EXIT_FAILURE);
-			}
+			}*/
 			
 			fprintf(outfile,"%s",ri1[i]->name);
 			

@@ -64,7 +64,8 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 	
 	//1) file 0 = architecture file (tagdust commands on  each line)
 	//    file 1 = read file to test .
-	
+	sprintf(param->buffer,"Looking at file:%s\n", param->infile[file_num]);
+	param->messages = append_message(param->messages, param->buffer);
 	sprintf(param->buffer,"Searching for best architecture in file '%s'\n", param->arch_file);
 	param->messages = append_message(param->messages, param->buffer);
 	if (!(inarch = fopen( param->arch_file, "r" ))){
@@ -112,7 +113,7 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 			}
 			if(architecture_found){
 				
-				ssi = get_sequence_stats(param, ri, 0 );
+				ssi = get_sequence_stats(param, ri, file_num );
 				
 				if(QC_read_structure(param)){
 					free_param(param);
@@ -162,7 +163,7 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 		// clean up posteriors!!
 		
 		for(i= 0; i < ab->num_arch;i++){
-			ab->arch_posterior[i] = prob2scaledprob(0.0);
+			ab->arch_posterior[i] = prob2scaledprob(1.0);
 		}
 		
 		
@@ -188,6 +189,7 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 		
 		float sum = prob2scaledprob(0.0f);
 		for(i = 0; i < ab->num_arch;i++){
+		//	fprintf(stderr,"%f	%s",  ab->arch_posterior[i],ab->command_line[i]);
 			sum = logsum(sum, ab->arch_posterior[i]);
 		}
 		best_architecture = -1;
@@ -195,6 +197,7 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 
 		for(i = 0; i < ab->num_arch;i++){
 			ab->arch_posterior[i] = scaledprob2prob(ab->arch_posterior[i] - sum);
+		//	fprintf(stderr,"%f	%s",  ab->arch_posterior[i],  ab->command_line[i]);
 			if(ab->arch_posterior[i]  > best_score){
 				best_score =ab->arch_posterior[i] ;
 				best_architecture = i;

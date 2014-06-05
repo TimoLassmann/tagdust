@@ -96,7 +96,7 @@ int main (int argc,char * argv[]) {
 	
 	sprintf(param->buffer,"Start Run\n--------------------------------------------------\n");
 	param->messages = append_message(param->messages, param->buffer);
-
+	
 	// Paired end or single end ?
 	if(param->infiles == 0){
 		fprintf(stderr,"Sorry - no input file found.\n");
@@ -108,7 +108,6 @@ int main (int argc,char * argv[]) {
 		if(param->arch_file){
 			param = test_architectures(param, 0);
 		}
-		
 		
 		if (param->read_structure->num_segments == 0){
 			param->read_structure = assign_segment_sequences(param->read_structure, "R:N" , 0 );
@@ -138,9 +137,6 @@ int main (int argc,char * argv[]) {
 			param = test_architectures(param, 1);
 			param->read_structure_R2 = param->read_structure;
 			param->read_structure = 0;
-
-
-			
 		}
 		
 		hmm_controller_pe(param);
@@ -156,17 +152,12 @@ int main (int argc,char * argv[]) {
 		free_param(param);
 		return EXIT_SUCCESS;
 	}
+	
 	if(param->split){
 		split(param,&read_fasta_fastq);
 		free_param(param);
 		return EXIT_SUCCESS;
 	}
-	
-	
-	
-	
-	
-	
 	
 	free_param(param);
 	return EXIT_SUCCESS;
