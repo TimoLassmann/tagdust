@@ -307,8 +307,20 @@ void hmm_controller_pe(struct parameters* param)
 		
 		for(i = 0; i < numseq1;i++){
 			if(r1[i]->read_type != EXTRACT_SUCCESS || r2[i]->read_type != EXTRACT_SUCCESS){
-				r1[i]->read_type = EXTRACT_FAIL_ARCHITECTURE_MISMATCH;
+				if(r1[i]->read_type != r2[i]->read_type){
+					if(r1[i]->read_type  == EXTRACT_FAIL_MATCHES_ARTIFACTS ||  r2[i]->read_type ==EXTRACT_FAIL_MATCHES_ARTIFACTS){
+						r1[i]->read_type =EXTRACT_FAIL_MATCHES_ARTIFACTS;
+					}else if(r1[i]->read_type  == EXTRACT_FAIL_LOW_COMPLEXITY ||  r2[i]->read_type ==EXTRACT_FAIL_LOW_COMPLEXITY){
+						r1[i]->read_type =EXTRACT_FAIL_LOW_COMPLEXITY;
+					}else if(r1[i]->read_type  == EXTRACT_FAIL_ARCHITECTURE_MISMATCH ||  r2[i]->read_type ==EXTRACT_FAIL_ARCHITECTURE_MISMATCH){
+						r1[i]->read_type =EXTRACT_FAIL_ARCHITECTURE_MISMATCH;
+					}
+				}
+				//r1[i]->read_type = EXTRACT_FAIL_ARCHITECTURE_MISMATCH;
 			}
+			
+			
+			
 			MREALLOC(r1[i]->seq,tmp, sizeof(char) * (r1[i]->len +  r2[i]->len +2));
 			MREALLOC(r1[i]->qual,tmp,sizeof(char) * (r1[i]->len +  r2[i]->len +2));
 			r1[i]->seq[r1[i]->len] = 65;

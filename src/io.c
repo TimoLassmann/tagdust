@@ -668,9 +668,9 @@ int check_for_existing_demultiplexed_files(struct parameters* param)
 	}else{
 		sprintf (buffer, "%s_un.fq",param->outfile);
 	}
-//#ifdef DEBUG
+#ifdef DEBUG
 	fprintf(stderr,"Looking for file: %s %d\n", buffer, file_exists(buffer));
-//#endif
+#endif
 	found_files += file_exists(buffer);
 	MFREE(buffer);
 	return found_files;
