@@ -570,7 +570,7 @@ bash-3.1$ tagdust -arch architectures.txt in.fq -o output
 
 TagDust will automatically select the correct architecture and proceed as normal. 
 
-When the input is paired-end data, TagDust will scan both input files with all architectures and attempt to find a match for both reads. {\bf If a match is found for only one file, TagDust will assume the file only contains valid reads. }
+When the input is paired-end data, TagDust will scan both input files with all architectures and attempt to find a match for both reads. {\bf If a match is found for only one file, TagDust will assume the other file only contains valid reads. }
 
 
 
@@ -1065,7 +1065,7 @@ where $ a_{s,m_j}$ is the transition from a silent to the first match state $m_j
 
 \section{Threshold selection} 
 
-In versions prior to 2.11 users could specify a threshold with the -q option. Unfortunately, when using simple read architectures (48 3bp barcodes followed by a read) often no reads obtained a reasonable $P$ (equation \ref{eq:main}). 
+In versions prior to 2.11 users could specify a threshold with the -q option. Unfortunately, when using simple read architectures (e.g. 48, 3bp barcodes followed by a read) often no reads obtained a reasonable $P$ (equation \ref{eq:main}). 
 
 TagDust now simulated reads based on the model and random model and selects a threshold automatically giving the best specificity plus sensitivity.  
 

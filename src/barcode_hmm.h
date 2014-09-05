@@ -317,7 +317,7 @@ struct log_information{
 	int num_EXTRACT_FAIL_LOW_COMPLEXITY;
 };
 
-
+void hmm_controller_multiple(struct parameters* param);
 void hmm_controller_pe(struct parameters* param);
 void hmm_controller(struct parameters* param, int file_num);
 void filter_controller(struct parameters* param, int file_num);

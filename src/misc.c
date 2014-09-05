@@ -288,16 +288,16 @@ char* append_message(char* old_message, char* new_message)
 	void* tmp = 0;
 	char time_string[200];
 	int hour;
-	char am_or_pm;
+	//char am_or_pm;
 	time_t current = time(NULL);
 	ptr = localtime(&current);
 	hour = ptr->tm_hour;
-	if (hour <= 11)
+	/*if (hour <= 11)
 		am_or_pm = 'a';
 	else {
 		hour -= 12;
 		am_or_pm = 'p';
-	}
+	}*/
 	if (hour == 0){
 		hour = 12;
 	}
@@ -573,10 +573,8 @@ int bpm_check_error(const unsigned char* t,const unsigned char* p,int n,int m)
 	register unsigned long int i;//,c;
 	unsigned long int diff;
 	unsigned long int B[5];
-	if(m > 31){
-		m = 31;
-	}
 	
+	int new_len = 0;
 	unsigned long int k = m;
 	//static int counter = 0;
 	register unsigned long int VP,VN,D0,HN,HP,X;
@@ -591,8 +589,18 @@ int bpm_check_error(const unsigned char* t,const unsigned char* p,int n,int m)
 	}
 	
 	for(i = 0; i < m;i++){
+		if(p[i] != 65){
 		B[(int)(p[i] & 0x3)] |= (1ul << i);
+		new_len++;
+		}
+		
 	}
+	if(new_len > 31){
+		new_len = 31;
+	}
+	m = new_len;
+	k =new_len;
+	
 	
 	//c = 0;
 	VP = 0xFFFFFFFFFFFFFFFFul;
@@ -699,12 +707,13 @@ int validate_bpm_sse(unsigned char**  query, int* query_lengths,unsigned char* t
 {
 	int i,j;
 	int len = 0;
+	int new_len = 0;
 	
 	unsigned int _MM_ALIGN16 nuc[16];
 	
 	unsigned int _MM_ALIGN16 lengths[4];
 	
-	__m128i VP,VN,D0,HN,HP,X,MASK,K,NOTONE,POS,diff,zero,one;
+	__m128i VP,VN,D0,HN,HP,X,MASK,K,NOTONE,diff,zero,one;
 	__m128i* nuc_p;
 	__m128i xmm1,xmm2;
 	
@@ -714,17 +723,24 @@ int validate_bpm_sse(unsigned char**  query, int* query_lengths,unsigned char* t
 	
 	for(i = 0; i < num;i++){
 		len = query_lengths[i];
-		if(len > 31){
-			len = 31;
-		}
-		
-		lengths[i] = len;
 		
 		
 		
+		new_len = 0;
 		for(j = 0; j < len;j++){
-			nuc[((int)(query[i][j] & 0x3u) << 2) + i] |=  (1ul << j);// (unsigned long int)(len-1-j));
+			if(query[i][j] != 65){
+				nuc[((int)(query[i][j] & 0x3u) << 2) + i] |=  (1ul << j);// (unsigned long int)(len-1-j));
+				new_len++;
+			}
 		}
+		
+		if(new_len > 31){
+			new_len = 31;
+		}
+		
+		lengths[i] = new_len;
+		
+		
 	}
 	nuc_p = (__m128i*) nuc;
 	zero = _mm_set1_epi32(0);
@@ -734,7 +750,6 @@ int validate_bpm_sse(unsigned char**  query, int* query_lengths,unsigned char* t
 	VN =  _mm_set1_epi32(0);
 	NOTONE =  _mm_set1_epi32(0xFFFFFFFF);
 	K =  _mm_set1_epi32(0x7FFFFFFF);
-	POS = _mm_set1_epi32(0);
 	
 	for(i = 0; i< 4;i++){
 		lengths[i]--;
@@ -824,7 +839,11 @@ unsigned char* reverse_complement(unsigned char* p,int len)
 	int i,c;
 	c = 0;
 	for(i =len-1; i >= 0;i--){
-		tmp[c] = rev_nuc_code[(int)p[i]];
+		if(p[i]== 65){
+			tmp[c] = 65;
+		}else{
+			tmp[c] = rev_nuc_code[(int)p[i]];
+		}
 		c++;
 	}
 	tmp[c] = 0;
@@ -883,6 +902,13 @@ int file_exists(char* name)
 			//return 1;
 	}
 	return ret;
+}
+
+long long int bitcount64(long long int i)
+{
+	i = i - ((i >> 1) & 0x5555555555555555);
+	i = (i & 0x3333333333333333) + ((i >> 2) & 0x3333333333333333);
+	return (((i + (i >> 4)) & 0xF0F0F0F0F0F0F0F) * 0x101010101010101) >> 56;
 }
 
 

@@ -51,7 +51,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	int i,j,c;
 	int help = 0;
 	int version = 0;
-	int last;
+	//int last;
 	
 	if (argc < 2 && isatty(0)){
 		usage();
@@ -84,6 +84,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->average_read_length = 50;
 	param->numbarcode = 8;
 	param->confidence_threshold = 0.0;//ence
+	param->confidence_thresholds = NULL;//ence
 	param->confidence_threshold_R1 = 0.0;
 	param->confidence_threshold_R2 = 0.0;
 	
@@ -118,6 +119,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	
 	param->arch_file = 0;
 	
+	param->read_structures = NULL;
 	param->read_structure = malloc_read_structure();
 		
 	while (1){	 
@@ -398,7 +400,6 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	
 	
 	
-	last = -1;
 	c = 0;
 	for(i = 0; i < param->read_structure->num_segments;i++){
 		if(param->read_structure->type[i] == 'R'){
@@ -601,6 +602,7 @@ void free_param(struct parameters* param)
 {
 	char logfile[200];
 	FILE* outfile = 0;
+	int i;
 	//if(param->log){
 	if(param->outfile){
 		sprintf (logfile, "%s_logfile.txt",param->outfile);
@@ -613,6 +615,13 @@ void free_param(struct parameters* param)
 		fclose(outfile);
 	
 	}
+	if(param->read_structures){
+		for(i = 0; i < param->infiles;i++){
+			free_read_structure(param->read_structures[i]);
+		}
+		MFREE(param->read_structures);
+	}
+	
 	if(param->read_structure){
 		free_read_structure(param->read_structure);
 	}
@@ -621,6 +630,9 @@ void free_param(struct parameters* param)
 	}
 	if(param->read_structure_R2){
 		free_read_structure(param->read_structure_R2);
+	}
+	if(param->confidence_thresholds){
+		MFREE(param->confidence_thresholds);
 	}
 	
 	MFREE (param->infile);

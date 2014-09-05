@@ -96,9 +96,15 @@ int main (int argc,char * argv[]) {
 	
 	sprintf(param->buffer,"Start Run\n--------------------------------------------------\n");
 	param->messages = append_message(param->messages, param->buffer);
-	
-	// Paired end or single end ?
 	if(param->infiles == 0){
+		fprintf(stderr,"Sorry - no input file found.\n");
+		free_param(param);
+		exit(EXIT_FAILURE);
+	}else{
+		hmm_controller_multiple(param);
+	}
+	// Paired end or single end ?
+	/*if(param->infiles == 0){
 		fprintf(stderr,"Sorry - no input file found.\n");
 		free_param(param);
 		exit(EXIT_FAILURE);
@@ -145,7 +151,7 @@ int main (int argc,char * argv[]) {
 		fprintf(stderr,"Sorry - using more than two input files is presently disabled.\n");
 		free_param(param);
 		exit(EXIT_FAILURE);
-	}
+	}*/
 	
 	if(param->join){
 		concatenate_reads(param,&read_fasta_fastq);

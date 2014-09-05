@@ -42,6 +42,461 @@
 #include "barcode_hmm.h"
 
 
+void hmm_controller_multiple(struct parameters* param)
+{
+	struct read_info*** read_info_container = NULL;
+	struct sequence_stats_info** sequence_stats_info_container = NULL;
+	struct model_bag** model_bag_container = NULL;
+	
+	int* numseqs = NULL;
+	
+	// For storing the known artifact sequences...
+	struct fasta* reference_fasta = NULL;
+	
+	struct log_information* li = NULL;
+	void* tmp = 0;
+	
+	
+	
+	int i,j,c,f;
+	///int total_read = 0;
+	
+	long long int barcode_present = 0;
+	long long int read_present = 0;
+	
+	FILE** file_container = NULL;
+	int (*fp)(struct read_info** ,struct parameters*,FILE* ) = NULL;
+	
+	
+	
+	MMALLOC(read_info_container, sizeof(struct read_info**) * param->infiles);
+	MMALLOC(sequence_stats_info_container,sizeof(struct sequence_stats_info*)* param->infiles);
+	MMALLOC(model_bag_container, sizeof(struct model_bag*) * param->infiles);
+	MMALLOC(file_container,sizeof(FILE*) * param->infiles);
+
+	MMALLOC(param->read_structures, sizeof(struct read_info*) * param->infiles);
+	MMALLOC(param->confidence_thresholds, sizeof(float) * param->infiles);
+	
+	MMALLOC(numseqs, sizeof(int) * param->infiles);
+	
+	for(i= 0; i <param->infiles;i++){
+		read_info_container[i] = NULL;
+		sequence_stats_info_container[i] = NULL;
+		model_bag_container[i] = NULL;
+		file_container[i] = NULL;
+		param->read_structures[i] = NULL;
+		param->confidence_thresholds[i] = 0.0f;
+	}
+	
+	
+	// get architectures
+	// if only one i.e one read copy read_structure to read_structures[0]
+	if(param->infiles == 1){
+		if(param->read_structure->num_segments){
+			param->read_structures[0] = param->read_structure;
+		}else{
+			if(param->arch_file){
+				param = test_architectures(param, 0);
+				param->read_structures[0] = param->read_structure;
+			}else{
+				//Resort top default R:N
+				param->read_structure = assign_segment_sequences(param->read_structure, "R:N" , 0 );
+				if(QC_read_structure(param)){
+					sprintf(param->buffer,"Something wrong with architecture....\n");
+					param->messages = append_message(param->messages, param->buffer);
+					free_param(param);
+					exit(EXIT_FAILURE);
+				}
+				param->read_structures[0] = param->read_structure;
+			}
+		}
+	}else{
+		for(i = 0; i < param->infiles;i++){
+			if(param->arch_file){
+				param = test_architectures(param, i);
+				param->read_structures[i] = param->read_structure;
+				param->read_structure = 0;
+				param->read_structure = malloc_read_structure();
+			}else{
+				//Resort top default R:N 
+				param->read_structure = assign_segment_sequences(param->read_structure, "R:N" , 0 );
+				if(QC_read_structure(param)){
+					sprintf(param->buffer,"Something wrong with architecture....\n");
+					param->messages = append_message(param->messages, param->buffer);
+					free_param(param);
+					exit(EXIT_FAILURE);
+				}
+				param->read_structures[i] = param->read_structure;
+			}
+			for(j = 0; j < param->read_structures[i]->num_segments;j++){
+				if(param->read_structures[i]->type[j] == 'B'){
+					barcode_present |= (1 << i);
+				}
+				if(param->read_structures[i]->type[j] == 'R'){
+					read_present |= 1 << i;
+				}
+			}
+		}
+	}
+	
+	// sanity check - barcode present in multiple reads? - Can't handle at the moment
+	if(bitcount64(barcode_present) > 1){
+		sprintf(param->buffer,"Barcodes seem to be in both architectures... \n");
+		param->messages = append_message(param->messages, param->buffer);
+		free_param(param);
+		exit(EXIT_FAILURE);
+	}
+	
+	j = 0;
+	for(i = 0; i< param->infiles;i++){
+		if(barcode_present & (1 << i)){
+			j = check_for_existing_demultiplexed_files(param);
+			break;
+		}
+	}
+	
+	if(j){
+		sprintf(param->buffer , "ERROR: %d output files with prefix %s already exist.\n", j,param->outfile);
+		param->messages = append_message(param->messages, param->buffer  );
+		free_param(param);
+		exit(EXIT_FAILURE);
+	}
+
+	
+	// Get ready for log space...
+	init_logsum();
+	
+#if DEBUG
+	//printf("Debug\n");
+#if RTEST
+	param->num_query = 1000;
+#else
+	param->num_query = 1001;
+#endif
+#else
+#if RTEST
+	param->num_query = 1000;
+#else
+	param->num_query = 1000001;
+#endif
+	
+#endif
+	
+	//malloc read_info structure (buffer for reads) AND collect basic sequence statistics from each input file...
+	
+	for(i =0 ; i < param->infiles;i++){
+		read_info_container[i] = malloc_read_info(read_info_container[i],param->num_query);
+		param->read_structure = param->read_structures[i];
+		sequence_stats_info_container[i] =get_sequence_stats(param,read_info_container[i], i);
+	}
+	
+	
+	// determine confidence thresholds
+	// this should happen all the time...
+	
+	
+	if(!param->confidence_threshold ){
+		for(i = 0; i < param->infiles;i++){
+			sprintf(param->buffer,"Determining threshold for read%d.\n",i);
+			param->messages = append_message(param->messages, param->buffer);
+			
+			param->read_structure = param->read_structures[i];
+			param = estimateQthreshold(param, sequence_stats_info_container[i]);
+			param->confidence_thresholds[i] = param->confidence_threshold;
+		}
+	}
+	
+	// Now malloc models...
+	for(i = 0; i < param->infiles;i++){
+		param->read_structure = param->read_structures[i];
+		model_bag_container[i] =  init_model_bag(param, sequence_stats_info_container[i]);
+	}
+	
+	//Read in known contaminants.
+	if(param->reference_fasta){
+		reference_fasta = get_fasta(reference_fasta,param->reference_fasta);
+		MMALLOC(reference_fasta->mer_hash ,sizeof(int)* reference_fasta->numseq);
+		for(i = 0; i < reference_fasta->numseq;i++){
+			reference_fasta->mer_hash[i] = 0;
+		}
+		
+	}
+
+	//start reading files and computation...
+	for(i = 0;i < param->infiles;i++){
+		file_container[i] =  io_handler(file_container[i] , i,param);
+		numseqs[i] = 0;
+	}
+	if(param->sam == 0){
+		fp = &read_fasta_fastq;
+	}else {
+		fp = &read_sam_chunk;
+	}
+	
+	fprintf(stderr,"%d SAM?\n",param->sam );
+	
+	
+	MMALLOC(li,sizeof(struct log_information));
+	
+	
+	li->total_read = 0;
+	
+	li->num_EXTRACT_SUCCESS = 0;
+	li->num_EXTRACT_FAIL_BAR_FINGER_NOT_FOUND = 0;
+	li->num_EXTRACT_FAIL_READ_TOO_SHORT = 0;
+	li->num_EXTRACT_FAIL_AMBIGIOUS_BARCODE = 0;
+	li->num_EXTRACT_FAIL_ARCHITECTURE_MISMATCH = 0;
+	li->num_EXTRACT_FAIL_MATCHES_ARTIFACTS = 0;
+	li->num_EXTRACT_FAIL_LOW_COMPLEXITY= 0;
+	
+	//total_read = 0;
+	
+	
+	if(param->infiles > 1){
+		param->multiread = 2;
+	}else{
+		param->multiread = 0;
+	}
+	// infinite loop...
+	while(1){
+		// read batches of sequences from input file(s)
+		c = 0;
+		for(i = 0; i < param->infiles;i++){
+			numseqs[i] = fp( read_info_container[i], param,file_container[i]);
+			c+=numseqs[i];
+		}
+		if(!c){
+			break;
+		}
+		
+		// stop if files are not sorted...
+		
+		//check if number of reads read from each file are identical.
+		for(i = 0; i < param->infiles-1;i++){
+			for(j = i +1; j < param->infiles;j++){
+				if(numseqs[i] != numseqs[j]){
+					sprintf(param->buffer,"Input File:%s and %s differ in number of entries.\n", param->infile[i],param->infile[j]);
+					param->messages = append_message(param->messages, param->buffer);
+					free_param(param);
+					exit(EXIT_FAILURE);
+
+				}
+			}
+		}
+		//fprintf(stderr,"%d	%d\n",numseqs[0], li->total_read);
+		
+		// On first iteration compare top 1000 read names in all files...
+		if(!li->total_read){
+			for(i = 0; i < param->infiles-1;i++){
+				for(j = i +1; j < param->infiles;j++){
+					for(c = 0;c < HMMER3_MIN(1000,numseqs[0] );c++){
+						//fprintf(stderr,"%s\n%s\n", read_info_container[i][c]->name,read_info_container[j][c]->name);
+						if(compare_read_names(param,read_info_container[i][c]->name,read_info_container[j][c]->name) ){
+							sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n", read_info_container[i][c]->name,read_info_container[j][c]->name);
+							param->messages = append_message(param->messages, param->buffer);
+							free_param(param);
+							exit(EXIT_FAILURE);
+						}
+						//fprintf(stderr,"%s\n%s\n", read_info_container[i][c]->name,read_info_container[j][c]->name);
+					}
+				}
+			}
+		}
+		
+		
+		// Check if any read in any file was longer than what was allocated based on the top X reads.
+		for(i = 0; i < param->infiles;i++){
+			c = 0;
+			for(j = 0;j < numseqs[0];j++){
+				if(read_info_container[i][j]->len >=  sequence_stats_info_container[i]->max_seq_len){
+					sequence_stats_info_container[i]->max_seq_len=read_info_container[i][j]->len ;
+					c = 1;
+				}
+				if(c){
+					sprintf(param->buffer,"Long sequence found. Need to realloc model...\n");
+					param->messages = append_message(param->messages, param->buffer);
+					
+					free_model_bag(model_bag_container[i] );
+					model_bag_container[i] = init_model_bag(param, sequence_stats_info_container[i]);
+					
+				}
+			}
+		}
+		// Run HMM models over sequences
+		for(i = 0;i < param->infiles;i++){
+			param->read_structure = param->read_structures[i];
+			param->confidence_threshold = param->confidence_thresholds[i];
+			if(param->read_structure->num_segments == 1 && param->read_structure->type[0] == 'R'){
+				//for(i = 0; i < numseq1;i++){
+				//	r1[i]->read_type = EXTRACT_SUCCESS;
+				//}
+				
+				read_info_container[i] =  run_rna_dust(read_info_container[i],param,reference_fasta,numseqs[i]);
+			}else{
+				model_bag_container[i] = run_pHMM(0, model_bag_container[i] ,read_info_container[i], param, reference_fasta, numseqs[i], MODE_GET_LABEL);
+				//mb_R1 =  run_pHMM(0,mb_R1,r1,param,reference_fasta,numseq1,MODE_GET_LABEL);
+			}
+		}
+		
+		for(i = 0; i < numseqs[0] ;i++){
+			c = -100000;
+			for(j = 0; j < param->infiles;j++){
+				c = HMMER3_MAX(read_info_container[j][i]->read_type , c);
+			}
+			read_info_container[0][i]->read_type = c;
+			
+			fprintf(stderr,"%s %d %d\n", read_info_container[0][i]->name,read_info_container[0][i]->read_type,read_info_container[0][i]->barcode );
+			
+			// concatenate the reads and print out.
+			
+			// get total length;
+			c = 0;
+			for(j = 0; j < param->infiles;j++){
+				c+= read_info_container[j][i]->len;
+			}
+			c += 2;
+			
+			MREALLOC(read_info_container[0][i]->seq,tmp, sizeof(char) * c);
+			MREALLOC(read_info_container[0][i]->qual,tmp,sizeof(char) * c );
+			
+			c =read_info_container[0][i]->len;
+			
+			read_info_container[0][i]->seq[c] = 65;
+			read_info_container[0][i]->qual[c] = 65;
+			read_info_container[0][i]->len = c;
+			for(j = 1;j < param->infiles;j++){
+				c++;
+				for(f = 0;f < read_info_container[j][i]->len;f++){
+			
+					read_info_container[0][i]->seq[c] = read_info_container[j][i]->seq[f];
+					read_info_container[0][i]->qual[c] = read_info_container[j][i]->qual[f];
+					c++;
+				}
+				read_info_container[0][i]->seq[c] = 65;
+				read_info_container[0][i]->qual[c] = 65;
+				read_info_container[0][i]->len = c;
+			}
+		}
+		
+		//make sure the read_arch is set to the one holding the  barcode AND copy which barcode was found to readinfocontainer 0
+		for(i = 0; i< param->infiles;i++){
+			if(barcode_present & (1 << i)){
+				param->read_structure = param->read_structures[i];
+				//param->read_structure_R2 = 0;
+				if(i){
+					for(j= 0;j < numseqs[0];j++){
+						read_info_container[0][j]->barcode =read_info_container[i][j]->barcode ;
+					}
+				}
+				break;
+			}
+		}
+
+		
+		// print out results
+		
+		print_split_files(param, read_info_container[0], numseqs[0]);
+		
+		li->total_read += numseqs[0];
+		
+		for(i = 0; i <  numseqs[0];i++){
+			///fprintf(stdout,"%d	%d	%d\n",i,ri[i]->read_type,ri[i]->barcode);
+			switch ((int) read_info_container[0][i]->read_type) {
+					
+				case EXTRACT_SUCCESS:
+					//	print_seq(ri[i],outfile);
+					li->num_EXTRACT_SUCCESS++;
+					break;
+				case EXTRACT_FAIL_BAR_FINGER_NOT_FOUND:
+					li->num_EXTRACT_FAIL_BAR_FINGER_NOT_FOUND++;
+					break;
+				case  EXTRACT_FAIL_READ_TOO_SHORT:
+					li->num_EXTRACT_FAIL_READ_TOO_SHORT++;
+					break;
+				case  EXTRACT_FAIL_ARCHITECTURE_MISMATCH:
+					li->num_EXTRACT_FAIL_ARCHITECTURE_MISMATCH++;
+					break;
+				case  EXTRACT_FAIL_MATCHES_ARTIFACTS:
+					li->num_EXTRACT_FAIL_MATCHES_ARTIFACTS++;
+				case  EXTRACT_FAIL_LOW_COMPLEXITY:
+					li->num_EXTRACT_FAIL_LOW_COMPLEXITY++;
+					break;
+				default:
+					li->num_EXTRACT_FAIL_MATCHES_ARTIFACTS++;
+					fprintf(stderr,"WTF: no reference but ended up here: %d\n",read_info_container[0][i]->read_type);
+					reference_fasta->mer_hash[ ((int)(read_info_container[0][i]->read_type) >> 8 ) -1] ++;
+					break;
+			}
+		}
+	}
+	
+	
+	
+	sprintf(param->buffer,"Done.\n\n");
+	param->messages = append_message(param->messages, param->buffer);
+	
+	for(i =0; i < param->infiles;i++){
+		sprintf(param->buffer,"%s	Input file %d.\n",param->infile[i],i);
+		param->messages = append_message(param->messages, param->buffer);
+	}
+	
+	
+	sprintf(param->buffer,"%d	total input reads\n", li->total_read);
+	param->messages = append_message(param->messages, param->buffer);
+	
+	sprintf(param->buffer,"%0.2f	selected threshold\n", param->confidence_threshold);
+	param->messages = append_message(param->messages, param->buffer);
+	
+	sprintf(param->buffer,"%d	successfully extracted\n" ,li->num_EXTRACT_SUCCESS);
+	param->messages = append_message(param->messages, param->buffer);
+	
+	sprintf(param->buffer,"%0.1f%%	extracted\n",  (float) li->num_EXTRACT_SUCCESS / (float) li->total_read  *100.0f);
+	param->messages = append_message(param->messages, param->buffer);
+	
+	sprintf(param->buffer,"%d	problems with architecture\n" , li->num_EXTRACT_FAIL_ARCHITECTURE_MISMATCH);
+	param->messages = append_message(param->messages, param->buffer);
+	
+	sprintf(param->buffer,"%d	barcode / UMI not found\n" ,li->num_EXTRACT_FAIL_BAR_FINGER_NOT_FOUND);
+	param->messages = append_message(param->messages, param->buffer);
+	
+	sprintf(param->buffer,"%d	too short\n" , li->num_EXTRACT_FAIL_READ_TOO_SHORT);
+	param->messages = append_message(param->messages, param->buffer);
+	
+	sprintf(param->buffer,"%d	low complexity\n" , li->num_EXTRACT_FAIL_LOW_COMPLEXITY);
+	param->messages = append_message(param->messages, param->buffer);
+	
+	sprintf(param->buffer,"%d	match artifacts:\n" , li->num_EXTRACT_FAIL_MATCHES_ARTIFACTS);
+	param->messages = append_message(param->messages, param->buffer);
+	
+	if(reference_fasta){
+		for(i = 0; i < reference_fasta->numseq;i++){
+			if(reference_fasta->mer_hash[i]){
+				sprintf(param->buffer,"%d	%s\n" , reference_fasta->mer_hash[i], reference_fasta->sn[i]);
+				param->messages = append_message(param->messages, param->buffer);
+			}
+			
+		}
+		free_fasta(reference_fasta);
+		
+	}
+	for(i = 0; i < param->infiles;i++){
+		free_model_bag(model_bag_container[i]);
+		free_read_info(read_info_container[i], param->num_query);
+		MFREE(sequence_stats_info_container[i]);
+		pclose(file_container[i]);
+	}
+	
+	MFREE(li);
+	
+	param->read_structure = 0;
+	
+	MFREE(file_container);
+	MFREE(model_bag_container);
+	MFREE(sequence_stats_info_container);
+	MFREE(read_info_container);
+	MFREE(numseqs);
+}
+
 
 void hmm_controller_pe(struct parameters* param)
 {
@@ -61,7 +516,7 @@ void hmm_controller_pe(struct parameters* param)
 	int (*fp)(struct read_info** ,struct parameters*,FILE* ) = NULL;
 	
 	int i,j;
-	int total_read = 0;
+	//int total_read = 0;
 	//double sum = 0.0;
 	// Check for output files....
 	j = 0;
@@ -157,8 +612,6 @@ void hmm_controller_pe(struct parameters* param)
 		
 	}
 	
-		
-	
 	// Inits model.
 	
 	param->read_structure = param->read_structure_R1;
@@ -212,8 +665,7 @@ void hmm_controller_pe(struct parameters* param)
 	li->num_EXTRACT_FAIL_MATCHES_ARTIFACTS = 0;
 	li->num_EXTRACT_FAIL_LOW_COMPLEXITY= 0;
 		
-	total_read = 0;
-	
+
 	param->multiread = 2;
 	
 	while ((numseq1 = fp(r1, param,file1)) != 0){
@@ -496,7 +948,7 @@ void filter_controller(struct parameters* param, int file_num)
 	FILE* artifact_file = 0;
 	int i;
 	int numseq;
-	int total_read = 0;
+	//int total_read = 0;
 	struct tm *ptr;
 	int hour;
 	char am_or_pm;
@@ -587,7 +1039,7 @@ void filter_controller(struct parameters* param, int file_num)
 	li->num_EXTRACT_FAIL_MATCHES_ARTIFACTS = 0;
 	li->num_EXTRACT_FAIL_LOW_COMPLEXITY= 0;
 	
-	total_read = 0;
+	//total_read = 0;
 	while ((numseq = fp(ri, param,file)) != 0){
 		//	numseq = fp(ri, param,file);
 		ri =  run_rna_dust(ri,param,reference_fasta,numseq);
@@ -605,9 +1057,6 @@ void filter_controller(struct parameters* param, int file_num)
 					break;
 				case  EXTRACT_FAIL_READ_TOO_SHORT:
 					li->num_EXTRACT_FAIL_READ_TOO_SHORT++;
-					break;
-				case  EXTRACT_FAIL_AMBIGIOUS_BARCODE:
-					li->num_EXTRACT_FAIL_AMBIGIOUS_BARCODE++;
 					break;
 				case  EXTRACT_FAIL_ARCHITECTURE_MISMATCH:
 					li->num_EXTRACT_FAIL_ARCHITECTURE_MISMATCH++;
@@ -720,7 +1169,7 @@ void hmm_controller(struct parameters* param,int file_num)
 	
 	int i,j;
 	int numseq;
-	int total_read = 0;
+	//int total_read = 0;
 	//double sum = 0.0;
 	
 	j = check_for_existing_demultiplexed_files(param);
@@ -869,8 +1318,6 @@ void hmm_controller(struct parameters* param,int file_num)
 	li->num_EXTRACT_FAIL_MATCHES_ARTIFACTS = 0;
 	li->num_EXTRACT_FAIL_LOW_COMPLEXITY= 0;
 	
-	
-	total_read = 0;
 	while ((numseq = fp(ri, param,file)) != 0){
 		j = 0;
 		for(i = 0; i < numseq;i++){
@@ -1053,7 +1500,7 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 	char* test_sequence = 0;
 	
 	struct model* model = 0;
-	struct hmm_column* col = 0;
+	//struct hmm_column* col = 0;
 	
 	double mean;
 	double stdev;
@@ -1150,7 +1597,7 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 			//model->M_to_silent[i] = prob2scaledprob(1.0);
 			
 			for(j = 0; j < len;j++){
-				col = model->hmms[i]->hmm_column[j];
+	//			col = model->hmms[i]->hmm_column[j];
 				model->silent_to_M[i][j]  = prob2scaledprob(1.0 / (float) model->num_hmms) + prob2scaledprob(   gaussian_pdf(len-j , mean ,stdev) / sum_prob);
 				
 				s1 = logsum(s1, model->silent_to_M[i][j]);
@@ -2082,7 +2529,7 @@ Exhaustively compares reads to a fasta file of known artifact sequences. Uses a 
 	
 	int i,j,c;
 	int test = 1;
-	int reverse = 0;
+	//int reverse = 0;
 	unsigned char* seq[4];
 	
 	int _MM_ALIGN16 lengths[4];
@@ -2091,7 +2538,7 @@ Exhaustively compares reads to a fasta file of known artifact sequences. Uses a 
 	
 	for(i = start; i <= end-4;i+=4){
 		test = 1;
-		reverse = 0;
+		//reverse = 0;
 		for(c = 0;c < 4;c++){
 			errors[c] = 100000;
 			sequence_id[c] = 0;
@@ -2148,7 +2595,7 @@ Exhaustively compares reads to a fasta file of known artifact sequences. Uses a 
 	while(i < end){
 		//fprintf(stderr,"Looking at %d	%d	%d\n",i,start,end);
 		test = 1;
-		reverse = 0;
+		//reverse = 0;
 		for(j =0; j < reference->numseq;j++){
 			c = bpm_check_error(reference->string +  reference->s_index[j], (unsigned char* )ri[i]->seq,reference->s_index[j+1] - reference->s_index[j] , ri[i]->len);
 			if(c <= error_cut){
@@ -2158,7 +2605,6 @@ Exhaustively compares reads to a fasta file of known artifact sequences. Uses a 
 			}
 			ri[i]->seq = (char* )reverse_complement((unsigned char* ) ri[i]->seq,   ri[i]->len);
 			c = bpm_check_error(reference->string +  reference->s_index[j], (unsigned char* )ri[i]->seq,reference->s_index[j+1] - reference->s_index[j] , ri[i]->len);
-			reverse = 1;
 			if(c <= error_cut){
 				ri[i]->seq =(char* ) reverse_complement( (unsigned char* )ri[i]->seq,   ri[i]->len);
 				test = 0;
@@ -2751,7 +3197,7 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 
  struct read_info*  extract_reads(struct model_bag* mb, struct parameters* param,  struct read_info* ri)
 {
-	int j,c1,c2,c3,key,bar,mem,fingerlen,required_finger_len,ret;
+	int j,c1,c2,c3,key,bar,mem,fingerlen,required_finger_len;//,ret;
 	char* buffer = 0;
 	
 	MMALLOC(buffer,sizeof(char)* mb->current_dyn_length );
@@ -2760,7 +3206,7 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 	key = 0;
 	bar = -1;
 	mem = -1;
-	ret = 0;
+	//ret = 0;
 	int offset = 0;
 	int len;
 	int hmm_has_barcode = 0;
@@ -2781,93 +3227,89 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 	
 	
 	if(param->confidence_threshold <=  ri->mapq){
-		
-		//if(0.5 <=  ri->bar_prob){
-			fingerlen = 0;
-			//required_finger_len = 0;
-			
-			for(j = 0; j < len;j++){
-				c1 = mb->label[(int)ri->labels[j+1]];
-				c2 = c1 & 0xFFFF; //which segment
-				c3 = (c1 >> 16) & 0x7FFF; // which HMM in a particular segment.... 
-				//fprintf(stderr,"%c",   param->read_structure->type[c2] );
-				if(param->read_structure->type[c2] == 'F'){
-					//	required_finger_len += (int) strlen(param->read_structure->sequence_matrix[c2][0]);
-					fingerlen++;
-					key = (key << 2 )|  (ri->seq[j+offset] & 0x3);
-				}
-				if(param->read_structure->type[c2] == 'B'){
-					hmm_has_barcode = 1;
-					bar = c3;
-					
-					if(bar == param->read_structure->numseq_in_segment[c2]-1){
-						//fprintf(stderr,"EXTRACTING N!!!!\n");
-						hmm_has_barcode = -1;
-					}
-					mem = c2;
-				}
+		fingerlen = 0;
+		for(j = 0; j < len;j++){
+			c1 = mb->label[(int)ri->labels[j+1]];
+			c2 = c1 & 0xFFFF; //which segment
+			c3 = (c1 >> 16) & 0x7FFF; // which HMM in a particular segment....
+			//fprintf(stderr,"%c",   param->read_structure->type[c2] );
+			if(param->read_structure->type[c2] == 'F'){
+				//	required_finger_len += (int) strlen(param->read_structure->sequence_matrix[c2][0]);
+				fingerlen++;
+				key = (key << 2 )|  (ri->seq[j+offset] & 0x3);
+			}
+			if(param->read_structure->type[c2] == 'B'){
+				hmm_has_barcode = 1;
+				bar = c3;
 				
-				if(param->read_structure->type[c2] == 'R'){
-					s_pos++;
-					if(!in_read){
-						in_read= 1;
-					}
-				}else{
-					if(in_read){
-						if(s_pos <param->minlen){
-							too_short = 1;
-							break;
-						}
-					}
-					in_read = 0;
-					s_pos = 0;
+				if(bar == param->read_structure->numseq_in_segment[c2]-1){
+					//fprintf(stderr,"EXTRACTING N!!!!\n");
+					hmm_has_barcode = -1;
 				}
-			}
-			if(in_read){
-				if(s_pos <param->minlen){
-					too_short = 1;
-					
-				}
+				mem = c2;
 			}
 			
-			
-			if(!too_short){
-				if(hmm_has_barcode == -1){
-					ri->read_type  = EXTRACT_FAIL_BAR_FINGER_NOT_FOUND;
-				}else if(hmm_has_barcode && required_finger_len){
-					if(fingerlen == required_finger_len && bar != -1){
-						ri = make_extracted_read(mb, param,ri);
-						ri->barcode =  (mem << 16) |   bar;
-						ri->fingerprint = key;
-						ri->read_type = EXTRACT_SUCCESS;
-					}else{
-						ri->read_type  = EXTRACT_FAIL_BAR_FINGER_NOT_FOUND; // something wrong with the architecture
-					}
-				}else if(hmm_has_barcode){
-					if(bar != -1){
-						ri = make_extracted_read(mb, param,ri);
-						ri->barcode =  (mem << 16) |   bar;
-						ri->read_type = EXTRACT_SUCCESS;
-					}else{
-						ri->read_type  = EXTRACT_FAIL_BAR_FINGER_NOT_FOUND;
-					}
-					
-				}else if(required_finger_len){
-					if(fingerlen == required_finger_len){
-						ri = make_extracted_read(mb, param,ri);
-						ri->fingerprint = key;
-						ri->read_type = EXTRACT_SUCCESS;
-					}else{
-						ri->read_type  = EXTRACT_FAIL_BAR_FINGER_NOT_FOUND;
-					}
-				}else{
-					ri = make_extracted_read(mb, param,ri);
-					
-					ri->read_type = EXTRACT_SUCCESS;
+			if(param->read_structure->type[c2] == 'R'){
+				s_pos++;
+				if(!in_read){
+					in_read= 1;
 				}
 			}else{
-				ri->read_type = EXTRACT_FAIL_READ_TOO_SHORT;
+				if(in_read){
+					if(s_pos <param->minlen){
+						too_short = 1;
+						break;
+					}
+				}
+				in_read = 0;
+				s_pos = 0;
 			}
+		}
+		if(in_read){
+			if(s_pos <param->minlen){
+				too_short = 1;
+				
+			}
+		}
+		
+		
+		if(!too_short){
+			if(hmm_has_barcode == -1){
+				ri->read_type  = EXTRACT_FAIL_BAR_FINGER_NOT_FOUND;
+			}else if(hmm_has_barcode && required_finger_len){
+				if(fingerlen == required_finger_len && bar != -1){
+					ri = make_extracted_read(mb, param,ri);
+					ri->barcode =  (mem << 16) |   bar;
+					ri->fingerprint = key;
+					ri->read_type = EXTRACT_SUCCESS;
+				}else{
+					ri->read_type  = EXTRACT_FAIL_BAR_FINGER_NOT_FOUND; // something wrong with the architecture
+				}
+			}else if(hmm_has_barcode){
+				if(bar != -1){
+					ri = make_extracted_read(mb, param,ri);
+					ri->barcode =  (mem << 16) |   bar;
+					ri->read_type = EXTRACT_SUCCESS;
+				}else{
+					ri->read_type  = EXTRACT_FAIL_BAR_FINGER_NOT_FOUND;
+				}
+				
+			}else if(required_finger_len){
+				if(fingerlen == required_finger_len){
+					ri = make_extracted_read(mb, param,ri);
+					ri->fingerprint = key;
+					ri->read_type = EXTRACT_SUCCESS;
+				}else{
+					ri->read_type  = EXTRACT_FAIL_BAR_FINGER_NOT_FOUND;
+				}
+			}else{
+				ri = make_extracted_read(mb, param,ri);
+				
+				ri->read_type = EXTRACT_SUCCESS;
+			}
+		}else{
+			ri->read_type = EXTRACT_FAIL_READ_TOO_SHORT;
+		}
 	}else{
 		//fprintf(stderr,"UN\n");
 		//print_labelled_reads(mb, param,ri);
@@ -2924,11 +3366,11 @@ struct read_info* make_extracted_read(struct model_bag* mb, struct parameters* p
 
 void print_labelled_reads(struct model_bag* mb, struct parameters* param,  struct read_info* ri)
 {
-	int s_pos,j,c1,c2;
+	int j,c1,c2;
 	char alphabet[] = "ACGTNN";
 	//int multireadread = 0;
 	fprintf(stderr,"%f RQ\n", ri->mapq);
-	s_pos = 0;
+	
 	for(j = 0; j < ri->len;j++){
 		fprintf(stderr,"%c",alphabet[(int)ri->seq[j]]);
 	}
@@ -3702,7 +4144,7 @@ struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct re
 	
 	float* psilent;
 	float* csilent;
-	float* bsilent;
+	//float* bsilent;
 	
 	float previous_silent[MAX_HMM_SEQ_LEN];
 	float next_silent[MAX_HMM_SEQ_LEN];
@@ -3761,11 +4203,11 @@ struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct re
 			psilent =  mb->model[j-1]->silent_forward;
 		}
 		csilent = mb->model[j]->silent_forward;
-		if(j +1 != mb->num_models){
-			bsilent = mb->model[j+1]->silent_backward;
-		}else{
-			bsilent = next_silent;
-		}
+	//	if(j +1 != mb->num_models){
+	//		bsilent = mb->model[j+1]->silent_backward;
+	//	}else{
+	//		bsilent = next_silent;
+	//	}
 		for(f = 0;f < mb->model[j]->num_hmms;f++){
 			
 			//fprintf(stderr," %d %d %d\n", j , f, hmm_counter);
@@ -5315,7 +5757,7 @@ struct model_bag* init_model_bag(struct parameters* param,struct sequence_stats_
 	struct model_bag* mb = 0;
 	
 	struct  model* model_p = 0;
-	struct hmm_column* col = 0;
+	//struct hmm_column* col = 0;
 	
 	MMALLOC(mb,sizeof(struct model_bag));
 	mb->path = 0;
@@ -5393,7 +5835,7 @@ struct model_bag* init_model_bag(struct parameters* param,struct sequence_stats_
 		
 		for(i = 0 ; i < model_p->num_hmms;i++){
 			for(j = 0; j < ssi->expected_5_len;j++){
-				col = model_p->hmms[i]->hmm_column[j];
+	//			col = model_p->hmms[i]->hmm_column[j];
 				//fprintf(stderr,"%d MEAN:%f	STDEV:%f	g:%f\n",j,ssi->mean_5_len - ssi->expected_5_len, ssi->stdev_5_len,gaussian_pdf(j ,ssi->expected_5_len-ssi->mean_5_len , ssi->stdev_5_len));
 				
 				model_p->silent_to_M[i][j]  = prob2scaledprob(1.0 / (float) model_p->num_hmms) + prob2scaledprob(   gaussian_pdf(j ,ssi->expected_5_len-ssi->mean_5_len , ssi->stdev_5_len));
@@ -5417,7 +5859,7 @@ struct model_bag* init_model_bag(struct parameters* param,struct sequence_stats_
 
 		for(i = 0 ; i < model_p->num_hmms;i++){
 			for(j = 0; j < ssi->expected_5_len;j++){
-				col = model_p->hmms[i]->hmm_column[j];
+	//			col = model_p->hmms[i]->hmm_column[j];
 				model_p->silent_to_M[i][j]  = model_p->silent_to_M[i][j]  - sum_prob;
 				temp1 = logsum(temp1, model_p->silent_to_M[i][j]);
 		//		fprintf(stderr,"5': %d %f\n",j,scaledprob2prob(model_p->silent_to_M[i][j] ) );

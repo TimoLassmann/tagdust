@@ -38,12 +38,16 @@
 #define EXTRACTION_OUTCOMES
 
 #define EXTRACT_SUCCESS 0
-#define EXTRACT_FAIL_BAR_FINGER_NOT_FOUND 1
+#define EXTRACT_FAIL_ARCHITECTURE_MISMATCH 1
 #define EXTRACT_FAIL_READ_TOO_SHORT 2
-#define EXTRACT_FAIL_AMBIGIOUS_BARCODE 3
-#define EXTRACT_FAIL_ARCHITECTURE_MISMATCH 4
+#define EXTRACT_FAIL_BAR_FINGER_NOT_FOUND 3
+
 #define EXTRACT_FAIL_MATCHES_ARTIFACTS 5
 #define EXTRACT_FAIL_LOW_COMPLEXITY 6
+
+
+
+
 
 #endif
 
@@ -76,6 +80,7 @@ struct read_info{
 	char* labels;/**<  @brief Labeling according to HMM.*/
 	unsigned int* strand;
 	unsigned int* hits;
+	char* barcode_string;
 	float mapq;/**<  @brief Mapping Quality.*/
 	//double prob;/**<  @brief Quality of read.*/
 	double bar_prob;/**< @brief Ambiguity */

@@ -367,7 +367,7 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 {
 	char command[1000];
 	char  tmp[1000];
-	int i = 0; 
+	
 	int gzcat = -1;
 	if(access("/usr/bin/gzcat", X_OK) == 0){
 		gzcat = 1;
@@ -454,10 +454,10 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 				strcat ( command, "samtools view -F 768 "); 
 			}else{
 				strcat ( command, "samtools view -F "); 
-				i = sprintf (tmp, "%s ",param->filter);
+				sprintf (tmp, "%s ",param->filter);
 				strcat ( command, tmp);
 			}
-			i = sprintf (tmp, "%s ","-");
+			sprintf (tmp, "%s ","-");
 			strcat ( command, tmp);
 			if (!(file = popen(command, "r"))) {
 				fprintf(stderr,"Cannot open bam file '%s' with command:%s\n",param->infile[file_num],command);
@@ -469,10 +469,10 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 				strcat ( command, "samtools view -SF 768 "); 
 			}else{
 				strcat ( command, "samtools view -SF "); 
-				i = sprintf (tmp, "%s ",param->filter);
+				sprintf (tmp, "%s ",param->filter);
 				strcat ( command, tmp);
 			}
-			i = sprintf (tmp, "%s ", "-");
+			sprintf (tmp, "%s ", "-");
 			strcat ( command, tmp);
 			if (!(file = popen(command, "r"))) {
 				fprintf(stderr,"Cannot open bam file '%s' with command:%s\n",param->infile[file_num],command);
@@ -488,12 +488,12 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 			if(param->bzipped){
 				strcat ( command, "bzcat ");
 				if(!param->filter){
-					i = sprintf (tmp, "%s | samtools view -F 768 - ", param->infile[file_num]);
+					sprintf (tmp, "%s | samtools view -F 768 - ", param->infile[file_num]);
 					strcat ( command, tmp);
 				}else{
-					i = sprintf (tmp, "%s | samtools view -F  ", param->infile[file_num]);
+					sprintf (tmp, "%s | samtools view -F  ", param->infile[file_num]);
 					strcat ( command, tmp);
-					i = sprintf (tmp, "%s - ",param->filter);
+					sprintf (tmp, "%s - ",param->filter);
 					strcat ( command, tmp);
 				}
 				
@@ -504,12 +504,12 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 					strcat ( command, "zcat "); 
 				}
 				if(!param->filter){
-					i = sprintf (tmp, "%s | samtools view -F 768 - ", param->infile[file_num]);
+					sprintf (tmp, "%s | samtools view -F 768 - ", param->infile[file_num]);
 					strcat ( command, tmp);
 				}else{
-					i = sprintf (tmp, "%s | samtools view -F  ", param->infile[file_num]);
+					sprintf (tmp, "%s | samtools view -F  ", param->infile[file_num]);
 					strcat ( command, tmp);
-					i = sprintf (tmp, "%s - ",param->filter);
+					sprintf (tmp, "%s - ",param->filter);
 					strcat ( command, tmp);
 				}
 			}else{
@@ -517,10 +517,10 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 					strcat ( command, "samtools view -F 768 "); 
 				}else{
 					strcat ( command, "samtools view -F "); 
-					i = sprintf (tmp, "%s ",param->filter);
+					sprintf (tmp, "%s ",param->filter);
 					strcat ( command, tmp);
 				}
-				i = sprintf (tmp, "%s ", param->infile[file_num]);
+				sprintf (tmp, "%s ", param->infile[file_num]);
 				strcat ( command, tmp);
 			}
 			if (!(file = popen(command, "r"))) {
@@ -538,12 +538,12 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 					strcat ( command, "zcat "); 
 				}
 				if(!param->filter){
-					i = sprintf (tmp, "%s | samtools view -SF 768 - ", param->infile[file_num]);
+					sprintf (tmp, "%s | samtools view -SF 768 - ", param->infile[file_num]);
 					strcat ( command, tmp);
 				}else{
-					i = sprintf (tmp, "%s | samtools view -SF  ", param->infile[file_num]);
+					sprintf (tmp, "%s | samtools view -SF  ", param->infile[file_num]);
 					strcat ( command, tmp);
-					i = sprintf (tmp, "%s - ",param->filter);
+					sprintf (tmp, "%s - ",param->filter);
 					strcat ( command, tmp);
 				}
 			}else{
@@ -551,10 +551,10 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 					strcat ( command, "samtools view -SF 768 "); 
 				}else{
 					strcat ( command, "samtools view -SF "); 
-					i = sprintf (tmp, "%s ",param->filter);
+					sprintf (tmp, "%s ",param->filter);
 					strcat ( command, tmp);
 				}
-				i = sprintf (tmp, "%s ", param->infile[file_num]);
+				sprintf (tmp, "%s ", param->infile[file_num]);
 				strcat ( command, tmp);
 			}
 			if (!(file = popen(command, "r"))) {
@@ -577,7 +577,7 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 			}else{
 				strcat ( command, "cat ");
 			}
-			i = sprintf (tmp, "%s ", param->infile[file_num]);
+			sprintf (tmp, "%s ", param->infile[file_num]);
 			strcat ( command, tmp);
 			//fprintf(stderr,"%s\n",command);
 			if (!(file = popen(command, "r"))) {
@@ -687,7 +687,7 @@ void print_split_files(struct parameters* param, struct read_info** ri, int nums
 	int i,j;
 	int old_type = -100;
 	int old_bar = -100;
-	int read_file = 0;
+	//int read_file = 0;
 	void* tmp = 0;
 	int start = 0;
 	int stop = -1;
@@ -708,8 +708,7 @@ void print_split_files(struct parameters* param, struct read_info** ri, int nums
 	// ri[i]->read_type,ri[i]->barcode
 	int h = 0;
 	for(i = 0; i < numseq;i++){
-		read_file = 0;
-		
+		//fprintf(stderr,"BARCODE: %d	%d	%d	%p\n", ri[i]->barcode,(ri[i]->barcode >> 16) &0XFF,ri[i]->barcode &0XFF,param->read_structure);
 		if(ri[i]->read_type != old_type || ri[i]->barcode != old_bar  ){
 			if(ri[i]->read_type  == EXTRACT_SUCCESS){
 				buffer[0] = 0;
@@ -943,11 +942,11 @@ void print_split_files(struct parameters* param, struct read_info** ri, int nums
 			}
 			
 #ifdef DEBUG
-			fprintf(stderr,"READ unextracted!:%d\n" , i);
+			/*fprintf(stderr,"READ unextracted!:%d\n" , i);
 			for(j = 0; j < ri[i]->len;j++){
 				fprintf(stderr,"%d,",ri[i]->seq[j]);
 			}
-			fprintf(stderr,"\n");
+			fprintf(stderr,"\n");*/
 #endif
 			
 			
@@ -1125,10 +1124,10 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file)
 	char line[MAX_LINE];
 	int column = 0; 
 	int i,j,g,tmp;
-	unsigned int pos;
+	//unsigned int pos;
 	int read = 0;
 	int c = 0;
-	int hit = 0;
+	//int hit = 0;
 	int strand = 0;
 	
 	ri = clear_read_info(ri, param->num_query);
@@ -1137,8 +1136,8 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file)
 		if(line[0] != '@'){
 			column = 1; //<QNAME> 
 			tmp = 0;
-			hit = 0;
-			pos = 0xFFFFFFFFu;
+	//		hit = 0;
+	//		pos = 0xFFFFFFFFu;
 			for(j = 0;j < MAX_LINE;j++){
 				tmp++;
 				if(isspace((int)line[j])){
@@ -1946,8 +1945,16 @@ int compare_read_names(struct parameters* param, char* name1, char* name2)
 		}
 	}
 	if(detected == 1000){
+		number_of_values_found = 0;
 		for(i = 0; i < strlen(name1);i++){
-			if(isspace(name1[i])){
+			if(isspace(name1[i]) || name1[i] == ';'){
+				break;
+			}
+			if(name1[i] != name2[i]){
+				number_of_values_found = 1;
+				break;
+			}
+			/*if(isspace(name1[i])){
 				name1[i] = 0;
 				name2[i] = 0;
 			}
@@ -1955,9 +1962,9 @@ int compare_read_names(struct parameters* param, char* name1, char* name2)
 			if(name1[i] == ';'){
 				name1[i] = 0;
 				name2[i] = 0;
-			}
+			}*/
 		}
-		if(strcmp(name1,name2)){
+		if(number_of_values_found){
 			sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",name1,name2);
 #ifdef UTEST
 			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);

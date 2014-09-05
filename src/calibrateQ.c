@@ -290,9 +290,10 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 	sprintf(param->buffer,"Selected Threshold:: %f\n", param->confidence_threshold );
 
 	param->messages = append_message(param->messages, param->buffer);
-		
+	fprintf(stderr,"GAGA\n");
 	
 	free_read_info(ri,  num_test_sequences);
+	fprintf(stderr,"Gugu\n");
 	return param;
 }
 

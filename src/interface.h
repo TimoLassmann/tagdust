@@ -94,6 +94,7 @@ struct read_structure{
 struct parameters {
 	char** infile; /**< @brief Names of input files. */
 	struct read_structure* read_structure;
+	struct read_structure** read_structures;
 	struct read_structure* read_structure_R1;
 	struct read_structure* read_structure_R2;
 	char* outfile;/**< @brief Output file name. */
@@ -119,6 +120,7 @@ struct parameters {
 	float confidence_threshold;/**< @brief This threshold is used to determine whether the read matched the HMM. */
 	float confidence_threshold_R1;
 	float confidence_threshold_R2;
+	float* confidence_thresholds; 
 	float random_prior;
 	int matchstart;
 	int matchend;
