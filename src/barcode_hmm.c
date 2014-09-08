@@ -50,19 +50,25 @@ void hmm_controller_multiple(struct parameters* param)
 	
 	int* numseqs = NULL;
 	
-	// For storing the known artifact sequences...
 	struct fasta* reference_fasta = NULL;
 	
 	struct log_information* li = NULL;
-	void* tmp = 0;
+	//void* tmp = 0;
 	
-	
-	
-	int i,j,c,f;
-	///int total_read = 0;
-	
+	int i,j,c;//,f;
+	int num_out_reads = 0;
 	long long int barcode_present = 0;
-	long long int read_present = 0;
+	
+	char* read_present = NULL;
+	
+	MMALLOC(read_present,sizeof(char)* param->infiles);
+	
+	for(i = 0; i < param->infiles;i++){
+		read_present[i] = 0;
+	}
+	
+	
+	//long long int read_present = 0;
 	
 	FILE** file_container = NULL;
 	int (*fp)(struct read_info** ,struct parameters*,FILE* ) = NULL;
@@ -88,56 +94,35 @@ void hmm_controller_multiple(struct parameters* param)
 		param->confidence_thresholds[i] = 0.0f;
 	}
 	
-	
-	// get architectures
-	// if only one i.e one read copy read_structure to read_structures[0]
-	if(param->infiles == 1){
-		if(param->read_structure->num_segments){
+	for(i = 0; i < param->infiles;i++){
+		if( !i && param->read_structure->num_segments){
 			param->read_structures[0] = param->read_structure;
+		}else	 if(param->arch_file){
+			param = test_architectures(param, i);
+			param->read_structures[i] = param->read_structure;
+			param->read_structure = 0;
+			//param->read_structure = malloc_read_structure();
 		}else{
-			if(param->arch_file){
-				param = test_architectures(param, 0);
-				param->read_structures[0] = param->read_structure;
-			}else{
-				//Resort top default R:N
-				param->read_structure = assign_segment_sequences(param->read_structure, "R:N" , 0 );
-				if(QC_read_structure(param)){
-					sprintf(param->buffer,"Something wrong with architecture....\n");
-					param->messages = append_message(param->messages, param->buffer);
-					free_param(param);
-					exit(EXIT_FAILURE);
-				}
-				param->read_structures[0] = param->read_structure;
+			//Resort top default R:N
+			param->read_structure = assign_segment_sequences(param->read_structure, "R:N" , 0 );
+			if(QC_read_structure(param)){
+				sprintf(param->buffer,"Something wrong with architecture....\n");
+				param->messages = append_message(param->messages, param->buffer);
+				free_param(param);
+				exit(EXIT_FAILURE);
 			}
+			param->read_structures[i] = param->read_structure;
 		}
-	}else{
-		for(i = 0; i < param->infiles;i++){
-			if(param->arch_file){
-				param = test_architectures(param, i);
-				param->read_structures[i] = param->read_structure;
-				param->read_structure = 0;
-				param->read_structure = malloc_read_structure();
-			}else{
-				//Resort top default R:N 
-				param->read_structure = assign_segment_sequences(param->read_structure, "R:N" , 0 );
-				if(QC_read_structure(param)){
-					sprintf(param->buffer,"Something wrong with architecture....\n");
-					param->messages = append_message(param->messages, param->buffer);
-					free_param(param);
-					exit(EXIT_FAILURE);
-				}
-				param->read_structures[i] = param->read_structure;
+		for(j = 0; j < param->read_structures[i]->num_segments;j++){
+			if(param->read_structures[i]->type[j] == 'B'){
+				barcode_present |= (1 << i);
 			}
-			for(j = 0; j < param->read_structures[i]->num_segments;j++){
-				if(param->read_structures[i]->type[j] == 'B'){
-					barcode_present |= (1 << i);
-				}
-				if(param->read_structures[i]->type[j] == 'R'){
-					read_present |= 1 << i;
-				}
+			if(param->read_structures[i]->type[j] == 'R'){
+				read_present[i]++;
 			}
 		}
 	}
+	
 	
 	// sanity check - barcode present in multiple reads? - Can't handle at the moment
 	if(bitcount64(barcode_present) > 1){
@@ -147,34 +132,31 @@ void hmm_controller_multiple(struct parameters* param)
 		exit(EXIT_FAILURE);
 	}
 	
-	j = 0;
-	for(i = 0; i< param->infiles;i++){
-		if(barcode_present & (1 << i)){
-			j = check_for_existing_demultiplexed_files(param);
-			break;
+	for(i = 0; i < param->infiles;i++){
+		num_out_reads += (int) read_present[i];
+	}
+	for(i = 0; i < param->infiles;i++){
+		if(barcode_present &  (1 << i)){
+			param->read_structure = param->read_structures[i];
+			if(check_for_existing_demultiplexed_files_multiple(param, num_out_reads)){
+				sprintf(param->buffer,"ERROR: some output files already exists.\n");
+				param->messages = append_message(param->messages, param->buffer);
+				free_param(param);
+				exit(EXIT_FAILURE);
+			}
+			param->read_structure  = NULL;
 		}
 	}
 	
-	if(j){
-		sprintf(param->buffer , "ERROR: %d output files with prefix %s already exist.\n", j,param->outfile);
-		param->messages = append_message(param->messages, param->buffer  );
-		free_param(param);
-		exit(EXIT_FAILURE);
-	}
-
 	
 	// Get ready for log space...
 	init_logsum();
 	
 #if DEBUG
-	//printf("Debug\n");
-#if RTEST
-	param->num_query = 1000;
-#else
 	param->num_query = 1001;
-#endif
+
 #else
-#if RTEST
+#if  RTEST
 	param->num_query = 1000;
 #else
 	param->num_query = 1000001;
@@ -219,7 +201,6 @@ void hmm_controller_multiple(struct parameters* param)
 		for(i = 0; i < reference_fasta->numseq;i++){
 			reference_fasta->mer_hash[i] = 0;
 		}
-		
 	}
 
 	//start reading files and computation...
@@ -233,7 +214,6 @@ void hmm_controller_multiple(struct parameters* param)
 		fp = &read_sam_chunk;
 	}
 	
-	fprintf(stderr,"%d SAM?\n",param->sam );
 	
 	
 	MMALLOC(li,sizeof(struct log_information));
@@ -249,14 +229,6 @@ void hmm_controller_multiple(struct parameters* param)
 	li->num_EXTRACT_FAIL_MATCHES_ARTIFACTS = 0;
 	li->num_EXTRACT_FAIL_LOW_COMPLEXITY= 0;
 	
-	//total_read = 0;
-	
-	
-	if(param->infiles > 1){
-		param->multiread = 2;
-	}else{
-		param->multiread = 0;
-	}
 	// infinite loop...
 	while(1){
 		// read batches of sequences from input file(s)
@@ -338,46 +310,6 @@ void hmm_controller_multiple(struct parameters* param)
 			}
 		}
 		
-		for(i = 0; i < numseqs[0] ;i++){
-			c = -100000;
-			for(j = 0; j < param->infiles;j++){
-				c = HMMER3_MAX(read_info_container[j][i]->read_type , c);
-			}
-			read_info_container[0][i]->read_type = c;
-			
-			fprintf(stderr,"%s %d %d\n", read_info_container[0][i]->name,read_info_container[0][i]->read_type,read_info_container[0][i]->barcode );
-			
-			// concatenate the reads and print out.
-			
-			// get total length;
-			c = 0;
-			for(j = 0; j < param->infiles;j++){
-				c+= read_info_container[j][i]->len;
-			}
-			c += 2;
-			
-			MREALLOC(read_info_container[0][i]->seq,tmp, sizeof(char) * c);
-			MREALLOC(read_info_container[0][i]->qual,tmp,sizeof(char) * c );
-			
-			c =read_info_container[0][i]->len;
-			
-			read_info_container[0][i]->seq[c] = 65;
-			read_info_container[0][i]->qual[c] = 65;
-			read_info_container[0][i]->len = c;
-			for(j = 1;j < param->infiles;j++){
-				c++;
-				for(f = 0;f < read_info_container[j][i]->len;f++){
-			
-					read_info_container[0][i]->seq[c] = read_info_container[j][i]->seq[f];
-					read_info_container[0][i]->qual[c] = read_info_container[j][i]->qual[f];
-					c++;
-				}
-				read_info_container[0][i]->seq[c] = 65;
-				read_info_container[0][i]->qual[c] = 65;
-				read_info_container[0][i]->len = c;
-			}
-		}
-		
 		//make sure the read_arch is set to the one holding the  barcode AND copy which barcode was found to readinfocontainer 0
 		for(i = 0; i< param->infiles;i++){
 			if(barcode_present & (1 << i)){
@@ -393,9 +325,16 @@ void hmm_controller_multiple(struct parameters* param)
 		}
 
 		
-		// print out results
 		
-		print_split_files(param, read_info_container[0], numseqs[0]);
+		for(i = 0; i < numseqs[0] ;i++){
+			c = -100000;
+			for(j = 0; j < param->infiles;j++){
+				c = HMMER3_MAX(read_info_container[j][i]->read_type , c);
+			}
+			read_info_container[0][i]->read_type = c;
+			
+		}
+		print_all(read_info_container,param, numseqs[0], read_present);
 		
 		li->total_read += numseqs[0];
 		
@@ -429,8 +368,6 @@ void hmm_controller_multiple(struct parameters* param)
 			}
 		}
 	}
-	
-	
 	
 	sprintf(param->buffer,"Done.\n\n");
 	param->messages = append_message(param->messages, param->buffer);
@@ -495,6 +432,8 @@ void hmm_controller_multiple(struct parameters* param)
 	MFREE(sequence_stats_info_container);
 	MFREE(read_info_container);
 	MFREE(numseqs);
+	MFREE(read_present);
+	
 }
 
 
@@ -3280,6 +3219,9 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 				if(fingerlen == required_finger_len && bar != -1){
 					ri = make_extracted_read(mb, param,ri);
 					ri->barcode =  (mem << 16) |   bar;
+					
+					//ri->barcode_string = param->read_structure->sequence_matrix[mem][bar];
+					
 					ri->fingerprint = key;
 					ri->read_type = EXTRACT_SUCCESS;
 				}else{
@@ -3289,6 +3231,7 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 				if(bar != -1){
 					ri = make_extracted_read(mb, param,ri);
 					ri->barcode =  (mem << 16) |   bar;
+					//ri->barcode_string = param->read_structure->sequence_matrix[mem][bar];
 					ri->read_type = EXTRACT_SUCCESS;
 				}else{
 					ri->read_type  = EXTRACT_FAIL_BAR_FINGER_NOT_FOUND;
@@ -3353,7 +3296,8 @@ struct read_info* make_extracted_read(struct model_bag* mb, struct parameters* p
 			ri->seq[s_pos] = ri->seq[j];
 			ri->qual[s_pos] = ri->qual[j];
 			s_pos++;
-		}else if (param->multiread){
+		//}else if (param->multiread){
+		}else{
 			ri->seq[s_pos] = 65; // 65 is the spacer! nucleotides are 0 -5....
 			ri->qual[s_pos] = 65;
 			s_pos++;

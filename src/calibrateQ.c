@@ -31,7 +31,6 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 	srand(seed);
 	
 	int binsize = 0;
-	int min_error = 0;
 	
 #if DEBUG
 #if RTEST
@@ -137,17 +136,7 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 	free_model_bag(mb);
 	qsort(ri,readnum, sizeof(struct read_info*), qsort_ri_mapq_compare);
 	
-	float stats[9];
 	
-	stats[0] = SCALEINFTY;
-	stats[1] = -SCALEINFTY;
-	stats[2] = 0;
-	stats[3] = SCALEINFTY;
-	stats[4] = -SCALEINFTY;
-	stats[5] = 0;
-	stats[6] = SCALEINFTY;
-	stats[7] = -SCALEINFTY;
-	stats[8] = 0;
 	
 	double kappa = 0.0;
 	double tmp = 0.0;
@@ -155,53 +144,6 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 	double P_e = 0.0;
 	
 	double P_o = 0.0;
-#if DEBUG
-	int class_a,class_b,class_c;
-	class_a = 0;
-	class_b = 0;
-	class_c = 0;
-	
-	for(i = 0; i < readnum;i++){
-		if(ri[i]->read_type == 1){
-			if(ri[i]->mapq >stats[4] ){
-				stats[4]  =ri[i]->mapq;
-			}
-			if(ri[i]->mapq  < stats[3] ){
-				stats[3]  =ri[i]->mapq;
-			}
-			stats[5] +=ri[i]->mapq;
-			class_b++;
-		}else{
-		
-		
-			if(ri[i]->mapq >stats[1] ){
-				stats[1]  =ri[i]->mapq;
-			}
-			if(ri[i]->mapq  < stats[0] ){
-				stats[0]  =ri[i]->mapq;
-			}
-			stats[2] +=ri[i]->mapq;
-			class_c++;
-		}
-		
-	}
-	stats[2] /=(float)class_c;
-	stats[5] /=(float)class_b;
-	stats[8] /=(float)class_a;
-	//stats[5] /=(float)readnum/2.0;
-	
-	fprintf(stderr,"READ:\n");
-	fprintf(stderr,"Min: %f	%f\n", stats[0] , 1.0 - pow(10.0, -1.0 *stats[0]  / 10.0));
-	fprintf(stderr,"Max: %f	%f\n",stats[1] , 1.0 - pow(10.0, -1.0 *stats[1]  / 10.0) );
-	fprintf(stderr,"Average: %f	%f\n", stats[2] , 1.0 - pow(10.0, -1.0 *stats[2]  / 10.0));
-	fprintf(stderr,"RANDOM:\n");
-	fprintf(stderr,"Min: %f	%f\n", stats[0+3] , 1.0 - pow(10.0, -1.0 *stats[0+3]  / 10.0));
-	fprintf(stderr,"Max: %f	%f\n",stats[1+3] , 1.0 - pow(10.0, -1.0 *stats[1+3]  / 10.0) );
-	fprintf(stderr,"Average: %f	%f\n", stats[2+3] , 1.0 - pow(10.0, -1.0 *stats[2+3]  / 10.0));
-	
-	//exit(0);
-	
-#endif
 
 	
 	
@@ -214,21 +156,8 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 	thres[5] = 1000.0;
 	
 	float sensitivity, specificity;
-	min_error = 0;
 	for(i = 0; i < readnum;i++){
 		if(ri[i]->read_type){
-#if DEBUG
-		char alphabet[] = "ACGTNN";
-			if(min_error < 2){
-			fprintf(stderr, "%s	%f	%d\n",ri[i]->name ,ri[i]->mapq,ri[i]->read_type);
-			for(j = 0; j < ri[i]->len;j++){
-				fprintf(stderr,"%c", alphabet[(int) ri[i]->seq[j]]);
-			}
-			fprintf(stderr,"\n");
-				min_error++;
-			}
-#endif
-			
 			FP += 1.0;
 			TN -= 1.0;
 		}else{
@@ -290,10 +219,7 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 	sprintf(param->buffer,"Selected Threshold:: %f\n", param->confidence_threshold );
 
 	param->messages = append_message(param->messages, param->buffer);
-	fprintf(stderr,"GAGA\n");
-	
 	free_read_info(ri,  num_test_sequences);
-	fprintf(stderr,"Gugu\n");
 	return param;
 }
 

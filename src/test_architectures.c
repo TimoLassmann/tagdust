@@ -77,8 +77,10 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 	while(fgets(line, MAX_LINE, inarch)){
 		
 		if( byg_end("tagdust",line)){
-			
-			free_read_structure(param->read_structure);
+			if(param->read_structure){
+				free_read_structure(param->read_structure);
+				param->read_structure = NULL;
+			}
 			param->read_structure=malloc_read_structure();
 			architecture_found = 1;
 			
@@ -220,9 +222,11 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 		param->messages = append_message(param->messages, param->buffer);
 	}
 	//4) set param->read_structure to best arch...
-	
-	free_read_structure(param->read_structure);
-	param->read_structure=malloc_read_structure();
+	if(param->read_structure){
+		free_read_structure(param->read_structure);
+		param->read_structure = NULL;
+	}
+	param->read_structure= malloc_read_structure();
 	architecture_found = 1;
 	
 	for(c = 0;c < 10;c++){

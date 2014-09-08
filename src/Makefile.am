@@ -1,3 +1,6 @@
+AUTOMAKE_OPTIONS = serial-tests
+ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
+
 
 bin_PROGRAMS = tagdust simreads evalres
 

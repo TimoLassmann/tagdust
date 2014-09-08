@@ -1,10 +1,6 @@
 
 VFLAGS = --track-origins=yes --tool=memcheck --leak-check=yes --error-exitcode=1
 
-
-AUTOMAKE_OPTIONS = subdir-objects
-ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
-
 EXTRA_DIST = doc/User-Manual.pdf doc/latex/refman.pdf
 
 

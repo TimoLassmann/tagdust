@@ -2,11 +2,10 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT(Tagdust, 2.131, timolassmann@gmail.com)
+AC_INIT(Tagdust, 2.2, timolassmann@gmail.com)
 AC_CONFIG_HEADER([src/config.h])
 AM_INIT_AUTOMAKE([1.9.6 -Wall no-define])
 
-CXXFLAGS="$CXXFLAGS"
 
 AC_ARG_ENABLE(debug,
               [  --enable-debug          Enable debugging information],
@@ -41,12 +40,13 @@ AC_MSG_RESULT($opt_valgrind_tests)
 
 # Checks for programs.
 AC_PROG_CC
-AM_PROG_CC_C_O
+
 
 # Checks for libraries.
 
 # Checks for header files.
 AC_HEADER_STDC
+
 AC_CHECK_HEADERS([ assert.h ctype.h float.h getopt.h limits.h math.h pthread.h stdio.h stdlib.h string.h sys/stat.h time.h unistd.h xmmintrin.h ])
 
 

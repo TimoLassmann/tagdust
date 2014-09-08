@@ -141,5 +141,11 @@ void free_read_info(struct read_info** ri, int numseq);
 int compare_read_names(struct parameters* param, char* name1, char* name2);
 int check_for_existing_demultiplexed_files(struct parameters* param);
 
+int check_for_existing_demultiplexed_files_multiple(struct parameters* param, int num_reads);
+
+FILE* open_file(struct parameters* param, char* buffer, char* mode);
+
+void print_all(struct read_info*** read_info_container,struct parameters* param, int numseq, char*  read_present);
+
 
 

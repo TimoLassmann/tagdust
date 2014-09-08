@@ -35,6 +35,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		27E5722719BD903900A5D68C /* casava_test.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; name = casava_test.sh; path = dev/casava_test.sh; sourceTree = "<group>"; };
 		A1022D4D174AF684003978B4 /* fastx_barcode_splitter.pl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.perl; name = fastx_barcode_splitter.pl; path = scripts/fastx_barcode_splitter.pl; sourceTree = "<group>"; };
 		A1022D4E174AF6B7003978B4 /* benchmark_protocol.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = benchmark_protocol.txt; path = scripts/benchmark_protocol.txt; sourceTree = "<group>"; };
 		A1022D4F174B52F9003978B4 /* fly.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fly.c; path = src/fly.c; sourceTree = "<group>"; };
@@ -189,6 +190,7 @@
 		A14739E019078E9900646B4C /* dev */ = {
 			isa = PBXGroup;
 			children = (
+				27E5722719BD903900A5D68C /* casava_test.sh */,
 				A1065D31193D57C7001C50CA /* sanity_test.sh */,
 				A1D2539B1910B52000EBC4E5 /* bar_read_test.sh */,
 				A14739E819078F8300646B4C /* README.txt */,

@@ -614,17 +614,15 @@ void print_sequence(struct read_info* ri,FILE* out)
 }
 
 
-
-int check_for_existing_demultiplexed_files(struct parameters* param)
+int check_for_existing_demultiplexed_files_multiple(struct parameters* param, int num_reads)
 {
-	int i;
+	int i,j;
 	int barsegment = -1;
 	int found_files = 0;
 	
-	
 	char* buffer =  0;
+	
 	MMALLOC(buffer,sizeof(char)* 1000 );
-
 	
 	for(i = 0 ; i <param->read_structure->num_segments;i++){
 		if(param->read_structure->type[i] == 'B'){
@@ -633,9 +631,68 @@ int check_for_existing_demultiplexed_files(struct parameters* param)
 		}
 	}
 	
+	if(barsegment != -1){
+		for(i = 0; i < param->read_structure->numseq_in_segment[barsegment]-1; i++){
+			buffer[0] = 0;
+			
+			if(num_reads > 1){
+				for(j = 0;  j < num_reads;j++){
+					sprintf (buffer, "%s_BC_%s_READ%d.fq",param->outfile,param->read_structure->sequence_matrix[barsegment][i],j+1);
+					found_files += file_exists(buffer);
+				}
+			}else{
+				sprintf (buffer, "%s_BC_%s.fq",param->outfile,param->read_structure->sequence_matrix[barsegment][i]);
+				found_files += file_exists(buffer);
+			}
+		}
+	}else{
+		buffer[0] = 0;
+		if(param->multiread == 2){
+			for(j = 0;  j < num_reads;j++){
+				sprintf (buffer, "%s_READ%d.fq",param->outfile, j+1);
+				found_files += file_exists(buffer);
+			}
+		}else{
+			sprintf (buffer, "%s.fq",param->outfile);
+			found_files += file_exists(buffer);
+		}
+	}
+	
+	buffer[0] = 0;
+	if(param->multiread == 2){
+		for(j = 0;  j < num_reads;j++){
+			sprintf (buffer, "%s_un_READ%d.fq",param->outfile,j+1);
+			found_files += file_exists(buffer);
+		}
+	}else{
+		sprintf (buffer, "%s_un.fq",param->outfile);
+		found_files += file_exists(buffer);
+	}
+	MFREE(buffer);
+	return found_files;
+}
+
+
+
+int check_for_existing_demultiplexed_files(struct parameters* param)
+{
+	int i;
+	int barsegment = -1;
+	int found_files = 0;
+	
+	char* buffer =  0;
+	
+	MMALLOC(buffer,sizeof(char)* 1000 );
+	
+	for(i = 0 ; i <param->read_structure->num_segments;i++){
+		if(param->read_structure->type[i] == 'B'){
+			barsegment = i;
+			break;
+		}
+	}
 	
 	if(barsegment != -1){
-		for(i = 0; i < param->read_structure->numseq_in_segment[barsegment]; i++){
+		for(i = 0; i < param->read_structure->numseq_in_segment[barsegment]-1; i++){
 			buffer[0] = 0;
 
 			if(param->multiread == 2){
@@ -676,6 +733,262 @@ int check_for_existing_demultiplexed_files(struct parameters* param)
 	return found_files;
 
 }
+
+void print_all(struct read_info*** read_info_container,struct parameters* param, int numseq, char*  read_present)
+{
+	int i,j,c,f;
+	int barsegment = -1;
+	int num_outfiles = 0;
+	int num_alternatives = 0;
+	int num_out_reads = 0;
+	char** bar_matrix = NULL;
+	
+	char* filemode = NULL;
+	char alphabet[] = "ACGTNN";
+	static int first = 1;
+	FILE** file_container = NULL;
+	
+	char* buffer = NULL;
+	
+	char* out_seq_buffer = NULL;
+	char* out_qual_buffer = NULL;
+	
+	MMALLOC(out_seq_buffer,sizeof(char)* MAX_LINE );
+	MMALLOC(out_qual_buffer,sizeof(char)* MAX_LINE );
+	
+	MMALLOC(buffer,sizeof(char)* 1000 );
+	
+	MMALLOC(filemode, sizeof(char) * 2);
+	
+	filemode[0] = 'a';
+	filemode[1] = 0;
+	
+	
+	
+	for(i = 0; i < param->infiles;i++){
+		num_out_reads += (int) read_present[i];
+	}
+	
+	if(first){
+		// check for existing files (should not occur since I check for files right at the beginning of a run
+		i = check_for_existing_demultiplexed_files_multiple(param, num_out_reads);
+		if(i){
+			sprintf(param->buffer,"ERROR: some output files already exists.\n");
+			param->messages = append_message(param->messages, param->buffer);
+			free_param(param);
+			exit(EXIT_FAILURE);
+		}
+		
+		filemode[0] = 'w';
+		filemode[1] = 0;
+		first = 0;
+		
+	}
+	
+	
+	
+	
+	
+	
+	// make all file pointers.
+	
+	
+	
+	
+	
+	for(i = 0 ; i <param->read_structure->num_segments;i++){
+		if(param->read_structure->type[i] == 'B'){
+			barsegment = i;
+			break;
+		}
+	}
+	if(barsegment != -1){
+		num_outfiles = (param->read_structure->numseq_in_segment[barsegment]) *num_out_reads;
+		num_alternatives =param->read_structure->numseq_in_segment[barsegment];
+		bar_matrix =param->read_structure->sequence_matrix[barsegment];
+		
+		
+	}else{
+		num_outfiles = (2) *num_out_reads;
+		num_alternatives = 2;
+	}
+	
+	
+#ifdef DEBUG
+	fprintf(stderr,"Number of out reads: %d\n",num_out_reads);
+	fprintf(stderr,"Number alternatived in each reads: %d\n",num_alternatives);
+	fprintf(stderr,"Total files: %d\n",num_outfiles);
+	
+#endif
+	
+	
+	MMALLOC(file_container,sizeof(FILE*) * num_outfiles);
+	
+	//open write file pointers....
+	
+	c = 0;
+	
+	if(barsegment != -1){
+		if(num_out_reads > 1){
+			for(i = 0; i < num_out_reads; i++){
+				for(j = 0; j < num_alternatives - 1;j++){
+					buffer[0] = 0;
+					sprintf (buffer, "%s_BC_%s_READ%d.fq",param->outfile,bar_matrix[j],i+1);
+					file_container[c] = open_file(param, buffer, filemode );
+					c++;
+				}
+				buffer[0] = 0;
+				sprintf (buffer, "%s_un_READ%d.fq",param->outfile,i+1);
+				file_container[c] = open_file(param, buffer, filemode );
+				c++;
+			}
+		}else{
+			for(i = 0; i < num_out_reads; i++){
+				for(j = 0; j < num_alternatives - 1;j++){
+					buffer[0] = 0;
+					sprintf (buffer, "%s_BC_%s.fq",param->outfile,bar_matrix[j]);
+					file_container[c] = open_file( param, buffer, filemode );
+					c++;
+				}
+				buffer[0] = 0;
+				sprintf (buffer, "%s_un.fq",param->outfile);
+				file_container[c] = open_file(param, buffer, filemode );
+				c++;
+			}
+		}
+	}else{
+		if(num_out_reads > 1){
+			for(i = 0; i < num_out_reads; i++){
+				buffer[0] = 0;
+				sprintf (buffer, "%s_READ%d.fq",param->outfile,i+1);
+				file_container[c] = open_file(param, buffer, filemode );
+				c++;
+				buffer[0] = 0;
+				sprintf (buffer, "%s_un_READ%d.fq",param->outfile,i+1);
+				file_container[c] = open_file(param, buffer, filemode );
+				c++;
+			}
+		}else{
+			for(i = 0; i < num_out_reads; i++){
+				buffer[0] = 0;
+				sprintf (buffer, "%s.fq",param->outfile);
+				file_container[c] = open_file(param, buffer, filemode );
+				c++;
+				buffer[0] = 0;
+				sprintf (buffer, "%s_un.fq",param->outfile);
+				file_container[c] = open_file(param, buffer, filemode );
+				c++;
+			}
+		}
+	}
+		
+	
+	
+	
+	int g,h;
+	struct read_info* tmp_ri = 0;
+	// loop through numseq, reads  print out.
+	for(i = 0; i < numseq;i++){
+		c = 0;// c is the base file handler. will be incremented to find output file handler
+		for(j = 0; j < param->infiles;j++){
+			if(read_present[j]){
+
+				if(read_info_container[0][i]->read_type ==  EXTRACT_SUCCESS){
+					if(read_info_container[0][i]->barcode != -1){
+						f = c + (read_info_container[0][i]->barcode & 0xFF);
+					}else{
+						f = c + 0;
+					}
+				}else{
+					//unextracted - always last alternative..
+					f = c + num_alternatives-1;
+				}
+				tmp_ri =read_info_container[j][i];
+#ifdef DEBUG
+				fprintf(stderr,"Working on file:%d\n",j);
+				fprintf(stderr,"READ: %d\n", i);
+				fprintf(stderr,"READ: %s\n", tmp_ri->name );
+				for(g = 0;g < tmp_ri->len;g++){
+					fprintf(stderr,"%d ", tmp_ri->seq[g]);
+				}
+				fprintf(stderr,"\n");
+#endif
+
+				h =0;
+				//for(g = 0;g < tmp_ri->len;g++){
+				//	fprintf
+				//}
+				
+				for(g = 0;g < tmp_ri->len;g++){
+					if(tmp_ri->seq[g]  < 5){
+						out_seq_buffer[h] = alphabet[(int) tmp_ri->seq[g]];
+						if(tmp_ri->qual){
+							out_qual_buffer[h] =tmp_ri->qual[g];
+						}else{
+							out_qual_buffer[h] = '.';
+						}
+						h++;
+					}else{
+						if(h){
+							out_seq_buffer[h] = 0;
+							out_qual_buffer[h] = 0;
+#ifdef DEBUG
+							fprintf(stderr, "@%s;RQ:%0.2f\n",tmp_ri->name,tmp_ri->mapq);
+							fprintf(stderr,"%s\n+\n%s\n",out_seq_buffer,out_qual_buffer);
+#endif
+							fprintf(file_container[f] , "@%s;RQ:%0.2f\n",tmp_ri->name,tmp_ri->mapq);
+							fprintf(file_container[f] ,"%s\n+\n%s\n",out_seq_buffer,out_qual_buffer);
+							
+							f+=num_alternatives;
+							h = 0;
+						}
+					}
+				}
+				if(h){
+					out_seq_buffer[h] = 0;
+					out_qual_buffer[h] = 0;
+#ifdef DEBUG
+					fprintf(stderr, "@%s;RQ:%0.2f\n",tmp_ri->name,tmp_ri->mapq);
+					fprintf(stderr,"%s\n+\n%s\n",out_seq_buffer,out_qual_buffer);
+#endif
+					fprintf(file_container[f],"@%s;RQ:%0.2f\n",tmp_ri->name,tmp_ri->mapq);
+					fprintf(file_container[f],"%s\n+\n%s\n",out_seq_buffer,out_qual_buffer);
+
+				}
+	
+			}
+			c+= num_alternatives * read_present[j];
+		}
+	}
+	for(i = 0; i < num_outfiles;i++){
+		fclose(file_container[i]);
+	}
+	MFREE(file_container);
+	// close all file poiters ..
+	MFREE(filemode);
+	MFREE(buffer);
+	MFREE(out_seq_buffer);
+	MFREE(out_qual_buffer);
+}
+
+
+FILE* open_file(struct parameters* param, char* buffer, char* mode)
+{
+	FILE* file = NULL;
+	//sprintf (buffer, "%s_READ%d.fq",param->outfile,i+1);
+	if ((file = fopen(buffer, mode )) == NULL){
+		sprintf(param->buffer,"ERROR: cannot open file %s for writing.\n", buffer);
+		param->messages = append_message(param->messages, param->buffer);
+		free_param(param);
+		exit(EXIT_FAILURE);
+	}
+#ifdef DEBUG
+	fprintf(stderr,"Opening:%s in %s mode\n",buffer,mode );
+#endif
+	
+	return file;
+}
+
 
 
 void print_split_files(struct parameters* param, struct read_info** ri, int numseq)
@@ -1467,6 +1780,7 @@ unsigned char* get_input_into_string(unsigned char* string,char* infile)
 {
 	long int i = 0;
 	
+	size_t bytes_read;
 	
 	FILE *file = 0;
 	if (!(file = fopen( infile, "r" ))){
@@ -1487,7 +1801,11 @@ unsigned char* get_input_into_string(unsigned char* string,char* infile)
 		MMALLOC(string,(i+1+18)* sizeof(unsigned char));
 	
 	}
-	fread(string,sizeof(unsigned char), i, file);
+	bytes_read = fread(string,sizeof(unsigned char), i, file);
+	if(!bytes_read){
+		fprintf(stderr,"Reading from file:%s failed \n", infile );
+		exit(EXIT_FAILURE);
+	}
 	string[i] = 0;
 	fclose(file);
 	
@@ -1641,6 +1959,7 @@ struct read_info** malloc_read_info(struct read_info** ri, int numseq)
 		ri[i]->barcode = -1;
 		ri[i]->fingerprint = -1;
 		ri[i]->read_type = 0;
+		ri[i]->barcode_string = NULL;
 		//ri[i]->strand = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 		//ri[i]->hits = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 	}
@@ -1674,6 +1993,7 @@ struct read_info** clear_read_info(struct read_info** ri, int numseq)
 		ri[i]->barcode = -1;
 		ri[i]->fingerprint = -1;
 		ri[i]->read_type = 0;
+		ri[i]->barcode_string = NULL;
 		//ri[i]->strand = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 		//ri[i]->hits = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 	}

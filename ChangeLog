@@ -1,3 +1,7 @@
+Version 2.2:
+- Added support for demultiplexing Illumina 1.8.4 files (Instead of illumina default).
+- Tagdust can now be used on an arbitrary number of input files provided that only one (none) contains a barcode.
+
 Version 2.12:
 - Fixed help output. 
 

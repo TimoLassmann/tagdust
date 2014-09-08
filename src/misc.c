@@ -904,13 +904,40 @@ int file_exists(char* name)
 	return ret;
 }
 
-long long int bitcount64(long long int i)
+int bitcount64(long long int i)
 {
 	i = i - ((i >> 1) & 0x5555555555555555);
 	i = (i & 0x3333333333333333) + ((i >> 2) & 0x3333333333333333);
 	return (((i + (i >> 4)) & 0xF0F0F0F0F0F0F0F) * 0x101010101010101) >> 56;
 }
 
-
-
+/* CODE from Kaz Kylheku on Stackoverflow - works great - stays away from sign bit (i.e. works for 63 bits)*/
+int highest_bit(long long int n)
+{
+	const long long mask[] = {
+		0x000000007FFFFFFF,
+		0x000000000000FFFF,
+		0x00000000000000FF,
+		0x000000000000000F,
+		0x0000000000000003,
+		0x0000000000000001
+	};
+	int hi = 64;
+	int lo = 0;
+	int i = 0;
+	
+	if (n == 0)
+		return 0;
+	
+	for (i = 0; i < sizeof mask / sizeof mask[0]; i++) {
+		int mi = lo + (hi - lo) / 2;
+		
+		if ((n >> mi) != 0)
+			lo = mi;
+		else if ((n & (mask[i] << lo)) != 0)
+			hi = mi;
+	}
+	
+	return lo + 1;
+}
 

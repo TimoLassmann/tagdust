@@ -134,4 +134,5 @@ unsigned char* reverse_complement(unsigned char* p,int len);
 void reverse_sequence(char* p,int len);
 char* shorten_pathname(char* p);
 int file_exists(char* name);
-long long int bitcount64(long long int i);
+int bitcount64(long long int i);
+int highest_bit(long long int n);
