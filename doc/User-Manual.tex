@@ -258,13 +258,9 @@ Simply:
 \begin{verbatim}
 bash-3.1$ tagdust -arch architectures.txt in.fq -o output
 \end{verbatim}
-
 The file ``architectures.txt'' needs to contain at least one valid tagdust architecture. For example: 
-
-
 \begin{verbatim}
 bash-3.1$ more architectures.txt
-
 ./tagdust -1 B:AAA,TTT -2 R:N 
 \end{verbatim}
 
@@ -441,7 +437,6 @@ TagDust can work with fasta, fastq and SAM/BAM files. Gzipped files are also sup
 
 \section{Examples: putting it all together}
 
-Here are some examples: 
 
 \subsection{A library containing both barcodes and a 8 nucleotide fingerprint.}
 
@@ -526,7 +521,6 @@ bb\_eeeeegfgegiiiiiihhhieffhhfhiihhhffhhifiifiiggbedffffffffffffffff
 \vspace{10 mm}
 
 To extract the reads: 
-\vspace{10 mm}
 
 {\small
 \begin{verbatim}
@@ -571,6 +565,27 @@ bash-3.1$ tagdust -arch architectures.txt in.fq -o output
 TagDust will automatically select the correct architecture and proceed as normal. 
 
 When the input is paired-end data, TagDust will scan both input files with all architectures and attempt to find a match for both reads. {\bf If a match is found for only one file, TagDust will assume the other file only contains valid reads. }
+
+
+\subsection{De-multiplexing Illumina paired-end data}\label{illuminadata}
+
+The casava pipeline converts raw bcl files into de-multiplexed fastq files in a single step. To use TagDust with Illumina data you first need to switch off the default de-multiplexing by adding the option: 
+\begin{verbatim}
+--use-bases-mask Y*,Y6 ,Y*
+\end{verbatim}
+to the configureBclToFastq.pl command and by modifying the sample-sheet. Increase 6 to the actual length of the barcodes in case they are longer. For more detail have a look at the guide by Brant Faircloth\footnote{https://gist.github.com/brantfaircloth/3125885} and have a look at the casava documentation.
+
+Now run TagDust on all three output files using the following {\it architecture file} \footnote{see section \ref{arch}}: 
+\begin{verbatim}
+tagdust -1 B:ACAGTG,ACTTGA,TTAGGC 
+tagdust -1 R:N 
+\end{verbatim}
+The first line tells TagDust to look for reads composed entirely of one of the three index sequences. The second architecture is used for both the other actual reads. Here is the actual command:
+ \begin{verbatim}
+bash-3.1$ tagdust -arch architectures.txt not_demultiplexed_NoIndex_L001_R1_001.fastq.gz
+not_demultiplexed_NoIndex_L001_R2_001.fastq.gz not_demultiplexed_NoIndex_L001_R3_001.fastq.gz
+-o demultiplexed_
+\end{verbatim}
 
 
 

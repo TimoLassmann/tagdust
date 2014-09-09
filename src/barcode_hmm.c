@@ -2176,7 +2176,6 @@ void* do_probability_estimation(void *threadarg)
 		ri[i]->mapq = prob2scaledprob(0.0);
 	}
 	
-	
 	if(matchstart != -1 || matchend != -1){
 		for(i = start; i < end;i++){
 			tmp = matchend - matchstart ;
@@ -2199,15 +2198,13 @@ void* do_probability_estimation(void *threadarg)
 			mb = backward(mb, ri[i]->seq ,ri[i]->len);
 			mb = forward_max_posterior_decoding(mb, ri[i], ri[i]->seq ,ri[i]->len);
 			
-			
 			pbest =ri[i]->mapq;
 			
 			pbest = logsum(pbest, mb->f_score);
 			pbest = logsum(pbest, mb->r_score);
 			
-			//fprintf(stderr,"%f	%f	%f\n",mb->f_score+ri[i]->bar_prob,ri[i]->mapq,mb->r_score);
-			
 			pbest = 1.0 - scaledprob2prob(  (ri[i]->bar_prob + mb->f_score ) - pbest);
+			
 			if(!pbest){
 				Q = 40.0;
 			}else if(pbest == 1.0){
@@ -2216,16 +2213,10 @@ void* do_probability_estimation(void *threadarg)
 			}else{
 				Q = -10.0 * log10(pbest) ;
 			}
-			//fprintf(stderr,"%d	%f	%f %f	%f\n",i,mb->f_score,ri[i]->bar_prob,ri[i]->mapq,mb->r_score);
-			//fprintf(stderr,"%d	f:%f	%f	init:%f	r:%f:Q: %f\n",i,mb->f_score,scaledprob2prob( ri[i]->bar_prob),ri[i]->mapq,mb->r_score,Q);
 			
-			//fprintf(stderr,"%d	f:%f	%f	init:%f	r:%f:Q: %f\n",i,mb->f_score,scaledprob2prob( ri[i]->bar_prob),ri[i]->mapq,mb->r_score,Q);
 			ri[i]->mapq = Q;
-			
-			
 		}
 	}
-		
 	pthread_exit((void *) 0);
 }
 
@@ -2403,7 +2394,7 @@ void* do_rna_dust(void *threadarg)
 	
 	int dust_cut = data->param->dust ;
 	
-	int i,j;
+	int i,j,c;
 	int key = 0;
 	double triplet[64];
 	double s = 0.0;
@@ -2411,20 +2402,29 @@ void* do_rna_dust(void *threadarg)
 	for(j = 0;j < 64;j++){
 		triplet[j] = 0.0;
 	}
-//	
-
 	
 	for(i = start; i < end;i++){
-		key = ((ri[i]->seq[0] & 0x3 ) << 2 )|  (ri[i]->seq[1] & 0x3 );
+		c = 0;
+		while(ri[i]->seq[c] == 65){
+			c++;
+		}
+		
+		
+		key = ((ri[i]->seq[c] & 0x3 ) << 2 )|  (ri[i]->seq[c+1] & 0x3 );
 		
 		len = ri[i]->len;
 		if(len > 64){
 			len = 64;
 		}
+		c+= 2;
 		
-		for(j = 2;j < len;j++){
+		for(j = c;j < len;j++){
+			if(ri[i]->seq[j] == 65){
+				break;
+			}
 			key = key << 2 | (ri[i]->seq[j] & 0x3 );
 			triplet[key & 0x3F]++;
+			c++;
 		}
 		s = 0.0;
 		for(j = 0;j < 64;j++){
@@ -2432,7 +2432,7 @@ void* do_rna_dust(void *threadarg)
 			s+= triplet[j] * (triplet[j] -1.0) / 2.0;
 			triplet[j] = 0.0;
 		}
-		s = s / (double)(len-3) *10.0; //should be number of triplets -2 : i.e. len -2 triples -1 = len -3;
+		s = s / (double)(c-3) *10.0; //should be number of triplets -2 : i.e. len -2 triples -1 = len -3;
 	
 		if(s > dust_cut){
 #if DEBUG

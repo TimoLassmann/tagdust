@@ -11,29 +11,6 @@
 #include "malloc_macro.h"
 #endif
 
-/*! \brief  Initializes nucleotide alphabet needed to parse input. Calls parameter parser. Calls functions to process the data.
- * \param argc number of command line parameters
- * \param argv command line parameters
- * \return EXIT_SUCCESS */
-
-/*char* datadir;
-char datafile[1000];
-int i;
-
-init_nuc_code();
-
-datadir = getenv("testdatafiledir");
-
-fprintf(stdout,"%s\n",datadir);
-TOMEDB* db = 0;
-
-if(db_exists ("testdb")){
-	fprintf(stderr,"A database with the same name already exists.\n");
-	abort();
-}
-
-i = sprintf(datafile, "%s/%s",datadir,"hg19_chr22_M.fa");
-*/
 
 char* mutate(struct parameters* param, char* seq,char* seq_mutated,int len,unsigned int my_rand_max );
 

@@ -40,7 +40,7 @@ A805CKABXX,1,not_demultiplexed,,,Test bcl conversion,N,D109LACXX,BCF,testbclconv
 Note that only lane 1 is included in the test. 
 
 
-4) run the pipeline  & grab top 10k reads
+4) run the pipeline  & grab top 100k reads
 
 
 
