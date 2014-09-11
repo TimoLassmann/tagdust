@@ -1,0 +1,227 @@
+\documentclass[10pt,letterpaper,extrafontsizes]{memoir}
+\setulmarginsandblock{2.5cm}{2.5cm}{*}
+\setlrmarginsandblock{2.5cm}{2.5cm}{*}
+\checkandfixthelayout
+\usepackage{lmodern}
+\usepackage{url}
+\usepackage{comment}
+\usepackage[svgnames]{xcolor}
+\usepackage[T1]{fontenc}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\usepackage{graphicx}
+\usepackage{longtable} 
+\usepackage{fixltx2e} % provides \textsubscript
+
+
+
+\usepackage{ifxetex,ifluatex}
+\usepackage{fixltx2e} % provides \textsubscript
+% use upquote if available, for straight quotes in verbatim environments
+% use microtype if available
+\IfFileExists{microtype.sty}{\usepackage{microtype}}{}
+$if(geometry)$
+\usepackage[$for(geometry)$$geometry$$sep$,$endfor$]{geometry}
+$endif$
+$if(natbib)$
+\usepackage{natbib}
+\bibliographystyle{$if(biblio-style)$$biblio-style$$else$plainnat$endif$}
+$endif$
+$if(biblatex)$
+\usepackage{biblatex}
+$if(biblio-files)$
+\bibliography{$biblio-files$}
+$endif$
+$endif$
+$if(listings)$
+\usepackage{fancyvrb,listings}
+$endif$
+$if(lhs)$
+\lstnewenvironment{code}{\lstset{language=Haskell,basicstyle=\small\ttfamily}}{}
+$endif$
+%\usepackage{listings}
+
+
+\definecolor{gogetit}{HTML}{6C8B9F}
+\definecolor{backgroundgrey}{RGB}{237,237,237}
+\lstset{
+     basicstyle=\ttfamily,
+     backgroundcolor=\color{backgroundgrey},
+     breaklines=true,
+    fancyvrb=true,
+    showstringspaces=false,
+    tabsize=3,
+    keywordstyle=\color{blue}\textbf,
+    identifierstyle=,
+    commentstyle=\color{gogetit}\textit,
+    stringstyle=\color{red},
+    }
+
+%\definecolor{gaga}{RGB}{252,89,184}
+%\definecolor{gaga2}{RGB}{252,28,105}
+%\definecolor{commentgreen}{RGB}{45,211,68}
+%
+
+
+
+%\lstset{breaklines=true,backgroundcolor=\color{backgroundgrey}, numbers=left, numberstyle=\tiny, stepnumber=1, numbersep=5pt,frame=none,basicstyle=\small}%,basicstyle=\small\fontfamily{phv}\fontseries{mc}\selectfont}
+%\lstset{morecomment=[l][\color{orange}]{\#}}
+
+
+
+%\lstset{keywordstyle=\color{gaga}, commentstyle=\color{commentgreen}, morecomment=[l][\color{gaga2}]{\#},morecomment=[s][\color{red}]{"}{"}}
+
+%\lstset{emph={%  
+%    int, double, unsigned, float, long %
+%    },emphstyle={\color{gaga}}%
+%}%
+
+%$if(highlighting-macros)$
+%$highlighting-macros$
+%$endif$
+$if(verbatim-in-note)$
+\usepackage{fancyvrb}
+$endif$
+$if(tables)$
+\usepackage{longtable}
+$endif$
+
+\ifxetex
+  \usepackage[setpagesize=false, % page size defined by xetex
+              unicode=false, % unicode breaks when used with xetex
+              xetex]{hyperref}
+\else
+  \usepackage[unicode=true]{hyperref}
+\fi
+
+\hypersetup{breaklinks=true,
+            bookmarks=true,
+            pdfauthor={$author-meta$},
+            pdftitle={$title-meta$},
+            colorlinks=true,
+            citecolor=$if(citecolor)$$citecolor$$else$blue$endif$,
+            urlcolor=$if(urlcolor)$$urlcolor$$else$blue$endif$,
+            linkcolor=$if(linkcolor)$$linkcolor$$else$magenta$endif$,
+            pdfborder={0 0 0}}
+\urlstyle{same}  % don't use monospace font for urls
+
+$if(links-as-notes)$
+% Make links footnotes instead of hotlinks:
+\renewcommand{\href}[2]{#2\footnote{\url{#1}}}
+$endif$
+
+
+
+
+$if(numbersections)$
+\setcounter{secnumdepth}{5}
+$else$
+\setcounter{secnumdepth}{1}
+$endif$
+$if(verbatim-in-note)$
+\VerbatimFootnotes % allows verbatim text in footnotes
+$endif$
+$for(header-includes)$
+$header-includes$
+$endfor$
+
+$if(title)$
+\title{$title$}
+$endif$
+$if(subtitle)$
+\subtitle{$subtitle$}
+$endif$
+\author{$for(author)$$author$$sep$ \and $endfor$}
+\date{$date$}
+
+
+\newcommand*{\labelit}[1]{\phantomsection\label{#1}}
+\newcommand*{\refit}[1]{(graphic on page~\pageref{#1})}
+
+\DeclareRobustCommand{\cs}[1]{\texttt{\char`\\#1}}
+\newlength{\tpheight}\setlength{\tpheight}{0.9\textheight}
+\newlength{\txtheight}\setlength{\txtheight}{0.9\tpheight}
+\newlength{\tpwidth}\setlength{\tpwidth}{0.9\textwidth}
+\newlength{\txtwidth}\setlength{\txtwidth}{0.9\tpwidth}
+\newlength{\drop}
+
+\newenvironment{showtitle}{%
+  \begin{boxminipage}[c][\tpheight]{\tpwidth}
+  \centering\begin{vplace}\begin{minipage}[c][\txtheight]{\txtwidth}}%
+{\end{minipage}\end{vplace}\end{boxminipage}}
+\newcommand*{\titleCC}{\begingroup% City of Cambridge
+\drop=0.1\txtheight
+\vspace*{\drop}
+\centering 
+{\Large\itshape THE }\\[0.5\drop]
+{\textcolor{red}{\HUGE\bfseries $title$}}\par
+\vspace{\drop}
+{\Large\itshape MANUAL}\par
+\vfill
+{\Large $for(author)$$author$$sep$ \and $endfor$}\par
+\vfill
+{\plogo}\\[0.5\baselineskip]
+{\itshape }\par
+{\scshape $date$}\par
+%\vfill
+\vspace*{\drop}
+\endgroup}
+
+\newcommand*{\plogo}{\fbox{ }}
+
+\begin{document}
+\raggedbottom
+
+\frontmatter
+\pagestyle{empty}
+\titleCC
+\clearpage
+
+%$if(title)$
+%\maketitle
+%$endif$
+
+\pagestyle{plain}
+$for(include-before)$
+$include-before$
+
+$endfor$
+$if(toc)$
+{
+\hypersetup{linkcolor=blue}
+\setcounter{tocdepth}{$toc-depth$}
+\tableofcontents
+}
+$endif$
+\cleardoublepage
+\mainmatter
+
+
+
+$body$
+
+$if(natbib)$
+$if(biblio-files)$
+$if(biblio-title)$
+$if(book-class)$
+\renewcommand\bibname{$biblio-title$}
+$else$
+\renewcommand\refname{$biblio-title$}
+$endif$
+$endif$
+\bibliography{$biblio-files$}
+
+$endif$
+$endif$
+$if(biblatex)$
+\printbibliography$if(biblio-title)$[title=$biblio-title$]$endif$
+
+$endif$
+$for(include-after)$
+$include-after$
+
+$endfor$
+\end{document}
+
+
+

@@ -36,6 +36,16 @@
 
 /* Begin PBXFileReference section */
 		274B663919BE811800508A22 /* README.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = README.txt; path = benchmark/README.txt; sourceTree = "<group>"; };
+		2787F79819C1580C0061DDE7 /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Makefile.am; path = reproducibility/Makefile.am; sourceTree = "<group>"; };
+		2787F79A19C1598A0061DDE7 /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Makefile.am; path = doc/Makefile.am; sourceTree = "<group>"; };
+		2787F79B19C1598A0061DDE7 /* User-Manual.tex */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = "User-Manual.tex"; path = "doc/User-Manual.tex"; sourceTree = "<group>"; };
+		2787F79C19C1598A0061DDE7 /* ref.bib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = ref.bib; path = doc/ref.bib; sourceTree = "<group>"; };
+		2787F79E19C1696B0061DDE7 /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Makefile.am; path = reproducibility/builder/Makefile.am; sourceTree = "<group>"; };
+		2787F7A019C171B60061DDE7 /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Makefile.am; path = reproducibility/doc/Makefile.am; sourceTree = "<group>"; };
+		2787F7A119C172650061DDE7 /* style.css */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.css; name = style.css; path = reproducibility/doc/style.css; sourceTree = "<group>"; };
+		2787F7A219C172650061DDE7 /* template_modern.tex */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = template_modern.tex; path = reproducibility/doc/template_modern.tex; sourceTree = "<group>"; };
+		2787F7A419C174A60061DDE7 /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Makefile.am; path = reproducibility/scripts/Makefile.am; sourceTree = "<group>"; };
+		2787F7A519C178240061DDE7 /* run_benchmark.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = run_benchmark.md; path = reproducibility/scripts/run_benchmark.md; sourceTree = "<group>"; };
 		27E5722719BD903900A5D68C /* casava_test.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; name = casava_test.sh; path = dev/casava_test.sh; sourceTree = "<group>"; };
 		A1022D4D174AF684003978B4 /* fastx_barcode_splitter.pl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.perl; name = fastx_barcode_splitter.pl; path = scripts/fastx_barcode_splitter.pl; sourceTree = "<group>"; };
 		A1022D4E174AF6B7003978B4 /* benchmark_protocol.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = benchmark_protocol.txt; path = scripts/benchmark_protocol.txt; sourceTree = "<group>"; };
@@ -119,6 +129,54 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		2787F79719C157D00061DDE7 /* reproducibility */ = {
+			isa = PBXGroup;
+			children = (
+				2787F7A319C174940061DDE7 /* scripts */,
+				2787F79F19C171AC0061DDE7 /* doc */,
+				2787F79D19C1695F0061DDE7 /* builder */,
+				2787F79819C1580C0061DDE7 /* Makefile.am */,
+			);
+			name = reproducibility;
+			sourceTree = "<group>";
+		};
+		2787F79919C159770061DDE7 /* doc */ = {
+			isa = PBXGroup;
+			children = (
+				2787F79A19C1598A0061DDE7 /* Makefile.am */,
+				2787F79B19C1598A0061DDE7 /* User-Manual.tex */,
+				2787F79C19C1598A0061DDE7 /* ref.bib */,
+			);
+			name = doc;
+			sourceTree = "<group>";
+		};
+		2787F79D19C1695F0061DDE7 /* builder */ = {
+			isa = PBXGroup;
+			children = (
+				2787F79E19C1696B0061DDE7 /* Makefile.am */,
+			);
+			name = builder;
+			sourceTree = "<group>";
+		};
+		2787F79F19C171AC0061DDE7 /* doc */ = {
+			isa = PBXGroup;
+			children = (
+				2787F7A119C172650061DDE7 /* style.css */,
+				2787F7A219C172650061DDE7 /* template_modern.tex */,
+				2787F7A019C171B60061DDE7 /* Makefile.am */,
+			);
+			name = doc;
+			sourceTree = "<group>";
+		};
+		2787F7A319C174940061DDE7 /* scripts */ = {
+			isa = PBXGroup;
+			children = (
+				2787F7A519C178240061DDE7 /* run_benchmark.md */,
+				2787F7A419C174A60061DDE7 /* Makefile.am */,
+			);
+			name = scripts;
+			sourceTree = "<group>";
+		};
 		A1022D4C174AF66C003978B4 /* scripts */ = {
 			isa = PBXGroup;
 			children = (
@@ -146,6 +204,8 @@
 				A1E17141178A8B28006F393D /* README */,
 				A14F589B17783085003A7B1A /* Makefile.am */,
 				A14F589D177835CF003A7B1A /* configure.ac */,
+				2787F79919C159770061DDE7 /* doc */,
+				2787F79719C157D00061DDE7 /* reproducibility */,
 				A1F0D676191A059800A44BAD /* benchmark */,
 				A14F589C17783093003A7B1A /* src */,
 				A14739E019078E9900646B4C /* dev */,

@@ -4,8 +4,8 @@ VFLAGS = --track-origins=yes --tool=memcheck --leak-check=yes --error-exitcode=1
 EXTRA_DIST = doc/User-Manual.pdf doc/latex/refman.pdf
 
 
-SUBDIRS = src dev benchmark
 
+SUBDIRS = src dev benchmark doc  reproducibility
 dist_noinst_SCRIPTS = autogen.sh
 
 
