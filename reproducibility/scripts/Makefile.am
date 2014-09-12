@@ -2,9 +2,13 @@
 ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 EXTRA_DIST = run_benchmark.md
 
-PIPEFILES= run.mk
+PIPEFILES= run.mk plotting.R 5barread3.sh barread.sh
 
-CLEANFILES = $(PIPEFILES) 
+
+DISTCLEANFILES = all_arch.txt
+
+
+CLEANFILES = $(PIPEFILES)  *.fq   *_logfile.txt *_tagdust_arch.txt *btrim*  *_fastxbarcodefile.txt *_fastx*
 
 .PHONY: run
 
@@ -12,7 +16,7 @@ CLEANFILES = $(PIPEFILES)
 all: $(PIPEFILES)  run
 
 run:
-	$(MAKE)	-k -f run.mk
+	$(MAKE) -f run.mk message
 
 
 $(PIPEFILES): $(top_srcdir)/reproducibility/scripts/run_benchmark.md $(abs_top_builddir)/reproducibility/builder/mdlp

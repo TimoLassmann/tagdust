@@ -9,12 +9,6 @@ AM_INIT_AUTOMAKE([ -Wno-portability ])
 AC_CHECK_SIZEOF(long, 4)
 AM_CONDITIONAL([GOT_64BIT], [ test $ac_cv_sizeof_long -eq 8 ])
 
-#AC_MSG_RESULT($ac_cv_sizeof_long)
-
-#if test $ac_cv_sizeof_long -eq 8; then
-#	AC_DEFINE(HAVE_64BIT_LONG)
-#fi
-
 
 AC_ARG_ENABLE(debug,
               [  --enable-debug          Enable debugging information],

@@ -7,6 +7,8 @@ figures/figure1.pdf
 
 LATEX=pdflatex
 
+all:
+	@echo Everything seemed to work ok.
 
 
 

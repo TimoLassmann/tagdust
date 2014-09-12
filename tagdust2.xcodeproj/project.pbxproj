@@ -46,6 +46,7 @@
 		2787F7A219C172650061DDE7 /* template_modern.tex */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = template_modern.tex; path = reproducibility/doc/template_modern.tex; sourceTree = "<group>"; };
 		2787F7A419C174A60061DDE7 /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Makefile.am; path = reproducibility/scripts/Makefile.am; sourceTree = "<group>"; };
 		2787F7A519C178240061DDE7 /* run_benchmark.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = run_benchmark.md; path = reproducibility/scripts/run_benchmark.md; sourceTree = "<group>"; };
+		2787F7A619C1A0EA0061DDE7 /* mdlp.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = mdlp.md; path = reproducibility/builder/mdlp.md; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.c; };
 		27E5722719BD903900A5D68C /* casava_test.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; name = casava_test.sh; path = dev/casava_test.sh; sourceTree = "<group>"; };
 		A1022D4D174AF684003978B4 /* fastx_barcode_splitter.pl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.perl; name = fastx_barcode_splitter.pl; path = scripts/fastx_barcode_splitter.pl; sourceTree = "<group>"; };
 		A1022D4E174AF6B7003978B4 /* benchmark_protocol.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = benchmark_protocol.txt; path = scripts/benchmark_protocol.txt; sourceTree = "<group>"; };
@@ -153,6 +154,7 @@
 		2787F79D19C1695F0061DDE7 /* builder */ = {
 			isa = PBXGroup;
 			children = (
+				2787F7A619C1A0EA0061DDE7 /* mdlp.md */,
 				2787F79E19C1696B0061DDE7 /* Makefile.am */,
 			);
 			name = builder;

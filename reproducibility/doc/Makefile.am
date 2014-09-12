@@ -36,7 +36,8 @@ all : $(PDF) $(HTML)
 all-local:
 	@echo "Everything seemed to work ok."
 
-
 endif
 
+CLEANFILES=
+DISTCLEANFILES=
 
