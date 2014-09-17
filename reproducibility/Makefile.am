@@ -14,8 +14,7 @@ SUBDIRS = builder scripts $(DOC)
 all: 
 if HAVE_PANDOC
 if GOT_64BIT
-	@echo "${GOAHEAD}";
-	@echo "GAGA";
+	@echo "All good";
 endif
 endif
 

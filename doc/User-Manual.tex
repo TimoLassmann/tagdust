@@ -3,53 +3,10 @@
 %--------------------   start of the 'preamble'
 %
 \usepackage[table]{xcolor}
-\usepackage{graphicx,amssymb,amstext,amsmath,float,color,array,ctable,booktabs,wrapfig,caption}
+\usepackage{graphicx,amssymb,amstext,amsmath,float,color,array,ctable,booktabs,caption}
 %
 
 
-\usepackage{filecontents}
-\begin{filecontents}{ref.bib}
-@article{li2008mapping,
-  title={Mapping short DNA sequencing reads and calling variants using mapping quality scores},
-  author={Li, Heng and Ruan, Jue and Durbin, Richard},
-  journal={Genome research},
-  volume={18},
-  number={11},
-  pages={1851--1858},
-  year={2008},
-  publisher={Cold Spring Harbor Lab}
-}
-
-@article{Kivioja:2012kg,
-author = {Kivioja, Teemu and V{\"a}h{\"a}rautio, Anna and Karlsson, Kasper and Bonke, Martin and Enge, Martin and Linnarsson, Sten and Taipale, Jussi},
-title = {{Counting absolute numbers of molecules using unique molecular identifiers.}},
-journal = {Nature methods},
-year = {2012},
-volume = {9},
-number = {1},
-pages = {72--74},
-month = jan
-}
-
-
-@book{durbin,
-    author = {Durbin, R. and Eddy, S. and Krogh, A. and Mitchison, G.},
-    edition = {eleventh},
-publisher = {Press, Cambridge U.},
-    title = {{Biological sequence analysis}},
-    year = {2006}
-}
-
-
-
-@article{Kall:2005vg,
-author = {K{\"a}ll, Lukas and Krogh, Anders and Sonnhammer, Erik L L},
-title = {{An HMM posterior decoder for sequence feature prediction that includes homology information}},
-journal = {Bioinformatics (Oxford, England)},
-year = {2005}
-}
-
-\end{filecontents}
 
 \usepackage{graphics}
 \usepackage{hyperref}
@@ -203,12 +160,12 @@ TagDust allows users to specify the expected architecture of a read and converts
 
 %\begin{wrapfigure}{l}{1\textwidth}
 
-\begin{figure}[h!]
+\begin{figure}[H]
 
 \begin{center}
-\includegraphics[scale = 0.7]{figures/figure1.pdf}
+\includegraphics[scale = 0.6]{figures/Figure1.pdf}
 \end{center}
-\caption{A HMM specifies the expected architecture of the raw sequence. After decoding sequences are segmented into the components of the architecture. Based on the segmentation, a barcode is assigned to each read and remaining sequences are trimmed.}
+\caption{Workflow of TagDust. 1) A user specifies the expected read architecture as a sequence of blocks. In this example there are four blocks. 2) A HMM is constructed by stitching together a set of pre-defined blocks in the order given by the {\tt -1} \dots command line options. For example {\tt -2 B:GTA,AAC} is translated into the second red part of the HMM and models the presence of two mutually exclusive barcode sequences. 3) Each read is scanned with the HMM and each nucleotide is labelled as belonging to a single building block. In the example shown the three letter barcode GTA is recognised in the read. 4) Based on the labelling of the sequence, a barcode is assigned to each read and remaining sequences are trimmed.}
 \label{figure1}
 \end{figure}
 
@@ -278,7 +235,9 @@ bash-3.1$ tagdust -arch architectures.txt read1.fq read2.fq -o output
 \chapter{Usage}
 
 \section{Command Line}
-TagDust requires an input file containing sequences and a user specified HMM architecture used to extract the reads. For the architecture all that TagDust needs to know is the sequence of pre-defined building blocks. Options '{\tt -1,-2, ...}' are used to specify the first, second, etc. building block. Alternatively the architecture(s) can be supplied in a separate input file using the -arch option (see section \ref{arch}).  
+TagDust requires an input file containing sequences and a user defined HMM architecture used to extract the reads. The architecture is composed of a selection of pre-defined building blocks representing indices, barcodes, spacers and other sequences one might encounter in the raw output of a sequenced sample. The blocks are supplied to TagDust via command line arguments  '{\tt -1,-2, \dots }' defining the first, second, \dots block. See the legend of figure \ref{figure1} for more explanation. 
+
+Alternatively the architecture(s) can be supplied in a separate input file using the -arch option (see section \ref{arch}).  
 
 \begin{verbatim}
 bash-3.1$ tagdust <options> <read1.fq>  [read2.fq] -o <output prefix> 
@@ -567,20 +526,20 @@ TagDust will automatically select the correct architecture and proceed as normal
 When the input is paired-end data, TagDust will scan both input files with all architectures and attempt to find a match for both reads. {\bf If a match is found for only one file, TagDust will assume the other file only contains valid reads. }
 
 
-\subsection{De-multiplexing Illumina paired-end data}\label{illuminadata}
+\subsection{Integration with the Illumina CASAVA pipeline}\label{illuminadata}
 
-The casava pipeline converts raw bcl files into de-multiplexed fastq files in a single step. To use TagDust with Illumina data you first need to switch off the default de-multiplexing by adding the option: 
+The CASAVA pipeline converts raw bcl files into de-multiplexed fastq files in a single step. To use TagDust2 with Illumina data the default de-multiplexing has to switched off by adding the option: 
 \begin{verbatim}
 --use-bases-mask Y*,Y6 ,Y*
 \end{verbatim}
-to the configureBclToFastq.pl command and by modifying the sample-sheet. Increase 6 to the actual length of the barcodes in case they are longer. For more detail have a look at the guide by Brant Faircloth\footnote{https://gist.github.com/brantfaircloth/3125885} and have a look at the casava documentation.
+to the configureBclToFastq.pl command and by modifying the sample-sheet. Increase 6 in the example above to the actual length of the barcodes in case they are longer. For more detail have a look at the guide by Brant Faircloth\footnote{https://gist.github.com/brantfaircloth/3125885} and have a look at the CASAVA documentation.
 
-Now run TagDust on all three output files using the following {\it architecture file} \footnote{see section \ref{arch}}: 
+Now run TagDust on all output files using the following {\it architecture file} (see section \ref{arch}): 
 \begin{verbatim}
 tagdust -1 B:ACAGTG,ACTTGA,TTAGGC 
 tagdust -1 R:N 
 \end{verbatim}
-The first line tells TagDust to look for reads composed entirely of one of the three index sequences. The second architecture is used for both the other actual reads. Here is the actual command:
+The first line tells TagDust2 to look for reads composed entirely of one of the three index sequences. This line has to be changed to reflect the actual indices used in a particular experiment. It is also possible to add additional lines and let TagDust2 figure out which combination of indices was used. The second architecture is used for both the other actual reads. Here is the actual command:
  \begin{verbatim}
 bash-3.1$ tagdust -arch architectures.txt not_demultiplexed_NoIndex_L001_R1_001.fastq.gz
 not_demultiplexed_NoIndex_L001_R2_001.fastq.gz not_demultiplexed_NoIndex_L001_R3_001.fastq.gz

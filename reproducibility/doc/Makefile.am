@@ -1,4 +1,6 @@
 
+EXTRA_DIST = $(PNG)  $(PDF) $(HTML) style.css template_modern.tex
+
 if HAVE_PANDOC
 
 
@@ -16,9 +18,6 @@ vpath %.pdf  $(top_srcdir)/reproducibility/doc/
 vpath %.html $(top_srcdir)/reproducibility/doc/
 vpath %.tex $(top_srcdir)/reproducibility/doc/
 vpath %.css $(top_srcdir)/reproducibility/doc/
-
-
-EXTRA_DIST =$(PNG)  $(PDF) $(HTML) style.css template_modern.tex
 
 .PHONY : all 
 

@@ -72,7 +72,7 @@ AC_FUNC_REALLOC
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([src/Makefile])
 AC_CONFIG_FILES([dev/Makefile])
-AC_CONFIG_FILES([benchmark/Makefile])
+# AC_CONFIG_FILES([benchmark/Makefile])
 AC_CONFIG_FILES([reproducibility/Makefile])
 AC_CONFIG_FILES([reproducibility/builder/Makefile])
 AC_CONFIG_FILES([reproducibility/doc/Makefile])

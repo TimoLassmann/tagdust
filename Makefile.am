@@ -1,7 +1,7 @@
 
 VFLAGS = --track-origins=yes --tool=memcheck --leak-check=yes --error-exitcode=1
 
-EXTRA_DIST = doc/User-Manual.pdf doc/latex/refman.pdf
+EXTRA_DIST= 
 
 if HAVE_PANDOC
 DOC = doc
@@ -11,7 +11,7 @@ endif
 
 
 
-SUBDIRS = src dev benchmark $(DOC) reproducibility
+SUBDIRS = src dev  $(DOC) reproducibility
 dist_noinst_SCRIPTS = autogen.sh
 
 
