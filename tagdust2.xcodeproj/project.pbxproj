@@ -40,6 +40,9 @@
 		274BB2C61A3E6FCE00AB7ADA /* kslib.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = kslib.c; path = src/kslib.c; sourceTree = "<group>"; };
 		274BB2C71A3E6FCE00AB7ADA /* kslib.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = kslib.h; path = src/kslib.h; sourceTree = "<group>"; };
 		274BB2C91A3E8A8500AB7ADA /* NEWS */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = NEWS; sourceTree = "<group>"; };
+		274BB2CB1A3EAA6800AB7ADA /* casava_6nt_arch.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = casava_6nt_arch.txt; path = casava_demo/casava_6nt_arch.txt; sourceTree = "<group>"; };
+		274BB2CC1A3EAA6800AB7ADA /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Makefile.am; path = casava_demo/Makefile.am; sourceTree = "<group>"; };
+		274BB2CD1A3EAA6800AB7ADA /* UsingTagDustwithCASA.tex */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = UsingTagDustwithCASA.tex; path = casava_demo/UsingTagDustwithCASA.tex; sourceTree = "<group>"; };
 		2787F79819C1580C0061DDE7 /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Makefile.am; path = reproducibility/Makefile.am; sourceTree = "<group>"; };
 		2787F79A19C1598A0061DDE7 /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Makefile.am; path = doc/Makefile.am; sourceTree = "<group>"; };
 		2787F79B19C1598A0061DDE7 /* User-Manual.tex */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = "User-Manual.tex"; path = "doc/User-Manual.tex"; sourceTree = "<group>"; };
@@ -135,6 +138,16 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		274BB2CA1A3EAA5300AB7ADA /* casava_demo */ = {
+			isa = PBXGroup;
+			children = (
+				274BB2CB1A3EAA6800AB7ADA /* casava_6nt_arch.txt */,
+				274BB2CC1A3EAA6800AB7ADA /* Makefile.am */,
+				274BB2CD1A3EAA6800AB7ADA /* UsingTagDustwithCASA.tex */,
+			);
+			name = casava_demo;
+			sourceTree = "<group>";
+		};
 		2787F79719C157D00061DDE7 /* reproducibility */ = {
 			isa = PBXGroup;
 			children = (
@@ -213,6 +226,7 @@
 				274BB2C91A3E8A8500AB7ADA /* NEWS */,
 				A14F589B17783085003A7B1A /* Makefile.am */,
 				A14F589D177835CF003A7B1A /* configure.ac */,
+				274BB2CA1A3EAA5300AB7ADA /* casava_demo */,
 				2787F79919C159770061DDE7 /* doc */,
 				2787F79719C157D00061DDE7 /* reproducibility */,
 				A1F0D676191A059800A44BAD /* benchmark */,

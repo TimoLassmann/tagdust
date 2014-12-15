@@ -5,7 +5,7 @@ EXTRA_DIST= doc/User-Manual.pdf
 
 
 
-SUBDIRS = src dev  $(DOC) reproducibility
+SUBDIRS = src dev  $(DOC) reproducibility casava_demo
 dist_noinst_SCRIPTS = autogen.sh
 
 

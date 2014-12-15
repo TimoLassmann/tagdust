@@ -1,0 +1,217 @@
+\documentclass[11pt,a4paper,oneside]{book}
+%
+%--------------------   start of the 'preamble'
+%
+\usepackage[table]{xcolor}
+\usepackage{graphicx,amssymb,amstext,amsmath,float,color,array,ctable,booktabs,caption}
+%
+
+
+
+\usepackage{graphics}
+\usepackage{hyperref}
+\usepackage{pgf}
+\usepackage{natbib}
+\usepackage{verbatim}
+\usepackage{titlesec}
+\titleformat{\chapter}[hang] 
+{\normalfont\huge\bfseries}{\ \thechapter}{1em}{} 
+\usepackage{tikz}
+\usetikzlibrary{shapes}
+\usetikzlibrary{calc,backgrounds}
+\usetikzlibrary{automata}
+\usetikzlibrary{arrows,positioning,calc,matrix} 
+\usetikzlibrary{decorations.pathreplacing,shapes.multipart}
+
+\tikzstyle{Dstate}=[shape=circle,draw=black!50,fill=black!10]
+\tikzstyle{Istate}=[shape=diamond,draw=black!50,fill=black!10]
+\tikzstyle{Mstate}=[shape=rectangle,draw=black!50,fill=black!10]
+
+\tikzstyle{empty}=[shape=circle]
+
+\tikzstyle{lightedge}=[->,dotted,thick]
+\tikzstyle{mainstate}=[state,thick]
+\tikzstyle{mainedge}=[->,thick]
+
+\definecolor{black}{RGB}{0,0,0}
+\definecolor{darkgrey}{RGB}{64,64,64}
+\definecolor{grey}{RGB}{127,127,127}
+\definecolor{lightgrey}{RGB}{230,230,230}
+
+% scheme 1 
+\definecolor{winered}{RGB}{158,16,0}
+\definecolor{lightred}{RGB}{199,53,42}
+\definecolor{brown}{RGB}{158,95,0}
+\definecolor{orange}{RGB}{235,141,0}
+
+%scheme2
+
+\definecolor{darkblue}{RGB}{19,48,182}
+
+\definecolor{blue}{RGB}{36,89,158}
+\definecolor{browngreen}{RGB}{82,75,19}
+\definecolor{lightbrown}{RGB}{158,126,36}
+
+%scheme3
+
+\definecolor{green}{RGB}{52,132,23}
+
+
+\definecolor{lightgreen}{RGB}{82,209,36}
+\definecolor{lightbrowngreen}{RGB}{125,133,23}
+\definecolor{yellowgreen}{RGB}{198,209,36}
+
+%scheme4
+
+
+\definecolor{paper}{RGB}{240,238,183}
+\definecolor{organicgrey}{RGB}{163,162,124}
+
+
+\definecolor{metal}{RGB}{75,81,82}
+
+
+\setlength{\parindent}{0cm}
+\pagestyle{empty}
+
+\makeindex
+\usepackage{anysize}
+
+%\marginsize{left}{right}{top}{bottom}:
+\marginsize{2cm}{2cm}{2cm}{2cm}
+
+\begin{document}
+\frontmatter
+%-----------------------------------------------------------
+\newlength{\centeroffset}
+%\setlength{\centeroffset}{-0.5\oddsidemargin}
+%\addtolength{\centeroffset}{0.5\evensidemargin}
+%\addtolength{\textwidth}{-\centeroffset}
+\thispagestyle{empty}
+\vspace*{\stretch{1}}
+\noindent\hspace*{\centeroffset}\makebox[0pt][l]{\begin{minipage}{\textwidth}
+\flushright
+{\Huge\bfseries 
+
+Using TagDust in the CASAVA pipeline 
+
+}
+
+
+\end{minipage}}
+
+\vspace{\stretch{1}}
+\noindent\hspace*{\centeroffset}\makebox[0pt][l]{\begin{minipage}{\textwidth}
+\flushright
+
+
+\vspace{\stretch{1}}
+{\bfseries 
+by Timo Lassmann\\[1.5ex]} 
+\noindent\rule[-1ex]{\textwidth}{1pt}\\[2.5ex]
+ \today
+
+\end{minipage}}
+
+%\addtolength{\textwidth}{\centeroffset}
+%\vspace{\stretch{2}}
+
+
+\pagebreak
+\begin{small} 
+
+Copyright \copyright  2013, 2014 Timo Lassmann (timolassmann@gmail.com)
+ 
+ This document is free;  you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ 
+ This document is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ 
+ You should have received a copy of the GNU General Public License
+ along with TagDust.  
+ 
+ If not, see (http://www.gnu.org/licenses/).
+
+
+
+\end{small}
+
+%-----------------------------------------------------------
+%-----------------------------------------------------------
+\mainmatter
+%\setcounter{chapter}{-1}
+
+%\setcounter{chapter}{1}
+%\setcounter{section}{0}
+\section*{Introduction}
+
+Replacing the default CASAVA de-multiplexing with TagDust is trivial. Simply follow the steps below: 
+
+\begin{enumerate}
+\item Install bcl2fastq \footnote{http://support.illumina.com/downloads/bcl2fastq\_conversion\_software\_184.html}
+\item Create a sample sheet to turn off the default multi-plexing:
+\begin{verbatim}
+FCID,Lane,SampleID,SampleRef,Index,Description,Control,Recipe,Operator,SampleProject
+Noname,1,not_demultiplexed,,,,N,,BCF,tagdust
+Noname,2,not_demultiplexed,,,,N,,BCF,tagdust
+\end{verbatim}
+Make sure that the second column matches the actual lanes present.
+
+\item run configureBclToFastq.pl with the sample sheet generated above to configure CASAVA:
+
+\begin{verbatim}
+bash-3.1$ bin/configureBclToFastq.pl  --sample-sheet  samplesheet.csv 
+ --input-dir <>
+  --output-dir <> --use-bases-mask 'y76n*,y6n,y76n*'
+\end{verbatim}
+It is important to set the length of the reads and barcode accurately. In the example above we expect a 76t paired end data indexed by a 6nt barcode. In case of a 8nt barcode we would use: {\it -use-bases-mask 'y76n*,y8n,y76n*'}.
+
+Have a look at the CASAVA documentation for more information on this topic. 
+
+\item create a TagDust architecture file indicating which indices were used. E.g:
+\begin{verbatim}
+bash-3.2$ more casava_6nt_arch.txt 
+tagdust -1 B:ATCACG,CGATGT,TTAGGC,TGACCA,ACAGTG,GCCAAT,
+CAGATC,ACTTGA,GATCAG,TAGCTT,GGCTAC,CTTGTA
+tagdust -1 R:N  
+\end{verbatim}
+
+The first line tells TagDust2 to look for reads composed entirely of one of the 12, 6nt long index sequences. This line has to be changed to reflect the actual indices used in a particular experiment. It is also possible to add additional lines and let TagDust2 figure out which combination of indices was used. The second architecture is used for both the other actual reads.
+
+\item run TagDust on the output files generated by CASAVA:
+\begin{verbatim}
+bash-3.1$ tagdust -arch casava_6nt_arch.txt \
+not_demultiplexed_NoIndex_L001_R1_001.fastq.gz \not_demultiplexed_NoIndex_L001_R2_001.fastq.gz \
+not_demultiplexed_NoIndex_L001_R3_001.fastq.gz \-o demultiplexed
+\end{verbatim}
+
+
+
+
+\end{enumerate}
+
+%\end{wrapfigure}
+
+  
+%-----------------------------------------------------------
+\addcontentsline{toc}{chapter}{\numberline{}Bibliography}
+\bibliographystyle{plain}
+\bibliography{ref}
+
+
+%-----------------------------------------------------------
+%\appendix
+%
+%\chapter{Long proofs}\label{app:proofs} An Appendix is a good place
+%to put lengthy proofs that must be included but would impede the
+%flow if placed in the main text.
+%\section{Proof of theorem}\label{pf:angels}
+%By inspection.
+
+%-----------------------------------------------------------
+\end{document}
