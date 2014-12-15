@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		274BB2C81A3E6FCE00AB7ADA /* kslib.c in Sources */ = {isa = PBXBuildFile; fileRef = 274BB2C61A3E6FCE00AB7ADA /* kslib.c */; };
 		A10B993316C09ED500AF1A1E /* tagdust2.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = A10B993216C09ED500AF1A1E /* tagdust2.1 */; };
 		A10B994316C09F2900AF1A1E /* interface.c in Sources */ = {isa = PBXBuildFile; fileRef = A10B993916C09F2900AF1A1E /* interface.c */; };
 		A10B994416C09F2900AF1A1E /* io.c in Sources */ = {isa = PBXBuildFile; fileRef = A10B993B16C09F2900AF1A1E /* io.c */; };
@@ -36,6 +37,9 @@
 
 /* Begin PBXFileReference section */
 		274B663919BE811800508A22 /* README.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = README.txt; path = benchmark/README.txt; sourceTree = "<group>"; };
+		274BB2C61A3E6FCE00AB7ADA /* kslib.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = kslib.c; path = src/kslib.c; sourceTree = "<group>"; };
+		274BB2C71A3E6FCE00AB7ADA /* kslib.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = kslib.h; path = src/kslib.h; sourceTree = "<group>"; };
+		274BB2C91A3E8A8500AB7ADA /* NEWS */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = NEWS; sourceTree = "<group>"; };
 		2787F79819C1580C0061DDE7 /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Makefile.am; path = reproducibility/Makefile.am; sourceTree = "<group>"; };
 		2787F79A19C1598A0061DDE7 /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Makefile.am; path = doc/Makefile.am; sourceTree = "<group>"; };
 		2787F79B19C1598A0061DDE7 /* User-Manual.tex */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = "User-Manual.tex"; path = "doc/User-Manual.tex"; sourceTree = "<group>"; };
@@ -47,6 +51,7 @@
 		2787F7A419C174A60061DDE7 /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Makefile.am; path = reproducibility/scripts/Makefile.am; sourceTree = "<group>"; };
 		2787F7A519C178240061DDE7 /* run_benchmark.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = run_benchmark.md; path = reproducibility/scripts/run_benchmark.md; sourceTree = "<group>"; };
 		2787F7A619C1A0EA0061DDE7 /* mdlp.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = mdlp.md; path = reproducibility/builder/mdlp.md; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.c; };
+		278B776919CFB54A002F1BE1 /* index.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; name = index.html; path = doc/website/index.html; sourceTree = "<group>"; };
 		27E5722719BD903900A5D68C /* casava_test.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; name = casava_test.sh; path = dev/casava_test.sh; sourceTree = "<group>"; };
 		A1022D4D174AF684003978B4 /* fastx_barcode_splitter.pl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.perl; name = fastx_barcode_splitter.pl; path = scripts/fastx_barcode_splitter.pl; sourceTree = "<group>"; };
 		A1022D4E174AF6B7003978B4 /* benchmark_protocol.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = benchmark_protocol.txt; path = scripts/benchmark_protocol.txt; sourceTree = "<group>"; };
@@ -144,6 +149,7 @@
 		2787F79919C159770061DDE7 /* doc */ = {
 			isa = PBXGroup;
 			children = (
+				278B776919CFB54A002F1BE1 /* index.html */,
 				2787F79A19C1598A0061DDE7 /* Makefile.am */,
 				2787F79B19C1598A0061DDE7 /* User-Manual.tex */,
 				2787F79C19C1598A0061DDE7 /* ref.bib */,
@@ -173,8 +179,8 @@
 		2787F7A319C174940061DDE7 /* scripts */ = {
 			isa = PBXGroup;
 			children = (
-				2787F7A519C178240061DDE7 /* run_benchmark.md */,
 				2787F7A419C174A60061DDE7 /* Makefile.am */,
+				2787F7A519C178240061DDE7 /* run_benchmark.md */,
 			);
 			name = scripts;
 			sourceTree = "<group>";
@@ -204,6 +210,7 @@
 				A16258E417AB8638005D6E6A /* mycodestyle.sty */,
 				A1E17142178A8B34006F393D /* ChangeLog */,
 				A1E17141178A8B28006F393D /* README */,
+				274BB2C91A3E8A8500AB7ADA /* NEWS */,
 				A14F589B17783085003A7B1A /* Makefile.am */,
 				A14F589D177835CF003A7B1A /* configure.ac */,
 				2787F79919C159770061DDE7 /* doc */,
@@ -274,6 +281,8 @@
 				A14739DF1907885E00646B4C /* Makefile.am */,
 				A1D2539A19107D7200EBC4E5 /* malloc_macro.h */,
 				A1D2539819088F3200EBC4E5 /* evalresults.c */,
+				274BB2C71A3E6FCE00AB7ADA /* kslib.h */,
+				274BB2C61A3E6FCE00AB7ADA /* kslib.c */,
 				A14739E919079AE700646B4C /* simulate_reads.c */,
 				A19A5D6618FCDD15008EB897 /* test_architectures.c */,
 				A1DDE7F218E568D6000E3709 /* calibrateQ.c */,
@@ -374,6 +383,7 @@
 				A1441D4518B5DD1C0084B030 /* paired_pre_processing.c in Sources */,
 				A10B994716C09F2900AF1A1E /* nuc_code.c in Sources */,
 				A14739EA19079AE700646B4C /* simulate_reads.c in Sources */,
+				274BB2C81A3E6FCE00AB7ADA /* kslib.c in Sources */,
 				A10B994D16C0C7FF00AF1A1E /* barcode_hmm.c in Sources */,
 				A1DDE7F318E568D7000E3709 /* calibrateQ.c in Sources */,
 			);

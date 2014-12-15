@@ -108,6 +108,7 @@ struct parameters {
 	char* exact5;
 	char* messages;
 	char* buffer;
+	char errmsg[kslibERRBUFSIZE];
 	int gzipped;
 	int bzipped;
 	int dust;
@@ -152,8 +153,10 @@ struct parameters {
 };
 
 struct parameters* interface(struct parameters* param,int argc, char *argv[]);
-struct read_structure* assign_segment_sequences(struct read_structure* read_structure, char* tmp, int segment);
-void free_param(struct parameters* param);
+//struct read_structure* assign_segment_sequences(struct read_structure* read_structure, char* tmp, int segment);
+int assign_segment_sequences(struct parameters* param, char* tmp, int segment);
+
+int free_param(struct parameters* param);
 void usage(void);
 
 

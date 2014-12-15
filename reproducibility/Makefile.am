@@ -1,14 +1,9 @@
 AUTOMAKE_OPTIONS = subdir-objects
 ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 
-if HAVE_PANDOC
-DOC = doc
-else
-DOC =
-endif
+EXTRA_DIST = rnaseq_pipeline_4tagdust_paper-0.8.tar.gz 
 
-
-SUBDIRS = builder scripts $(DOC)
+SUBDIRS = builder scripts doc bin
 
 
 all: 

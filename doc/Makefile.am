@@ -1,7 +1,4 @@
-EXTRA_DIST = User-Manual.tex\
-User-Manual.pdf \
-ref.bib \
-figures/Figure1.pdf
+EXTRA_DIST = User-Manual.tex User-Manual.pdf ref.bib Figure1.pdf
 
 
 

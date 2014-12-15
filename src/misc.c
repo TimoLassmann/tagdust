@@ -27,15 +27,18 @@
  - add probabilities in logspace
  */
 
+#include "kslib.h"
+
+#if HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+
 #include "tagdust2.h"
 #include "nuc_code.h"
 #include "misc.h"
 #include <ctype.h>
 
-
-#ifndef MMALLOC
-#include "malloc_macro.h"
-#endif
 
 
 static unsigned long next = 1;
@@ -285,7 +288,8 @@ char* append_message(char* old_message, char* new_message)
 {
 	static size_t message_len = 0;
 	struct tm *ptr;
-	void* tmp = 0;
+	int status;
+	
 	char time_string[200];
 	int hour;
 	//char am_or_pm;
@@ -313,7 +317,7 @@ char* append_message(char* old_message, char* new_message)
 	if(message_len == 0){
 		MMALLOC(old_message,sizeof(char) *( time_len+added_len+1));
 	}else{
-		MREALLOC(old_message, tmp,  sizeof(char) *( message_len + time_len+added_len + 1));
+		MREALLOC(old_message,  sizeof(char) *( message_len + time_len+added_len + 1));
 
 	}
 	
@@ -326,6 +330,9 @@ char* append_message(char* old_message, char* new_message)
 
 	
 	return old_message;
+ERROR:
+	KSLIB_MESSAGE(status,"Something wrong in append_message.\n");
+	return NULL;
 }
 
 
@@ -465,6 +472,7 @@ int bpm_global(const  char* t,const  char* p,int n,int m)
 	register unsigned long int i;//,c;
 	unsigned long int diff;
 	unsigned long int B[255];
+	int status;
 	
 	int c;
 	char* p1= 0;
@@ -556,6 +564,9 @@ int bpm_global(const  char* t,const  char* p,int n,int m)
 	MFREE(p2);
 	
 	return (int)k;
+ERROR:
+	KSLIB_MESSAGE(status,"Somethign wrong in bpm_global.\n");
+	return kslFAIL;
 }
 
 
@@ -835,6 +846,7 @@ char* shorten_pathname(char* p)
 unsigned char* reverse_complement(unsigned char* p,int len)
 {
 	unsigned char* tmp = 0;
+	int status;
 	MMALLOC(tmp,sizeof(unsigned char)*(len +2));
 	int i,c;
 	c = 0;
@@ -852,6 +864,9 @@ unsigned char* reverse_complement(unsigned char* p,int len)
 	}
 	MFREE(tmp);
 	return p;
+ERROR:
+	KSLIB_MESSAGE(status,"Something wrong in reverse_complement.\n");
+	return NULL;
 }
 
 /** \fn void reverse_sequence(char* p,int len)

@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="en" >
+<head>
+	<title>TagDust</title>
+	<meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+	<meta name="google-site-verification" content="1Oa_6IuKcFrKdzH3izTM0DYdDNGSgKuEP7X2110572s" />
+	<meta name="google-site-verification" content="1Oa_6IuKcFrKdzH3izTM0DYdDNGSgKuEP7X2110572s" />
+	<style>
+	/* Makeshift CSS Reset */
+* {
+	margin: 0;
+	padding: 0;
+}
+
+/* Tell the browser to render HTML 5 elements as block */
+header, footer, section, aside, nav, article {
+	display: block;
+}
+
+body {
+	margin: 0 auto;
+	padding: 22px 0;
+	width: 940px;
+	font: 13px/22px Helvetica, Arial, sans-serif;
+	background: #F0F0F0;
+}
+
+h1, h2 {
+	font-size: 28px;
+	line-height: 44px;
+	padding: 22px 0;
+}
+
+h3 {
+	font-size: 18px;
+	line-height: 22px;
+	padding: 11px 0;
+}
+
+p {
+	padding-bottom: 22px;
+}
+
+img { border: 0; } 
+
+/*------------------------------
+=NAVIGATION
+------------------------------*/
+
+nav {
+	position: absolute;
+	left: 0;
+	width: 100%;
+	background: #000000; 
+}
+
+	nav ul {
+		margin: 0 auto;
+		width: 940px;
+		list-style: none;
+	}
+
+		nav ul li {
+			float: left;
+		}
+		
+			nav ul li a {
+				display: block;
+				margin-right: 20px;
+				width: 140px;
+				font-size: 14px;
+				line-height: 44px;
+				text-align: center;
+				text-decoration: none;
+				color: #777;
+			}
+			
+				nav ul li a:hover {
+					color: #fff;
+				}
+			
+			nav ul li.selected a {
+				color: #fff;
+			}
+			
+			nav ul li.subscribe a {
+				margin-left: 22px;
+				padding-left: 33px;
+				text-align: left;
+				background: url("images/rss.png") left center no-repeat;
+			}
+
+
+
+/*------------------------------
+=INTRODUCTION
+------------------------------*/
+
+#intro {
+	position: relative;
+	margin-top: 66px;
+	padding: 44px;
+	background: #3366AA;
+	
+	/* Background-size not implemented yet */
+	-webkit-background-size: 100%;
+	-o-background-size: 100%;
+	-khtml-background-size: 100%;
+
+	
+	/* Border-radius not implemented yet */
+	-moz-border-radius: 22px;
+	-webkit-border-radius: 22px;
+}
+
+	#intro h2, #intro p {
+		position: relative;
+		z-index: 9999;
+		width: 620px;
+	}
+	
+	#intro h2 {
+		padding: 0 0 22px 0;
+		font-weight: normal;
+		color: #fff;
+	}
+	
+	#intro p {
+		padding: 0;
+		color: #6699FF;
+	}
+	
+	#intro img {
+		position: absolute;
+		top: 0;
+		right: 0;
+		
+		height: 90%;
+	
+		/* Border-radius not implemented yet */
+		-moz-border-radius: 22px;
+		-webkit-border-radius: 22px;
+	}
+
+
+
+/*------------------------------
+=CONTENT AREA AND SIDEBAR LAYOUT
+------------------------------*/
+
+#content {
+	display: table;
+}
+
+	#mainContent {
+		display: table-cell;
+		width: 620px;
+		padding-right: 22px;
+		
+	}
+	
+	aside {
+		display: table-cell;
+		width: 300px;
+	}
+
+
+
+/*------------------------------
+=BLOG POST
+------------------------------*/
+.blogPost header p, .blogPost header p a {
+		font-size: 14px;
+		font-style: italic;
+		color: #777;
+	}
+	
+		.blogPost header p a:hover {
+			text-decoration: none;
+			color: #000;
+		}
+
+.blogPost div {
+	/* Column-count not implemented yet */
+	-moz-column-count: 1;
+	-webkit-column-count: 1;
+	
+	/* Column-gap not implemented yet */
+	-moz-column-gap: 22px;
+	-webkit-column-gap: 22px;
+}
+
+
+.blogPost1 div {
+	/* Column-count not implemented yet */
+	-moz-column-count: 1;
+	-webkit-column-count: 1;
+	
+	/* Column-gap not implemented yet */
+	-moz-column-gap: 22px;
+	-webkit-column-gap: 22px;
+}
+
+	
+.blogPost img {
+	margin: 22px 0;
+	-webkit-box-shadow: 3px 3px 7px #777;
+}
+.blogPost a{
+	color: #000;
+}
+.blogPost a:hover {
+					color: #777;
+				}
+
+
+.blogPost ul {
+	liststyle: circle;
+	}
+	
+	
+
+
+/*------------------------------
+=SIDEBAR
+------------------------------*/
+aside section {
+	margin: 22px 0 0 22px;
+	padding: 11px 22px;
+	background: #CCCCCC;
+	
+	/* Border-radius not implemented yet */
+	-moz-border-radius: 11px;
+	-webkit-border-radius: 11px;
+}
+
+	aside section ul {
+		margin: 0 0 0 22px;
+		list-style: none;
+	}
+	
+		aside section ul li a {
+			display: block;
+			text-decoration: none;
+			color: #000;
+		}
+		
+			aside section ul li a:hover {
+				text-decoration: underline;
+			}
+
+
+
+/*------------------------------
+=FOOTER
+------------------------------*/
+footer {
+	position: absolute;
+	left: 0;
+	width: 100%;
+	background: #222;
+}
+
+	footer div {
+		display: table;
+		margin: 0 auto;
+		padding: 44px 0;
+		width: 940px;
+		color: #777;
+	}
+	
+		footer div section {
+			display: table-cell;
+			width: 300px;
+		}
+		
+		footer div #about, footer div #blogroll {
+			padding-right: 20px;
+		}
+		
+	footer h3 {
+		color: #FFF;
+	}
+	
+	footer a {
+		color: #999;
+	}
+	
+		footer a:hover {
+			color: #FFF;
+			text-decoration: none;
+		}
+	
+	footer ul {
+		margin: 0 0 0 40px;
+		list-style: square;
+		color: #565656;
+	}
+	
+		footer ul li a {
+			display: block;
+		}
+	</style>
+	
+</head>
+<body>
+	<header>
+		<h1>TagDust</h1>
+		
+	</header>
+	
+	<nav>
+		<ul>
+			<li class="selected"><a href="#introduction">Introduction</a></li>
+			<li><a href="http://sourceforge.net/projects/tagdust/">Download</a></li>
+			<li><a href="#contact">Contact</a></li>
+		</ul>
+	</nav>
+	<section id="intro">
+		<header>
+			<h2>Extracts mappable reads from NGS gata.</h2>
+		</header>
+		<p>Works with large fastq files.</p>
+		<!--<img src="intro_background.png" />-->
+	</section>
+	<div id="content">
+		<div id="mainContent">
+			<section>
+			
+				
+				<article class="blogPost" id="introduction" >
+					<header>
+						<h2>Introduction</h2>
+						<p>Posted on October 23th 2013 by Timo Lassmann</p>
+					</header>
+					<div>
+						<p>
+						Raw sequences produced by next generation sequencing (NGS) machines may contain adapter, linker, barcode and fingerprint sequences. TagDust2 is a program to extract and correctly label the sequences to be mapped in downstream pipelines.</p>
+						
+						<p>TagDust allows users to specify the expected architecture of a read and converts it into a hidden Markov model. The latter can assign sequences to a particular barcode (or index) even in the presence of sequencing errors. Sequences not matching the architecture (primer dimers, contaminants etc.) are automatically discarded:</p>
+
+						<img style="width: 500px;"  src="figure1.jpg" />
+
+					</div>
+				</article>
+				<article class="blogPost" id="version2.2" >
+					<header>
+						<h2>Version 2.2 released </h2>
+						<p>Posted on May  29th 2014 by Timo Lassmann</p>
+					</header>
+					<div>
+						<p>
+						Version 2.2 is about 2 major updates
+						</p>
+						<p>1) Integration with Illumina Casava output. </p>
+						
+						
+						
+						
+						<p>2) A test suite was added to ensure all paper figures can be easily reproduced.
+						
+						
+						</p>
+						<p>Have a look at the expanded user manual.
+						</p>
+						
+					</div>
+				</article>
+				<article class="blogPost" id="version2.12" >
+					<header>
+						<h2>Version 2.12 released </h2>
+						<p>Posted on May  29th 2014 by Timo Lassmann</p>
+					</header>
+					<div>
+						<p>
+						Version 2.12 includes minor bug fixes.
+						</p>
+						
+						
+					</div>
+				</article>
+				<article class="blogPost" id="version2.11" >
+					<header>
+						<h2>Version 2.11 released </h2>
+						<p>Posted on May  19th 2014 by Timo Lassmann</p>
+					</header>
+					<div>
+						<p>
+						Version 2.11 includes three major updates:
+						</p>
+						
+						<p>1) Support for both single and paired end data.
+						</p>
+						<p>2) Automatic selection of read architectures. In a lab running several NGS protocols users can now create a template file listing all possible read architectures / barcode combinations used. TagDust will automatically select the correct architecture.
+						</p>
+						<p>3) Automatic threshold selection. In pervious versions the -q option was used to select the extraction threshold. The new version runs a small simulation and automatically selects a threshold giving best sensitivity + specificity. This greatly improves the results when the read architecture is simple (e.g. a three letter barcode followed by the read).
+						</p>
+						
+						
+						
+						
+						
+					</div>
+				</article>
+				
+				
+				
+				<article class="blogPost1" id="install">
+					<header>
+						<h2>Installation</h2>
+					</header>
+					<div>
+					<pre>tar -zxcf tagdust-X.XX.tar.gz </pre>
+					<pre>cd tagdust</pre>
+					<pre>./configure </pre>
+					<pre>make</pre>
+					<pre>make check</pre>
+					<pre>make install</pre>
+						
+					</div>
+				</article>
+				
+				
+
+				
+				
+			</section>			
+		</div>
+		<aside>
+		<section>
+				<header>
+					<h3>Sections</h3>
+				</header>
+				<ul>
+					<li><a href="#introduction">Introduction</a></li>
+					<li><a href="#usage">Usage</a></li>
+					<li><a href="#install">Installation</a></li>
+					<li><a href="#about">About</a></li>
+					<li><a href="http://sourceforge.net/projects/tagdust/">Download</a></li>
+					<li><a href="#contact">Contact</a></li>
+				</ul>
+			</section>
+			<section>
+				<header>
+					<h3>Links</h3>
+				</header>
+				<ul>
+					<li><a href="http://samstat.sourceforge.net/">SAMstat</a></li>
+					<li><a href="http://www.yokohama.riken.jp/english/">RIKEN</a></li>
+					<li><a href="http://www.osc.riken.jp/english/">OMICS Science Center</a></li>
+					
+					<li><a href="http://samtools.sourceforge.net/">Samtools</a></li>
+					<li><a href="http://code.google.com/p/bedtools/">BEDtools</a></li>
+				</ul>
+			</section>
+		</aside>
+	</div>
+	<footer>
+		<div>
+			<section id="about">
+				<h3>About</h3>
+				<p>Raw data produced by next generation sequencing instruments can include auxillary sequences which need to be trimmed before mapping. TagDust removes such sequences which simultaneously discarding artifacts.</p>
+			</section>
+			<section id="contact">
+				
+					<h3>Contact</h3>
+				
+				<p>TagDust was developed by Timo Lassmann (timolassmann at gmail dot com) while working at RIKEN.</p>
+				<!--<h3>Please cite:</h3>
+				
+				<p>Lassmann et al. (2013 ) "SAMStat: monitoring biases in next generation sequencing data." Bioinformatics doi:10.1093/bioinformatics/btq614 [<a href ="http://www.ncbi.nlm.nih.gov/pubmed/21088025/">PMID: 21088025</a>] </p>-->
+			</section>
+			<section id="blogroll">
+				<h3>Links</h3>
+				<ul>
+					<li><a href="http://samstat.sourceforge.net/">SAMstat</a></li>
+					<li><a href="http://www.yokohama.riken.jp/english/">RIKEN</a></li>
+					<li><a href="http://www.osc.riken.jp/english/">OMICS Science Center</a></li>
+					
+					<li><a href="http://code.google.com/p/bedtools/">BEDtools</a></li>
+					
+
+				</ul>
+			</section>
+			
+		</div>
+		<div style="text-align: center;"><a href="http://sourceforge.net"><img src="http://sflogo.sourceforge.net/sflogo.php?group_id=246254&amp;type=2" width="125" height="37" alt="SourceForge.net Logo" /></a></div>
+	</footer>
+	
+	
+</body>
+</html>

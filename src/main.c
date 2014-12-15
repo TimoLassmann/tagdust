@@ -69,8 +69,11 @@ Copyright 2013 Timo Lassmann (timolassmann@gmail.com)
  Calls parameter parser. Calls functions to process the data. \author Timo Lassmann \bug No known bugs.
  */
 
-#ifndef MMALLOC
-#include "malloc_macro.h"
+
+#include "kslib.h"
+
+#if HAVE_CONFIG_H
+#include "config.h"
 #endif
 
 #include "interface.h"
@@ -88,7 +91,7 @@ Copyright 2013 Timo Lassmann (timolassmann@gmail.com)
  * \return EXIT_SUCCESS */
 
 int main (int argc,char * argv[]) {
-	struct parameters* param = 0;
+	struct parameters* param = NULL;
 	
 	init_nuc_code();
 	
@@ -152,7 +155,7 @@ int main (int argc,char * argv[]) {
 		free_param(param);
 		exit(EXIT_FAILURE);
 	}*/
-	
+	/*
 	if(param->join){
 		concatenate_reads(param,&read_fasta_fastq);
 		free_param(param);
@@ -163,7 +166,7 @@ int main (int argc,char * argv[]) {
 		split(param,&read_fasta_fastq);
 		free_param(param);
 		return EXIT_SUCCESS;
-	}
+	}*/
 	
 	free_param(param);
 	return EXIT_SUCCESS;

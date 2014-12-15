@@ -6,49 +6,57 @@ bin_PROGRAMS = tagdust simreads evalres
 
 
 evalres_SOURCES = \
-malloc_macro.h \
-evalresults.c \
-interface.h \
-interface.c \
-misc.h \
-misc.c \
-nuc_code.h \
-nuc_code.c \
+barcode_hmm.h \
 io.h \
+nuc_code.h \
+interface.h \
+kslib.h \
+misc.h \
+tagdust2.h \
+kslib.c \
+evalresults.c \
+interface.c \
+misc.c \
+nuc_code.c \
 io.c
 
 evalres_LDADD = -lm
 
 simreads_SOURCES= \
-malloc_macro.h \
-tagdust2.h \
-interface.h \
-interface.c \
 nuc_code.h \
-nuc_code.c \
+sim.h \
+interface.h \
+kslib.h \
 misc.h \
+tagdust2.h \
+kslib.c \
+interface.c \
+nuc_code.c \
 misc.c \
 simulate_reads.c
+
 simreads_CPPFLAGS = -DSIMREADS
 simreads_LDADD = -lm
 
 tagdust_SOURCES =  \
-malloc_macro.h \
 barcode_hmm.h \
-interface.h \
-misc.h \
 io.h \
 nuc_code.h \
+interface.h \
+kslib.h \
+misc.h \
 tagdust2.h \
+kslib.c \
 main.c \
 interface.c \
 nuc_code.c \
 misc.c \
 io.c \
 barcode_hmm.c \
-paired_pre_processing.c \
 calibrateQ.c \
 test_architectures.c
+
+
 
 
 
@@ -64,7 +72,7 @@ TESTS_ENVIRONMENT = \
 check_PROGRAMS = tagdust_rtest simreads_rtest evalres_rtest tagdustiotest
 
 
-tagdustiotest_SOURCES = io.c misc.c interface.c
+tagdustiotest_SOURCES = io.c misc.c interface.c kslib.c
 tagdustiotest_LDADD = $(tagdust_LDADD)
 tagdustiotest_CPPFLAGS  =  -DUTEST
 

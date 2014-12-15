@@ -1,3 +1,9 @@
+#include "kslib.h"
+
+#if HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "tagdust2.h"
 #include "interface.h"
 #include "io.h"
@@ -7,15 +13,12 @@
 #include <stdio.h>
 #include "misc.h"
 
-#ifndef MMALLOC
-#include "malloc_macro.h"
-#endif
 
 
-
-struct parameters* estimateQthreshold(struct parameters* param, struct sequence_stats_info* ssi)
+int estimateQthreshold(struct parameters* param, struct sequence_stats_info* ssi)
 {
 	int i,j;
+	int status;
 	
 	//Warning - I set the seed to number 42 because the results are completely robust with 400000 sequences...
 	// if we reduce the latter we need to test for consistency between runs...
@@ -84,7 +87,10 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 	}
 	
 	for(i = 0; i < binsize*2;i++){
-		ri[readnum] = emit_read_sequence(mb, ri[readnum],ssi->average_length,&seed);
+		
+		
+		if((status = emit_read_sequence(mb, ri[readnum],ssi->average_length,&seed)) != kslOK) KSLIB_XFAIL(kslFAIL,param->errmsg,"Failed to emit a sequence from read HMM.\n");
+		//ri[readnum] = emit_read_sequence(mb, ri[readnum],ssi->average_length,&seed);
 		
 		
 		
@@ -95,7 +101,9 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 	}
 	
 	for(i = 0; i <  binsize+binsize ;i++){
-		ri[readnum] = emit_random_sequence(mb, ri[readnum],ssi->average_length,&seed);
+		if((status = emit_random_sequence(mb, ri[readnum],ssi->average_length,&seed)) != kslOK) KSLIB_XFAIL(kslFAIL,param->errmsg,"Failed to emit a random sequence.\n");
+		
+		//ri[readnum] = emit_random_sequence(mb, ri[readnum],ssi->average_length,&seed);
 		ri[readnum]->read_type = 1;
 		TN++;
 		
@@ -126,9 +134,11 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 		mb = init_model_bag(param, ssi);
 	}
 	
-	mb =  run_pHMM(0,mb,ri,param,0, readnum,MODE_GET_PROB);
+	if((status =run_pHMM(0,mb,ri,param,0, readnum,MODE_GET_PROB)) != kslOK) KSLIB_XFAIL(kslFAIL,param->errmsg,"run_pHMM failed\n");
+	
+	//mb =  run_pHMM(0,mb,ri,param,0, readnum,MODE_GET_PROB);
 #if DEBUG
-	print_model(mb->model[0]);
+	//print_model(mb->model[0]);
 	fprintf(stderr,"LENGTH: %f\n",(float)ssi->average_length);
 	fprintf(stderr,"in random:  %f\n",1.0 - (1.0 / (float)ssi->average_length));
 #endif
@@ -220,7 +230,9 @@ struct parameters* estimateQthreshold(struct parameters* param, struct sequence_
 
 	param->messages = append_message(param->messages, param->buffer);
 	free_read_info(ri,  num_test_sequences);
-	return param;
+	return kslOK;
+ERROR:
+	return kslFAIL;
 }
 
 

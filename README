@@ -5,15 +5,22 @@ doc/User-Manual.pdf
 Installation: 
 
 Unpack the tarball:
-tar -zxvf tagdust-XXX.tar.gz
-cd tagdust
-./configure
+bash-3.1$ tar -zxvf tagdust-XXX.tar.gz
+bash-3.1$ cd tagdust
+bash-3.1$ ./configure
 
- make
+bash-3.1$ make
+bash-3.1$ make check
 
-At this point the TagDust executable appears in the TagDust directory. You can copy it to any directory in your path. To install it system wide type:
+At this point the TagDust executable appears in the src directory. You can copy it to any directory in your path. To install it system wide type:
 
 bash-3.1$ make install
+
+To reproduce the paper figures you need to install TagDust2 on a 64bit linux environment. To re-run the analysis simply type
+
+bash-3.1$ cd reproducibility/scripts/
+bash-3.1$ make -f run.mk benchmark
+
 
 
 

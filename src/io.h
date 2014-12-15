@@ -112,8 +112,9 @@ struct sequence_stats_info{
 
 FILE* io_handler(FILE* file, int file_num,struct parameters* param);
 void print_seq(struct read_info* ri,FILE* out);
-int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file);
-int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file);
+int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file,int* buffer_count);
+//int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file);
+int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file,int* buffer_count);
 void print_sequence(struct read_info* ri,FILE* out);
 //int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  struct read_info* ri,FILE* out);
 int qsort_ri_mapq_compare(const void *a, const void *b);
@@ -132,7 +133,7 @@ struct fasta* get_fasta(struct fasta* p,char *infile);
 unsigned char* get_input_into_string(unsigned char* string,char* infile);
 void free_fasta(struct fasta*f);
 
-void print_split_files(struct parameters* param, struct read_info** ri, int numseq);
+//void print_split_files(struct parameters* param, struct read_info** ri, int numseq);
 
 struct read_info** malloc_read_info(struct read_info** ri, int numseq);
 struct read_info** clear_read_info(struct read_info** ri, int numseq);
@@ -145,7 +146,7 @@ int check_for_existing_demultiplexed_files_multiple(struct parameters* param, in
 
 FILE* open_file(struct parameters* param, char* buffer, char* mode);
 
-void print_all(struct read_info*** read_info_container,struct parameters* param, int numseq, char*  read_present);
+int print_all(struct read_info*** read_info_container,struct parameters* param, int numseq, char*  read_present);
 
 
 

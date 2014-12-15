@@ -1,8 +1,6 @@
 
 EXTRA_DIST = $(PNG)  $(PDF) $(HTML) style.css template_modern.tex
 
-if HAVE_PANDOC
-
 
 dirs=$(top_srcdir)/reproducibility/scripts
 
@@ -21,10 +19,10 @@ vpath %.css $(top_srcdir)/reproducibility/doc/
 
 .PHONY : all 
 
-all : $(PDF) $(HTML)
+
 
 %.pdf : %.md  $(top_srcdir)/reproducibility/doc/template_modern.tex
-	pandoc -f markdown  -s $< --template=$(top_srcdir)/reproducibility/doc/template_modern.tex --toc  -o $@ --chapters  --listings
+	pandoc -f markdown  -s $< --template=$(top_srcdir)/reproducibility/doc/template_modern.tex --toc -o $@ --chapters  --listings
 
 
 %.html: %.md $(top_srcdir)/reproducibility/doc/style.css
@@ -35,7 +33,18 @@ all : $(PDF) $(HTML)
 all-local:
 	@echo "Everything seemed to work ok."
 
+if HAVE_PANDOC
+
+all : $(PDF) $(HTML)
+
+else
+
+all : 
+	@echo "Skipping pandoc on benchmark markdown file.";
 endif
+
+
+
 
 CLEANFILES=
 DISTCLEANFILES=

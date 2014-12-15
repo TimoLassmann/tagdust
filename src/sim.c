@@ -276,11 +276,8 @@ void simulation_for_benchmark(struct parameters* param)
 		
 		sprintf (outfile, "%s/%sfastxbarcodefile.txt",dp,runid);
 		
+		if((file = fopen(outfile, "w")) == NULL) KSLIB_XEXCEPTION_SYS(kslEWRT,"Failed to open file:%s",outfile);
 		
-		if ((file = fopen(outfile, "w")) == NULL){
-			fprintf(stderr,"can't open output\n");
-			exit(-1);
-		}
 		
 		for(i = 0 ;i < param->sim_barnum;i++){
 			fprintf(file,"BC%d %s\n",i,barcode[i]);
@@ -291,10 +288,8 @@ void simulation_for_benchmark(struct parameters* param)
 	}
 	
 	sprintf (outfile, "%s/%sbtrim_pattern.txt",dp,runid);
-	if ((file = fopen(outfile, "w")) == NULL){
-		fprintf(stderr,"can't open output\n");
-		exit(-1);
-	}
+	if((file = fopen(outfile, "w")) == NULL) KSLIB_XEXCEPTION_SYS(kslEWRT,"Failed to open file:%s",outfile);
+	
 	/*no5 = 0;
 	no3 = 0;
 	if(!param->sim_5seq){
@@ -326,10 +321,8 @@ void simulation_for_benchmark(struct parameters* param)
 	fclose(file);
 	
 	sprintf (outfile, "%s/%sread.fq",dp,runid);
-	if ((file = fopen(outfile, "w")) == NULL){
-		fprintf(stderr,"can't open output\n");
-		exit(-1);
-	}
+	if((file = fopen(outfile, "w")) == NULL) KSLIB_XEXCEPTION_SYS(kslEWRT,"Failed to open file:%s",outfile);
+	
 
 	
 	//Here I simulate sequences containing the read....
@@ -535,10 +528,8 @@ void simulation_for_benchmark(struct parameters* param)
 	
 	if(param->sim_3seq){
 		sprintf (outfile, "%s/%sbtrimout.fq",dp,runid);
-		if ((file2 = fopen(outfile, "w")) == NULL){
-			fprintf(stderr,"can't open output\n");
-			exit(-1);
-		}
+		if((file2 = fopen(outfile, "w")) == NULL) KSLIB_XEXCEPTION_SYS(kslEWRT,"Failed to open file:%s",outfile);
+		
 		
 		
 		if(param->sim_barnum){
@@ -629,10 +620,8 @@ void simulation_for_benchmark(struct parameters* param)
 	
 	if(param->sim_5seq && param->sim_3seq && param->sim_barnum){
 		sprintf (outfile, "%s/%scutadaptfastxout.fq",dp,runid);
-		if ((file2 = fopen(outfile, "w")) == NULL){
-			fprintf(stderr,"can't open output\n");
-			exit(-1);
-		}
+		if((file2 = fopen(outfile, "w")) == NULL) KSLIB_XEXCEPTION_SYS(kslEWRT,"Failed to open file:%s",outfile);
+		
 		c = sprintf(command, "cat %s/%scutadaptout.fq | fastx_barcode_splitter.pl --bcfile %s/%sfastxbarcodefile.txt --prefix %s/%sfastx -bol", dp,runid,dp,runid,dp,runid);
 		fprintf(stderr,"%s\n",command);
 		if (!(file = popen(command, "r"))) {
@@ -678,10 +667,8 @@ void simulation_for_benchmark(struct parameters* param)
 	
 	if(!param->sim_5seq && !param->sim_3seq && param->sim_barnum){
 		sprintf (outfile, "%s/%sfastxout.fq",dp,runid);
-		if ((file2 = fopen(outfile, "w")) == NULL){
-			fprintf(stderr,"can't open output\n");
-			exit(-1);
-		}
+		if((file2 = fopen(outfile, "w")) == NULL) KSLIB_XEXCEPTION_SYS(kslEWRT,"Failed to open file:%s",outfile);
+		
 		c = sprintf(command, "cat %s/%sread.fq | fastx_barcode_splitter.pl --bcfile %s/%sfastxbarcodefile.txt --prefix %s/%sfastx -bol", dp,runid,dp,runid,dp,runid);
 		fprintf(stderr,"%s\n",command);
 		if (!(file = popen(command, "r"))) {
@@ -1036,12 +1023,7 @@ struct eval_results* get_results(struct eval_results* eval,struct parameters* pa
 	eval->average_read_similarity= 0.0;
 	eval->num_rand_extracted = 0;
 	eval->num_wrong_bc = 0;
-	if ((file = fopen(filename, "r")) == NULL){
-		sprintf(param->buffer,"can't open output\n");
-		param->messages = append_message(param->messages, param->buffer);
-		free_param(param);
-		exit(EXIT_FAILURE);
-	}
+	if((file = fopen(filename, "r")) == NULL) KSLIB_XEXCEPTION_SYS(kslEWRT,"Failed to open file:%s",outfile);
 	
 	ri = malloc(sizeof(struct read_info*) * param->num_query);
 	
@@ -1194,12 +1176,8 @@ struct eval_results* get_results(struct eval_results* eval,struct parameters* pa
 	fprintf(stderr,"%s	Sen:%f	Spe:%f	Precision:%f	Kappa:%f	TP:%f	FP:%f	FN:%f	TN:%f\n",program,sensitivity,specificity,precision,kappa,TP,FP,FN,TN);
 	sprintf (orgread, "%s/summary.csv",param->outfile);
 	
-	if ((file = fopen(orgread, "a")) == NULL){
-		sprintf(param->buffer,"can't open output\n");
-		param->messages = append_message(param->messages, param->buffer);
-		free_param(param);
-		exit(EXIT_FAILURE);
-	}
+	if((file = fopen(orgread, "a")) == NULL) KSLIB_XEXCEPTION_SYS(kslEWRT,"Failed to open file:%s",orgread);
+	
 	struct tm *ptr;
 	int hour;
 	char am_or_pm;
@@ -1423,11 +1401,8 @@ void simulate(struct parameters* param)
 	
 	sprintf (outfile, "%s_tagdust_command.sh",param->outfile);
 	
-	
-	if ((file = fopen(outfile, "w")) == NULL){
-		fprintf(stderr,"can't open output\n");
-		exit(-1);
-	}
+	if((file = fopen(outfile, "w")) == NULL) KSLIB_XEXCEPTION_SYS(kslEWRT,"Failed to open file:%s",outfile);
+
 	
 	sprintf (outfile, "%s_read.fq",param->outfile);
 	
@@ -1512,10 +1487,8 @@ void simulate(struct parameters* param)
 	fclose(file);
 	
 	sprintf (outfile, "%s_barcodefile.txt",param->outfile);
-	if ((file = fopen(outfile, "w")) == NULL){
-		fprintf(stderr,"can't open output\n");
-		exit(-1);
-	}
+	if((file = fopen(outfile, "w")) == NULL) KSLIB_XEXCEPTION_SYS(kslEWRT,"Failed to open file:%s",outfile);
+	
 	
 	for(i = 0 ;i < num_barcode-1;i++){
 		fprintf(file,"BC%d ",i);
@@ -1551,10 +1524,7 @@ void simulate(struct parameters* param)
 	//int num_finger_missed = 0;
 	
 	sprintf (outfile, "%s_read.fq",param->outfile);
-	if ((file = fopen(outfile, "w")) == NULL){
-		fprintf(stderr,"can't open output\n");
-		exit(-1);
-	}
+	if((file = fopen(outfile, "w")) == NULL) KSLIB_XEXCEPTION_SYS(kslEWRT,"Failed to open file:%s",outfile);
 	
 	
 	for(i = 0; i < 1000000*0.1;i++){
@@ -1811,10 +1781,8 @@ void simulate(struct parameters* param)
 	
 	
 	sprintf (outfile, "simulation.log");
-	if ((file = fopen(outfile, "a")) == NULL){
-		fprintf(stderr,"can't open output\n");
-		exit(-1);
-	}
+	if((file = fopen(outfile, "a")) == NULL) KSLIB_XEXCEPTION_SYS(kslEWRT,"Failed to open file:%s",outfile);
+
 	fprintf(file,"%d\t%d\t%f\t%d\t%d\t%d\t%d\n",param->numbarcode, param->sim,param->sequencer_error_rate,num_bar_correct,num_bar_missed,num_bar_misassigned,no_bar);
 	
 	fclose(file);

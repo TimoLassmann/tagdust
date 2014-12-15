@@ -25,6 +25,13 @@
  Initializes nucleotide alphabet needed to parse input. Calls parameter parser. Calls functions to process the data. \author Timo Lassmann \bug No known bugs.
  */
 
+#include "kslib.h"
+
+#if HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+
 #include <ctype.h>
 #include "interface.h"
 #include "nuc_code.h"
@@ -42,11 +49,11 @@
 struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct read_info** ri, int file_num )
 {
 	struct sequence_stats_info* ssi = 0;
-	
+	int status;
 	MMALLOC(ssi, sizeof(struct sequence_stats_info));
 	FILE* file = 0;
 	
-	int (*fp)(struct read_info** ,struct parameters*,FILE* ) = 0;
+	int (*fp)(struct read_info** ,struct parameters*,FILE*,int* buffer_count  ) = 0;
 	
 	int i,j,c,numseq,total_read;
 	
@@ -112,8 +119,12 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
 		three_test_sequence[three_len] = 0;
 		
 	}
-	
-	while ((numseq = fp(ri, param,file)) != 0){
+	while(1){
+		if((status = fp(ri, param,file,&numseq)) != kslOK)  exit(status);
+		if(!numseq){
+			break;
+		}
+//	while ((numseq = fp(ri, param,file)) != 0){
 		for(i = 0; i < numseq;i++){
 			if(ri[i]->len > ssi->max_seq_len){
 				ssi->max_seq_len = ri[i]->len;
@@ -281,6 +292,8 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
 	
 	pclose(file);
 	return ssi;
+ERROR:
+	return NULL;
 }
 
 
@@ -619,7 +632,7 @@ int check_for_existing_demultiplexed_files_multiple(struct parameters* param, in
 	int i,j;
 	int barsegment = -1;
 	int found_files = 0;
-	
+	int status;
 	char* buffer =  0;
 	
 	MMALLOC(buffer,sizeof(char)* 1000 );
@@ -670,13 +683,15 @@ int check_for_existing_demultiplexed_files_multiple(struct parameters* param, in
 	}
 	MFREE(buffer);
 	return found_files;
+ERROR:
+	return status;
 }
 
 
 
 int check_for_existing_demultiplexed_files(struct parameters* param)
 {
-	int i;
+	int i,status;
 	int barsegment = -1;
 	int found_files = 0;
 	
@@ -731,12 +746,14 @@ int check_for_existing_demultiplexed_files(struct parameters* param)
 	found_files += file_exists(buffer);
 	MFREE(buffer);
 	return found_files;
+ERROR:
+	return status;
 
 }
 
-void print_all(struct read_info*** read_info_container,struct parameters* param, int numseq, char*  read_present)
+int print_all(struct read_info*** read_info_container,struct parameters* param, int numseq, char*  read_present)
 {
-	int i,j,c,f;
+	int i,j,c,f,status;
 	int barsegment = -1;
 	int num_outfiles = 0;
 	int num_alternatives = 0;
@@ -904,15 +921,7 @@ void print_all(struct read_info*** read_info_container,struct parameters* param,
 					f = c + num_alternatives-1;
 				}
 				tmp_ri =read_info_container[j][i];
-#ifdef DEBUG
-				fprintf(stderr,"Working on file:%d\n",j);
-				fprintf(stderr,"READ: %d\n", i);
-				fprintf(stderr,"READ: %s\n", tmp_ri->name );
-				for(g = 0;g < tmp_ri->len;g++){
-					fprintf(stderr,"%d ", tmp_ri->seq[g]);
-				}
-				fprintf(stderr,"\n");
-#endif
+
 
 				h =0;
 				//for(g = 0;g < tmp_ri->len;g++){
@@ -932,12 +941,14 @@ void print_all(struct read_info*** read_info_container,struct parameters* param,
 						if(h){
 							out_seq_buffer[h] = 0;
 							out_qual_buffer[h] = 0;
-#ifdef DEBUG
-							fprintf(stderr, "@%s;RQ:%0.2f\n",tmp_ri->name,tmp_ri->mapq);
-							fprintf(stderr,"%s\n+\n%s\n",out_seq_buffer,out_qual_buffer);
-#endif
-							fprintf(file_container[f] , "@%s;RQ:%0.2f\n",tmp_ri->name,tmp_ri->mapq);
-							fprintf(file_container[f] ,"%s\n+\n%s\n",out_seq_buffer,out_qual_buffer);
+							if(tmp_ri->fingerprint != -1){
+								fprintf(file_container[f], "@%s;FP:%d;RQ:%0.2f\n",tmp_ri->name,tmp_ri->fingerprint,tmp_ri->mapq);
+							}else{
+								fprintf(file_container[f], "@%s;RQ:%0.2f\n",tmp_ri->name,tmp_ri->mapq);
+							}
+
+							
+							fprintf(file_container[f],"%s\n+\n%s\n",out_seq_buffer,out_qual_buffer);
 							
 							f+=num_alternatives;
 							h = 0;
@@ -947,11 +958,11 @@ void print_all(struct read_info*** read_info_container,struct parameters* param,
 				if(h){
 					out_seq_buffer[h] = 0;
 					out_qual_buffer[h] = 0;
-#ifdef DEBUG
-					fprintf(stderr, "@%s;RQ:%0.2f\n",tmp_ri->name,tmp_ri->mapq);
-					fprintf(stderr,"%s\n+\n%s\n",out_seq_buffer,out_qual_buffer);
-#endif
-					fprintf(file_container[f],"@%s;RQ:%0.2f\n",tmp_ri->name,tmp_ri->mapq);
+					if(tmp_ri->fingerprint != -1){
+						fprintf(file_container[f], "@%s;FP:%d;RQ:%0.2f\n",tmp_ri->name,tmp_ri->fingerprint,tmp_ri->mapq);
+					}else{
+						fprintf(file_container[f],"@%s;RQ:%0.2f\n",tmp_ri->name,tmp_ri->mapq);
+					}
 					fprintf(file_container[f],"%s\n+\n%s\n",out_seq_buffer,out_qual_buffer);
 
 				}
@@ -969,28 +980,37 @@ void print_all(struct read_info*** read_info_container,struct parameters* param,
 	MFREE(buffer);
 	MFREE(out_seq_buffer);
 	MFREE(out_qual_buffer);
+	return kslOK;
+ERROR:
+	return status;
+	
 }
 
 
 FILE* open_file(struct parameters* param, char* buffer, char* mode)
 {
 	FILE* file = NULL;
+	int status;
 	//sprintf (buffer, "%s_READ%d.fq",param->outfile,i+1);
-	if ((file = fopen(buffer, mode )) == NULL){
-		sprintf(param->buffer,"ERROR: cannot open file %s for writing.\n", buffer);
-		param->messages = append_message(param->messages, param->buffer);
-		free_param(param);
-		exit(EXIT_FAILURE);
-	}
+	//if ((file = fopen(buffer, mode )) == NULL){
+	if((file = fopen(buffer, mode)) == NULL) KSLIB_XEXCEPTION_SYS(kslEWRT,"Failed to open file:%s",buffer);
+	//	sprintf(param->buffer,"ERROR: cannot open file %s for writing.\n", buffer);
+	//	param->messages = append_message(param->messages, param->buffer);
+	//	free_param(param);
+	//	exit(EXIT_FAILURE);
+	//}
 #ifdef DEBUG
 	fprintf(stderr,"Opening:%s in %s mode\n",buffer,mode );
 #endif
 	
 	return file;
+ERROR:
+	KSLIB_MESSAGE(status,"Something wrong in open file.\n");
+	return NULL;
 }
 
 
-
+/*
 void print_split_files(struct parameters* param, struct read_info** ri, int numseq)
 {
 	struct stat buf;
@@ -1255,11 +1275,11 @@ void print_split_files(struct parameters* param, struct read_info** ri, int nums
 			}
 			
 #ifdef DEBUG
-			/*fprintf(stderr,"READ unextracted!:%d\n" , i);
+			fprintf(stderr,"READ unextracted!:%d\n" , i);
 			for(j = 0; j < ri[i]->len;j++){
 				fprintf(stderr,"%d,",ri[i]->seq[j]);
 			}
-			fprintf(stderr,"\n");*/
+			fprintf(stderr,"\n");
 #endif
 			
 			
@@ -1342,7 +1362,7 @@ void print_split_files(struct parameters* param, struct read_info** ri, int nums
 	fclose(out_read1);
 }
 
-
+*/
 
 /** \fn void print_seq(struct read_info* ri,FILE* out)
  \brief Prints sequence and quality string to file.
@@ -1432,8 +1452,9 @@ Sequences are converted to 0-4 strings.
  \param file Pointer to input file.
  
  */
-int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file)
+int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file,int* buffer_count)
 {
+	int status;
 	char line[MAX_LINE];
 	int column = 0; 
 	int i,j,g,tmp;
@@ -1442,6 +1463,8 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file)
 	int c = 0;
 	//int hit = 0;
 	int strand = 0;
+	
+	*buffer_count = 0;
 	
 	ri = clear_read_info(ri, param->num_query);
 	
@@ -1587,11 +1610,16 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file)
 			c++;
 			read++;
 			if(c == param->num_query){
+				*buffer_count = c;
 				return c;
 			}
 		}
 	}
-	return c;
+	*buffer_count = c;
+	return kslOK;
+	//return c;
+ERROR:
+	return status;
 }
 
 //FASTQ files from CASAVA-1.8 Should have the following READ-ID format:
@@ -1609,7 +1637,7 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file)
  
  */
 
-int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file) 
+int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file,int* buffer_count)
 {
 	int park_pos = -1;
 	char line[MAX_LINE];
@@ -1618,6 +1646,9 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
 	int set = 0;
 	int len = 0;
 	int size = 0;
+	int status;
+	
+	*buffer_count = 0;
 	
 	ri = clear_read_info(ri, param->num_query);
 	while(fgets(line, MAX_LINE, file)){
@@ -1721,15 +1752,22 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
 		}
 		if(param->num_query == size ){//here I know I am in the last entry AND filled the quality...
 			if(!param->fasta && ri[park_pos]->qual){
-				return size;
+				//return size;
+				*buffer_count = size;
+				return kslOK;
 			}
 			if(param->fasta && ri[park_pos]->seq){
-			   
-				return size;
+				*buffer_count = size;
+				return kslOK;
+				
 			}
 		}
 	}
-	return size;
+	*buffer_count = size;
+	return kslOK;
+ERROR:
+	return status;
+
 }
 
 /** \fn struct fasta* get_fasta(struct fasta* p,char *infile)
@@ -1743,6 +1781,7 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
 
 struct fasta* get_fasta(struct fasta* p,char *infile)
 {
+	int status;
 	MMALLOC(p,sizeof(struct fasta));
 	p->string = 0;
 	p->mer_hash = 0;
@@ -1764,6 +1803,9 @@ struct fasta* get_fasta(struct fasta* p,char *infile)
 	p = read_fasta(p);
 	
 	return p;
+ERROR:
+	KSLIB_MESSAGE(status,"Something went wrong in get_fasta.\n ");
+	return NULL;
 }
 
 
@@ -1779,15 +1821,12 @@ struct fasta* get_fasta(struct fasta* p,char *infile)
 unsigned char* get_input_into_string(unsigned char* string,char* infile)
 {
 	long int i = 0;
-	
+	int status;
 	size_t bytes_read;
 	
 	FILE *file = 0;
-	if (!(file = fopen( infile, "r" ))){
-		return 0;
-		fprintf(stderr,"Cannot open file '%s'\n", infile);
-		exit(-1);
-	}
+	if((file = fopen(infile, "r")) == NULL) KSLIB_XEXCEPTION_SYS(kslEWRT,"Failed to open file:%s",infile);
+	
 	if (fseek(file,0,SEEK_END) != 0){
 		(void)fprintf(stderr, "ERROR: fseek failed\n");
 		(void)exit(EXIT_FAILURE);
@@ -1810,6 +1849,9 @@ unsigned char* get_input_into_string(unsigned char* string,char* infile)
 	fclose(file);
 	
 	return string;
+ERROR:
+	KSLIB_MESSAGE(status,"Something went wrong in get_input_into_string");
+	return NULL;
 }
 
 
@@ -1825,6 +1867,7 @@ unsigned char* get_input_into_string(unsigned char* string,char* infile)
 
 struct fasta* read_fasta(struct fasta* f)
 {
+	int status;
 	int c = 0;
 	int n = 0;
 	int i = 0;
@@ -1908,6 +1951,9 @@ struct fasta* read_fasta(struct fasta* f)
 	
 	f->string_len = n+1;
 	return f;
+ERROR:
+	KSLIB_MESSAGE(status,"Something wrong in read_fasta.\n");
+	return NULL;
 }
 
 
@@ -1943,6 +1989,7 @@ void free_fasta(struct fasta*f)
 struct read_info** malloc_read_info(struct read_info** ri, int numseq)
 {
 	int i;
+	int status;
 	MMALLOC(ri, sizeof(struct read_info*) * numseq);
 	
 	for(i = 0; i < numseq;i++){
@@ -1964,6 +2011,9 @@ struct read_info** malloc_read_info(struct read_info** ri, int numseq)
 		//ri[i]->hits = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
 	}
 	return ri;
+ERROR:
+	KSLIB_MESSAGE(status,"Somehting wrong in malloc_read_info.\n");
+	return NULL;
 }
 
 struct read_info** clear_read_info(struct read_info** ri, int numseq)
@@ -2304,6 +2354,7 @@ int compare_read_names(struct parameters* param, char* name1, char* name2)
 #ifdef UTEST
 int main (int argc,char * argv[]) {
 	struct parameters* param = 0;
+	int status;
 	char* name1 = 0;
 	
 	char* name2 = 0;
@@ -2312,6 +2363,9 @@ int main (int argc,char * argv[]) {
 	param->read_structure = 0;
 	param->read_structure_R1 = 0;
 	param->read_structure_R2 = 0;
+	param->read_structures = NULL;
+	param->confidence_thresholds = NULL;//ence
+	
 	param->outfile = 0;
 	param->infile =0 ;
 	param->buffer =0;
@@ -2464,6 +2518,10 @@ int main (int argc,char * argv[]) {
 	MFREE(name2);
 	
 	free_param(param);
+	return kslOK;
+ERROR:
+	KSLIB_MESSAGE(status,"Something wrong in main of io itest.\n");
+	return kslFAIL;
 }
 
 

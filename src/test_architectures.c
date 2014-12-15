@@ -1,3 +1,9 @@
+#include "kslib.h"
+#if HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+
 #include <stdio.h>
 #include "tagdust2.h"
 #include "interface.h"
@@ -10,17 +16,13 @@
 #include <time.h>
 #include "barcode_hmm.h"
 
-#ifndef MMALLOC
-#include "malloc_macro.h"
-#endif
-
-
 #define MAX_NUM_ARCH 100
 
 
-struct parameters* test_architectures(struct parameters* param, int file_num)
+int test_architectures(struct parameters* param, int file_num)
 {
 	struct read_info** ri = 0;
+	int status;
 	FILE* inarch = 0;
 	int index = 0;
 	int i,j,c,architecture_found;
@@ -68,12 +70,8 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 	param->messages = append_message(param->messages, param->buffer);
 	sprintf(param->buffer,"Searching for best architecture in file '%s'\n", param->arch_file);
 	param->messages = append_message(param->messages, param->buffer);
-	if (!(inarch = fopen( param->arch_file, "r" ))){
-		sprintf(param->buffer,"Cannot open file '%s'\n", param->arch_file);
-		param->messages = append_message(param->messages, param->buffer);
-		free_param(param);
-		exit(EXIT_FAILURE);
-	}
+	if((inarch = fopen(param->arch_file, "r")) == NULL) KSLIB_XEXCEPTION_SYS(kslEWRT,"Failed to open file:%s", param->arch_file);
+	
 	while(fgets(line, MAX_LINE, inarch)){
 		
 		if( byg_end("tagdust",line)){
@@ -106,7 +104,8 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 						j++;
 						
 					}
-					param->read_structure = assign_segment_sequences(param->read_structure, tmp , c );
+					if((status = assign_segment_sequences(param, tmp , c  )) != kslOK) KSLIB_XEXCEPTION(kslFAIL,"Some problem with parsing an HMM segment: %s.\n",optarg);
+					//param->read_structure = assign_segment_sequences(param->read_structure, tmp , c );
 				}else{
 					if(!c){
 						architecture_found = 0;
@@ -171,7 +170,7 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 		
 		
 		//2) run models and calculate P(M1|x)  = P(x | M1) / sum(P(Mj| x) for all models j
-		int (*fp)(struct read_info** ,struct parameters*,FILE* ) = 0;
+		int (*fp)(struct read_info** ,struct parameters*,FILE*, int* buffer_count) = 0;
 		FILE* file = NULL;
 		int numseq;
 		file =  io_handler(file, file_num,param);
@@ -183,9 +182,12 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 		}
 		
 		
-		numseq = fp(ri, param,file);
+		if((status = fp(ri, param,file,&numseq)) != kslOK) KSLIB_XFAIL(kslFAIL, param->errmsg,"Reading chunk from file %snumseq failed.\n", param->infile[file_num]);
 		
-		mb =  run_pHMM(ab,mb,ri,param,0,numseq,MODE_ARCH_COMP);
+		if((status =run_pHMM(ab,mb,ri,param,0,numseq,MODE_ARCH_COMP)) != kslOK) KSLIB_XFAIL(kslFAIL,param->errmsg,"run_pHMM failed\n");
+
+		
+		//mb =  run_pHMM(ab,mb,ri,param,0,numseq,MODE_ARCH_COMP);
 		
 		pclose(file);
 		
@@ -253,7 +255,10 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 				tmp[j] = ab->command_line[best_architecture][i];
 				j++;
 			}
-			param->read_structure = assign_segment_sequences(param->read_structure, tmp , c );
+			
+			if((status = assign_segment_sequences(param, tmp , c  )) != kslOK) KSLIB_XEXCEPTION(kslFAIL,"Some problem with parsing an HMM segment: %s.\n",optarg);
+			
+			//param->read_structure = assign_segment_sequences(param->read_structure, tmp , c );
 		}else{
 			if(!c){
 				architecture_found = 0;
@@ -279,13 +284,16 @@ struct parameters* test_architectures(struct parameters* param, int file_num)
 	MFREE(ab->archs);
 	MFREE(ab);
 	MFREE(tmp);
-	return param;
+	return kslOK;
+ERROR:
+	return kslFAIL;
 }
 
 
 char* pretty_print_selected_architecture(char* command_line, char* buffer)
 {
 	char* tmp = 0;
+	int status;
 	int i,j,c,index;
 	
 	MMALLOC(tmp, sizeof(char) * MAX_LINE);
@@ -332,6 +340,9 @@ char* pretty_print_selected_architecture(char* command_line, char* buffer)
 	buffer[c] = 0;
 	MFREE(tmp);
 	return buffer;
+ERROR:
+	KSLIB_MESSAGE(status,"Something wrong in pretty_print_selected_architecture.\n");
+	return NULL;
 }
 
 

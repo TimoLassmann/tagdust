@@ -24,19 +24,19 @@
  \brief Functions to deal with user inputs.
  */
 
+#include "kslib.h"
+
+#if HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 
 #include "tagdust2.h"
 #include "interface.h"
 #include "io.h"
 #include "misc.h"
 
-#ifndef MMALLOC
-#include "malloc_macro.h"
-#endif
 
-#if HAVE_CONFIG_H
-#include "config.h"
-#endif
 
 
 /** \fn struct parameters* interface(struct parameters* param,int argc, char *argv[])
@@ -51,17 +51,20 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	int i,j,c;
 	int help = 0;
 	int version = 0;
+	
+	int status;
+	
 	//int last;
 	
 	if (argc < 2 && isatty(0)){
 		usage();
-		exit(EXIT_SUCCESS);
+		return kslOK;
 	}
 		
 	MMALLOC(param,sizeof(struct parameters));
 	param->infiles = 0;
-	param->infile = 0;
-	param->outfile = 0;
+	param->infile = NULL;
+	param->outfile = NULL;
 	param->num_threads = 8;
 
 	param->quiet_flag = 0;
@@ -120,7 +123,8 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->arch_file = 0;
 	
 	param->read_structures = NULL;
-	param->read_structure = malloc_read_structure();
+	if((param->read_structure = malloc_read_structure()) == NULL) KSLIB_XEXCEPTION_SYS(kslEMEM,"Malloc of readstructure failed.\n");
+	
 		
 	while (1){	 
 		static struct option long_options[] ={
@@ -228,34 +232,44 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 				break;
 				
 			case OPT_SEG1:
-				param->read_structure = assign_segment_sequences(param->read_structure, optarg , 0 );
+				if((status = assign_segment_sequences(param, optarg , 0 )) != kslOK) KSLIB_XEXCEPTION(kslFAIL,"Some problem with parsing an HMM segment: %s.\n",optarg);
+				//param->read_structure = assign_segment_sequences(param->read_structure, optarg , 0 );
 				break;
 			case OPT_SEG2:
-				param->read_structure = assign_segment_sequences(param->read_structure, optarg , 1 );
+				if((status = assign_segment_sequences(param, optarg , 1 )) != kslOK) KSLIB_XEXCEPTION(kslFAIL,"Some problem with parsing an HMM segment: %s.\n",optarg);
+				//param->read_structure = assign_segment_sequences(param->read_structure, optarg , 1 );
 				break;
 			case OPT_SEG3:
-				param->read_structure = assign_segment_sequences(param->read_structure, optarg , 2 );
+				if((status = assign_segment_sequences(param, optarg , 2 )) != kslOK) KSLIB_XEXCEPTION(kslFAIL,"Some problem with parsing an HMM segment: %s.\n",optarg);
+				//param->read_structure = assign_segment_sequences(param->read_structure, optarg , 2 );
 				break;
 			case OPT_SEG4:
-				param->read_structure = assign_segment_sequences(param->read_structure, optarg , 3 );
+				if((status = assign_segment_sequences(param, optarg , 3 )) != kslOK) KSLIB_XEXCEPTION(kslFAIL,"Some problem with parsing an HMM segment: %s.\n",optarg);
+				//param->read_structure = assign_segment_sequences(param->read_structure, optarg , 3 );
 				break;
 			case OPT_SEG5:
-				param->read_structure = assign_segment_sequences(param->read_structure, optarg , 4 );
+				if((status = assign_segment_sequences(param, optarg , 4 )) != kslOK) KSLIB_XEXCEPTION(kslFAIL,"Some problem with parsing an HMM segment: %s.\n",optarg);
+				//param->read_structure = assign_segment_sequences(param->read_structure, optarg , 4 );
 				break;
 			case OPT_SEG6:
-				param->read_structure = assign_segment_sequences(param->read_structure, optarg , 5 );
+				if((status = assign_segment_sequences(param, optarg , 5 )) != kslOK) KSLIB_XEXCEPTION(kslFAIL,"Some problem with parsing an HMM segment: %s.\n",optarg);
+				//param->read_structure = assign_segment_sequences(param->read_structure, optarg , 5 );
 				break;
 			case OPT_SEG7:
-				param->read_structure = assign_segment_sequences(param->read_structure, optarg , 6 );
+				if((status = assign_segment_sequences(param, optarg , 6 )) != kslOK) KSLIB_XEXCEPTION(kslFAIL,"Some problem with parsing an HMM segment: %s.\n",optarg);
+				//param->read_structure = assign_segment_sequences(param->read_structure, optarg , 6 );
 				break;
 			case OPT_SEG8:
-				param->read_structure = assign_segment_sequences(param->read_structure, optarg , 7 );
+				if((status = assign_segment_sequences(param, optarg , 7 )) != kslOK) KSLIB_XEXCEPTION(kslFAIL,"Some problem with parsing an HMM segment: %s.\n",optarg);
+				//param->read_structure = assign_segment_sequences(param->read_structure, optarg , 7 );
 				break;
 			case OPT_SEG9:
-				param->read_structure = assign_segment_sequences(param->read_structure, optarg , 8 );
+				if((status = assign_segment_sequences(param, optarg , 8 )) != kslOK) KSLIB_XEXCEPTION(kslFAIL,"Some problem with parsing an HMM segment: %s.\n",optarg);
+				//param->read_structure = assign_segment_sequences(param->read_structure, optarg , 8 );
 				break;
 			case OPT_SEG10:
-				param->read_structure = assign_segment_sequences(param->read_structure, optarg , 9 );
+				if((status = assign_segment_sequences(param, optarg , 9 )) != kslOK) KSLIB_XEXCEPTION(kslFAIL,"Some problem with parsing an HMM segment: %s.\n",optarg);
+				//param->read_structure = assign_segment_sequences(param->read_structure, optarg , 9 );
 				break;
 			case OPT_TRAIN:
 				param->train = optarg;
@@ -343,19 +357,19 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	if(help){
 		usage();
 		free_param(param);
-		exit(EXIT_SUCCESS);
+		return kslOK;
 	}
 	
 	if(version){
 		fprintf(stdout,"%s %s\n",PACKAGE_NAME,PACKAGE_VERSION);
 		free_param(param);
-		exit(EXIT_SUCCESS);
+		return kslOK;
 	}
 	
-	MMALLOC(param->buffer,sizeof(char) * MAX_LINE);
 	
+	MMALLOC(param->buffer,sizeof(char) * kslibMSGBUFSIZE);
 	
-	sprintf(param->buffer , "%s %s, Copyright (C) 2013 Timo Lassmann <%s>\n",PACKAGE_NAME, PACKAGE_VERSION,PACKAGE_BUGREPORT);
+	snprintf(param->buffer , kslibMSGBUFSIZE,"%s %s, Copyright (C) 2013 Timo Lassmann <%s>\n",PACKAGE_NAME, PACKAGE_VERSION,PACKAGE_BUGREPORT);
 	param->messages = append_message(param->messages, param->buffer  );
 	//command_line[0] = 0;
 	//c = 0;
@@ -367,8 +381,14 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	c = 5;
 	for(i =0 ; i < argc;i++){
 		for(j = 0; j < strlen(argv[i]);j++){
+			if(c == kslibMSGBUFSIZE-2){
+				break;
+			}
 			param->buffer[c] = argv[i][j];
 			c++;
+		}
+		if(c == kslibMSGBUFSIZE-2){
+			break;
 		}
 		param->buffer[c] = ' ';
 		c++;
@@ -382,23 +402,9 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	
 	//if(param->matchstart)
 	//fprintf(stderr,"Viterbi: %d\n",param->viterbi);
-	if(QC_read_structure(param)){
-		free_param(param);
-		exit(EXIT_FAILURE);
-	}
+	if(QC_read_structure(param) != kslOK) KSLIB_XFAIL(kslFAIL, param->errmsg,"Somethiong wrong with the read architecture");
 	
-	if(param->outfile == 0){
-		sprintf(param->buffer , "ERROR: You need to specify an output file prefix using the -o / -out option.\n");
-		param->messages = append_message(param->messages, param->buffer  );
-		sprintf(param->buffer , "\tfor additional help: tagdust -help\n");
-		param->messages = append_message(param->messages, param->buffer  );
-		
-		free_param(param);
-		exit(EXIT_FAILURE);
-		
-	}	
-	
-	
+	if(param->outfile == NULL) KSLIB_XFAIL(kslFAIL, param->errmsg, "ERROR: You need to specify an output file prefix using the -o / -out option.\n");
 	
 	c = 0;
 	for(i = 0; i < param->read_structure->num_segments;i++){
@@ -448,6 +454,11 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	
 	//free(command_line);
 	return param;
+ERROR:
+	if(param){
+		free_param(param);
+	}
+	return NULL;
 }
 
 /** \fn struct parameters* assign_segment_sequences(struct parameters* param, char* tmp, int segment)
@@ -457,12 +468,33 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
  \param tmp sequences from user input.
  \param segment number of segment.
  */
-struct read_structure* assign_segment_sequences(struct read_structure* read_structure, char* tmp, int segment)
+int assign_segment_sequences(struct parameters* param, char* tmp, int segment)
 {
 	int i,f,g;
 	int count;
 	int len;
+	int status;
+	struct read_structure* read_structure = param->read_structure;
+	
 	//tmp = optarg;
+	
+	
+	switch (tmp[0]) {
+		case 'R':
+		case 'G':
+		case 'O':
+		case 'P':
+		case 'S':
+		case 'F':
+		case 'B':
+			break;
+			
+		default:
+			KSLIB_FAIL(kslFAIL,param->errmsg,"Segment type :%c not recognized.\n",tmp[0]);
+			break;
+	}
+
+	
 	count = byg_count(",", tmp);
 	
 	if(tmp[0] == 'B'){ // add extra space for all N barcode....
@@ -530,7 +562,17 @@ struct read_structure* assign_segment_sequences(struct read_structure* read_stru
 	if(segment+1 >read_structure->num_segments  ){
 		read_structure->num_segments = segment+1;
 	}
-	return read_structure;
+	return kslOK;
+ERROR:
+	if(read_structure->sequence_matrix[segment]){
+	
+		for(i = 0; i < count+1;i++){
+			MFREE(read_structure->sequence_matrix[segment][i]);//,sizeof(char)* strlen(tmp));
+		}
+		MFREE(read_structure->sequence_matrix[segment]);//,sizeof(char*) * (count+1));
+	}
+	
+	return status;
 }
 
 
@@ -598,18 +640,19 @@ void usage()
 /** \fn void free_param(struct parameters* param)
  \brief free @ref parameters.
  */
-void free_param(struct parameters* param)
+int free_param(struct parameters* param)
 {
 	char logfile[200];
 	FILE* outfile = 0;
-	int i;
+	int i,status;
 	//if(param->log){
 	if(param->outfile){
 		sprintf (logfile, "%s_logfile.txt",param->outfile);
-		if ((outfile = fopen( logfile, "w")) == NULL){
-			fprintf(stderr,"can't open logfile\n");
-			exit(-1);
-		}
+		if((outfile = fopen(logfile, "w")) == NULL) KSLIB_XEXCEPTION_SYS(kslEWRT,"Failed to open file:%s",logfile);
+		//if ((outfile = fopen( logfile, "w")) == NULL){
+		//	fprintf(stderr,"can't open logfile\n");
+		//	exit(-1);
+		//}
 		fprintf(outfile,"%s\n",param->messages);
 	
 		fclose(outfile);
@@ -639,6 +682,9 @@ void free_param(struct parameters* param)
 	MFREE(param->messages);
 	MFREE(param->buffer);
 	MFREE(param);
+	return kslOK;
+ERROR:
+	return status;
 }
 
 
@@ -714,13 +760,14 @@ int QC_read_structure(struct parameters* param )
 			
 		}
 	}
-	return 0;
+	return kslOK;
 }
 
 struct read_structure* malloc_read_structure(void)
 {
 	struct read_structure* read_structure = 0;
 	int i;
+	int status;
 	MMALLOC(read_structure, sizeof(struct read_structure));
 	read_structure->sequence_matrix = 0;
 	read_structure->numseq_in_segment = 0;
@@ -739,6 +786,9 @@ struct read_structure* malloc_read_structure(void)
 	
 	read_structure->num_segments = 0;
 	return read_structure;
+ERROR:
+	KSLIB_MESSAGE(status,"Something went wrong in malloc_read_structure.\n");
+	return NULL;
 }
 
 void free_read_structure(struct read_structure* read_structure)

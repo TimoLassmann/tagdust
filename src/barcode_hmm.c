@@ -29,6 +29,12 @@
  \bug No known bugs.
  */
 
+#include "kslib.h"
+#if HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+
 #include <stdio.h>
 #include "tagdust2.h"
 #include "interface.h"
@@ -42,13 +48,15 @@
 #include "barcode_hmm.h"
 
 
-void hmm_controller_multiple(struct parameters* param)
+int hmm_controller_multiple(struct parameters* param)
 {
 	struct read_info*** read_info_container = NULL;
 	struct sequence_stats_info** sequence_stats_info_container = NULL;
 	struct model_bag** model_bag_container = NULL;
 	
 	int* numseqs = NULL;
+	
+	int status;
 	
 	struct fasta* reference_fasta = NULL;
 	
@@ -71,7 +79,7 @@ void hmm_controller_multiple(struct parameters* param)
 	//long long int read_present = 0;
 	
 	FILE** file_container = NULL;
-	int (*fp)(struct read_info** ,struct parameters*,FILE* ) = NULL;
+	int (*fp)(struct read_info** ,struct parameters*,FILE* ,int* buffer_count) = NULL;
 	
 	
 	
@@ -98,13 +106,15 @@ void hmm_controller_multiple(struct parameters* param)
 		if( !i && param->read_structure->num_segments){
 			param->read_structures[0] = param->read_structure;
 		}else	 if(param->arch_file){
-			param = test_architectures(param, i);
+			if((status = test_architectures(param,i)) != kslOK) KSLIB_XFAIL(kslFAIL,param->errmsg,"Test architecture on file %s failed.\n", param->infile[i]);
+			//param = test_architectures(param, i);
 			param->read_structures[i] = param->read_structure;
 			param->read_structure = 0;
 			//param->read_structure = malloc_read_structure();
 		}else{
 			//Resort top default R:N
-			param->read_structure = assign_segment_sequences(param->read_structure, "R:N" , 0 );
+			if((status = assign_segment_sequences(param, "R:N" , 0 )) != kslOK) KSLIB_XEXCEPTION(kslFAIL,"Some problem with parsing an HMM segment: %s.\n",optarg);
+			//param->read_structure = assign_segment_sequences(param, "R:N" , 0 );
 			if(QC_read_structure(param)){
 				sprintf(param->buffer,"Something wrong with architecture....\n");
 				param->messages = append_message(param->messages, param->buffer);
@@ -138,12 +148,7 @@ void hmm_controller_multiple(struct parameters* param)
 	for(i = 0; i < param->infiles;i++){
 		if(barcode_present &  (1 << i)){
 			param->read_structure = param->read_structures[i];
-			if(check_for_existing_demultiplexed_files_multiple(param, num_out_reads)){
-				sprintf(param->buffer,"ERROR: some output files already exists.\n");
-				param->messages = append_message(param->messages, param->buffer);
-				free_param(param);
-				exit(EXIT_FAILURE);
-			}
+			if(check_for_existing_demultiplexed_files_multiple(param, num_out_reads)) KSLIB_XFAIL(kslFAIL, param->errmsg,"Error: some output files already exists.\n");
 			param->read_structure  = NULL;
 		}
 	}
@@ -183,7 +188,8 @@ void hmm_controller_multiple(struct parameters* param)
 			param->messages = append_message(param->messages, param->buffer);
 			
 			param->read_structure = param->read_structures[i];
-			param = estimateQthreshold(param, sequence_stats_info_container[i]);
+			if((status =estimateQthreshold(param, sequence_stats_info_container[i])) != kslOK) KSLIB_XFAIL(kslFAIL,param->errmsg,"estimateQthreshold failed.\n");
+			//param = estimateQthreshold(param, sequence_stats_info_container[i]);
 			param->confidence_thresholds[i] = param->confidence_threshold;
 		}
 	}
@@ -234,7 +240,8 @@ void hmm_controller_multiple(struct parameters* param)
 		// read batches of sequences from input file(s)
 		c = 0;
 		for(i = 0; i < param->infiles;i++){
-			numseqs[i] = fp( read_info_container[i], param,file_container[i]);
+			if((status = fp( read_info_container[i], param,file_container[i],&numseqs[i])) != kslOK) KSLIB_XEXCEPTION_SYS(kslEWRT,"Failed to read data chunk from file: %s", param->infile[i]);
+			//numseqs[i] = fp( read_info_container[i], param,file_container[i]);
 			c+=numseqs[i];
 		}
 		if(!c){
@@ -302,10 +309,11 @@ void hmm_controller_multiple(struct parameters* param)
 				//for(i = 0; i < numseq1;i++){
 				//	r1[i]->read_type = EXTRACT_SUCCESS;
 				//}
-				
-				read_info_container[i] =  run_rna_dust(read_info_container[i],param,reference_fasta,numseqs[i]);
+				if((status =run_rna_dust(read_info_container[i],param,reference_fasta,numseqs[i] )) != kslOK) KSLIB_XFAIL(kslFAIL,param->errmsg,"run_rna_dust failed\n");
+				//read_info_container[i] =  run_rna_dust(read_info_container[i],param,reference_fasta,numseqs[i]);
 			}else{
-				model_bag_container[i] = run_pHMM(0, model_bag_container[i] ,read_info_container[i], param, reference_fasta, numseqs[i], MODE_GET_LABEL);
+				if((status =run_pHMM(0, model_bag_container[i] ,read_info_container[i], param, reference_fasta, numseqs[i], MODE_GET_LABEL)) != kslOK) KSLIB_XFAIL(kslFAIL,param->errmsg,"run_pHMM failed\n");
+				//model_bag_container[i] = run_pHMM(0, model_bag_container[i] ,read_info_container[i], param, reference_fasta, numseqs[i], MODE_GET_LABEL);
 				//mb_R1 =  run_pHMM(0,mb_R1,r1,param,reference_fasta,numseq1,MODE_GET_LABEL);
 			}
 		}
@@ -317,7 +325,7 @@ void hmm_controller_multiple(struct parameters* param)
 				//param->read_structure_R2 = 0;
 				if(i){
 					for(j= 0;j < numseqs[0];j++){
-						read_info_container[0][j]->barcode =read_info_container[i][j]->barcode ;
+						read_info_container[0][j]->barcode = read_info_container[i][j]->barcode ;
 					}
 				}
 				break;
@@ -433,10 +441,13 @@ void hmm_controller_multiple(struct parameters* param)
 	MFREE(read_info_container);
 	MFREE(numseqs);
 	MFREE(read_present);
+	return kslOK;
+ERROR:
+	return kslFAIL;
 	
 }
 
-
+/*
 void hmm_controller_pe(struct parameters* param)
 {
 	struct read_info** r1 = NULL;
@@ -655,20 +666,7 @@ void hmm_controller_pe(struct parameters* param)
 				}
 				
 				
-				/*for(j = 0; j < strlen(r1[i]->name);j++){
-				 if(isspace(r1[i]->name[j])){
-				 r1[i]->name[j] = 0;
-				 r2[i]->name[j] = 0;
-				 }
-				 }
-				 
-				 
-				 if(strcmp(r1[i]->name,r2[i]->name)){
-				 sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",r1[i]->name,r2[i]->name );
-				 param->messages = append_message(param->messages, param->buffer);
-				 free_param(param);
-				 exit(EXIT_FAILURE);
-				 }*/
+ 
 			}
 		}
 		
@@ -867,7 +865,7 @@ void hmm_controller_pe(struct parameters* param)
 	
 }
 
-
+*/
 
 /** \fn void filter_controller(struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ),int file_num)
  \brief Runs all functions.
@@ -879,6 +877,8 @@ void hmm_controller_pe(struct parameters* param)
  \param filenum Number of input files.
  
  */
+
+/*
 void filter_controller(struct parameters* param, int file_num)
 {
 	struct read_info** ri = 0;
@@ -1090,7 +1090,7 @@ void filter_controller(struct parameters* param, int file_num)
 	pclose(file);
 }
 
-
+*/
 /** \fn void hmm_controller(struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ),int file_num)
  \brief Runs all functions.
  
@@ -1101,6 +1101,8 @@ void filter_controller(struct parameters* param, int file_num)
  \param filenum Number of input files.
  
  */
+
+/*
 void hmm_controller(struct parameters* param,int file_num)
 {
 	struct read_info** ri = 0;
@@ -1372,6 +1374,7 @@ void hmm_controller(struct parameters* param,int file_num)
 }
 
 
+ */
 
 
 		   
@@ -1877,12 +1880,12 @@ struct hmm* set_hmm_transition_parameters(struct hmm* hmm, int len,double base_e
  \param mode Determines which function to run.
  
  */
-struct model_bag* run_pHMM(struct arch_bag* ab,struct model_bag* mb,struct read_info** ri,struct parameters* param,struct fasta* reference_fasta ,int numseq, int mode)
+int run_pHMM(struct arch_bag* ab,struct model_bag* mb,struct read_info** ri,struct parameters* param,struct fasta* reference_fasta ,int numseq, int mode)
 {
 	struct thread_data* thread_data = 0;
+	int status;
 	
 	
-	MMALLOC(thread_data,sizeof(struct thread_data)* param->num_threads);
 	pthread_t threads[param->num_threads];
 	pthread_attr_t attr;
 	int i,t;
@@ -1891,7 +1894,7 @@ struct model_bag* run_pHMM(struct arch_bag* ab,struct model_bag* mb,struct read_
 	int rc;
 	
 	
-	
+	MMALLOC(thread_data,sizeof(struct thread_data)* param->num_threads);
 	
 	interval =  (int)((double)numseq /(double)param->num_threads);
 	
@@ -2014,7 +2017,9 @@ struct model_bag* run_pHMM(struct arch_bag* ab,struct model_bag* mb,struct read_
 	}
 	
 	MFREE(thread_data);
-	return mb;
+	return kslOK;
+ERROR:
+	return status;
 }
 
 
@@ -2029,12 +2034,12 @@ struct model_bag* run_pHMM(struct arch_bag* ab,struct model_bag* mb,struct read_
 \param reference_fasta file to match against.
  
  */
-struct read_info** run_rna_dust(struct read_info** ri,struct parameters* param,struct fasta* reference_fasta ,int numseq)
+int run_rna_dust(struct read_info** ri,struct parameters* param,struct fasta* reference_fasta ,int numseq)
 {
 	struct thread_data* thread_data = 0;
+	int status;
 	
 	
-	MMALLOC(thread_data,sizeof(struct thread_data)* param->num_threads);
 	pthread_t threads[param->num_threads];
 	pthread_attr_t attr;
 	int t;
@@ -2042,7 +2047,7 @@ struct read_info** run_rna_dust(struct read_info** ri,struct parameters* param,s
 	int interval = 0;
 	int rc;
 	
-	
+	MMALLOC(thread_data,sizeof(struct thread_data)* param->num_threads);
 	
 	
 	interval =  (int)((double)numseq /(double)param->num_threads);
@@ -2090,7 +2095,9 @@ struct read_info** run_rna_dust(struct read_info** ri,struct parameters* param,s
 	}
 	
 	MFREE(thread_data);
-	return ri;
+	return kslOK;
+ERROR:
+	return status;
 }
 
 
@@ -2258,7 +2265,7 @@ void* do_label_thread(void *threadarg)
 	
 	struct read_info** ri  = data->ri;
 	struct model_bag* mb = data->mb;
-	
+	int status;
 	int matchstart = data->param->matchstart;
 	int matchend = data->param->matchend;
 	
@@ -2327,7 +2334,8 @@ void* do_label_thread(void *threadarg)
 	for(i = start; i < end;i++){
 		ri[i]->bar_prob = 100;
 		//print_labelled_reads(mb,data->param ,ri[i]);
-		ri[i] = extract_reads(mb,data->param,ri[i]);
+		if((status =extract_reads(mb,data->param,ri[i])) != kslOK) KSLIB_XEXCEPTION(kslFAIL,"Extract reads failed.\n");
+		//ri[i] = extract_reads(mb,data->param,ri[i]);
 	}
 	
 	if(data->param->reference_fasta){
@@ -2337,7 +2345,9 @@ void* do_label_thread(void *threadarg)
 	if(data->param->dust){
 		ri = dust_sequences(data);
 	}
-
+	return NULL;
+ERROR:
+	return NULL;
 	pthread_exit((void *) 0);
 }
 
@@ -2578,20 +2588,20 @@ Exhaustively compares reads to a fasta file of known artifact sequences. Uses a 
  */
 
 
-struct read_info* emit_random_sequence(struct model_bag* mb, struct read_info* ri,int average_length,unsigned int* seed )
+int  emit_random_sequence(struct model_bag* mb, struct read_info* ri,int average_length,unsigned int* seed )
 {
 #ifdef RTEST
 	unsigned int my_rand_max = 32768;
 #else
 	unsigned int my_rand_max = RAND_MAX;
 #endif
+	int status;
 	int current_length = 0;
 	int allocated_length = 100;
 	double r = (float)rand()/(float)my_rand_max;
 	double sum = prob2scaledprob(0.0f);
 	//char alpha[] = "ACGTN";
 	int nuc,i;
-	void* tmp = 0;
 	MFREE(ri->seq);
 	MFREE(ri->name);
 	MFREE(ri->qual);
@@ -2620,7 +2630,7 @@ struct read_info* emit_random_sequence(struct model_bag* mb, struct read_info* r
 			}
 			if(current_length == allocated_length){
 				allocated_length = allocated_length*2;
-				MREALLOC(ri->seq,tmp,sizeof(char) * allocated_length );
+				MREALLOC(ri->seq,sizeof(char) * allocated_length );
 			}
 			//transition
 			r = (float)rand()/(float)my_rand_max;
@@ -2639,7 +2649,7 @@ struct read_info* emit_random_sequence(struct model_bag* mb, struct read_info* r
 		}
 	}
 	
-	MREALLOC(ri->seq,tmp ,sizeof(char) * (current_length+1));
+	MREALLOC(ri->seq ,sizeof(char) * (current_length+1));
 	ri->seq[current_length] = 0;
 	ri->len = current_length;
 	
@@ -2655,7 +2665,9 @@ struct read_info* emit_random_sequence(struct model_bag* mb, struct read_info* r
 	ri->name[1] = 0;
 	
 	MMALLOC(ri->labels,sizeof(char) * (current_length+1));
-	return ri;
+	return kslOK;
+ERROR:
+	return status;
 }
 
 
@@ -2672,7 +2684,7 @@ struct read_info* emit_random_sequence(struct model_bag* mb, struct read_info* r
  */
 
 
-struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_length,unsigned int* seed )
+int emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_length,unsigned int* seed )
 {
 	
 	int i,j,nuc;
@@ -2680,6 +2692,7 @@ struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,
 	int column = 0;
 	int hmm = 0;
 	int segment= 0;
+	int status;
 	//nt region = 0;
 	//int start = 1;
 	int len;//mb->model[segment]->hmms[0]->num_columns;
@@ -2705,7 +2718,7 @@ struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,
 	
 	int current_length = 0;
 	int allocated_length = 100;
-	void *tmp = 0;
+
 	MFREE(ri->seq);
 	MFREE(ri->name);
 	MFREE(ri->qual);
@@ -2953,8 +2966,8 @@ struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,
 			
 			if(current_length == allocated_length){
 				allocated_length = allocated_length*2;
-				MREALLOC(ri->seq ,tmp, sizeof(char) * allocated_length );
-				MREALLOC(ri->labels ,tmp, sizeof(char) * allocated_length );
+				MREALLOC(ri->seq , sizeof(char) * allocated_length );
+				MREALLOC(ri->labels , sizeof(char) * allocated_length );
 			}
 			
 			//fprintf(stderr,"segement: %d %d\n", segment,mb->num_models);
@@ -2977,10 +2990,10 @@ struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,
 	//fprintf(stderr,"	%f\n", prob);
 	
 	
-	MREALLOC(ri->seq,tmp, sizeof(char) * (current_length+1));
+	MREALLOC(ri->seq, sizeof(char) * (current_length+1));
 	ri->seq[current_length] = 0;
 	
-	MREALLOC(ri->labels,tmp, sizeof(char) * (current_length+1));
+	MREALLOC(ri->labels, sizeof(char) * (current_length+1));
 	ri->labels[current_length] = 0;
 	
 	
@@ -3007,7 +3020,9 @@ struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,
 	//ri->qual[0] = 'P';
 	//ri->qual[1] = 0;
 	
-	return ri;
+	return kslOK;
+ERROR:
+	return status;
 }
 
 
@@ -3134,9 +3149,9 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
  */
 
 
- struct read_info*  extract_reads(struct model_bag* mb, struct parameters* param,  struct read_info* ri)
+ int extract_reads(struct model_bag* mb, struct parameters* param,  struct read_info* ri)
 {
-	int j,c1,c2,c3,key,bar,mem,fingerlen,required_finger_len;//,ret;
+	int j,c1,c2,c3,key,bar,mem,fingerlen,required_finger_len,status;//,ret;
 	char* buffer = 0;
 	
 	MMALLOC(buffer,sizeof(char)* mb->current_dyn_length );
@@ -3262,7 +3277,9 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 	
 	ri->qual[ri->len] = 0;
 	free (buffer);
-	return ri;
+	return kslOK;
+ERROR:
+	return status;
 }
 
 
@@ -4482,6 +4499,7 @@ struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct re
 struct model* malloc_model(int main_length, int sub_length, int number_sub_models)
 {
 	struct model* model = NULL;
+	int status;
 	int i = 0;
 	int j = 0;
 	
@@ -4515,6 +4533,9 @@ struct model* malloc_model(int main_length, int sub_length, int number_sub_model
 	
 	
 	return model;
+ERROR:
+	KSLIB_MESSAGE(status,"Something wrong in malloc_model.\n");
+	return NULL;
 }
 
 
@@ -4529,6 +4550,7 @@ struct model* malloc_model(int main_length, int sub_length, int number_sub_model
 struct model* malloc_model_according_to_read_structure(int num_hmm, int length,int dyn_length)
 {
 	struct model* model = NULL;
+	int status;
 	int i = 0;
 	int j = 0;
 	int len = 0;
@@ -4605,6 +4627,9 @@ struct model* malloc_model_according_to_read_structure(int num_hmm, int length,i
 		}
 	}
 	return model;
+ERROR:
+	KSLIB_MESSAGE(status,"Something wrong in malloc_model_according_to_read_structure.\n");
+	return NULL;
 }
 
 
@@ -5055,7 +5080,6 @@ void print_model(struct model* model)
 			for(c = 0; c < 5;c++){
 				sum += scaledprob2prob(col->m_emit[c]);
 				fprintf(stderr,"%0.4f ", scaledprob2prob(col->m_emit[c]));
-				
 			}
 			fprintf(stderr,"%0.1fc ",sum);
 			
@@ -5204,6 +5228,7 @@ void free_model(struct model* model)
 struct model_bag* copy_model_bag(struct model_bag* org)
 {
 	struct model_bag* copy = 0;
+	int status;
 	int i,j;
 	MMALLOC(copy , sizeof(struct model_bag));
 	
@@ -5261,6 +5286,9 @@ struct model_bag* copy_model_bag(struct model_bag* org)
 	
 	
 	return copy;
+ERROR:
+	KSLIB_MESSAGE(status,"Something wrong in copy_model_bag.\n");
+	return NULL;
 }
 
 
@@ -5693,7 +5721,7 @@ struct model* copy_estimated_parameter(struct model* target, struct model* sourc
 
 struct model_bag* init_model_bag(struct parameters* param,struct sequence_stats_info* ssi)
 {
-	int i,j,c;
+	int i,j,c,status;
 	//int average_length = 12;
 	int read_length = 1;
 	int segment_length;
@@ -5928,6 +5956,9 @@ struct model_bag* init_model_bag(struct parameters* param,struct sequence_stats_
 		mb->transition_matrix[i][i] = 1;
 	}
 	return mb;
+ERROR:
+	KSLIB_MESSAGE(status,"Something wrong in init_model_bag.\n");
+	return NULL;
 }
 
 

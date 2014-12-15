@@ -1,3 +1,8 @@
+#include "kslib.h"
+
+#if HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include "interface.h"
 #include "nuc_code.h"
@@ -7,16 +12,13 @@
 #include <sys/stat.h>
 
 
-#ifndef MMALLOC
-#include "malloc_macro.h"
-#endif
 
 
 char* mutate(struct parameters* param, char* seq,char* seq_mutated,int len,unsigned int my_rand_max );
 
 int main (int argc,char * argv[]) {
-	struct parameters* param = 0;
-	
+	struct parameters* param = NULL;
+	int status;
 	unsigned int seed = 0;
 	
 	init_nuc_code();
@@ -475,7 +477,10 @@ int main (int argc,char * argv[]) {
 	MFREE(sequenced_read);// = malloc(sizeof(char)* 200);
 	MFREE(sequenced_read_mutated);// = malloc(sizeof(char)* 220);
 	free_param(param);
-	return EXIT_SUCCESS;
+	return kslOK;
+ERROR:
+	KSLIB_MESSAGE(status,"Something wrong in main...\n");
+	return kslFAIL;
 }
 
 

@@ -163,7 +163,7 @@ TagDust allows users to specify the expected architecture of a read and converts
 \begin{figure}[H]
 
 \begin{center}
-\includegraphics[scale = 0.6]{figures/Figure1.pdf}
+\includegraphics[scale = 0.6]{Figure1.pdf}
 \end{center}
 \caption{Workflow of TagDust. 1) A user specifies the expected read architecture as a sequence of blocks. In this example there are four blocks. 2) A HMM is constructed by stitching together a set of pre-defined blocks in the order given by the {\tt -1} \dots command line options. For example {\tt -2 B:GTA,AAC} is translated into the second red part of the HMM and models the presence of two mutually exclusive barcode sequences. 3) Each read is scanned with the HMM and each nucleotide is labelled as belonging to a single building block. In the example shown the three letter barcode GTA is recognised in the read. 4) Based on the labelling of the sequence, a barcode is assigned to each read and remaining sequences are trimmed.}
 \label{figure1}

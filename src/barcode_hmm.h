@@ -317,10 +317,11 @@ struct log_information{
 	int num_EXTRACT_FAIL_LOW_COMPLEXITY;
 };
 
-void hmm_controller_multiple(struct parameters* param);
-void hmm_controller_pe(struct parameters* param);
-void hmm_controller(struct parameters* param, int file_num);
-void filter_controller(struct parameters* param, int file_num);
+int hmm_controller_multiple(struct parameters* param);
+
+//void hmm_controller_pe(struct parameters* param);
+//void hmm_controller(struct parameters* param, int file_num);
+//void filter_controller(struct parameters* param, int file_num);
 
 struct model* malloc_model(int main_length, int sub_length, int number_sub_models);
 
@@ -346,8 +347,9 @@ struct model* copy_estimated_parameter(struct model* target, struct model* sourc
 struct model* reestimate(struct model* m, int mode);
 void free_model_bag(struct model_bag* mb);
 
-struct model_bag* run_pHMM(struct arch_bag* ab,struct model_bag* mb,struct read_info** ri,struct parameters* param,struct fasta* reference_fasta ,int numseq, int mode);
-struct read_info** run_rna_dust(struct read_info** ri,struct parameters* param,struct fasta* reference_fasta ,int numseq);
+int run_pHMM(struct arch_bag* ab,struct model_bag* mb,struct read_info** ri,struct parameters* param,struct fasta* reference_fasta ,int numseq, int mode);
+int run_rna_dust(struct read_info** ri,struct parameters* param,struct fasta* reference_fasta ,int numseq);
+
 void* do_baum_welch_thread(void *threadarg);
 void* do_label_thread(void *threadarg);
 void* do_rna_dust(void *threadarg);
@@ -357,7 +359,7 @@ void* do_arch_comparison(void *threadarg);
 double pi0_bootstrap(struct read_info** ri, int numseq);
 double get_min_pi0(double* x, double* y, int n_points);
 
-struct read_info*  extract_reads(struct model_bag* mb, struct parameters* param,  struct read_info* ri);
+int  extract_reads(struct model_bag* mb, struct parameters* param,  struct read_info* ri);
 struct read_info*  make_extracted_read(struct model_bag* mb, struct parameters* param,  struct read_info* ri);
 struct read_info** match_to_reference(struct thread_data *data);
 
@@ -370,17 +372,17 @@ struct model_bag* estimate_model_from_labels(struct model_bag* mb, struct parame
 struct model_bag* set_model_e_to_laplace(struct model_bag* mb);
 
 
-struct read_info* emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_length,unsigned int* seed );
-struct read_info* emit_random_sequence(struct model_bag* mb, struct read_info* ri,int average_length,unsigned int* seed );
+int emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_length,unsigned int* seed );
+int emit_random_sequence(struct model_bag* mb, struct read_info* ri,int average_length,unsigned int* seed );
 
 float model_information_content(struct model_bag*mb);
 
 struct hmm* set_hmm_transition_parameters(struct hmm* hmm, int len,double base_error, double indel_freq,  double mean, double stdev);
 
 
-struct parameters* estimateQthreshold(struct parameters* param, struct sequence_stats_info* ssi);
+int estimateQthreshold(struct parameters* param, struct sequence_stats_info* ssi);
 
-struct parameters* test_architectures(struct parameters* param, int file_num);
+int test_architectures(struct parameters* param, int file_num);
 char* pretty_print_selected_architecture(char* command_line, char* buffer);
 
 void print_labelled_reads(struct model_bag* mb, struct parameters* param,  struct read_info* ri);

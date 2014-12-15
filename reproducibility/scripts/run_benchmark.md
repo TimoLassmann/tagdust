@@ -291,30 +291,15 @@ Runs all the scripts to make the paper figures 2-5. At first all the test datase
 
 .PHONY:  message benchmark rplot
 
-benchmark: Figure1.pdf Figure2.pdf Figure3.pdf Figure4.pdf Figure5.pdf
+benchmark: Figure1.pdf Figure2.pdf
 	@echo Done
-
 
 Figure1.pdf: Figure1.tex
 	pdflatex $<;
 
-Figure2.pdf: barread_6nt_4r.tsv
+Figure2.pdf: barread_6nt_4r.tsv barread_4nt_4r.tsv 5barread3_4nt_4r.tsv 5barread3_6nt_4r.tsv
 	R --slave --vanilla < plotting.R
 	rm Rplots.pdf
-
-Figure3.pdf: barread_4nt_4r.tsv
-	R --slave --vanilla < plotting.R
-	rm Rplots.pdf
-	
-Figure4.pdf: 5barread3_4nt_4r.tsv
-	R --slave --vanilla < plotting.R
-	rm Rplots.pdf
-
-Figure5.pdf: 5barread3_6nt_4r.tsv
-	R --slave --vanilla < plotting.R
-	rm Rplots.pdf
-
-
 
 
 barread_4nt_4r.tsv: barread_results.txt

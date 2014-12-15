@@ -1,3 +1,10 @@
+
+#include "kslib.h"
+
+#if HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -11,13 +18,7 @@
 
 #include <sys/stat.h>
 
-#if HAVE_CONFIG_H
-#include "config.h"
-#endif
 
-#ifndef MMALLOC
-#include "malloc_macro.h"
-#endif
 
 struct libraries{
 	int total;
@@ -28,11 +29,11 @@ struct libraries{
 
 int main (int argc,char * argv[])
 {
-	struct parameters* param = 0;
+	struct parameters* param = NULL;
+	int status;
+	struct read_info** ri =NULL ;
 	
-	struct read_info** ri =0 ;
-	
-	struct libraries** libs = 0;
+	struct libraries** libs = NULL;
 	
 	FILE* file = 0;
 	
@@ -66,7 +67,7 @@ int main (int argc,char * argv[])
 	
 	param->num_query = 1000000;
 	
-	int (*fp)(struct read_info** ,struct parameters*,FILE* ) = 0;
+	int (*fp)(struct read_info** ,struct parameters*,FILE* , int* buffer_count) = 0;
 	
 	fp = &read_fasta_fastq;
 	
@@ -88,7 +89,12 @@ int main (int argc,char * argv[])
 	
 	for(i = 0; i < param->infiles;i++){
 		file =  io_handler(file, i,param);
-		while ((numseq = fp(ri, param,file)) != 0){
+		while(1){
+			if((status = fp(ri, param,file,&numseq)) != kslOK)  exit(status);
+			if(!numseq){
+				break;
+			}
+		//while ((numseq = fp(ri, param,file)) != 0){
 			for(j = 0;j < numseq;j++){
 				//read all reads into librarues ..
 				c = byg_end("BARNUM:", ri[j]->name);
@@ -166,7 +172,12 @@ int main (int argc,char * argv[])
 		if(c){
 			file =  io_handler(file, i,param);
 			
-			while ((numseq = fp(ri, param,file)) != 0){
+			//while ((numseq = fp(ri, param,file)) != 0){
+			while(1){
+				if((status = fp(ri, param,file,&numseq)) != kslOK)  exit(status);
+				if(!numseq){
+					break;
+				}
 				for(j = 0;j < numseq;j++){
 					c = byg_end("SEQ:", ri[j]->name  );
 					if(c){
@@ -276,16 +287,18 @@ int main (int argc,char * argv[])
 	param->buffer[0] = 0;
 	sprintf(param->buffer, "%s_results.txt",param->outfile );
 	if(!stat ( param->buffer, &buf )){
-		if ((file = fopen(param->buffer, "a")) == NULL){
-			fprintf(stderr,"can't open output\n");
-			exit(-1);
-		}
+		if((file = fopen(param->buffer, "a")) == NULL) KSLIB_XEXCEPTION_SYS(kslEWRT,"Failed to open file:%s",param->buffer);
+		//if ((file = fopen(param->buffer, "a")) == NULL){
+		//	fprintf(stderr,"can't open output\n");
+		//	exit(-1);
+		//}
 		
 	}else {
-		if ((file = fopen(param->buffer, "w")) == NULL){
-			fprintf(stderr,"can't open output\n");
-			exit(-1);
-		}
+		if((file = fopen(param->buffer, "w")) == NULL) KSLIB_XEXCEPTION_SYS(kslEWRT,"Failed to open file:%s",param->buffer);
+		//if ((file = fopen(param->buffer, "w")) == NULL){
+		//	fprintf(stderr,"can't open output\n");
+		//	exit(-1);
+		//}
 		fprintf(file,"Program\tSensitivity\tSpecificity\tPrecision\tKappa\tAvgError\tTP\tFP\tFN\tTN\n");
 	}
 	
@@ -308,7 +321,9 @@ int main (int argc,char * argv[])
 	MFREE(orgread);
 	free_param(param);
 	
-	return EXIT_SUCCESS;
+	return kslOK;
+ERROR:
+	return kslFAIL;
 }
 
 

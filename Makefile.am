@@ -1,13 +1,7 @@
 
 VFLAGS = --track-origins=yes --tool=memcheck --leak-check=yes --error-exitcode=1
 
-EXTRA_DIST= 
-
-if HAVE_PANDOC
-DOC = doc
-else
-DOC =
-endif
+EXTRA_DIST= doc/User-Manual.pdf
 
 
 

@@ -26,7 +26,15 @@
  \author Timo Lassmann
  \bug No known bugs.
  */
+
+#include "kslib.h"
+#if HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+
 #include <stdlib.h>
+
 #include "tagdust2.h"
 #include "nuc_code.h"
 
@@ -35,7 +43,7 @@
  \brief Initializes nucleotide conversion arrays. 
  
  */
-void init_nuc_code()
+int init_nuc_code()
 {
 	int i;
 	for(i = 0;i < 256;i++){
@@ -62,6 +70,7 @@ void init_nuc_code()
 	rev_nuc_code[2] = 1;//G	Guanine
 	rev_nuc_code[3] = 0;//T	Thymine
 	rev_nuc_code[4] = 4;//U	Uracil
+	return kslOK;
 }
 
 

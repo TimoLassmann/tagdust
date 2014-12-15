@@ -14,11 +14,9 @@ if [[ $status -eq 0 ]]; then
 printf "%20s%10s\n"  sim_reads SUCCESS;
 else
 printf "%20s%10s\n"  sim_reads FAILED;
-printf "with ERROR $status and Message:\n\n$error\n\n";
+echo "with ERROR $status and Message:\n\n$error\n\n";
 exit 1;
 fi
-
-
 
 error=$(${valparam} ../src/tagdust_rtest -seed 42 sanity_barread1.fq -o sanity1 2>&1 )
 status=$?
@@ -26,7 +24,7 @@ if [[ $status -eq 0 ]]; then
 printf "%20s%10s\n"  tagdust SUCCESS;
 else
 printf "%20s%10s\n"  tagdust FAILED;
-printf "with ERROR $status and Message:\n\n$error\n\n";
+echo "with ERROR $status and Message:\n\n$error\n\n";
 exit 1;
 fi
 
