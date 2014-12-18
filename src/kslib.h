@@ -20,7 +20,7 @@
 #define MMALLOC(p, size) do {\
 if (p != NULL){\
 status =kslEMEM; \
-ksl_exception(kslEMEM, FALSE, __FILE__, __LINE__, "malloc on a nun-null pointer"); \
+ksl_exception(kslEMEM, FALSE, __FILE__, __LINE__, "malloc on a non-null pointer:%p\n",p); \
 goto ERROR;\
 }\
 if (((p) = malloc(size)) == NULL && (size)) {	\

@@ -93,7 +93,7 @@ int hmm_controller_multiple(struct parameters* param)
 	
 	MMALLOC(numseqs, sizeof(int) * param->infiles);
 	
-	for(i= 0; i <param->infiles;i++){
+	for(i= 0; i < param->infiles;i++){
 		read_info_container[i] = NULL;
 		sequence_stats_info_container[i] = NULL;
 		model_bag_container[i] = NULL;
@@ -105,14 +105,17 @@ int hmm_controller_multiple(struct parameters* param)
 	for(i = 0; i < param->infiles;i++){
 		if( !i && param->read_structure->num_segments){
 			param->read_structures[0] = param->read_structure;
+			param->read_structure = NULL;
 		}else	 if(param->arch_file){
 			if((status = test_architectures(param,i)) != kslOK) KSLIB_XFAIL(kslFAIL,param->errmsg,"Test architecture on file %s failed.\n", param->infile[i]);
 			//param = test_architectures(param, i);
 			param->read_structures[i] = param->read_structure;
-			param->read_structure = 0;
+			param->read_structure = NULL;
 			//param->read_structure = malloc_read_structure();
 		}else{
 			//Resort top default R:N
+			if((param->read_structure = malloc_read_structure()) == NULL) KSLIB_XEXCEPTION_SYS(kslEMEM,"Malloc of readstructure failed.\n");
+			
 			if((status = assign_segment_sequences(param, "R:N" , 0 )) != kslOK) KSLIB_XEXCEPTION(kslFAIL,"Some problem with parsing an HMM segment: %s.\n",optarg);
 			//param->read_structure = assign_segment_sequences(param, "R:N" , 0 );
 			if(QC_read_structure(param)){
@@ -122,6 +125,7 @@ int hmm_controller_multiple(struct parameters* param)
 				exit(EXIT_FAILURE);
 			}
 			param->read_structures[i] = param->read_structure;
+			param->read_structure = NULL;
 		}
 		for(j = 0; j < param->read_structures[i]->num_segments;j++){
 			if(param->read_structures[i]->type[j] == 'B'){

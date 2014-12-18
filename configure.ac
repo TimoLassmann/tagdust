@@ -10,15 +10,27 @@ AC_CHECK_SIZEOF(long, 4)
 AM_CONDITIONAL([GOT_64BIT], [ test $ac_cv_sizeof_long -eq 8 ])
 
 
-AC_ARG_ENABLE(debug,
-              [  --enable-debug          Enable debugging information],
-              USE_DEBUG="$enableval", USE_DEBUG="no")
+AC_ARG_ENABLE(debugging,
+[AS_HELP_STRING([--enable-debugging],[include debugging code])
+AS_HELP_STRING([--enable-debugging=x],[also set diagnostics verbosity level to <x> (1-3)])],
+enable_debugging=$enableval, enable_debugging=no)
 
-if test $USE_DEBUG = yes ; then 
-	DEBUG=1
-	CFLAGS=" -D DEBUG -ggdb -Wall -m64 -std=gnu99"
+case $enable_debugging in
+yes)  AC_DEFINE(kslDEBUGLEVEL, 0,[No debugging. ]);;
+1)  AC_DEFINE(kslDEBUGLEVEL, 1,[Defines debugging level 1.]);;
+2)  AC_DEFINE(kslDEBUGLEVEL, 2,[Defines debugging level 2.]);;
+3)  AC_DEFINE(kslDEBUGLEVEL, 3,[Defines debugging level 3.]);;
+no)  AC_DEFINE(kslDEBUGLEVEL, 0,[No debugging.]);;
+*)  AC_MSG_ERROR([Unknown argument to --enable-debugging: $enable_debugging]);;
+esac
+
+
+
+if test "$enable_debugging" != "no"; then
+	AC_DEFINE(DEBUG,1,[Defines debugging .])
+	CFLAGS="$CFLAGS -ggdb  -Wall -m64 -std=gnu99    "
 else
-	CFLAGS=" -O3 -Wall -m64 -std=gnu99"
+	CFLAGS="$CFLAGS  -O2 -funroll-loops   -Wall  -std=gnu99 "
 	DEBUG=0
 fi
 

@@ -476,6 +476,9 @@ int assign_segment_sequences(struct parameters* param, char* tmp, int segment)
 	int status;
 	struct read_structure* read_structure = param->read_structure;
 	
+	
+	
+	
 	//tmp = optarg;
 	
 	
@@ -506,8 +509,9 @@ int assign_segment_sequences(struct parameters* param, char* tmp, int segment)
 	}
 	f = 0;
 	
-	//fprintf(stderr,"Segment %d: %d	sequences\n",segment,count+1);
+	//fprintf(stderr,"Segment %d: %d	X%sX sequences\n",segment,count+1,tmp);
 	read_structure->numseq_in_segment[segment] = count+1;
+	
 	MMALLOC(read_structure->sequence_matrix[segment],sizeof(char*) * (count+1));
 	for(i = 0; i < count+1;i++){
 		read_structure->sequence_matrix[segment][i] = 0;
@@ -778,7 +782,7 @@ struct read_structure* malloc_read_structure(void)
 	
 	
 	for(i = 0;i  <10;i++){
-		read_structure->sequence_matrix[i] = 0;
+		read_structure->sequence_matrix[i] = NULL;
 		read_structure->numseq_in_segment[i] = 0;
 		read_structure->type[i] = 0;
 		
