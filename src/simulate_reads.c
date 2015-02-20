@@ -1,8 +1,7 @@
-#include "kslib.h"
-
 #if HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include "kslib.h"
 
 #include "interface.h"
 #include "nuc_code.h"
@@ -25,7 +24,9 @@ int main (int argc,char * argv[]) {
 	
 	param = interface(param,argc,argv);
 	
-	
+	if(!param){
+		return kslOK;
+	}
 	if(param->seed){
 		seed = param->seed;
 	}else{

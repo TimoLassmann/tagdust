@@ -29,11 +29,11 @@
  \bug No known bugs.
  */
 
-#include "kslib.h"
+
 #if HAVE_CONFIG_H
 #include "config.h"
 #endif
-
+#include "kslib.h"
 
 #include <stdio.h>
 #include "tagdust2.h"
@@ -136,8 +136,7 @@ int hmm_controller_multiple(struct parameters* param)
 			}
 		}
 	}
-	
-	
+
 	// sanity check - barcode present in multiple reads? - Can't handle at the moment
 	if(bitcount64(barcode_present) > 1){
 		sprintf(param->buffer,"Barcodes seem to be in both architectures... \n");
@@ -145,18 +144,20 @@ int hmm_controller_multiple(struct parameters* param)
 		free_param(param);
 		exit(EXIT_FAILURE);
 	}
-	
+
 	for(i = 0; i < param->infiles;i++){
 		num_out_reads += (int) read_present[i];
 	}
 	for(i = 0; i < param->infiles;i++){
 		if(barcode_present &  (1 << i)){
 			param->read_structure = param->read_structures[i];
+			param->read_structures[i] = NULL;
 			if(check_for_existing_demultiplexed_files_multiple(param, num_out_reads)) KSLIB_XFAIL(kslFAIL, param->errmsg,"Error: some output files already exists.\n");
+			param->read_structures[i] =param->read_structure;
 			param->read_structure  = NULL;
 		}
 	}
-	
+
 	
 	// Get ready for log space...
 	init_logsum();
@@ -447,6 +448,11 @@ int hmm_controller_multiple(struct parameters* param)
 	MFREE(read_present);
 	return kslOK;
 ERROR:
+	
+	fprintf(stderr,"%s\n",param->errmsg);
+	
+	
+	
 	return kslFAIL;
 	
 }

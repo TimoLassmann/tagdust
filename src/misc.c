@@ -27,12 +27,10 @@
  - add probabilities in logspace
  */
 
-#include "kslib.h"
-
 #if HAVE_CONFIG_H
 #include "config.h"
 #endif
-
+#include "kslib.h"
 
 #include "tagdust2.h"
 #include "nuc_code.h"
@@ -326,6 +324,7 @@ char* append_message(char* old_message, char* new_message)
 	memcpy(old_message+message_len, time_string, time_len+1);
 	
 	memcpy(old_message+message_len+time_len, new_message, added_len+1);
+	
 	message_len =strlen(old_message);
 
 	

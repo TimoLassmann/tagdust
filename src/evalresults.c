@@ -1,9 +1,8 @@
 
-#include "kslib.h"
-
 #if HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include "kslib.h"
 
 #include <stdio.h>
 #include <string.h>

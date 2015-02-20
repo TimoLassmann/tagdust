@@ -24,13 +24,13 @@
  \brief Functions to deal with user inputs.
  */
 
-#include "kslib.h"
+
 
 #if HAVE_CONFIG_H
 #include "config.h"
 #endif
 
-
+#include "kslib.h"
 #include "tagdust2.h"
 #include "interface.h"
 #include "io.h"
@@ -58,7 +58,8 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	
 	if (argc < 2 && isatty(0)){
 		usage();
-		return kslOK;
+		return NULL;
+	//	return kslOK;
 	}
 		
 	MMALLOC(param,sizeof(struct parameters));
@@ -120,7 +121,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->buffer = 0;
 	param->seed = 0;
 	
-	param->arch_file = 0;
+	param->arch_file = NULL;
 	
 	param->read_structures = NULL;
 	if((param->read_structure = malloc_read_structure()) == NULL) KSLIB_XEXCEPTION_SYS(kslEMEM,"Malloc of readstructure failed.\n");
@@ -357,13 +358,16 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	if(help){
 		usage();
 		free_param(param);
-		return kslOK;
+		return NULL;
+		//
+		//return kslOK;
 	}
 	
 	if(version){
 		fprintf(stdout,"%s %s\n",PACKAGE_NAME,PACKAGE_VERSION);
+		
 		free_param(param);
-		return kslOK;
+		return NULL;
 	}
 	
 	
@@ -402,9 +406,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	
 	//if(param->matchstart)
 	//fprintf(stderr,"Viterbi: %d\n",param->viterbi);
-	if(QC_read_structure(param) != kslOK) KSLIB_XFAIL(kslFAIL, param->errmsg,"Somethiong wrong with the read architecture");
 	
-	if(param->outfile == NULL) KSLIB_XFAIL(kslFAIL, param->errmsg, "ERROR: You need to specify an output file prefix using the -o / -out option.\n");
 	
 	c = 0;
 	for(i = 0; i < param->read_structure->num_segments;i++){
@@ -449,13 +451,21 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->infiles = c;
 	
 	
+
+
+	
+	//fprintf(stderr,"%d %p\n",param->read_structure->num_segments, param->arch_file  );
+	
+	
 	
 	
 	
 	//free(command_line);
 	return param;
 ERROR:
+	
 	if(param){
+		fprintf(stdout,"%s",param->errmsg);
 		free_param(param);
 	}
 	return NULL;
@@ -664,7 +674,9 @@ int free_param(struct parameters* param)
 	}
 	if(param->read_structures){
 		for(i = 0; i < param->infiles;i++){
-			free_read_structure(param->read_structures[i]);
+			if(param->read_structures[i]){
+				free_read_structure(param->read_structures[i]);
+			}
 		}
 		MFREE(param->read_structures);
 	}

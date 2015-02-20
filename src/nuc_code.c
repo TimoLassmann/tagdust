@@ -27,11 +27,11 @@
  \bug No known bugs.
  */
 
-#include "kslib.h"
+
 #if HAVE_CONFIG_H
 #include "config.h"
 #endif
-
+#include "kslib.h"
 
 #include <stdlib.h>
 

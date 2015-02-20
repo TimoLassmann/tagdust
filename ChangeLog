@@ -1,3 +1,6 @@
+Version 2.31:
+- Fixed bug: structure to hold parameters was not passed correctly to the main when no parameters were used...
+
 Version 2.3:
 - Added basic error handling.
 - Fixed bug where fingerprint was not reported in the output.

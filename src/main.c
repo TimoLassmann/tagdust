@@ -70,11 +70,13 @@ Copyright 2013 Timo Lassmann (timolassmann@gmail.com)
  */
 
 
-#include "kslib.h"
+
 
 #if HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#include "kslib.h"
 
 #include "interface.h"
 #include "nuc_code.h"
@@ -92,20 +94,57 @@ Copyright 2013 Timo Lassmann (timolassmann@gmail.com)
 
 int main (int argc,char * argv[]) {
 	struct parameters* param = NULL;
-	
+	int i,status;
 	init_nuc_code();
 	
 	param = interface(param,argc,argv);
+	if(param){
+		
+		if(param->read_structure->num_segments == 0 && param->arch_file == NULL){
+			KSLIB_XFAIL(kslFAIL, param->errmsg,"ERROR: No read architecture found.\n");
+		}
+		
+		
+		if(QC_read_structure(param) != kslOK) KSLIB_XFAIL(kslFAIL, param->errmsg,"ERROR: Something wrong with the read architecture.\n");
+		
+		if(param->infiles == 0)KSLIB_XFAIL(kslFAIL, param->errmsg, "ERROR: No input file found.\n");
+		
+		
+		if(param->outfile == NULL) KSLIB_XFAIL(kslFAIL, param->errmsg, "ERROR: You need to specify an output file prefix using the -o / -out option.\n");
+		
+		if(param->arch_file != NULL){
+			if(!file_exists(param->arch_file)){
+			 KSLIB_XFAIL(kslFAIL, param->errmsg, "ERROR: Arch file:%s does not exists.\n", param->arch_file);
+			}
+		}
+		if(param->infiles){
+			for(i = 0; i < param->infiles;i++){
+				if(!file_exists(param->infile[i] )){
+					KSLIB_XFAIL(kslFAIL, param->errmsg, "ERROR: Input file:%s does not exists.\n", param->infile[i]);
+				}
+			}
+		}
+		
+		
+		
+		sprintf(param->buffer,"Start Run\n--------------------------------------------------\n");
+		param->messages = append_message(param->messages, param->buffer);
+		hmm_controller_multiple(param);
+		free_param(param);
+	}
 	
-	sprintf(param->buffer,"Start Run\n--------------------------------------------------\n");
+	/*sprintf(param->buffer,"Start Run\n--------------------------------------------------\n");
 	param->messages = append_message(param->messages, param->buffer);
+
 	if(param->infiles == 0){
+		KSL_DPRINTF2(("Got here 1\n"));
 		fprintf(stderr,"Sorry - no input file found.\n");
 		free_param(param);
 		exit(EXIT_FAILURE);
 	}else{
+		KSL_DPRINTF3(("Got HMM control\n"));
 		hmm_controller_multiple(param);
-	}
+	}*/
 	// Paired end or single end ?
 	/*if(param->infiles == 0){
 		fprintf(stderr,"Sorry - no input file found.\n");
@@ -168,7 +207,13 @@ int main (int argc,char * argv[]) {
 		return EXIT_SUCCESS;
 	}*/
 	
-	free_param(param);
+	
+	return EXIT_SUCCESS;
+ERROR:
+	if(param){
+		fprintf(stdout,"%s",param->errmsg);
+		free_param(param);
+	}
 	return EXIT_SUCCESS;
 	
 }

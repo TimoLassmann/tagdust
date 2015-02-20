@@ -1,9 +1,4 @@
-AUTOMAKE_OPTIONS = serial-tests
-ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
-
-
 bin_PROGRAMS = tagdust simreads evalres
-
 
 evalres_SOURCES = \
 barcode_hmm.h \
@@ -19,6 +14,7 @@ interface.c \
 misc.c \
 nuc_code.c \
 io.c
+
 
 evalres_LDADD = -lm
 
@@ -39,13 +35,6 @@ simreads_CPPFLAGS = -DSIMREADS
 simreads_LDADD = -lm
 
 tagdust_SOURCES =  \
-barcode_hmm.h \
-io.h \
-nuc_code.h \
-interface.h \
-kslib.h \
-misc.h \
-tagdust2.h \
 kslib.c \
 main.c \
 interface.c \

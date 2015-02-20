@@ -2,12 +2,12 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT(Tagdust, 2.3, timolassmann@gmail.com)
-AC_CONFIG_HEADER([src/config.h])
+AC_INIT(Tagdust, 2.31, timolassmann@gmail.com)
+
+
 AM_INIT_AUTOMAKE([ -Wno-portability ])
 
-AC_CHECK_SIZEOF(long, 4)
-AM_CONDITIONAL([GOT_64BIT], [ test $ac_cv_sizeof_long -eq 8 ])
+CXXFLAGS="$CXXFLAGS"
 
 
 AC_ARG_ENABLE(debugging,
@@ -33,6 +33,14 @@ else
 	CFLAGS="$CFLAGS  -O2 -funroll-loops   -Wall  -std=gnu99 "
 	DEBUG=0
 fi
+
+
+
+AC_CHECK_SIZEOF(long, 4)
+AM_CONDITIONAL([GOT_64BIT], [ test $ac_cv_sizeof_long -eq 8 ])
+
+
+
 
 AC_ARG_ENABLE(valgrind-tests,
     [--enable-valgrind-tests run self tests under valgrind],
@@ -74,7 +82,7 @@ AM_CONDITIONAL([HAVE_PANDOC], [test -n "$PANDOC"])
 
 # Checks for programs.
 AC_PROG_CC
-
+AM_PROG_CC_C_O
 
 # Checks for libraries.
 
@@ -93,6 +101,7 @@ AC_FUNC_REALLOC
 
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([src/Makefile])
+
 AC_CONFIG_FILES([dev/Makefile])
 #AC_CONFIG_FILES([doc/Makefile])
 AC_CONFIG_FILES([casava_demo/Makefile])
@@ -101,6 +110,8 @@ AC_CONFIG_FILES([reproducibility/builder/Makefile])
 AC_CONFIG_FILES([reproducibility/scripts/Makefile])
 AC_CONFIG_FILES([reproducibility/doc/Makefile])
 AC_CONFIG_FILES([reproducibility/bin/Makefile])
+
+AC_CONFIG_HEADER([src/config.h])
 AC_OUTPUT
 
 

@@ -1,9 +1,8 @@
-#include "kslib.h"
-
 #if HAVE_CONFIG_H
 #include "config.h"
 #endif
 
+#include "kslib.h"
 #include "tagdust2.h"
 #include "interface.h"
 #include "io.h"
