@@ -290,13 +290,15 @@ int hmm_controller_multiple(struct parameters* param)
 		
 		// Check if any read in any file was longer than what was allocated based on the top X reads.
 		for(i = 0; i < param->infiles;i++){
-			c = 0;
+			
 			for(j = 0;j < numseqs[0];j++){
+				c = 0;
 				if(read_info_container[i][j]->len >=  sequence_stats_info_container[i]->max_seq_len){
 					sequence_stats_info_container[i]->max_seq_len=read_info_container[i][j]->len ;
 					c = 1;
 				}
 				if(c){
+					fprintf(stderr," %d %d\n", read_info_container[i][j]->len ,sequence_stats_info_container[i]->max_seq_len);
 					sprintf(param->buffer,"Long sequence found. Need to realloc model...\n");
 					param->messages = append_message(param->messages, param->buffer);
 					
@@ -1935,12 +1937,6 @@ int run_pHMM(struct arch_bag* ab,struct model_bag* mb,struct read_info** ri,stru
 		}
 	}
 	
-	
-	//fprintf(stderr," %d-%d\n",t*interval,numseq);
-
-	
-	//unsigned int seed = (unsigned int) (time(NULL) * ( 42));
-	
 	rc = pthread_attr_init(&attr);
 	if(rc){
 		sprintf(param->buffer,"ERROR; return code from pthread_attr_init() is %d\n", rc);
@@ -2128,10 +2124,14 @@ void* do_arch_comparison(void *threadarg)
 	//float sum;
 	
 	for(i = start; i < end;i++){
+		
+		//fprintf(stderr,"%d\n", i);
+		
 		for(j = 0; j < data->ab->num_arch;j++){
 			data->ab->archs[j] = backward(data->ab->archs[j] , ri[i]->seq ,ri[i]->len);
 			//raw[j] = data->ab->archs[j]->b_score;
 			data->ab->arch_posterior[j]  += data->ab->archs[j]->b_score;
+		//	fprintf(stderr,"%d:  %f\n", j,   data->ab->archs[j]->b_score );
 		}
 		/*
 		sum = raw[0];
@@ -2203,7 +2203,6 @@ void* do_probability_estimation(void *threadarg)
 				Q = 40.0;
 			}else if(pbest == 1.0){
 				Q = 0.0;
-				
 			}else{
 				Q = -10.0 * log10(pbest) ;
 			}
@@ -2211,7 +2210,7 @@ void* do_probability_estimation(void *threadarg)
 		}
 	}else{
 		for(i = start; i < end;i++){
-			
+			//fprintf(stderr,"%d\n",i);
 			mb = backward(mb, ri[i]->seq ,ri[i]->len);
 			mb = forward_max_posterior_decoding(mb, ri[i], ri[i]->seq ,ri[i]->len);
 			
@@ -2226,7 +2225,6 @@ void* do_probability_estimation(void *threadarg)
 				Q = 40.0;
 			}else if(pbest == 1.0){
 				Q = 0.0;
-				
 			}else{
 				Q = -10.0 * log10(pbest) ;
 			}
@@ -2654,9 +2652,9 @@ int  emit_random_sequence(struct model_bag* mb, struct read_info* ri,int average
 			current_length = 0;
 		}
 		
-		if(current_length+2 >= MAX_HMM_SEQ_LEN){
-			current_length = 0;
-		}
+		//if(current_length+2 >= MAX_HMM_SEQ_LEN){
+		//	current_length = 0;
+		//}
 	}
 	
 	MREALLOC(ri->seq ,sizeof(char) * (current_length+1));
@@ -2746,6 +2744,7 @@ int emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_le
 	MMALLOC(ri->labels,sizeof(char) * allocated_length);
 	
 	while(current_length < average_length){
+		KSL_DPRINTF2(("%d %d\n", current_length , average_length ));
 		state = 0; //0 silent ; 1 M , 2 I , 3 D
 		column = 0;
 		hmm = 0;
@@ -2758,7 +2757,7 @@ int emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_le
 			sum = prob2scaledprob(0.0f);
 			switch (state) {
 				case 0:
-					//fprintf(stderr,"AM in silent... %f\n",r);
+				//	fprintf(stderr,"AM in silent... %f\n",r);
 					len = mb->model[segment]->hmms[0]->num_columns;
 					
 					for(i = 0; i < mb->model[segment]->num_hmms;i++){
@@ -2832,7 +2831,7 @@ int emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_le
 					
 					if(r <  scaledprob2prob(sum)){
 						prob += mb->model[segment]->hmms[hmm]->hmm_column[column]->transition[MD];
-						state = 2;
+						state = 3;
 						column++;
 						//hmm = hmm;
 						break;
@@ -2856,6 +2855,10 @@ int emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_le
 					break;
 					
 				case 2:
+					//fprintf(stderr,"PARAM: II %f  IM%f SKIP:%f\n", scaledprob2prob(mb->model[segment]->hmms[hmm]->hmm_column[column]->transition[II] ) ,scaledprob2prob(mb->model[segment]->hmms[hmm]->hmm_column[column]->transition[IM]) , scaledprob2prob(mb->model[segment]->hmms[hmm]->hmm_column[column]->transition[ISKIP] ) );
+					
+					//fprintf(stderr,"%f\n",r);
+					
 					// II
 					sum = logsum(sum, mb->model[segment]->hmms[hmm]->hmm_column[column]->transition[II] );
 					
@@ -2929,6 +2932,7 @@ int emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_le
 			//fprintf(stderr,"%d hmm \n",hmm );
 			//fprintf(stderr,"%d column \n",column );
 			//fprintf(stderr,"%d state \n",state );
+			//
 			//emit...
 			r = (float)rand()/(float)my_rand_max;
 			sum = prob2scaledprob(0.0f);
@@ -2962,8 +2966,9 @@ int emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_le
 			if(state == 2){
 				for(nuc = 0;nuc < 5;nuc++){
 					sum = logsum(sum, mb->model[segment]->hmms[hmm]->hmm_column[column]->i_emit[nuc]);
-					prob += mb->model[segment]->hmms[hmm]->hmm_column[column]->i_emit[nuc];
+			//		fprintf(stderr,"%d %f %f\n",nuc,r,scaledprob2prob(sum) );
 					if(r <  scaledprob2prob(sum)){
+						prob += mb->model[segment]->hmms[hmm]->hmm_column[column]->i_emit[nuc];
 						ri->seq[current_length] = nuc;
 						ri->labels[current_length] = segment;
 						//fprintf(stderr,"%c",alpha[(int)nuc]);
@@ -2980,7 +2985,7 @@ int emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_le
 				MREALLOC(ri->labels , sizeof(char) * allocated_length );
 			}
 			
-			//fprintf(stderr,"segement: %d %d\n", segment,mb->num_models);
+			//fprintf(stderr,"segement: %d %d %d\n", segment,mb->num_models,state);
 			if(segment == mb->num_models){
 				break;
 			}
@@ -2988,16 +2993,18 @@ int emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_le
 			
 			
 		}
+		//fprintf(stderr,"%d len %d %d \n",current_length,average_length, MAX_HMM_SEQ_LEN);
 		if(current_length < average_length){
 			current_length = 0;
 		}
 		
-		if(current_length+2 >= MAX_HMM_SEQ_LEN){
-			current_length = 0;
-		}
+		//if(current_length+2 >= MAX_HMM_SEQ_LEN){
+		//	current_length = 0;
+		//}
 		
 	}
 	//fprintf(stderr,"	%f\n", prob);
+	//fprintf(stderr,"%d len \n",current_length );
 	
 	
 	MREALLOC(ri->seq, sizeof(char) * (current_length+1));
@@ -3188,7 +3195,7 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 			required_finger_len += (int) strlen(param->read_structure->sequence_matrix[j][0]);
 		}
 	}
-	
+	KSL_DPRINTF3(("Requiured_len: %d\n",required_finger_len ));
 	
 	if(param->confidence_threshold <=  ri->mapq){
 		fingerlen = 0;
@@ -3196,10 +3203,11 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 			c1 = mb->label[(int)ri->labels[j+1]];
 			c2 = c1 & 0xFFFF; //which segment
 			c3 = (c1 >> 16) & 0x7FFF; // which HMM in a particular segment....
-			//fprintf(stderr,"%c",   param->read_structure->type[c2] );
+			KSL_DPRINTF3(("%c",   param->read_structure->type[c2] ));
 			if(param->read_structure->type[c2] == 'F'){
 				//	required_finger_len += (int) strlen(param->read_structure->sequence_matrix[c2][0]);
 				fingerlen++;
+				
 				key = (key << 2 )|  (ri->seq[j+offset] & 0x3);
 			}
 			if(param->read_structure->type[c2] == 'B'){
@@ -3235,8 +3243,8 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 				
 			}
 		}
-		
-		
+		KSL_DPRINTF3(("\n"));
+		KSL_DPRINTF3(("len: %d\n",fingerlen ));
 		if(!too_short){
 			if(hmm_has_barcode == -1){
 				ri->read_type  = EXTRACT_FAIL_BAR_FINGER_NOT_FOUND;
@@ -3427,7 +3435,11 @@ struct model_bag* backward(struct model_bag* mb, char* a, int len)
 	struct hmm_column* c_hmm_column = 0;
 	struct hmm_column* p_hmm_column = 0;
 	
-	float previous_silent[MAX_HMM_SEQ_LEN];
+	//float previous_silent[MAX_HMM_SEQ_LEN];
+	
+	
+	float* previous_silent = mb->previous_silent;// [MAX_HMM_SEQ_LEN];
+
 	
 	float* psilent;
 	float* csilent;
@@ -3643,7 +3655,10 @@ struct model_bag* forward(struct model_bag* mb, char* a, int len)
 	float* psilent;
 	float* csilent;
 	
-	float previous_silent[MAX_HMM_SEQ_LEN];
+	
+	float* previous_silent = mb->previous_silent;
+	
+	//float previous_silent[MAX_HMM_SEQ_LEN];
 	//float current_silent[MAX_HMM_SEQ_LEN];
 	
 	//init
@@ -3820,8 +3835,11 @@ struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, char
 	float* csilent;
 	float* bsilent;
 	
-	float previous_silent[MAX_HMM_SEQ_LEN];
-	float next_silent[MAX_HMM_SEQ_LEN];
+	//float previous_silent[MAX_HMM_SEQ_LEN];
+	//float next_silent[MAX_HMM_SEQ_LEN];
+	float* previous_silent = mb->previous_silent;//[MAX_HMM_SEQ_LEN];
+	float* next_silent = mb->previous_silent;// [MAX_HMM_SEQ_LEN];
+	
 		
 	// M state of first set of HMMS.....
 	for(j = 0; j < mb->num_models;j++){
@@ -4117,8 +4135,11 @@ struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct re
 	float* csilent;
 	//float* bsilent;
 	
-	float previous_silent[MAX_HMM_SEQ_LEN];
-	float next_silent[MAX_HMM_SEQ_LEN];
+	//float previous_silent[MAX_HMM_SEQ_LEN];
+	//float next_silent[MAX_HMM_SEQ_LEN];
+	
+	float* previous_silent = mb->previous_silent;//[MAX_HMM_SEQ_LEN];
+	float* next_silent = mb->previous_silent;// [MAX_HMM_SEQ_LEN];
 	
 	// M state of first set of HMMS.....
 	for(j = 0; j < mb->num_models;j++){
@@ -4859,8 +4880,6 @@ struct model* init_model_according_to_read_structure(struct model* model,struct 
 			model->silent_to_M_e[i][j] = prob2scaledprob(0.0f);
 			model->silent_to_I_e[i][j] = prob2scaledprob(0.0f);
 		}
-
-		
 	}
 	model->skip = prob2scaledprob(0.0f);
 	model->skip_e = prob2scaledprob(0.0f);
@@ -4868,12 +4887,7 @@ struct model* init_model_according_to_read_structure(struct model* model,struct 
 	if(rs->type[key] == 'B'){// barcodes all have same length & equal prior probability... 
 		for(i = 0 ; i < model->num_hmms;i++){
 			model->silent_to_M[i][0] = prob2scaledprob(1.0 / (float) model->num_hmms);// + prob2scaledprob(0.9);
-			//model->M_to_silent[i] = prob2scaledprob(1.0);
-			
 			model->silent_to_I[i][0] = prob2scaledprob(0.0f);
-			//model->I_to_silent[i] = prob2scaledprob(0.0f);
-			
-			
 		}
 		model->skip = prob2scaledprob(0.0);
 	}
@@ -5261,6 +5275,10 @@ struct model_bag* copy_model_bag(struct model_bag* org)
 		
 		copy->model[i]  = copy_model_parameters(org->model[i],copy->model[i]) ;
 	}
+	copy->previous_silent= NULL;
+	copy->next_silent = NULL;
+	MMALLOC(copy->previous_silent, sizeof(float) * org->current_dyn_length);
+	MMALLOC(copy->next_silent, sizeof(float) * org->current_dyn_length);
 	
 	MMALLOC(copy->path,sizeof(int*) * org->current_dyn_length);
 	MMALLOC(copy->dyn_prog_matrix,sizeof(float*) * org->current_dyn_length );
@@ -5783,6 +5801,13 @@ struct model_bag* init_model_bag(struct parameters* param,struct sequence_stats_
 	mb->total_hmm_num = 0;
 	
 	
+	mb->previous_silent = NULL;
+	mb->next_silent = NULL;
+	
+	MMALLOC(mb->previous_silent,sizeof(float) * mb->current_dyn_length );
+	MMALLOC(mb->next_silent,sizeof(float) * mb->current_dyn_length );
+	
+	
 	for(i = 0; i < mb->num_models;i++){
 		mb->model[i] = malloc_model_according_to_read_structure(param->read_structure->numseq_in_segment[i],(int)strlen(param->read_structure->sequence_matrix[i][0]),mb->current_dyn_length);
 		segment_length = 0;
@@ -5793,9 +5818,13 @@ struct model_bag* init_model_bag(struct parameters* param,struct sequence_stats_
 			segment_length = read_length;
 		}
 		mb->model[i] = init_model_according_to_read_structure(mb->model[i], param, i,ssi->background,segment_length);
-		
+		//print_model(mb->model[i] );
 		mb->total_hmm_num += mb->model[i]->num_hmms;
 	}
+	
+	
+	//exit(0);
+	
 	double sum_prob = 0.0;
 	double temp1;
 	// 1) setting 5' parameters...
@@ -6005,7 +6034,9 @@ void free_model_bag(struct model_bag* mb)
 	}
 	MFREE(mb->transition_matrix);
 	MFREE(mb->label);
-	
+	MFREE(mb->previous_silent);//,sizeof(float) * mb->current_dyn_length );
+	MFREE(mb->next_silent);//,sizeof(float) * mb->current_dyn_length );
+
 	
 	for(i = 0; i < mb->num_models;i++){
 		free_model(mb->model[i]);

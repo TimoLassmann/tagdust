@@ -104,7 +104,6 @@ int main (int argc,char * argv[]) {
 			KSLIB_XFAIL(kslFAIL, param->errmsg,"ERROR: No read architecture found.\n");
 		}
 		
-		
 		if(QC_read_structure(param) != kslOK) KSLIB_XFAIL(kslFAIL, param->errmsg,"ERROR: Something wrong with the read architecture.\n");
 		
 		if(param->infiles == 0)KSLIB_XFAIL(kslFAIL, param->errmsg, "ERROR: No input file found.\n");
@@ -124,8 +123,6 @@ int main (int argc,char * argv[]) {
 				}
 			}
 		}
-		
-		
 		
 		sprintf(param->buffer,"Start Run\n--------------------------------------------------\n");
 		param->messages = append_message(param->messages, param->buffer);

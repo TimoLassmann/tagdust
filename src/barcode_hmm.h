@@ -103,11 +103,7 @@
 #define MSKIP 7
 #define ISKIP 8
 
-/** \def MAX_HMM_SEQ_LEN
- \brief Maximum Length of sequences in each HMM.
- 
- */
-#define MAX_HMM_SEQ_LEN 500
+
 
 /** \def MAX_NUM_SUB_MODELS
  \brief Maximum Number of HMM segments. 
@@ -269,6 +265,10 @@ struct model_bag{
 	int* label; /**<@brief Hold information about HMMs.*/
 	//double* random_scores;/**<@brief Holds probabilities of random / shuffled sequences. */
 	//int num_random_scores;/**<@brief Number of random probabilities.*/
+	
+	float* previous_silent;
+	float* next_silent;
+	
 	int average_raw_length;
 	int current_dyn_length;
 	//float lambda;

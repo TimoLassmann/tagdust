@@ -594,10 +594,10 @@ ERROR:
  \brief Prints usage.
  */
 
-#ifndef SIMREADS
+#ifdef TAGDUST
 void usage()
 {
-	fprintf(stdout, "\n%s %s, Copyright (C) 2013 Timo Lassmann <%s>\n",PACKAGE_NAME, PACKAGE_VERSION,PACKAGE_BUGREPORT);
+	fprintf(stdout, "\n%s %s, Copyright (C) 2015 Timo Lassmann <%s>\n",PACKAGE_NAME, PACKAGE_VERSION,PACKAGE_BUGREPORT);
 	fprintf(stdout, "\n");
 	fprintf(stdout, "Usage:   tagdust [options] <file>  -o <output prefix> \n\n");
 	fprintf(stdout, "Options:\n");
@@ -624,10 +624,12 @@ void usage()
 	fprintf(stdout, "\n");
 
 }
-#else
+#endif
+
+#ifdef SIMREADS
 void usage()
 {
-	fprintf(stdout, "\n%s %s, Copyright (C) 2013 Timo Lassmann <%s>\n",PACKAGE_NAME, PACKAGE_VERSION,PACKAGE_BUGREPORT);
+	fprintf(stdout, "\n%s %s, Copyright (C) 2015 Timo Lassmann <%s>\n",PACKAGE_NAME, PACKAGE_VERSION,PACKAGE_BUGREPORT);
 	fprintf(stdout, "\n");
 	fprintf(stdout, "Usage:   simreads  [options] <barcodefile from EDITTAG>-o <file>  .... \n\n");
 	fprintf(stdout, "Options:\n");
@@ -649,6 +651,35 @@ void usage()
 }
 
 #endif
+
+#ifdef MERGE
+void usage()
+{
+	fprintf(stdout, "\n%s %s, Copyright (C) 2015 Timo Lassmann <%s>\n",PACKAGE_NAME, PACKAGE_VERSION,PACKAGE_BUGREPORT);
+	fprintf(stdout, "\n");
+	fprintf(stdout, "Usage:   merge <file>  .... \n\n");
+	fprintf(stdout, "Options:\n");
+	
+	
+	fprintf(stdout, "\n");
+	
+}
+#endif
+
+#ifdef EVALRES
+void usage()
+{
+	fprintf(stdout, "\n%s %s, Copyright (C) 2015 Timo Lassmann <%s>\n",PACKAGE_NAME, PACKAGE_VERSION,PACKAGE_BUGREPORT);
+	fprintf(stdout, "\n");
+	fprintf(stdout, "Usage:   evalres <file>  .... \n\n");
+	fprintf(stdout, "Options:\n");
+	
+	
+	fprintf(stdout, "\n");
+	
+}
+#endif
+
 
 
 /** \fn void free_param(struct parameters* param)

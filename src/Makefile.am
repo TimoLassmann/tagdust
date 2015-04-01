@@ -1,4 +1,4 @@
-bin_PROGRAMS = tagdust simreads evalres
+bin_PROGRAMS = tagdust simreads evalres merge
 
 evalres_SOURCES = \
 barcode_hmm.h \
@@ -17,6 +17,7 @@ io.c
 
 
 evalres_LDADD = -lm
+evalres_CPPFLAGS = -DEVALRES
 
 simreads_SOURCES= \
 nuc_code.h \
@@ -45,11 +46,21 @@ barcode_hmm.c \
 calibrateQ.c \
 test_architectures.c
 
-
-
-
-
 tagdust_LDADD = -lpthread -lm
+tagdust_CPPFLAGS = -DTAGDUST
+
+merge_SOURCES = \
+kslib.c \
+interface.c \
+nuc_code.c \
+io.c \
+misc.c \
+merge.c
+
+merge_LDADD = -lpthread -lm
+merge_CPPFLAGS = -DMERGE
+
+
 
 TESTS = tagdustiotest
 
@@ -63,19 +74,19 @@ check_PROGRAMS = tagdust_rtest simreads_rtest evalres_rtest tagdustiotest
 
 tagdustiotest_SOURCES = io.c misc.c interface.c kslib.c
 tagdustiotest_LDADD = $(tagdust_LDADD)
-tagdustiotest_CPPFLAGS  =  -DUTEST
+tagdustiotest_CPPFLAGS  =  -DUTEST -DTAGDUST
 
 tagdust_rtest_SOURCES = $(tagdust_SOURCES)
 tagdust_rtest_LDADD = $(tagdust_LDADD)
-tagdust_rtest_CPPFLAGS  =  -DRTEST
+tagdust_rtest_CPPFLAGS  =  -DRTEST -DTAGDUST
 
 simreads_rtest_SOURCES = $(simreads_SOURCES)
 simreads_rtest_LDADD = $(simreads_LDADD)
-simreads_rtest_CPPFLAGS  =  -DRTEST
+simreads_rtest_CPPFLAGS  =  -DRTEST -DSIMREADS
 
 evalres_rtest_SOURCES = $(evalres_SOURCES)
 evalres_rtest_LDADD = $(evalres_LDADD)
-evalres_rtest_CPPFLAGS  =  -DRTEST
+evalres_rtest_CPPFLAGS  =  -DRTEST -DEVALRES
 
 
 

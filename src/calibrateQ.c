@@ -84,7 +84,7 @@ int estimateQthreshold(struct parameters* param, struct sequence_stats_info* ssi
 		}
 		//print_model(mb->model[i]);
 	}
-	
+	KSL_DPRINTF2(("Will emit reads\n" ));
 	for(i = 0; i < binsize*2;i++){
 		
 		
@@ -98,7 +98,7 @@ int estimateQthreshold(struct parameters* param, struct sequence_stats_info* ssi
 		FN++;
 		readnum++;
 	}
-	
+	KSL_DPRINTF2(("Will emit random\n" ));
 	for(i = 0; i <  binsize+binsize ;i++){
 		if((status = emit_random_sequence(mb, ri[readnum],ssi->average_length,&seed)) != kslOK) KSLIB_XFAIL(kslFAIL,param->errmsg,"Failed to emit a random sequence.\n");
 		
@@ -132,7 +132,7 @@ int estimateQthreshold(struct parameters* param, struct sequence_stats_info* ssi
 		free_model_bag(mb);
 		mb = init_model_bag(param, ssi);
 	}
-	
+	KSL_DPRINTF2(("Got here\n" ));
 	if((status =run_pHMM(0,mb,ri,param,0, readnum,MODE_GET_PROB)) != kslOK) KSLIB_XFAIL(kslFAIL,param->errmsg,"run_pHMM failed\n");
 	
 	//mb =  run_pHMM(0,mb,ri,param,0, readnum,MODE_GET_PROB);

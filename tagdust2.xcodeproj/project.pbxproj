@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		271B4D521AC110D0006C2BA5 /* merge.c in Sources */ = {isa = PBXBuildFile; fileRef = 271B4D511AC110D0006C2BA5 /* merge.c */; };
 		274BB2C81A3E6FCE00AB7ADA /* kslib.c in Sources */ = {isa = PBXBuildFile; fileRef = 274BB2C61A3E6FCE00AB7ADA /* kslib.c */; };
 		A10B993316C09ED500AF1A1E /* tagdust2.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = A10B993216C09ED500AF1A1E /* tagdust2.1 */; };
 		A10B994316C09F2900AF1A1E /* interface.c in Sources */ = {isa = PBXBuildFile; fileRef = A10B993916C09F2900AF1A1E /* interface.c */; };
@@ -36,6 +37,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		271B4D511AC110D0006C2BA5 /* merge.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = merge.c; path = src/merge.c; sourceTree = "<group>"; };
 		274B663919BE811800508A22 /* README.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = README.txt; path = benchmark/README.txt; sourceTree = "<group>"; };
 		274BB2C61A3E6FCE00AB7ADA /* kslib.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = kslib.c; path = src/kslib.c; sourceTree = "<group>"; };
 		274BB2C71A3E6FCE00AB7ADA /* kslib.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = kslib.h; path = src/kslib.h; sourceTree = "<group>"; };
@@ -293,6 +295,7 @@
 			isa = PBXGroup;
 			children = (
 				A14739DF1907885E00646B4C /* Makefile.am */,
+				271B4D511AC110D0006C2BA5 /* merge.c */,
 				A1D2539A19107D7200EBC4E5 /* malloc_macro.h */,
 				A1D2539819088F3200EBC4E5 /* evalresults.c */,
 				274BB2C71A3E6FCE00AB7ADA /* kslib.h */,
@@ -388,6 +391,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				271B4D521AC110D0006C2BA5 /* merge.c in Sources */,
 				A10B994316C09F2900AF1A1E /* interface.c in Sources */,
 				A10B994416C09F2900AF1A1E /* io.c in Sources */,
 				A19A5D6718FCDD15008EB897 /* test_architectures.c in Sources */,

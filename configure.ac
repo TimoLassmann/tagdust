@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT(Tagdust, 2.31, timolassmann@gmail.com)
+AC_INIT(Tagdust, 2.32, timolassmann@gmail.com)
 
 
 AM_INIT_AUTOMAKE([ -Wno-portability ])

@@ -17,7 +17,6 @@
 
 #define MAX_NUM_ARCH 100
 
-
 int test_architectures(struct parameters* param, int file_num)
 {
 	struct read_info** ri = 0;
@@ -62,7 +61,6 @@ int test_architectures(struct parameters* param, int file_num)
 	}
 	
 	ab->num_arch = 0;
-	
 	//1) file 0 = architecture file (tagdust commands on  each line)
 	//    file 1 = read file to test .
 	sprintf(param->buffer,"Looking at file:%s\n", param->infile[file_num]);
@@ -192,7 +190,7 @@ int test_architectures(struct parameters* param, int file_num)
 		
 		float sum = prob2scaledprob(0.0f);
 		for(i = 0; i < ab->num_arch;i++){
-		//	fprintf(stderr,"%f	%s",  ab->arch_posterior[i],ab->command_line[i]);
+		//	fprintf(stderr,"%d %s %f	%s", file_num, param->infile[file_num] ab->arch_posterior[i],ab->command_line[i]);
 			sum = logsum(sum, ab->arch_posterior[i]);
 		}
 		best_architecture = -1;
@@ -264,6 +262,8 @@ int test_architectures(struct parameters* param, int file_num)
 			}
 		}
 	}
+	
+	
 	if(QC_read_structure(param)){
 		free_param(param);
 		exit(EXIT_FAILURE);
