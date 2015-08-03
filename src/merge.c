@@ -50,6 +50,7 @@ int main (int argc,char * argv[]) {
 	if(param){
 		merge(param);
 	}
+	free_param(param);
 	return EXIT_SUCCESS;
 }
 

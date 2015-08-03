@@ -1,4 +1,4 @@
-bin_PROGRAMS = tagdust simreads evalres merge
+bin_PROGRAMS = tagdust simreads evalres merge rename_qiime
 
 evalres_SOURCES = \
 barcode_hmm.h \
@@ -61,6 +61,16 @@ merge_LDADD = -lpthread -lm
 merge_CPPFLAGS = -DMERGE
 
 
+rename_qiime_SOURCES = \
+rename_illumina_demultiplexed_for_qiime.c \
+nuc_code.c \
+kslib.c \
+interface.c \
+misc.c \
+io.c
+
+rename_qiime_CPPFLAGS = -DRENAME
+rename_qiime_LDADD = -lm
 
 TESTS = tagdustiotest
 

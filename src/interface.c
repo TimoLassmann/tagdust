@@ -666,6 +666,17 @@ void usage()
 }
 #endif
 
+#ifdef RENAME
+void usage()
+{
+	fprintf(stdout, "\n%s %s, Copyright (C) 2015 Timo Lassmann <%s>\n",PACKAGE_NAME, PACKAGE_VERSION,PACKAGE_BUGREPORT);
+	fprintf(stdout, "\n");
+	fprintf(stdout, "Usage:   rename_qiime <map file> <file>  .... \n\n");
+	fprintf(stdout, "Options:\n");
+	fprintf(stdout, "\n");
+}
+#endif
+
 #ifdef EVALRES
 void usage()
 {

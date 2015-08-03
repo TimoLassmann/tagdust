@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		271B4D521AC110D0006C2BA5 /* merge.c in Sources */ = {isa = PBXBuildFile; fileRef = 271B4D511AC110D0006C2BA5 /* merge.c */; };
 		274BB2C81A3E6FCE00AB7ADA /* kslib.c in Sources */ = {isa = PBXBuildFile; fileRef = 274BB2C61A3E6FCE00AB7ADA /* kslib.c */; };
+		2768B1791ACB90260094CA78 /* rename_illumina_demultiplexed_for_qiime.c in Sources */ = {isa = PBXBuildFile; fileRef = 2768B1781ACB90260094CA78 /* rename_illumina_demultiplexed_for_qiime.c */; };
 		A10B993316C09ED500AF1A1E /* tagdust2.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = A10B993216C09ED500AF1A1E /* tagdust2.1 */; };
 		A10B994316C09F2900AF1A1E /* interface.c in Sources */ = {isa = PBXBuildFile; fileRef = A10B993916C09F2900AF1A1E /* interface.c */; };
 		A10B994416C09F2900AF1A1E /* io.c in Sources */ = {isa = PBXBuildFile; fileRef = A10B993B16C09F2900AF1A1E /* io.c */; };
@@ -45,6 +46,7 @@
 		274BB2CB1A3EAA6800AB7ADA /* casava_6nt_arch.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = casava_6nt_arch.txt; path = casava_demo/casava_6nt_arch.txt; sourceTree = "<group>"; };
 		274BB2CC1A3EAA6800AB7ADA /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Makefile.am; path = casava_demo/Makefile.am; sourceTree = "<group>"; };
 		274BB2CD1A3EAA6800AB7ADA /* UsingTagDustwithCASA.tex */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = UsingTagDustwithCASA.tex; path = casava_demo/UsingTagDustwithCASA.tex; sourceTree = "<group>"; };
+		2768B1781ACB90260094CA78 /* rename_illumina_demultiplexed_for_qiime.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = rename_illumina_demultiplexed_for_qiime.c; path = src/rename_illumina_demultiplexed_for_qiime.c; sourceTree = "<group>"; };
 		2787F79819C1580C0061DDE7 /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Makefile.am; path = reproducibility/Makefile.am; sourceTree = "<group>"; };
 		2787F79A19C1598A0061DDE7 /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Makefile.am; path = doc/Makefile.am; sourceTree = "<group>"; };
 		2787F79B19C1598A0061DDE7 /* User-Manual.tex */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = "User-Manual.tex"; path = "doc/User-Manual.tex"; sourceTree = "<group>"; };
@@ -295,6 +297,7 @@
 			isa = PBXGroup;
 			children = (
 				A14739DF1907885E00646B4C /* Makefile.am */,
+				2768B1781ACB90260094CA78 /* rename_illumina_demultiplexed_for_qiime.c */,
 				271B4D511AC110D0006C2BA5 /* merge.c */,
 				A1D2539A19107D7200EBC4E5 /* malloc_macro.h */,
 				A1D2539819088F3200EBC4E5 /* evalresults.c */,
@@ -394,6 +397,7 @@
 				271B4D521AC110D0006C2BA5 /* merge.c in Sources */,
 				A10B994316C09F2900AF1A1E /* interface.c in Sources */,
 				A10B994416C09F2900AF1A1E /* io.c in Sources */,
+				2768B1791ACB90260094CA78 /* rename_illumina_demultiplexed_for_qiime.c in Sources */,
 				A19A5D6718FCDD15008EB897 /* test_architectures.c in Sources */,
 				A10B994516C09F2900AF1A1E /* main.c in Sources */,
 				A10B994616C09F2900AF1A1E /* misc.c in Sources */,
