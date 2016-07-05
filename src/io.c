@@ -47,6 +47,7 @@
 #include "malloc_macro.h"
 #endif
 
+int get_finger_seq(int key,char* finger_seq_buffer);
 
 struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct read_info** ri, int file_num )
 {
@@ -772,12 +773,17 @@ int print_all(struct read_info*** read_info_container,struct parameters* param, 
 	char* out_seq_buffer = NULL;
 	char* out_qual_buffer = NULL;
 	
+	char* finger_seq_buffer = NULL;
+	
+	
 	MMALLOC(out_seq_buffer,sizeof(char)* MAX_LINE );
 	MMALLOC(out_qual_buffer,sizeof(char)* MAX_LINE );
 	
 	MMALLOC(buffer,sizeof(char)* 1000 );
 	
 	MMALLOC(filemode, sizeof(char) * 2);
+	
+	MMALLOC(finger_seq_buffer, sizeof(char) * 256);
 	
 	filemode[0] = 'a';
 	filemode[1] = 0;
@@ -803,7 +809,6 @@ int print_all(struct read_info*** read_info_container,struct parameters* param, 
 		first = 0;
 		
 	}
-	
 	
 	
 	
@@ -944,7 +949,14 @@ int print_all(struct read_info*** read_info_container,struct parameters* param, 
 							out_seq_buffer[h] = 0;
 							out_qual_buffer[h] = 0;
 							if(tmp_ri->fingerprint != -1){
-								fprintf(file_container[f], "@%s;FP:%d;RQ:%0.2f\n",tmp_ri->name,tmp_ri->fingerprint,tmp_ri->mapq);
+								if(param->print_seq_finger){
+									if((status = get_finger_seq(tmp_ri->fingerprint, finger_seq_buffer)) != kslOK) KSLIB_XFAIL(kslFAIL,param->errmsg,"Get Fingerprint sequence failed.\n");
+
+									fprintf(file_container[f], "@%s;FP:%s;RQ:%0.2f\n",tmp_ri->name,finger_seq_buffer,tmp_ri->mapq);
+								}else{
+								
+									fprintf(file_container[f], "@%s;FP:%d;RQ:%0.2f\n",tmp_ri->name,tmp_ri->fingerprint,tmp_ri->mapq);
+								}
 							}else{
 								fprintf(file_container[f], "@%s;RQ:%0.2f\n",tmp_ri->name,tmp_ri->mapq);
 							}
@@ -961,7 +973,13 @@ int print_all(struct read_info*** read_info_container,struct parameters* param, 
 					out_seq_buffer[h] = 0;
 					out_qual_buffer[h] = 0;
 					if(tmp_ri->fingerprint != -1){
-						fprintf(file_container[f], "@%s;FP:%d;RQ:%0.2f\n",tmp_ri->name,tmp_ri->fingerprint,tmp_ri->mapq);
+						if(param->print_seq_finger){
+							if((status = get_finger_seq(tmp_ri->fingerprint, finger_seq_buffer)) != kslOK) KSLIB_XFAIL(kslFAIL,param->errmsg,"Get Fingerprint sequence failed.\n");
+							
+							fprintf(file_container[f], "@%s;FP:%s;RQ:%0.2f\n",tmp_ri->name,finger_seq_buffer,tmp_ri->mapq);
+						}else{
+							fprintf(file_container[f], "@%s;FP:%d;RQ:%0.2f\n",tmp_ri->name,tmp_ri->fingerprint,tmp_ri->mapq);
+						}
 					}else{
 						fprintf(file_container[f],"@%s;RQ:%0.2f\n",tmp_ri->name,tmp_ri->mapq);
 					}
@@ -982,12 +1000,25 @@ int print_all(struct read_info*** read_info_container,struct parameters* param, 
 	MFREE(buffer);
 	MFREE(out_seq_buffer);
 	MFREE(out_qual_buffer);
+	MFREE(finger_seq_buffer);
 	return kslOK;
 ERROR:
 	return status;
 	
 }
 
+int get_finger_seq(int key,char* finger_seq_buffer)
+{
+	int i;
+	int len = key & 0xFF;
+	key = key >> 8;
+	finger_seq_buffer[len] = 0;
+	for(i = 0; i < len;i++){
+		finger_seq_buffer[len-i-1] = "ACGTN"[key & 0x3];
+		key = key >> 2;
+	}
+	return kslOK;
+}
 
 FILE* open_file(struct parameters* param, char* buffer, char* mode)
 {

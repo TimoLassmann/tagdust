@@ -377,7 +377,7 @@ int hmm_controller_multiple(struct parameters* param)
 					break;
 				default:
 					li->num_EXTRACT_FAIL_MATCHES_ARTIFACTS++;
-					fprintf(stderr,"WTF: no reference but ended up here: %d\n",read_info_container[0][i]->read_type);
+					//fprintf(stderr,"WTF: no reference but ended up here: %d\n",read_info_container[0][i]->read_type);
 					reference_fasta->mer_hash[ ((int)(read_info_container[0][i]->read_type) >> 8 ) -1] ++;
 					break;
 			}
@@ -3254,8 +3254,11 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 					ri->barcode =  (mem << 16) |   bar;
 					
 					//ri->barcode_string = param->read_structure->sequence_matrix[mem][bar];
-					
-					ri->fingerprint = key;
+					if(required_finger_len <= 255){
+						ri->fingerprint = (key <<  8) | required_finger_len;
+					}else{
+						ri->fingerprint = (key <<  8) | 255;
+					}
 					ri->read_type = EXTRACT_SUCCESS;
 				}else{
 					ri->read_type  = EXTRACT_FAIL_BAR_FINGER_NOT_FOUND; // something wrong with the architecture
@@ -3273,7 +3276,13 @@ This function extracts the mappable reads from the raw sequences. Barcodes and F
 			}else if(required_finger_len){
 				if(fingerlen == required_finger_len){
 					ri = make_extracted_read(mb, param,ri);
-					ri->fingerprint = key;
+					if(required_finger_len <= 255){
+						ri->fingerprint = (key <<  8) | required_finger_len;
+					}else{
+						ri->fingerprint = (key <<  8) | 255;
+					}
+					
+					
 					ri->read_type = EXTRACT_SUCCESS;
 				}else{
 					ri->read_type  = EXTRACT_FAIL_BAR_FINGER_NOT_FOUND;

@@ -72,6 +72,8 @@
 #define OPT_archfile 36
 #define OPT_seed 37
 
+#define OPT_show_finger_seq 38
+
 
 /**
  * @brief Contains user specified read structure.
@@ -129,6 +131,7 @@ struct parameters {
 	int sim;
 	int numbarcode;
 	int filter_error;
+	int print_seq_finger;
 	unsigned int seed;
 	char* print_artifact;
 	char* arch_file;

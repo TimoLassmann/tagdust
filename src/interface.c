@@ -99,6 +99,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 	param->reference_fasta  = 0;
 	param->random_prior = 0;
 	
+	param->print_seq_finger = 0;
 	
 	
 	param->sim_3seq = 0;
@@ -149,6 +150,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			{"numbarcode",required_argument,0, OPT_NUMBARCODE},
 			{"end",required_argument,0, OPT_END},
 			{"threshold",required_argument,0, 'q'},
+			
 			{"fe",required_argument,0,OPT_FILTER_ERROR},
 			{"ref",required_argument,0,OPT_FILTER_REFERENCE},
 			{"dust",required_argument,0,OPT_DUST},
@@ -167,6 +169,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 			{"sim_endloss",required_argument,0,OPT_sim_endloss},
 			{"arch",required_argument,0,OPT_archfile},
 			{"seed",required_argument,0, OPT_seed},
+			{"show_finger_seq",0,0,OPT_show_finger_seq},
 			{"join",0,0,OPT_join_paired},
 			{"split",0,0,OPT_split},
 			{"help",0,0,'h'},
@@ -307,6 +310,10 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 				break;
 			case OPT_DUST:
 				param->dust = atoi(optarg);
+				break;
+				
+			case OPT_show_finger_seq:
+				param->print_seq_finger = 1;
 				break;
 			case 'l':
 			case 'L':
@@ -616,6 +623,8 @@ void usage()
 	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-o","STR","", "output file name.");
 	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-a","STR","", "output file for artifacts [NA].");
 	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-t","INT","", "number of threads [8].");
+	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-show_finger_seq","NA","", "print fingerprint as sequence (default is as base 4 number).");
+	
 	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-h/help","NA","", "print help.");
 	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-v/version","NA","", "print version number.");
 	fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-1","STR","", "type of the first HMM building block.");
