@@ -1,0 +1,2 @@
+tagdust -1 B:ACAGTG,ACTTGA,TTAGGC 
+tagdust -1 R:N

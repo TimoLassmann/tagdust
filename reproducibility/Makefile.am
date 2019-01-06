@@ -3,7 +3,7 @@ ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 
 EXTRA_DIST = rnaseq_pipeline_4tagdust_paper-0.8.tar.gz 
 
-SUBDIRS = builder scripts doc bin
+SUBDIRS = builder scripts doc
 
 
 all: 

@@ -105,11 +105,11 @@ AC_CONFIG_FILES([src/Makefile])
 AC_CONFIG_FILES([dev/Makefile])
 #AC_CONFIG_FILES([doc/Makefile])
 AC_CONFIG_FILES([casava_demo/Makefile])
-AC_CONFIG_FILES([reproducibility/Makefile])
-AC_CONFIG_FILES([reproducibility/builder/Makefile])
-AC_CONFIG_FILES([reproducibility/scripts/Makefile])
-AC_CONFIG_FILES([reproducibility/doc/Makefile])
-AC_CONFIG_FILES([reproducibility/bin/Makefile])
+#AC_CONFIG_FILES([reproducibility/Makefile])
+#AC_CONFIG_FILES([reproducibility/builder/Makefile])
+#AC_CONFIG_FILES([reproducibility/scripts/Makefile])
+#AC_CONFIG_FILES([reproducibility/doc/Makefile])
+#AC_CONFIG_FILES([reproducibility/bin/Makefile])
 
 AC_CONFIG_HEADER([src/config.h])
 AC_OUTPUT
@@ -136,4 +136,20 @@ echo "
 "
 
 fi
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
