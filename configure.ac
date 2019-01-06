@@ -103,7 +103,7 @@ AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([src/Makefile])
 
 AC_CONFIG_FILES([dev/Makefile])
-#AC_CONFIG_FILES([doc/Makefile])
+AC_CONFIG_FILES([doc/Makefile])
 AC_CONFIG_FILES([casava_demo/Makefile])
 #AC_CONFIG_FILES([reproducibility/Makefile])
 #AC_CONFIG_FILES([reproducibility/builder/Makefile])
