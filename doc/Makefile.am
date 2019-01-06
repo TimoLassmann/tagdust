@@ -9,27 +9,27 @@ all:
 
 
 
-doc: User-Manual.pdf
+#doc: User-Manual.pdf
 
 
-User-Manual.pdf: User-Manual.tex User-Manual.bbl
-	$(LATEX) $<
-	$(LATEX) $<
+# User-Manual.pdf: User-Manual.tex User-Manual.bbl
+# 	$(LATEX) $<
+# 	$(LATEX) $<
 
 
-User-Manual.bbl: User-Manual.aux ref.bib
-	bibtex $<
+# User-Manual.bbl: User-Manual.aux ref.bib
+# 	bibtex $<
 
 
-User-Manual.aux: User-Manual.tex
-	$(LATEX) $?
+# User-Manual.aux: User-Manual.tex ref.bib
+# 	$(LATEX) $?
 
 
 
 
-CLEANFILES= *.bcf *.nav *.snm *.log *.aux *.dvi *.bbl *.blg *.ilg *.toc *.lof *.lot *.idx *.ind *.ps  *~ *.out  *.run.xml
+# CLEANFILES= *.bcf *.nav *.snm *.log *.aux *.dvi *.bbl *.blg *.ilg *.toc *.lof *.lot *.idx *.ind *.ps  *~ *.out  *.run.xml
 
-DISTCLEANFILES= 
+# DISTCLEANFILES= 
 
 
 
