@@ -3,10 +3,7 @@
 %--------------------   start of the 'preamble'
 %
 \usepackage[table]{xcolor}
-\usepackage{graphicx,amssymb,amstext,amsmath,float,color,array,ctable,booktabs,caption}
-%
-
-
+\usepackage{graphicx,amssymb,amstext,amsmath,float,color,array,booktabs,caption}
 
 \usepackage{graphics}
 \usepackage{hyperref}
@@ -17,11 +14,14 @@
 \titleformat{\chapter}[hang] 
 {\normalfont\huge\bfseries}{\ \thechapter}{1em}{} 
 \usepackage{tikz}
+\usepackage{ctable}
 \usetikzlibrary{shapes}
 \usetikzlibrary{calc,backgrounds}
 \usetikzlibrary{automata}
 \usetikzlibrary{arrows,positioning,calc,matrix} 
 \usetikzlibrary{decorations.pathreplacing,shapes.multipart}
+
+
 
 \tikzstyle{Dstate}=[shape=circle,draw=black!50,fill=black!10]
 \tikzstyle{Istate}=[shape=diamond,draw=black!50,fill=black!10]
@@ -120,7 +120,7 @@ by Timo Lassmann\\[1.5ex]}
 \pagebreak
 \begin{small} 
 
-Copyright \copyright  2013, 2014 Timo Lassmann (timolassmann@gmail.com)
+Copyright \copyright  2013 - 2019 Timo Lassmann (timolassmann@gmail.com)
  
  This document is free;  you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -197,12 +197,7 @@ not_demultiplexed_NoIndex_L001_R3_001.fastq.gz \-o demultiplexed
 
 %\end{wrapfigure}
 
-  
-%-----------------------------------------------------------
-\addcontentsline{toc}{chapter}{\numberline{}Bibliography}
-\bibliographystyle{plain}
-\bibliography{ref}
-
+    
 
 %-----------------------------------------------------------
 %\appendix

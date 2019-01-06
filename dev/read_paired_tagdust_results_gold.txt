@@ -1,0 +1,2 @@
+Program	Sensitivity	Specificity	Precision	Kappa	AvgError	TP	FP	FN	TN
+tagdust	1.0000	1.0000	1.0000	1.0000	0.0017	8999.00	0.00	0.00	1001.00
