@@ -54,6 +54,7 @@ int hmm_controller_multiple(struct parameters* param)
                 param->read_structures[i] = NULL;
                 param->confidence_thresholds[i] = 0.0f;
         }
+        /* Look through input files and find best architecture for each input file... */
 
         for(i = 0; i < param->infiles;i++){
                 if( !i && param->read_structure->num_segments){
@@ -102,6 +103,7 @@ int hmm_controller_multiple(struct parameters* param)
         for(i = 0; i < param->infiles;i++){
                 num_out_reads += (int) read_present[i];
         }
+        /* check if outputs already exists  */
         for(i = 0; i < param->infiles;i++){
                 if(barcode_present &  (1 << i)){
                         param->read_structure = param->read_structures[i];

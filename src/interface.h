@@ -59,20 +59,17 @@
 #define OPT_show_finger_seq 38
 
 
-struct read_structure{
-        char*** sequence_matrix;
-        int* numseq_in_segment;
-        char* type;
-        int num_segments;
 
-};
 
 struct parameters {
         char** infile;
-        struct read_structure* read_structure;
-        struct read_structure** read_structures;
-        struct read_structure* read_structure_R1;
-        struct read_structure* read_structure_R2;
+        //struct arch_library* arch_lib;
+        //struct read_structure* read_structure;
+        //struct read_structure** architecture_library;
+        //struct read_structure** read_structures;
+        //struct read_structure* read_structure_R1;
+        //struct read_structure* read_structure_R2;
+        char** segments;
         char* outfile;
         char* reference_fasta;
         int infiles;
@@ -131,17 +128,8 @@ struct parameters {
 
 extern int interface(struct parameters** param,int argc, char *argv[]);
 
-int assign_segment_sequences(struct parameters* param, char* tmp, int segment);
-
 int free_param(struct parameters* param);
 void usage(void);
-
-
-
-int malloc_read_structure(struct read_structure** rs);
-void free_read_structure(struct read_structure* read_structure);
-int QC_read_structure(struct parameters* param);
-
 
 
 #endif

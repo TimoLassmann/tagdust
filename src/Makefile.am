@@ -9,32 +9,32 @@ AM_LDFLAGS += -Wno-undef
 
 
 
-bin_PROGRAMS = tagdust
+bin_PROGRAMS = #tagdust
 
-tagdust_SOURCES = \
-tldevel.h \
-tldevel.c \
-sctagdust.h \
-main.c \
-interface.h \
-interface.c \
-misc.h \
-misc.c \
-nuc_code.h \
-nuc_code.c \
-barcode_hmm.h \
-barcode_hmm.c \
-seq_stats.h \
-seq_stats.c \
-hmm_model_bag.h \
-hmm_model_bag.c \
-core_hmm_functions.h \
-core_hmm_functions.c \
-test_architectures.c \
-io.c
+# tagdust_SOURCES = \
+# tldevel.h \
+# tldevel.c \
+# sctagdust.h \
+# main.c \
+# interface.h \
+# interface.c \
+# misc.h \
+# misc.c \
+# nuc_code.h \
+# nuc_code.c \
+# barcode_hmm.h \
+# barcode_hmm.c \
+# seq_stats.h \
+# seq_stats.c \
+# hmm_model_bag.h \
+# hmm_model_bag.c \
+# core_hmm_functions.h \
+# core_hmm_functions.c \
+# test_architectures.c \
+# io.c
 
 
-tagdust_CPPFLAGS = -DTAGDUST
+# tagdust_CPPFLAGS = -DTAGDUST
 
 # tagdust_SOURCES =  \
 # kslib.c \
@@ -110,31 +110,49 @@ io.c
 rename_qiime_CPPFLAGS = -DRENAME
 rename_qiime_LDADD = -lm
 
-TESTS = tagdustiotest
+TESTS =
 
 TESTS_ENVIRONMENT = \
 	devdir='$(top_srcdir)'/dev; \
          export devdir; \
 	$(VALGRIND)
 
-check_PROGRAMS = tagdust_rtest simreads_rtest evalres_rtest tagdustiotest
+check_PROGRAMS = arch_lib_test interface_test
 
 
-tagdustiotest_SOURCES = io.c misc.c interface.c kslib.c
-tagdustiotest_LDADD = $(tagdust_LDADD)
-tagdustiotest_CPPFLAGS  =  -DUTEST -DTAGDUST
+arch_lib_test_SOURCES = \
+arch_lib.h \
+arch_lib.c \
+tldevel.h \
+tldevel.c 
 
-tagdust_rtest_SOURCES = $(tagdust_SOURCES)
-tagdust_rtest_LDADD = $(tagdust_LDADD)
-tagdust_rtest_CPPFLAGS  =  -DRTEST -DTAGDUST
+arch_lib_test_CPPFLAGS = $(AM_CPPFLAGS) -DARCH_TEST
 
-simreads_rtest_SOURCES = $(simreads_SOURCES)
-simreads_rtest_LDADD = $(simreads_LDADD)
-simreads_rtest_CPPFLAGS  =  -DRTEST -DSIMREADS
+interface_test_SOURCES = \
+interface.h \
+interface.c \
+tldevel.h \
+tldevel.c
 
-evalres_rtest_SOURCES = $(evalres_SOURCES)
-evalres_rtest_LDADD = $(evalres_LDADD)
-evalres_rtest_CPPFLAGS  =  -DRTEST -DEVALRES
+interface_test_CPPFLAGS = $(AM_CPPFLAGS) -DINTERFACE_TEST
+
+
+
+# tagdustiotest_SOURCES = io.c misc.c interface.c kslib.c
+# tagdustiotest_LDADD = $(tagdust_LDADD)
+# tagdustiotest_CPPFLAGS  =  -DUTEST -DTAGDUST
+
+# tagdust_rtest_SOURCES = $(tagdust_SOURCES)
+# tagdust_rtest_LDADD = $(tagdust_LDADD)
+# tagdust_rtest_CPPFLAGS  =  -DRTEST -DTAGDUST
+
+# simreads_rtest_SOURCES = $(simreads_SOURCES)
+# simreads_rtest_LDADD = $(simreads_LDADD)
+# simreads_rtest_CPPFLAGS  =  -DRTEST -DSIMREADS
+
+# evalres_rtest_SOURCES = $(evalres_SOURCES)
+# evalres_rtest_LDADD = $(evalres_LDADD)
+# evalres_rtest_CPPFLAGS  =  -DRTEST -DEVALRES
 
 
 
