@@ -34,7 +34,6 @@ struct model_bag{
 
 struct arch_bag{
         struct model_bag** archs;
-
         float* arch_posterior;
         char** command_line;
         int num_arch;

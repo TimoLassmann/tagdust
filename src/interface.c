@@ -26,9 +26,7 @@
 
 #include "interface.h"
 
-#include "misc.h"
-
-
+static void usage(void);
 
 int interface(struct parameters** p,int argc, char *argv[])
 {
@@ -585,7 +583,7 @@ ERROR:
 
 
 #ifdef INTERFACE_TEST
-
+/* valgrind ./interface_test  -1 P:agggaggacgatgcgg -2 B:TGCT,AAAA,AACC,AAGG,AATT,ACAC,ACCA,ACGT -3 R:N -4 P:gtgtcagtcacttccagcgg in.fq -o out.fq */
 int main(int argc, char *argv[])
 {
         struct parameters* param = NULL;

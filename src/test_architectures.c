@@ -95,6 +95,7 @@ int test_architectures(struct parameters* param, int file_num)
                                 index = byg_end(tmp, line  );
                                 if(index){
                                         j = 0;
+
                                         while(isspace((int)line[index])){
                                                 index++;
                                         }

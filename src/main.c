@@ -20,8 +20,8 @@
 */
 
 
-#include "scTagDust.h"
-#include "nuc_code.h"
+//#include "scTagDust.h"
+//#include "nuc_code.h"
 
 
 #include "interface.h"
@@ -36,7 +36,7 @@
 int main (int argc,char * argv[]) {
         struct parameters* param = NULL;
         int i;
-        RUN(init_nuc_code());
+        //RUN(init_nuc_code());
 
         RUN(interface(&param,argc,argv));
 
@@ -47,7 +47,7 @@ int main (int argc,char * argv[]) {
                 ERROR_MSG("ERROR: No read architecture found.\n");
         }
 
-        RUN(QC_read_structure(param));
+        //RUN(QC_read_structure(param));
 
         ASSERT(param->infiles > 0, "Number of inputs has to be greater than 0");
 

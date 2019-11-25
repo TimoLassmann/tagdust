@@ -10,10 +10,10 @@
 
 
 #include "tldevel.h"
-#include <stdio.h>
+//#include <stdio.h>
 #include <getopt.h>
-#include <stdlib.h>
-#include <string.h>
+//#include <stdlib.h>
+//#include <string.h>
 
 
 #define OPT_SEG1 1
@@ -128,8 +128,8 @@ struct parameters {
 
 extern int interface(struct parameters** param,int argc, char *argv[]);
 
-int free_param(struct parameters* param);
-void usage(void);
+extern int free_param(struct parameters* param);
+
 
 
 #endif
