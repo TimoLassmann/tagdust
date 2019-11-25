@@ -27,6 +27,14 @@
 /** \def LIST_STORE_SIZE
  \brief Sets maximum number of read mappings. 
  */
+
+#ifndef IO_H
+#define IO_H
+
+
+#include "tldevel.h"
+#include "interface.h"
+
 #define LIST_STORE_SIZE 1
 
 #define SEEK_START 0
@@ -94,18 +102,6 @@ struct read_info{
  * @brief Used to store info needed to initialize HMM. 
  *
  */
-struct sequence_stats_info{
-	double background[5];
-	double expected_5_len;
-	double expected_3_len;
-	double mean_5_len;
-	double stdev_5_len;
-	double mean_3_len;
-	double stdev_3_len;
-	double average_length;
-	int max_seq_len;
-	
-};
 
 //#include "barcode_hmm.h"
 
@@ -150,3 +146,4 @@ int print_all(struct read_info*** read_info_container,struct parameters* param, 
 
 
 
+#endif

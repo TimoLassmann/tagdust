@@ -1,4 +1,55 @@
-bin_PROGRAMS = tagdust simreads evalres merge rename_qiime
+ACLOCAL_AMFLAGS = -I m4
+
+AM_CFLAGS =  @SIMD_FLAGS@ @OPENMP_CFLAGS@
+
+CLEANFILES =
+
+AM_LDFLAGS = @DEAD_STRIP@
+AM_LDFLAGS += -Wno-undef
+
+
+
+bin_PROGRAMS = tagdust
+
+tagdust_SOURCES = \
+tldevel.h \
+tldevel.c \
+sctagdust.h \
+main.c \
+interface.h \
+interface.c \
+misc.h \
+misc.c \
+nuc_code.h \
+nuc_code.c \
+barcode_hmm.h \
+barcode_hmm.c \
+seq_stats.h \
+seq_stats.c \
+hmm_model_bag.h \
+hmm_model_bag.c \
+core_hmm_functions.h \
+core_hmm_functions.c \
+test_architectures.c \
+io.c
+
+
+tagdust_CPPFLAGS = -DTAGDUST
+
+# tagdust_SOURCES =  \
+# kslib.c \
+# main.c \
+# interface.c \
+# nuc_code.c \
+# misc.c \
+# io.c \
+# barcode_hmm.c \
+# calibrateQ.c \
+# test_architectures.c
+
+# tagdust_LDADD = -lpthread -lm
+# tagdust_CPPFLAGS = -DTAGDUST
+
 
 evalres_SOURCES = \
 barcode_hmm.h \
@@ -35,22 +86,9 @@ simulate_reads.c
 simreads_CPPFLAGS = -DSIMREADS
 simreads_LDADD = -lm
 
-tagdust_SOURCES =  \
-kslib.c \
-main.c \
-interface.c \
-nuc_code.c \
-misc.c \
-io.c \
-barcode_hmm.c \
-calibrateQ.c \
-test_architectures.c
-
-tagdust_LDADD = -lpthread -lm
-tagdust_CPPFLAGS = -DTAGDUST
 
 merge_SOURCES = \
-kslib.c \
+	kslib.c \
 interface.c \
 nuc_code.c \
 io.c \
