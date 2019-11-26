@@ -2,9 +2,12 @@
 
 #include "hmm.h"
 #include "init_hmm.h"
-struct model_bag* init_model_bag(struct parameters* param,struct sequence_stats_info* ssi)
+#include "misc.h"
+#include "core_hmm_functions.h"
+
+struct model_bag* init_model_bag(struct read_structure* rs,struct sequence_stats_info* ssi, int model_index)
 {
-        int i,j,c,status;
+        int i,j,c;
         //int average_length = 12;
         int read_length = 1;
         int segment_length;
@@ -22,25 +25,25 @@ struct model_bag* init_model_bag(struct parameters* param,struct sequence_stats_
         mb->average_raw_length = ssi->average_length;
         mb->current_dyn_length = ssi->max_seq_len + 10;
         mb->model = 0;
-        MMALLOC(mb->model,sizeof(struct model* ) * param->read_structure->num_segments);
+        MMALLOC(mb->model,sizeof(struct model* ) * rs->num_segments);
 
         mb->f_score = prob2scaledprob(0.0f);
         mb->b_score = prob2scaledprob(0.0f);
-        mb->num_models = param->read_structure->num_segments;
+        mb->num_models = rs->num_segments;
         // get read length estimate...
         read_length = ssi->average_length;
         //fprintf(stderr,"READlength: %d\n",read_length);
         for(i = 0; i < mb->num_models;i++){
                 //mb->model[i] = malloc_model_according_to_read_structure(param->read_structure,i);
                 //fprintf(stderr," %d\n",read_length );
-                if(param->read_structure->type[i] == 'G'){
+                if(rs->type[i] == 'G'){
                         read_length = read_length -2;
-                }else if(param->read_structure->type[i] == 'R'){
-                }else if(param->read_structure->type[i] == 'P'){
-                        read_length = read_length - (int)strlen(param->read_structure->sequence_matrix[i][0])/2; // Initial guess - we don't know how much of the linker is present at this stage
+                }else if(rs->type[i] == 'R'){
+                }else if(rs->type[i] == 'P'){
+                        read_length = read_length - (int)strlen(rs->sequence_matrix[i][0])/2; // Initial guess - we don't know how much of the linker is present at this stage
                 }else{
-                        //	fprintf(stderr,"%s : %d \n", param->read_structure->sequence_matrix[i][0], (int)strlen(param->read_structure->sequence_matrix[i][0]));
-                        read_length = read_length - (int)strlen(param->read_structure->sequence_matrix[i][0]);
+                        //	fprintf(stderr,"%s : %d \n", rs->sequence_matrix[i][0], (int)strlen(rs->sequence_matrix[i][0]));
+                        read_length = read_length - (int)strlen(rs->sequence_matrix[i][0]);
                 }
 
                 //	fprintf(stderr,"READlength: %d\n",read_length);
@@ -62,15 +65,15 @@ struct model_bag* init_model_bag(struct parameters* param,struct sequence_stats_
 
 
         for(i = 0; i < mb->num_models;i++){
-                mb->model[i] = malloc_model_according_to_read_structure(param->read_structure->numseq_in_segment[i],(int)strlen(param->read_structure->sequence_matrix[i][0]),mb->current_dyn_length);
+                mb->model[i] = malloc_model_according_to_read_structure(rs->numseq_in_segment[i],(int)strlen(rs->sequence_matrix[i][0]),mb->current_dyn_length);
                 segment_length = 0;
-                if(param->read_structure->type[i] == 'G'){
+                if(rs->type[i] == 'G'){
                         segment_length = 2;
                 }
-                if(param->read_structure->type[i]  == 'R'){
+                if(rs->type[i]  == 'R'){
                         segment_length = read_length;
                 }
-                mb->model[i] = init_model_according_to_read_structure(mb->model[i], param, i,ssi->background,segment_length);
+                mb->model[i] = init_model_according_to_read_structure(mb->model[i], rs, i,ssi->background,segment_length);
                 //print_model(mb->model[i] );
                 mb->total_hmm_num += mb->model[i]->num_hmms;
         }
@@ -81,7 +84,7 @@ struct model_bag* init_model_bag(struct parameters* param,struct sequence_stats_
         double sum_prob = 0.0;
         double temp1;
         // 1) setting 5' parameters...
-        if(ssi->expected_5_len){
+        if(ssi->expected_5_len[model_index]){
                 /*sum_prob = 0;
 
                   for(i = 1; i <=  ssi->expected_5_len;i++){
@@ -98,20 +101,20 @@ struct model_bag* init_model_bag(struct parameters* param,struct sequence_stats_
                 sum_prob = prob2scaledprob(0.0);
 
                 for(i = 0 ; i < model_p->num_hmms;i++){
-                        for(j = 0; j < ssi->expected_5_len;j++){
+                        for(j = 0; j < ssi->expected_5_len[model_index] ;j++){
                                 //			col = model_p->hmms[i]->hmm_column[j];
                                 //fprintf(stderr,"%d MEAN:%f	STDEV:%f	g:%f\n",j,ssi->mean_5_len - ssi->expected_5_len, ssi->stdev_5_len,gaussian_pdf(j ,ssi->expected_5_len-ssi->mean_5_len , ssi->stdev_5_len));
 
-                                model_p->silent_to_M[i][j]  = prob2scaledprob(1.0 / (float) model_p->num_hmms) + prob2scaledprob(   gaussian_pdf(j ,ssi->expected_5_len-ssi->mean_5_len , ssi->stdev_5_len));
+                                model_p->silent_to_M[i][j]  = prob2scaledprob(1.0 / (float) model_p->num_hmms) + prob2scaledprob(   gaussian_pdf(j ,ssi->expected_5_len[model_index] -ssi->mean_5_len[model_index] , ssi->stdev_5_len[model_index]));
                                 //fprintf(stderr,"%f	%f	%f	%f\n",sum_prob, model_p->silent_to_M[i][j],scaledprob2prob(sum_prob), scaledprob2prob( model_p->silent_to_M[i][j]));
                                 sum_prob = logsum(sum_prob, model_p->silent_to_M[i][j]);
                                 //fprintf(stderr,"5': %d %f\n",j,gaussian_pdf(j ,ssi->mean_5_len - ssi->expected_5_len, ssi->stdev_5_len)  );
 
                                 //	temp1 = logsum(temp1, model_p->silent_to_M[i][j]);
                         }
-                        model_p->hmms[i] = set_hmm_transition_parameters(model_p->hmms[i],ssi->expected_5_len, param->sequencer_error_rate, param->indel_frequency, -1.0, -1.0);
+                        model_p->hmms[i] = set_hmm_transition_parameters(model_p->hmms[i],ssi->expected_5_len[model_index], 0.05, 0.1, -1.0, -1.0);
                 }
-                model_p->skip = prob2scaledprob(  gaussian_pdf(ssi->expected_5_len,ssi->mean_5_len - ssi->expected_5_len, ssi->stdev_5_len));
+                model_p->skip = prob2scaledprob(  gaussian_pdf(ssi->expected_5_len[model_index],ssi->mean_5_len[model_index] - ssi->expected_5_len[model_index], ssi->stdev_5_len[model_index]));
                 //fprintf(stderr,"5': skip: %f\n",gaussian_pdf(ssi->expected_5_len,ssi->mean_5_len - ssi->expected_5_len, ssi->stdev_5_len)  );
                 sum_prob = logsum(sum_prob, model_p->skip);
 
@@ -122,7 +125,7 @@ struct model_bag* init_model_bag(struct parameters* param,struct sequence_stats_
                 temp1 = prob2scaledprob(0.0);
 
                 for(i = 0 ; i < model_p->num_hmms;i++){
-                        for(j = 0; j < ssi->expected_5_len;j++){
+                        for(j = 0; j < ssi->expected_5_len[model_index];j++){
                                 //			col = model_p->hmms[i]->hmm_column[j];
                                 model_p->silent_to_M[i][j]  = model_p->silent_to_M[i][j]  - sum_prob;
                                 temp1 = logsum(temp1, model_p->silent_to_M[i][j]);
@@ -147,29 +150,29 @@ struct model_bag* init_model_bag(struct parameters* param,struct sequence_stats_
         }
 
         // 2) setting 3' parameters...
-        if(ssi->expected_3_len){
+        if(ssi->expected_3_len[model_index]){
                 sum_prob = 0;
 
-                for(i = 0; i <  ssi->expected_3_len;i++){
-                        sum_prob +=gaussian_pdf(i , ssi->mean_3_len ,ssi->stdev_3_len);
+                for(i = 0; i <  ssi->expected_3_len[model_index];i++){
+                        sum_prob +=gaussian_pdf(i , ssi->mean_3_len[model_index] ,ssi->stdev_3_len[model_index]);
                 }
                 model_p = mb->model[mb->num_models-1];
-                model_p->skip = prob2scaledprob(  gaussian_pdf(0 , ssi->mean_3_len ,ssi->stdev_3_len) / sum_prob    );
+                model_p->skip = prob2scaledprob(  gaussian_pdf(0 , ssi->mean_3_len[model_index] ,ssi->stdev_3_len[model_index]) / sum_prob    );
                 temp1 = model_p->skip;
                 for(i = 0 ; i < model_p->num_hmms;i++){
-                        model_p->silent_to_M[i][0] = prob2scaledprob(1.0 / (float) model_p->num_hmms) + prob2scaledprob(1.0 -  gaussian_pdf(0 ,ssi->mean_3_len ,ssi->stdev_3_len) / sum_prob );
-                        model_p->hmms[i] = set_hmm_transition_parameters(model_p->hmms[i],ssi->expected_3_len, param->sequencer_error_rate,  param->indel_frequency,ssi->mean_3_len ,ssi->stdev_3_len);
+                        model_p->silent_to_M[i][0] = prob2scaledprob(1.0 / (float) model_p->num_hmms) + prob2scaledprob(1.0 -  gaussian_pdf(0 ,ssi->mean_3_len[model_index] ,ssi->stdev_3_len[model_index]) / sum_prob );
+                        model_p->hmms[i] = set_hmm_transition_parameters(model_p->hmms[i],ssi->expected_3_len[model_index], 0.05, 0.1,ssi->mean_3_len[model_index] ,ssi->stdev_3_len[model_index]);
                 }
         }
         // 3) sets parameters fot all internal P segments (note the 1 -> num_models -1 )
         for(c = 1; c < mb->num_models-1;c++){
-                if(param->read_structure->type[c] == 'P'){
+                if(rs->type[c] == 'P'){
 
                         model_p = mb->model[c];
                         int len = model_p->hmms[0]->num_columns;
                         for(i = 0 ; i < model_p->num_hmms;i++){
                                 j = 0;
-                                model_p->hmms[i] = set_hmm_transition_parameters(model_p->hmms[i],len, param->sequencer_error_rate,  param->indel_frequency, 0.1, -1.0);
+                                model_p->hmms[i] = set_hmm_transition_parameters(model_p->hmms[i],len, 0.05,  0.1, 0.1, -1.0);
                         }
                 }
         }

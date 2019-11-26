@@ -2,11 +2,14 @@
 #include "arch_lib.h"
 #include "seq_stats.h"
 #include "nuc_code.h"
+#include "hmm_model_bag.h"
+
 
 int main (int argc,char * argv[]) {
         struct parameters* param = NULL;
         struct arch_library* al = NULL;
         struct seq_stats* si = NULL;
+        struct arch_bag* ab = NULL;
         int i,j;
 
         RUN(interface(&param,argc,argv));
@@ -38,8 +41,37 @@ int main (int argc,char * argv[]) {
         /* get all sequence stats  */
 
         RUN(get_sequence_stats(&si,al, param->infile, param->num_infiles));
-        /* allocate model for each architecture and each input file. */
 
+        for(i = 0; i < si->num;i++){
+                LOG_MSG("%d %f", i,si->ssi[i]->average_length);
+                for(j = 0; j < 5;j++){
+                        fprintf(stdout,"%f ", scaledprob2prob(si->ssi[i]->background[j]));
+                }
+                fprintf(stdout,"\n");
+        }
+        /* allocate model for each architecture and each input file. */
+        MMALLOC(ab, sizeof(struct arch_bag));
+        ab->archs = 0;
+        ab->arch_posterior = 0;
+
+        MMALLOC(ab->archs,sizeof(struct model_bag*) * al->num_arch);
+        MMALLOC(ab->arch_posterior,sizeof(float) *  al->num_arch);
+
+        int file_index = 0;
+        for(i = 0; i < al->num_arch;i++){
+                ab->archs[i] = NULL;
+                ab->archs[i] = init_model_bag( al->read_structure[i], si->ssi[file_index], i );
+
+        }
+        ab->num_arch = al->num_arch;
+
+        for(i = 0; i < ab->num_arch;i++){
+                free_model_bag(ab->archs[i]);
+
+        }
+        MFREE(ab->arch_posterior);
+        MFREE(ab->archs);
+        MFREE(ab);
         /* figure out which architectures belong to which read infiles */
         /* need to work on each read sequentially OR on all if enough memory ... */
 

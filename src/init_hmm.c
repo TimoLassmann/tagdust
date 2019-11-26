@@ -1,12 +1,14 @@
 #include "init_hmm.h"
+#include "nuc_code.h"
+#include "core_hmm_functions.h"
 
 
-struct model* init_model_according_to_read_structure(struct model* model,struct parameters* param , int key, double* background,int assumed_length)
+struct model* init_model_according_to_read_structure(struct model* model,struct read_structure* rs , int key, double* background,int assumed_length)
 {
 
-        struct read_structure* rs = param->read_structure;
-        float base_error = param->sequencer_error_rate;
-        float indel_freq = param->indel_frequency;
+        //struct read_structure* rs = param->read_structure;
+        float base_error = 0.05;
+        float indel_freq = 0.1;
         struct hmm_column* col =0;
         int i,j,c,len;
         int current_nuc;
@@ -402,7 +404,7 @@ struct model* init_model_according_to_read_structure(struct model* model,struct 
 struct model* malloc_model_according_to_read_structure(int num_hmm, int length,int dyn_length)
 {
         struct model* model = NULL;
-        int status;
+        //int status;
         int i = 0;
         int j = 0;
         int len = 0;

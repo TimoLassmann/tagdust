@@ -44,7 +44,7 @@
 //#include <assert.h>
 #include <float.h>
 #include <time.h>
-
+#include "seq_stats.h"
 
 #ifndef _MM_ALIGN16
 #ifdef __GNUC__
@@ -235,7 +235,7 @@ void free_model(struct model* model);
 
 //struct model* malloc_model_according_to_read_structure(struct read_structure* rs, int key);
 struct model* malloc_model_according_to_read_structure(int num_hmm, int length,int dyn_length);
-struct model* init_model_according_to_read_structure(struct model* model,struct parameters* param , int key, double* background,int assumed_length);
+struct model* init_model_according_to_read_structure(struct model* model,struct read_structure* rs , int key, double* background,int assumed_length);
 void print_model(struct model* model);
 
 

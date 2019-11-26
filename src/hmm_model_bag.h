@@ -35,12 +35,12 @@ struct model_bag{
 struct arch_bag{
         struct model_bag** archs;
         float* arch_posterior;
-        char** command_line;
+        //char** command_line;
         int num_arch;
 };
 
 
-extern struct model_bag* init_model_bag(struct parameters* param,struct sequence_stats_info* ssi);
+extern struct model_bag* init_model_bag(struct read_structure* rs,struct sequence_stats_info* ssi, int model_index);
 extern void free_model_bag(struct model_bag* mb);
 
 #endif

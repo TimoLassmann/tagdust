@@ -1471,7 +1471,7 @@ int emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_le
         int column = 0;
         int hmm = 0;
         int segment= 0;
-        int status;
+        //int status;
         //nt region = 0;
         //int start = 1;
         int len;//mb->model[segment]->hmms[0]->num_columns;

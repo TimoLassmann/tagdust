@@ -9,16 +9,43 @@
 static int alloc_sequence_stats_info(struct sequence_stats_info** si, int n);
 static void free_sequence_stats_info(struct sequence_stats_info* si);
 
+static int five_prime_exact_match(char* seq,char*p,int seq_len, double* res);
+static int three_prime_exact_match(char* seq,char*p,int seq_len, double* res);
+
 int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* al,char** infiles,int numfiles)
 {
         struct seq_stats* si = NULL;
         struct file_handler* f_hand = NULL;
         struct read_info_buffer* rb = NULL;
+        struct read_info** ri = NULL;
 
         int (*fp)(struct read_info_buffer* rb, struct file_handler* f_handle) = NULL;
 
-        int i,j;
+        int i,j,c;
         int total_read;
+        int len;
+        int last;
+
+        char** five_test_sequence = NULL;
+        char** three_test_sequence = NULL;
+
+        double* five_s0 = NULL;
+        double* five_s1 = NULL;
+        double* five_s2 = NULL;
+        double* three_s0 = NULL;
+        double* three_s1 = NULL;
+        double* three_s2 = NULL;
+        double res;
+        double sum;
+
+        MMALLOC(five_s0, sizeof(double) * al->num_arch);
+        MMALLOC(five_s1, sizeof(double) * al->num_arch);
+        MMALLOC(five_s2, sizeof(double) * al->num_arch);
+        MMALLOC(three_s0, sizeof(double) * al->num_arch);
+        MMALLOC(three_s1, sizeof(double) * al->num_arch);
+        MMALLOC(three_s2, sizeof(double) * al->num_arch);
+
+
 
         MMALLOC(si, sizeof(struct seq_stats));
         si->num = numfiles;
@@ -32,6 +59,37 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
 
         RUN(alloc_read_info_buffer(&rb,10));
 
+        /* copy5' and 3' sequences for matching in case of partial segments */
+        MMALLOC(five_test_sequence, sizeof(char*) * al->num_arch);
+        MMALLOC(three_test_sequence, sizeof(char*) * al->num_arch);
+        for(i = 0;i < al->num_arch;i++){
+                five_test_sequence[i] = NULL;
+                three_test_sequence[i] = NULL;
+                if(al->read_structure[i]->type[0] == 'P'){
+                        len = strlen(al->read_structure[i]->sequence_matrix[0][0]);
+                        MMALLOC(five_test_sequence[i], sizeof(char) * (len+1));
+                        for(c = 0; c < numfiles;c++){
+                                si->ssi[c]->expected_5_len[i] = (double)len;
+                        }
+                        for(j = 0; j < len;j++){
+                                five_test_sequence[i][j] = nuc_code[(int) al->read_structure[i]->sequence_matrix[0][0][j]];
+                        }
+                        five_test_sequence[i][len] = 0;
+                }
+                last = al->read_structure[i]->num_segments -1;
+                if(al->read_structure[i]->type[last] == 'P'){
+                        len = strlen(al->read_structure[i]->sequence_matrix[last][0]);
+                        MMALLOC(three_test_sequence[i], sizeof(char) * (len+1));
+                        for(c = 0; c < numfiles;c++){
+                                si->ssi[c]->expected_3_len[i] = (double)len;
+                        }
+                        for(j = 0; j < len;j++){
+                                three_test_sequence[i][j] = nuc_code[(int) al->read_structure[i]->sequence_matrix[last][0][j]];
+                        }
+                        three_test_sequence[i][len] = 0;
+                }
+        }
+
         /* Do stuff */
 
         for(i = 0; i < numfiles;i++){
@@ -40,6 +98,14 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
                         fp = &read_fasta_fastq;
                 }else {
                         fp = &read_sam_chunk;
+                }
+                for(c = 0;c < al->num_arch;c++){
+                        five_s0[c] = 0.0;
+                        five_s1[c] = 0.0;
+                        five_s2[c] = 0.0;
+                        three_s0[c] = 0.0;
+                        three_s1[c] = 0.0;
+                        three_s2[c] = 0.0;
                 }
 
                 total_read = 0;
@@ -50,8 +116,33 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
                         if(!rb->num_seq ){
                                 break;
                         }
+                        ri = rb->ri;
                         for(j = 0; j < rb->num_seq;j++){
-                                print_sequence(rb->ri[j], stdout);
+                                //print_sequence(rb->ri[j], stdout);
+                                si->ssi[i]->average_length += ri[j]->len;
+                                for(c = 0;c < ri[i]->len;c++){
+                                        si->ssi[i]->background[(int)ri[j]->seq[c]] += 1.0f;
+                                }
+                                for(c = 0;c < al->num_arch;c++){
+                                        if(five_test_sequence[c]){
+                                                five_prime_exact_match(ri[j]->seq, five_test_sequence[c], ri[j]->len, &res);
+                                                if(res){
+                                                        five_s0[c]++;
+                                                        five_s1[c] += res;
+                                                        five_s2[c] += res*res;
+                                                }
+                                        }
+
+                                        if(three_test_sequence[c]){
+                                                three_prime_exact_match(ri[j]->seq, three_test_sequence[c], ri[j]->len, &res);
+                                                if(res){
+                                                        three_s0[c]++;
+                                                        three_s1[c] += res;
+                                                        three_s2[c] += res*res;
+                                                }
+                                        }
+                                }
+
                         }
                         total_read += rb->num_seq;
 #if DEBUG
@@ -67,8 +158,98 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
 
                 }
                 pclose(f_hand->f_ptr);
+
+                si->ssi[i]->average_length = (int) floor((double) si->ssi[i]->average_length / (double) total_read   + 0.5);
+
+                sum = 0.0;
+                for(j = 0; j < 5;j++){
+                        sum += si->ssi[i]->background[j];
+                }
+
+                for(j = 0; j < 5;j++){
+                        si->ssi[i]->background[j] = prob2scaledprob(si->ssi[i]->background[j]  / sum);
+                }
+
+                for(c = 0;c < al->num_arch;c++){
+                        if(five_test_sequence[c]){
+                                if(five_s0[c] <= 1){
+                                        WARNING_MSG("there seems to e not a single read containing the 5' partial sequence.\n");
+                                        si->ssi[i]->mean_5_len[c] = si->ssi[i]->expected_5_len[c];
+                                        si->ssi[i]->stdev_5_len[c] = 1.0;
+                                }else{
+                                        si->ssi[i]->mean_5_len[c] = five_s1[c] / five_s0[c];
+                                        //ssi->mean_5_len = five_s1 / five_s0;
+
+                                        si->ssi[i]->stdev_5_len[c]  = sqrt((five_s0[c] * five_s2[c] - pow(five_s1[c],2.0)) / (five_s0[c] *( five_s0[c] - 1.0)));
+                                        if(!si->ssi[i]->stdev_5_len[c]){
+                                                si->ssi[i]->stdev_5_len[c] = 10000.0;
+                                        }
+                                        //fprintf(stderr,"5: %f %f	%f\n", ssi->mean_5_len,  ssi->stdev_5_len,five_s0);
+                                        //if(ssi->stdev_5_len < 1){
+                                        //	ssi->stdev_5_len = 1;
+                                        //}
+
+                                        //fprintf(stderr,"5: %f %f	%f\n", ssi->mean_5_len,  ssi->stdev_5_len,five_s0);
+                                        if(si->ssi[i]->mean_5_len[c] <= 1){
+                                                WARNING_MSG("5' partial segment seems not to be present in the data (length < 1).\n");
+                                        }
+
+                                }
+
+                        }else{
+                                si->ssi[i]->mean_5_len[c] = -1.0;
+                                si->ssi[i]->stdev_5_len[c] = -1.0;
+                        }
+                        if(three_test_sequence[c]){
+                                if(three_s0[c] <= 1){
+                                        WARNING_MSG("there seems to e not a single read containing the 5' partial sequence.\n");
+
+                                        si->ssi[i]->mean_3_len[c] = si->ssi[i]->expected_3_len[c];
+                                        si->ssi[i]->stdev_3_len[c] = 1.0;
+                                }else{
+                                        si->ssi[i]->mean_3_len[c] = three_s1[c] / three_s0[c];
+                                        //ssi->mean_5_len = three_s1 / three_s0;
+
+                                        si->ssi[i]->stdev_3_len[c]  = sqrt((three_s0[c] * three_s2[c] - pow(three_s1[c],2.0)) / (three_s0[c] *( three_s0[c] - 1.0)));
+                                        if(!si->ssi[i]->stdev_3_len[c]){
+                                                si->ssi[i]->stdev_3_len[c] = 10000.0;
+                                        }
+                                        //fprintf(stderr,"5: %f %f	%f\n", ssi->mean_3_len,  ssi->stdev_3_len,three_s0);
+                                        //if(ssi->stdev_3_len < 1){
+                                        //	ssi->stdev_3_len = 1;
+                                        //}
+
+                                        //fprintf(stderr,"5: %f %f	%f\n", ssi->mean_3_len,  ssi->stdev_3_len,three_s0);
+                                        if(si->ssi[i]->mean_3_len[c] <= 1){
+                                                WARNING_MSG("5' partial segment seems not to be present in the data (length < 1).\n");
+                                        }
+                                }
+                        }else{
+                                si->ssi[i]->mean_3_len[c] = -1.0;
+                                si->ssi[i]->stdev_3_len[c] = -1.0;
+                        }
+                }
         }
 
+
+        for(i = 0;i < al->num_arch;i++){
+                if(five_test_sequence[i]){
+                        MFREE(five_test_sequence[i]);
+                }
+
+                if(three_test_sequence[i]){
+                        MFREE(three_test_sequence[i]);
+                }
+        }
+        MFREE(five_test_sequence);
+        MFREE(three_test_sequence);
+
+        MFREE(five_s0);
+        MFREE(five_s1);
+        MFREE(five_s2);
+        MFREE(three_s0);
+        MFREE(three_s1);
+        MFREE(three_s2);
 
         free_read_info_buffer(rb);
         MFREE(f_hand);
@@ -78,6 +259,59 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
 ERROR:
         free_sequence_stats(si);
         return FAIL;
+}
+
+int five_prime_exact_match(char* seq,char*p,int seq_len, double* res)
+{
+        int i,j;
+        int five_len;
+
+        five_len = strlen(p);
+        *res = 0.0;
+        if(five_len >= seq_len){
+                *res = 0.0;
+        }
+
+        for(i = 0;i <= five_len ;i++){
+                for(j = 0;j < five_len-i;j++){
+                        if(seq[j] != p[i +j]){
+                                break;
+                        }
+                }
+                if(j == five_len-i && j > 3 ){
+                        *res = (double) j;
+                        break;
+                }
+        }
+
+        return OK;
+}
+
+int three_prime_exact_match(char* seq,char*p,int seq_len, double* res)
+{
+        int three_len;
+        int i,j;
+        three_len = strlen(p);
+        *res = 0.0;
+        if(three_len >= seq_len){
+                *res = 0.0;
+        }
+
+        for(i = 0;i <= three_len ;i++){
+                for(j = 0;j < three_len-i;j++){
+                        if(seq[seq_len - (three_len-i-j)] != p[j]){
+                                break;
+                        }
+                }
+                if(j == three_len-i  && j > 3){
+                        *res = (double) j;
+                        //three_s0++;
+                        //three_s1 += three_len -i;
+                        //three_s2 += (three_len-i) * (three_len-i);
+                        break;
+                }
+        }
+        return OK;
 }
 
 void free_sequence_stats(struct seq_stats* si)
@@ -384,6 +618,6 @@ void free_sequence_stats_info(struct sequence_stats_info* si)
         pclose(file);
         return ssi;
 ERROR:
-        return NULL;
+        Return NULL;
 }
 */

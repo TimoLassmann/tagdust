@@ -1,7 +1,8 @@
 #ifndef CORE_HMM_FUNCTIONS_H
 #define CORE_HMM_FUNCTIONS_H
 
-#include "barcode_hmm.h"
+
+#include "io.h"
 
 extern struct model_bag* forward(struct model_bag* mb, char* a, int len);
 extern struct model_bag* backward(struct model_bag* mb, char* a, int len);

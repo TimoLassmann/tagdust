@@ -26,7 +26,14 @@ io.c \
 misc.h \
 misc.c \
 nuc_code.h \
-nuc_code.c
+nuc_code.c \
+hmm.h \
+init_hmm.h \
+init_hmm.c \
+hmm_model_bag.h \
+hmm_model_bag.c \
+core_hmm_functions.h \
+core_hmm_functions.c
 
 tagdust_LDADD = -lpthread -lm
 # misc.h \

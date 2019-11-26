@@ -331,7 +331,7 @@ int bpm_check_error(const unsigned char* t,const unsigned char* p,int n,int m)
 unsigned char* reverse_complement(unsigned char* p,int len)
 {
         unsigned char* tmp = 0;
-        int status;
+
         MMALLOC(tmp,sizeof(unsigned char)*(len +2));
         int i,c;
         c = 0;
