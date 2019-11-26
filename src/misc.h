@@ -4,7 +4,7 @@
 #include "tldevel.h"
 
 extern int byg_count(char* pattern,char*text);
-int byg_end(const char* pattern,const char*text);
+extern int byg_end(const char* pattern,const char*text);
 extern int bpm(const  char* t,const  char* p,int n,int m);
 extern int bitcount64(long long int i);
 

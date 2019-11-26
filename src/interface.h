@@ -72,7 +72,8 @@ struct parameters {
         char** segments;
         char* outfile;
         char* reference_fasta;
-        int infiles;
+        int num_segments;
+        int num_infiles;
         int quiet_flag;
         int num_query;
         char* format;

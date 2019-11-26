@@ -24,8 +24,6 @@ struct model_bag* init_model_bag(struct parameters* param,struct sequence_stats_
         mb->model = 0;
         MMALLOC(mb->model,sizeof(struct model* ) * param->read_structure->num_segments);
 
-
-
         mb->f_score = prob2scaledprob(0.0f);
         mb->b_score = prob2scaledprob(0.0f);
         mb->num_models = param->read_structure->num_segments;
@@ -219,13 +217,10 @@ struct model_bag* init_model_bag(struct parameters* param,struct sequence_stats_
                 }
         }
 
-
         for(i = 0; i < mb->total_hmm_num ;i++){
                 c = 1;
                 for(j = i+1; j <  mb->total_hmm_num ;j++){
                         mb->transition_matrix[i][j] = 0;
-
-
 
                         if(i == j){
                                 mb->transition_matrix[i][j] = 1;

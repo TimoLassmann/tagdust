@@ -1,70 +1,55 @@
-/*
-
-  Copyright (C) 2013 Timo Lassmann <timolassmann@gmail.com>
-
-  This file is part of TagDust.
-
-  TagDust is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
-
-  TagDust is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with Tagdust.  If not, see <http://www.gnu.org/licenses/>.
-
-*/
-
-
-//#include "scTagDust.h"
-//#include "nuc_code.h"
-
-
 #include "interface.h"
-/*#include "nuc_code.h"
-#include "io.h"
-#include "misc.h"
-#include "tagdust2.h"
-#include "barcode_hmm.h"
-#include <math.h>
-*/
+#include "arch_lib.h"
+#include "seq_stats.h"
+#include "nuc_code.h"
 
 int main (int argc,char * argv[]) {
         struct parameters* param = NULL;
-        int i;
-        //RUN(init_nuc_code());
+        struct arch_library* al = NULL;
+        struct seq_stats* si = NULL;
+        int i,j;
 
         RUN(interface(&param,argc,argv));
 
         if(!param){
                 return EXIT_SUCCESS;
         }
-        if(param->read_structure->num_segments == 0 && param->arch_file == NULL){
-                ERROR_MSG("ERROR: No read architecture found.\n");
+        ASSERT(param->num_infiles > 0, "Number of inputs has to be greater than 0");
+
+        ASSERT(param->outfile != NULL, "No output file suffix");
+
+        /* create architecture library */
+        RUN(alloc_arch_lib(&al));
+
+        if(param->segments[0]){
+                RUN(read_arch_into_lib(al, param->segments, param->num_segments));
         }
 
-        //RUN(QC_read_structure(param));
-
-        ASSERT(param->infiles > 0, "Number of inputs has to be greater than 0");
-
-        ASSERT(param->outfile != NULL, "No output file suffic");
-
-        if(param->arch_file != NULL){
-                ASSERT(my_file_exists(param->arch_file),"Could not find file %s.",param->arch_file);
+        if(param->arch_file){
+                RUN(read_architecture_files(al, param->arch_file));
         }
-        if(param->infiles){
-                for(i = 0; i < param->infiles;i++){
-                        ASSERT(my_file_exists(param->infile[i]),"Could not find file %s.",param->infile[i]);
-                }
-        }
+
+        /* QC on architecture ?? */
+
+        /* Start HMM stuff */
+        init_logsum();
+        RUN(init_nuc_code());
+
+        /* get all sequence stats  */
+
+        RUN(get_sequence_stats(&si,al, param->infile, param->num_infiles));
+        /* allocate model for each architecture and each input file. */
+
+        /* figure out which architectures belong to which read infiles */
+        /* need to work on each read sequentially OR on all if enough memory ... */
+
+
 
         //sprintf(param->buffer,"Start Run\n--------------------------------------------------\n");
         //param->messages = append_message(param->messages, param->buffer);
         //hmm_controller_multiple(param);
+        free_arch_lib(al);
+        free_sequence_stats(si);
         free_param(param);
 
         return EXIT_SUCCESS;

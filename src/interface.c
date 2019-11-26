@@ -31,7 +31,7 @@ static void usage(void);
 int interface(struct parameters** p,int argc, char *argv[])
 {
         struct parameters* param = NULL;
-        int c;
+        int i,c;
         int help = 0;
         int version = 0;
 
@@ -42,8 +42,12 @@ int interface(struct parameters** p,int argc, char *argv[])
 
         MMALLOC(param,sizeof(struct parameters));
         param->segments = NULL;
+        param->num_segments = 0;
         MMALLOC(param->segments, sizeof(char*) * 10);
-        param->infiles = 0;
+        for(i = 0;i < 10;i++){
+                param->segments[i] = NULL;
+        }
+        param->num_infiles = 0;
         param->infile = NULL;
         param->outfile = NULL;
         param->num_threads = 8;
@@ -218,33 +222,43 @@ int interface(struct parameters** p,int argc, char *argv[])
 
                 case OPT_SEG1:
                         param->segments[0] = optarg;
+                        param->num_segments = 1;
                         break;
                 case OPT_SEG2:
                         param->segments[1] = optarg;
+                        param->num_segments = 2;
                         break;
                 case OPT_SEG3:
                         param->segments[2] = optarg;
+                        param->num_segments = 3;
                         break;
                 case OPT_SEG4:
                         param->segments[3] = optarg;
+                        param->num_segments = 4;
                         break;
                 case OPT_SEG5:
                         param->segments[4] = optarg;
+                        param->num_segments = 5;
                         break;
                 case OPT_SEG6:
                         param->segments[5] = optarg;
+                        param->num_segments = 6;
                         break;
                 case OPT_SEG7:
                         param->segments[6] = optarg;
+                        param->num_segments = 7;
                         break;
                 case OPT_SEG8:
                         param->segments[7] = optarg;
+                        param->num_segments = 8;
                         break;
                 case OPT_SEG9:
                         param->segments[8] = optarg;
+                        param->num_segments = 9;
                         break;
                 case OPT_SEG10:
                         param->segments[9] = optarg;
+                        param->num_segments = 10;
                         break;
                 case OPT_TRAIN:
                         param->train = optarg;
@@ -404,23 +418,28 @@ int interface(struct parameters** p,int argc, char *argv[])
 
                 }
         }
+        if(argc-optind){
+                MMALLOC(param->infile,sizeof(char*)* (argc-optind));
 
-        MMALLOC(param->infile,sizeof(char*)* (argc-optind));
-
-        c = 0;
-        while (optind < argc){
-                param->infile[c] =  argv[optind++];
-                c++;
+                c = 0;
+                while (optind < argc){
+                        param->infile[c] =  argv[optind++];
+                        c++;
+                }
+                param->num_infiles = c;
         }
-        param->infiles = c;
+
+        if(param->num_infiles){
+                for(i = 0; i < param->num_infiles;i++){
+                        ASSERT(my_file_exists(param->infile[i]),"Could not find file %s.",param->infile[i]);
+                }
+        }
 
 
         *p = param;
         return OK;
 ERROR:
-
         if(param){
-                //fprintf(stdout,"%s",param->errmsg);
                 free_param(param);
         }
         return FAIL;
@@ -575,6 +594,8 @@ int free_param(struct parameters* param)
                 }
                 MFREE(param);
         }
+
+
         return OK;
 ERROR:
         return FAIL;

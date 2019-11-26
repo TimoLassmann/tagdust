@@ -18,10 +18,10 @@ struct arch_library{
 };
 
 
-int read_architecture_files(struct arch_library* al, char* filename);
-int read_arch_into_lib(struct arch_library* al, const char** list, int len);
+extern int read_architecture_files(struct arch_library* al, char* filename);
+extern int read_arch_into_lib(struct arch_library* al, char** list, int len);
 
-int alloc_arch_lib(struct arch_library** arch);
-void free_arch_lib(struct arch_library* arch);
+extern int alloc_arch_lib(struct arch_library** arch);
+extern void free_arch_lib(struct arch_library* arch);
 
 #endif

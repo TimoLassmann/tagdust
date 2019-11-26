@@ -2,7 +2,7 @@
 #include "arch_lib.h"
 
 #include "tldevel.h"
-#include "string.h"
+//#include "string.h"
 
 static int malloc_read_structure(struct read_structure** rs);
 static void free_read_structure(struct read_structure* read_structure);
@@ -11,7 +11,6 @@ static int resize_arch_lib(struct arch_library* al);
 
 static int QC_read_structure(struct read_structure* read_structure );
 static int sanity_check_arch_lib(struct arch_library* al);
-
 
 int read_architecture_files(struct arch_library* al, char* filename)
 {
@@ -28,6 +27,8 @@ int read_architecture_files(struct arch_library* al, char* filename)
         int i,index;
 
         char* tmp = NULL;
+
+        ASSERT(my_file_exists(filename),"Could not find file %s.",filename);
 
         RUNP(f_ptr = fopen(filename, "r"));
         while ((nread = getline(&line_buffer, &line_len, f_ptr)) != -1) {
@@ -49,7 +50,7 @@ int read_architecture_files(struct arch_library* al, char* filename)
                                 //fprintf(stdout,"t:%s\n",token);
                                 if(token[0] == '-' && isdigit((int) token[1])){
                                         n_segment = atoi(token+1);
-
+                                        n_segment--;
                                         //LOG_MSG("setsegment to %d", n_segment);
                                 }else{
                                         if(n_segment != -1){
@@ -88,7 +89,7 @@ ERROR:
         return FAIL;
 }
 
-int read_arch_into_lib(struct arch_library* al, const char** list, int len)
+int read_arch_into_lib(struct arch_library* al, char** list, int len)
 {
         int i,j,c;
         int target;
@@ -123,9 +124,10 @@ int read_arch_into_lib(struct arch_library* al, const char** list, int len)
         tmp[c-1] = 0;
         al->spec_line[target] = tmp;
         for(i = 0; i < len;i++){
-                snprintf(buffer, BUFFER_LEN, "%s", list[i]);
-                RUN(assign_segment_sequences(al->read_structure[target], buffer, i));
-
+                if(list[i]){
+                        snprintf(buffer, BUFFER_LEN, "%s", list[i]);
+                        RUN(assign_segment_sequences(al->read_structure[target], buffer, i));
+                }
         }
         RUN(QC_read_structure(al->read_structure[target]));
         al->num_arch++;
@@ -191,14 +193,13 @@ int assign_segment_sequences(struct read_structure* read_structure, char* tmp, i
                 read_structure->sequence_matrix[segment][i] = 0;
                 MMALLOC(read_structure->sequence_matrix[segment][i],sizeof(char)* strlen(tmp));
         }
+        //fprintf(stdout,"%s %d\n",tmp, (int) tmp[0]);
         read_structure->type[segment] = tmp[0];
 
         if(tmp[0] == 'R'){
-                read_structure->sequence_matrix[segment][0][0]  = 'N';
-                read_structure->sequence_matrix[segment][0][1]  = 0;
-
+                read_structure->sequence_matrix[segment][0][0] = 'N';
+                read_structure->sequence_matrix[segment][0][1] = 0;
         }else{
-
                 f = 0;
                 g = 0;
                 len = (int)strlen(tmp) ;
@@ -257,7 +258,7 @@ ERROR:
 int alloc_arch_lib(struct arch_library** arch)
 {
         struct arch_library* al = NULL;
-        const char* in[] = {
+        char* in[] = {
                 "R:N"
         };
 
@@ -435,24 +436,25 @@ int sanity_check_arch_lib(struct arch_library* al)
         //LOG_MSG("Check sanity");
         for(i = 0 ;i < al->num_arch;i++){
                 if(al->spec_line[i] != NULL){
-                for(j = i+1;j < al->num_arch;j++){
-                        if(al->spec_line[j] != NULL){
-                                //fprintf(stdout,"X%sX\nX%sX\n",al->spec_line[i], al->spec_line[j]);
-                        if(!strcmp(al->spec_line[i], al->spec_line[j])){
-                                WARNING_MSG("ERROR: two architectures are the same:\n%s\n%s\n", al->spec_line[i],al->spec_line[j]);
-                                MFREE(al->spec_line[j]);
-                                al->spec_line[j] = NULL;
-                                free_read_structure(al->read_structure[j]);
-                                al->read_structure[j] = NULL;
-                                RUN(malloc_read_structure(&al->read_structure[j]));
+                        for(j = i+1;j < al->num_arch;j++){
+                                if(al->spec_line[j] != NULL){
+                                        //fprintf(stdout,"%d X%sX\n%d X%sX\n",i,al->spec_line[i],j, al->spec_line[j]);
+                                        if(!strcmp(al->spec_line[i], al->spec_line[j])){
+                                                WARNING_MSG("two architectures are the same:\n%s\n%s\n", al->spec_line[i],al->spec_line[j]);
+                                                MFREE(al->spec_line[j]);
+                                                al->spec_line[j] = NULL;
+                                                free_read_structure(al->read_structure[j]);
+                                                al->read_structure[j] = NULL;
+                                                RUN(malloc_read_structure(&al->read_structure[j]));
+                                        }
+                                }
                         }
-                        }
-                }
                 }
         }
         c = 0;
         for(i = 0 ;i < al->num_arch;i++){
                 if(al->spec_line[i]){
+                        //fprintf(stdout,"%d %d %s\n",i,c, al->spec_line[i]);
                         al->spec_line[c] = al->spec_line[i];
                         al->read_structure[c] = al->read_structure[i];
                         c++;

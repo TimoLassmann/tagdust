@@ -1,10 +1,156 @@
 #include "seq_stats.h"
 
 #include "tldevel.h"
-#include "interface.h"
+//#include "interface.h"
 #include "nuc_code.h"
 
-struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct read_info** ri, int file_num )
+#include "io.h"
+
+static int alloc_sequence_stats_info(struct sequence_stats_info** si, int n);
+static void free_sequence_stats_info(struct sequence_stats_info* si);
+
+int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* al,char** infiles,int numfiles)
+{
+        struct seq_stats* si = NULL;
+        struct file_handler* f_hand = NULL;
+        struct read_info_buffer* rb = NULL;
+
+        int (*fp)(struct read_info_buffer* rb, struct file_handler* f_handle) = NULL;
+
+        int i,j;
+        int total_read;
+
+        MMALLOC(si, sizeof(struct seq_stats));
+        si->num = numfiles;
+        si->ssi = NULL;
+        MMALLOC(si->ssi, sizeof(struct sequence_stats_info*) * si->num);
+        for(i = 0; i < si->num;i++){
+                si->ssi[i] = NULL;
+                RUN(alloc_sequence_stats_info(&si->ssi[i], al->num_arch));
+        }
+
+
+        RUN(alloc_read_info_buffer(&rb,10));
+
+        /* Do stuff */
+
+        for(i = 0; i < numfiles;i++){
+                RUN(io_handler(&f_hand,infiles[i]));
+                if(f_hand->sam == 0){
+                        fp = &read_fasta_fastq;
+                }else {
+                        fp = &read_sam_chunk;
+                }
+
+                total_read = 0;
+                LOG_MSG("FILE:%s", infiles[i]);
+                while(1){
+                        RUN(fp(rb,f_hand));//  param,file,&numseq));
+                        //if((status = fp(ri, param,file,&numseq)) != OK)  exit(status);
+                        if(!rb->num_seq ){
+                                break;
+                        }
+                        for(j = 0; j < rb->num_seq;j++){
+                                print_sequence(rb->ri[j], stdout);
+                        }
+                        total_read += rb->num_seq;
+#if DEBUG
+                        if(total_read > 10){
+                                break;
+                        }
+#else
+                        if(total_read > 10){
+                                break;
+                        }
+#endif
+
+
+                }
+                pclose(f_hand->f_ptr);
+        }
+
+
+        free_read_info_buffer(rb);
+        MFREE(f_hand);
+
+        *sequence_stats = si;
+        return OK;
+ERROR:
+        free_sequence_stats(si);
+        return FAIL;
+}
+
+void free_sequence_stats(struct seq_stats* si)
+{
+        int i;
+        if(si){
+                for(i = 0; i < si->num;i++){
+                        free_sequence_stats_info(si->ssi[i]);
+                }
+                MFREE(si->ssi);
+                MFREE(si);
+        }
+}
+
+int alloc_sequence_stats_info(struct sequence_stats_info** si, int n)
+{
+        struct sequence_stats_info* ssi = NULL;
+        int i;
+
+
+        MMALLOC(ssi, sizeof(struct sequence_stats_info));
+
+        //ssi->average_length
+        ssi->average_length = 0;
+        for(i = 0; i < 5;i++){
+                ssi->background[i] = 1.0;
+        }
+
+        ssi->expected_5_len = NULL;
+        ssi->expected_3_len = NULL;
+        ssi->mean_5_len = NULL;
+        ssi->stdev_5_len = NULL;
+        ssi->mean_3_len = NULL;
+        ssi->stdev_3_len = NULL;
+        ssi->average_length = 0.0f;
+        ssi->max_seq_len = 0;
+
+        MMALLOC(ssi->expected_5_len, sizeof(double) * n);
+        MMALLOC(ssi->expected_3_len, sizeof(double) * n);
+        MMALLOC(ssi->mean_5_len, sizeof(double) * n);
+        MMALLOC(ssi->mean_3_len, sizeof(double) * n);
+        MMALLOC(ssi->stdev_5_len, sizeof(double) * n);
+        MMALLOC(ssi->stdev_3_len, sizeof(double) * n);
+
+        for(i = 0; i < n;i++){
+                ssi->expected_5_len[i] =  0.0f;
+                ssi->expected_3_len[i] =  0.0f;
+                ssi->mean_5_len[i] =  0.0f;
+                ssi->mean_3_len[i] =  0.0f;
+                ssi->stdev_5_len[i] =  0.0f;
+                ssi->stdev_3_len[i] = 0.0f;
+        }
+        *si = ssi;
+        return OK;
+ERROR:
+        free_sequence_stats_info(ssi);
+        return FAIL;
+}
+
+void free_sequence_stats_info(struct sequence_stats_info* si)
+{
+        if(si){
+                MFREE(si->expected_5_len);
+                MFREE(si->expected_3_len);
+                MFREE(si->mean_5_len);
+                MFREE(si->mean_3_len);
+                MFREE(si->stdev_5_len);
+                MFREE(si->stdev_3_len);
+                MFREE(si);
+        }
+}
+
+/*struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct read_info** ri, int file_num )
 {
         struct sequence_stats_info* ssi = 0;
         int status;
@@ -12,9 +158,7 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
         FILE* file = 0;
 
         int (*fp)(struct read_info** ,struct parameters*,FILE*,int* buffer_count  ) = 0;
-
         int i,j,c,numseq,total_read;
-
         int five_len = 0;
         int three_len = 0;
 
@@ -107,13 +251,11 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
                                                 five_s2 += (five_len-j) * (five_len-j);
                                                 break;
                                         }
-
                                 }
                         }
                         //check length of exact 3' matching sequence...
                         if(three_len){
                                 for(j = 0;j <= three_len ;j++){
-
                                         for(c = 0;c < three_len-j;c++){
                                                 if(ri[i]->seq[ri[i]->len - (three_len-j -c)] != three_test_sequence[c]){
                                                         break;
@@ -127,8 +269,6 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
                                         }
                                 }
                         }
-
-
                 }
 
                 total_read += numseq;
@@ -150,10 +290,7 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
                         param->messages = append_message(param->messages, param->buffer);
                         ssi->mean_5_len  = ssi->expected_5_len;
                         ssi->stdev_5_len  = 1.0;
-
-
                 }else{
-
                         ssi->mean_5_len = five_s1 / five_s0;
                         ssi->stdev_5_len = sqrt(  (five_s0 * five_s2 - pow(five_s1,2.0))   /  (  five_s0 *(five_s0-1.0) )) ;
                         if(!ssi->stdev_5_len){
@@ -176,8 +313,6 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
                 ssi->mean_5_len =  -1.0;
                 ssi->stdev_5_len = -1.0;
         }
-
-
 
         if(three_len){
                 if(three_s0 <= 1){
@@ -246,11 +381,9 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
 
 #endif
 
-
-
-
         pclose(file);
         return ssi;
 ERROR:
         return NULL;
 }
+*/

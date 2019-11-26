@@ -98,6 +98,21 @@ struct read_info{
 	int fingerprint;
 };
 
+struct read_info_buffer{
+        struct read_info** ri;
+        int num_alloc;
+        int num_seq;
+};
+
+
+struct file_handler{
+        FILE* f_ptr;
+        int gzipped;
+        int bzipped;
+        int sam;
+        int fasta;
+};
+
 /**
  * @brief Used to store info needed to initialize HMM. 
  *
@@ -106,18 +121,22 @@ struct read_info{
 //#include "barcode_hmm.h"
 
 
-FILE* io_handler(FILE* file, int file_num,struct parameters* param);
+int io_handler(struct file_handler** fh, char*filename);
+//FILE* io_handler(FILE* file, int file_num,struct parameters* param);
 void print_seq(struct read_info* ri,FILE* out);
-int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file,int* buffer_count);
+int read_sam_chunk(struct read_info_buffer* rb, struct file_handler* f_handle);
+//int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file,int* buffer_count);
 //int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file);
-int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file,int* buffer_count);
+
+int read_fasta_fastq(struct read_info_buffer* rb, struct file_handler* f_handle);
+//int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file,int* buffer_count);
 void print_sequence(struct read_info* ri,FILE* out);
 //int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  struct read_info* ri,FILE* out);
 int qsort_ri_mapq_compare(const void *a, const void *b);
 
 int qsort_ri_barcode_compare(const void *a, const void *b);
 
-struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct read_info** ri, int file_num );
+//struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct read_info** ri, int file_num );
 
 void concatenate_reads(struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ));
 void split(struct parameters* param,int (*fp)(struct read_info** ,struct parameters*,FILE* ));
@@ -130,6 +149,9 @@ unsigned char* get_input_into_string(unsigned char* string,char* infile);
 void free_fasta(struct fasta*f);
 
 //void print_split_files(struct parameters* param, struct read_info** ri, int numseq);
+
+int alloc_read_info_buffer(struct read_info_buffer** rb, int size);
+void free_read_info_buffer(struct read_info_buffer* rb);
 
 struct read_info** malloc_read_info(struct read_info** ri, int numseq);
 struct read_info** clear_read_info(struct read_info** ri, int numseq);

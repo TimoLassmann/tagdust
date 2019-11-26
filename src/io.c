@@ -21,7 +21,7 @@
 
 /*! \file io.c
   \brief functions for reading sequences.
-
+n
   Initializes nucleotide alphabet needed to parse input. Calls parameter parser. Calls functions to process the data. \author Timo Lassmann \bug No known bugs.
 */
 
@@ -41,7 +41,7 @@
 
 #include "io.h"
 
-#include "tagdust2.h"
+//#include "tagdust2.h"
 
 #ifndef MMALLOC
 #include "malloc_macro.h"
@@ -130,12 +130,26 @@ int qsort_ri_mapq_compare(const void *a, const void *b)
 
 */
 
-FILE* io_handler(FILE* file, int file_num,struct parameters* param)
+int io_handler(struct file_handler** fh, char*filename)
 {
+        struct file_handler* f_handle = NULL;
+        FILE* file;
+
         char command[1000];
-        char  tmp[1000];
+        char tmp[1000];
 
         int gzcat = -1;
+
+        if(!*fh){
+                MMALLOC(f_handle, sizeof(struct file_handler));
+                *fh = f_handle;
+        }
+
+        f_handle = *fh;
+        f_handle->bzipped = 0;
+        f_handle->fasta = 0;
+        f_handle->gzipped = 0;
+        f_handle->sam = 0;
         if(access("/usr/bin/gzcat", X_OK) == 0){
                 gzcat = 1;
         }else if(access("/bin/gzcat", X_OK) == 0){
@@ -146,196 +160,177 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
                 gzcat = 0;
         }
 
-        param->gzipped = 0;
-        param->bzipped = 0;
-        param->sam = 0;
-        param->fasta = 0;
 
-        if(!file_exists(param->infile[file_num])){
-                sprintf(param->buffer,"Error: Cannot find input file: %s\n",param->infile[file_num] );
-                //param->messages = append_message(param->messages, param->buffer);
-                free_param(param);
-                exit(EXIT_FAILURE);
-        }
+        /*if(!file_exists(filename)){
+                ERROR_MSG("Error: Cannot find input file: %s\n",filename );
+                }*/
 
-        if(!strcmp(".sam", param->infile[file_num] + (strlen(param->infile[file_num] ) - 4))){
-                param->sam = 1;
-        }else if (!strcmp(".bam", param->infile[file_num] + (strlen(param->infile[file_num] ) - 4))){
-                param->sam = 2;
-        }else if (!strcmp(".fa", param->infile[file_num] + (strlen(param->infile[file_num] ) - 3))){
-                param->sam = 0;
-                param->fasta = 1;
-        }else if (!strcmp(".fq", param->infile[file_num] + (strlen(param->infile[file_num] ) - 3))){
-                param->sam = 0;
-        }else if (!strcmp(".fastq", param->infile[file_num] + (strlen(param->infile[file_num] ) - 6))){
-                param->sam = 0;
-        }else if (!strcmp(".fastaq", param->infile[file_num] + (strlen(param->infile[file_num] ) - 7))){
-                param->sam = 0;
-        }else if (!strcmp(".fasta", param->infile[file_num] + (strlen(param->infile[file_num] ) - 6))){
-                param->sam = 0;
-                param->fasta = 1;
-        }else if(!strcmp(".sam.gz", param->infile[file_num] + (strlen(param->infile[file_num] ) - 7))){
-                param->sam = 1;
-                param->gzipped  = 1;
-        }else if (!strcmp(".bam.gz", param->infile[file_num] + (strlen(param->infile[file_num] ) - 7))){
-                param->sam = 2;
-                param->gzipped  = 1;
-        }else if (!strcmp(".fa.gz", param->infile[file_num] + (strlen(param->infile[file_num] ) - 6))){
-                param->sam = 0;
-                param->fasta = 1;
-                param->gzipped  = 1;
-        }else if (!strcmp(".fq.gz", param->infile[file_num] + (strlen(param->infile[file_num] ) - 6))){
-                param->sam = 0;
-                param->gzipped  = 1;
-        }else if (!strcmp(".fastq.gz", param->infile[file_num] + (strlen(param->infile[file_num] ) - 9))){
-                param->sam = 0;
-                param->gzipped  = 1;
-        }else if (!strcmp(".fastaq.gz", param->infile[file_num] + (strlen(param->infile[file_num] ) - 10))){
-                param->sam = 0;
-                param->gzipped  = 1;
-        }else if (!strcmp(".fasta.gz", param->infile[file_num] + (strlen(param->infile[file_num] ) - 9))){
-                param->sam = 0;
-                param->gzipped  = 1;
-        }else if (!strcmp(".fastq.bz2", param->infile[file_num] + (strlen(param->infile[file_num] ) - 10))){
-                param->sam = 0;
-                param->bzipped  = 1;
-        }else if (!strcmp(".fq.bz2", param->infile[file_num] + (strlen(param->infile[file_num] ) - 7))){
-                param->sam = 0;
-                param->bzipped  = 1;
+        if(!strcmp(".sam", filename + (strlen(filename ) - 4))){
+                f_handle->sam = 1;
+        }else if (!strcmp(".bam", filename + (strlen(filename ) - 4))){
+                f_handle->sam = 2;
+        }else if (!strcmp(".fa", filename + (strlen(filename ) - 3))){
+                f_handle->sam = 0;
+                f_handle->fasta = 1;
+        }else if (!strcmp(".fq", filename + (strlen(filename ) - 3))){
+                f_handle->sam = 0;
+        }else if (!strcmp(".fastq", filename + (strlen(filename ) - 6))){
+                f_handle->sam = 0;
+        }else if (!strcmp(".fastaq", filename + (strlen(filename ) - 7))){
+                f_handle->sam = 0;
+        }else if (!strcmp(".fasta", filename + (strlen(filename ) - 6))){
+                f_handle->sam = 0;
+                f_handle->fasta = 1;
+        }else if(!strcmp(".sam.gz", filename + (strlen(filename ) - 7))){
+                f_handle->sam = 1;
+                f_handle->gzipped  = 1;
+        }else if (!strcmp(".bam.gz", filename + (strlen(filename ) - 7))){
+                f_handle->sam = 2;
+                f_handle->gzipped  = 1;
+        }else if (!strcmp(".fa.gz", filename + (strlen(filename ) - 6))){
+                f_handle->sam = 0;
+                f_handle->fasta  = 1;
+                f_handle->gzipped  = 1;
+        }else if (!strcmp(".fq.gz", filename + (strlen(filename ) - 6))){
+                f_handle->sam = 0;
+                f_handle->gzipped  = 1;
+        }else if (!strcmp(".fastq.gz", filename + (strlen(filename ) - 9))){
+                f_handle->sam = 0;
+                f_handle->gzipped  = 1;
+        }else if (!strcmp(".fastaq.gz", filename + (strlen(filename ) - 10))){
+                f_handle->sam = 0;
+                f_handle->gzipped  = 1;
+        }else if (!strcmp(".fasta.gz", filename + (strlen(filename ) - 9))){
+                f_handle->sam = 0;
+                f_handle->gzipped  = 1;
+        }else if (!strcmp(".fastq.bz2", filename + (strlen(filename ) - 10))){
+                f_handle->sam = 0;
+                f_handle->bzipped  = 1;
+        }else if (!strcmp(".fq.bz2", filename + (strlen(filename ) - 7))){
+                f_handle->sam = 0;
+                f_handle->bzipped  = 1;
         }else{
-                param->sam = -1;
+                f_handle->sam = -1;
         }
 
 
-        if(param->gzipped && gzcat == -1){
-                sprintf(param->buffer,"Cannot find gzcat / zcat on your system. Try gzcat <infile> | samstat -f sam/bam/fa/fq\n");
-                //param->messages = append_message(param->messages, param->buffer);
-                free_param(param);
-                exit(EXIT_FAILURE);
-        }
+        if(f_handle->gzipped && gzcat == -1){
+                ERROR_MSG("Cannot find gzcat / zcat on your system. Try gzcat <infile> | samstat -f sam/bam/fa/fq\n");}
 
-        if(file_num == -1){
-                if(param->sam == 2){
+        if(filename == NULL){
+                if(f_handle->sam == 2){
                         command[0] = 0;
-                        if(!param->filter){
-                                strcat ( command, "samtools view -F 768 ");
-                        }else{
-                                strcat ( command, "samtools view -F ");
-                                sprintf (tmp, "%s ",param->filter);
-                                strcat ( command, tmp);
-                        }
+                        //if(!param->filter){
+                        strcat ( command, "samtools view -F 768 ");
+                        //}else{
+                        //strcat ( command, "samtools view -F ");
+                        //sprintf (tmp, "%s ",param->filter);
+                        //strcat ( command, tmp);
+                        //}
                         sprintf (tmp, "%s ","-");
                         strcat ( command, tmp);
                         if (!(file = popen(command, "r"))) {
-                                fprintf(stderr,"Cannot open bam file '%s' with command:%s\n",param->infile[file_num],command);
+                                fprintf(stderr,"Cannot open bam file '%s' with command:%s\n",filename,command);
                                 exit(-1);
                         }
-                }else if(param->sam == 1){
+                }else if(f_handle->sam == 1){
                         command[0] = 0;
-                        if(!param->filter){
+                        //if(!param->filter){
                                 strcat ( command, "samtools view -SF 768 ");
-                        }else{
-                                strcat ( command, "samtools view -SF ");
-                                sprintf (tmp, "%s ",param->filter);
-                                strcat ( command, tmp);
-                        }
+                                //}else{
+                                //strcat ( command, "samtools view -SF ");
+                                //sprintf (tmp, "%s ",param->filter);
+                                //strcat ( command, tmp);
+                                //}
                         sprintf (tmp, "%s ", "-");
                         strcat ( command, tmp);
                         if (!(file = popen(command, "r"))) {
-                                fprintf(stderr,"Cannot open bam file '%s' with command:%s\n",param->infile[file_num],command);
+                                fprintf(stderr,"Cannot open bam file '%s' with command:%s\n",filename,command);
                                 exit(-1);
                         }
                 }else{
                         file = stdin;
                 }
         }else{
-                if(param->sam == 2){
+                if(f_handle->sam == 2){
                         command[0] = 0;
 
-                        if(param->bzipped){
+                        if(f_handle->bzipped){
                                 strcat ( command, "bzcat ");
-                                if(!param->filter){
-                                        sprintf (tmp, "%s | samtools view -F 768 - ", param->infile[file_num]);
+                                //if(!param->filter){
+                                        sprintf (tmp, "%s | samtools view -F 768 - ", filename);
                                         strcat ( command, tmp);
-                                }else{
-                                        sprintf (tmp, "%s | samtools view -F  ", param->infile[file_num]);
-                                        strcat ( command, tmp);
-                                        sprintf (tmp, "%s - ",param->filter);
-                                        strcat ( command, tmp);
-                                }
+                                        //}else{
+                                        //sprintf (tmp, "%s | samtools view -F  ", filename);
+                                        //strcat ( command, tmp);
+                                        //sprintf (tmp, "%s - ",param->filter);
+                                        //strcat ( command, tmp);
+                                        //}
 
-                        }else if(param->gzipped){
+                        }else if(f_handle->gzipped){
                                 if(gzcat == 1){
                                         strcat ( command, "gzcat ");
                                 }else{
                                         strcat ( command, "zcat ");
                                 }
-                                if(!param->filter){
-                                        sprintf (tmp, "%s | samtools view -F 768 - ", param->infile[file_num]);
+                                //if(!param->filter){
+                                        sprintf (tmp, "%s | samtools view -F 768 - ", filename);
                                         strcat ( command, tmp);
-                                }else{
-                                        sprintf (tmp, "%s | samtools view -F  ", param->infile[file_num]);
-                                        strcat ( command, tmp);
-                                        sprintf (tmp, "%s - ",param->filter);
-                                        strcat ( command, tmp);
-                                }
+                                        //}else{
+                                        //sprintf (tmp, "%s | samtools view -F  ", filename);
+                                        //strcat ( command, tmp);
+                                        //sprintf (tmp, "%s - ",param->filter);
+                                        //strcat ( command, tmp);
+                                        //}
                         }else{
-                                if(!param->filter){
+                                //if(!param->filter){
                                         strcat ( command, "samtools view -F 768 ");
-                                }else{
-                                        strcat ( command, "samtools view -F ");
-                                        sprintf (tmp, "%s ",param->filter);
-                                        strcat ( command, tmp);
-                                }
-                                sprintf (tmp, "%s ", param->infile[file_num]);
+                                        //}else{
+                                        //strcat ( command, "samtools view -F ");
+                                        //sprintf (tmp, "%s ",param->filter);
+                                        //strcat ( command, tmp);
+                                        //}
+                                sprintf (tmp, "%s ", filename);
                                 strcat ( command, tmp);
                         }
-                        if (!(file = popen(command, "r"))) {
-                                sprintf(param->buffer,"Cannot open bam file '%s' with command:%s\n",param->infile[file_num],command);
-                                //param->messages = append_message(param->messages, param->buffer);
-                                free_param(param);
-                                exit(EXIT_FAILURE);
-                        }
-                }else if(param->sam == 1){
+
+                        RUNP(file = popen(command, "r"));
+                }else if(f_handle->sam == 1){
                         command[0] = 0;
-                        if(param->gzipped){
+                        if(f_handle->gzipped){
                                 if(gzcat == 1){
                                         strcat ( command, "gzcat ");
                                 }else{
                                         strcat ( command, "zcat ");
                                 }
-                                if(!param->filter){
-                                        sprintf (tmp, "%s | samtools view -SF 768 - ", param->infile[file_num]);
+                                //if(!param->filter){
+                                        sprintf (tmp, "%s | samtools view -SF 768 - ", filename);
                                         strcat ( command, tmp);
-                                }else{
-                                        sprintf (tmp, "%s | samtools view -SF  ", param->infile[file_num]);
-                                        strcat ( command, tmp);
-                                        sprintf (tmp, "%s - ",param->filter);
-                                        strcat ( command, tmp);
-                                }
+                                        //}else{
+                                        //sprintf (tmp, "%s | samtools view -SF  ", filename);
+                                        //strcat ( command, tmp);
+                                        //sprintf (tmp, "%s - ",param->filter);
+                                        //strcat ( command, tmp);
+                                        //}
                         }else{
-                                if(!param->filter){
+                                //if(!param->filter){
                                         strcat ( command, "samtools view -SF 768 ");
-                                }else{
-                                        strcat ( command, "samtools view -SF ");
-                                        sprintf (tmp, "%s ",param->filter);
-                                        strcat ( command, tmp);
-                                }
-                                sprintf (tmp, "%s ", param->infile[file_num]);
+                                        //}else{
+                                        //strcat ( command, "samtools view -SF ");
+                                        //sprintf (tmp, "%s ",param->filter);
+                                        //strcat ( command, tmp);
+                                        //}
+                                sprintf (tmp, "%s ", filename);
                                 strcat ( command, tmp);
                         }
-                        if (!(file = popen(command, "r"))) {
-                                sprintf(param->buffer,"Cannot open bam file '%s' with command:%s\n",param->infile[file_num],command);
-                                //param->messages = append_message(param->messages, param->buffer);
-                                free_param(param);
-                                exit(EXIT_FAILURE);
-                        }
+                        RUNP(file = popen(command, "r"));
+
                 }else{
                         command[0] = 0;
-                        if(param->bzipped){
+                        if(f_handle->bzipped){
                                 strcat ( command, "bzcat ");
 
-                        }else if(param->gzipped){
+                        }else if(f_handle->gzipped){
                                 if(gzcat == 1){
                                         strcat ( command, "gzcat ");
                                 }else{
@@ -344,18 +339,19 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
                         }else{
                                 strcat ( command, "cat ");
                         }
-                        sprintf (tmp, "%s ", param->infile[file_num]);
+                        sprintf (tmp, "%s ", filename);
                         strcat ( command, tmp);
-                        //fprintf(stderr,"%s\n",command);
-                        if (!(file = popen(command, "r"))) {
-                                sprintf(param->buffer,"Cannot open bam file '%s' with command:%s\n",param->infile[file_num],command);
-                                //param->messages = append_message(param->messages, param->buffer);
-                                free_param(param);
-                                exit(EXIT_FAILURE);
-                        }
+                        RUNP(file = popen(command, "r"));
                 }
         }
-        return file;
+        //return file;
+
+        f_handle->f_ptr = file;
+
+        *fh = f_handle;
+        return OK;
+ERROR:
+        return FAIL;
 }
 
 
@@ -381,7 +377,7 @@ void print_sequence(struct read_info* ri,FILE* out)
 }
 
 
-int check_for_existing_demultiplexed_files_multiple(struct parameters* param, int num_reads)
+/*int check_for_existing_demultiplexed_files_multiple(struct parameters* param, int num_reads)
 {
         int i,j;
         int barsegment = -1;
@@ -439,11 +435,11 @@ int check_for_existing_demultiplexed_files_multiple(struct parameters* param, in
         return found_files;
 ERROR:
         return status;
-}
+        }*/
 
 
 
-int check_for_existing_demultiplexed_files(struct parameters* param)
+/*int check_for_existing_demultiplexed_files(struct parameters* param)
 {
         int i,status;
         int barsegment = -1;
@@ -503,9 +499,9 @@ int check_for_existing_demultiplexed_files(struct parameters* param)
 ERROR:
         return FAIL;
 
-}
+        }*/
 
-int print_all(struct read_info*** read_info_container,struct parameters* param, int numseq, char*  read_present)
+ /*int print_all(struct read_info*** read_info_container,struct parameters* param, int numseq, char*  read_present)
 {
         int i,j,c,f,status;
         int barsegment = -1;
@@ -541,7 +537,7 @@ int print_all(struct read_info*** read_info_container,struct parameters* param, 
 
 
 
-        for(i = 0; i < param->infiles;i++){
+        for(i = 0; i < param->num_infiles;i++){
                 num_out_reads += (int) read_present[i];
         }
 
@@ -665,7 +661,7 @@ int print_all(struct read_info*** read_info_container,struct parameters* param, 
         // loop through numseq, reads  print out.
         for(i = 0; i < numseq;i++){
                 c = 0;// c is the base file handler. will be incremented to find output file handler
-                for(j = 0; j < param->infiles;j++){
+                for(j = 0; j < param->num_infiles;j++){
                         if(read_present[j]){
 
                                 if(read_info_container[0][i]->read_type ==  EXTRACT_SUCCESS){
@@ -759,6 +755,7 @@ ERROR:
         return status;
 
 }
+*/
 
 int get_finger_seq(int key,char* finger_seq_buffer)
 {
@@ -776,7 +773,7 @@ int get_finger_seq(int key,char* finger_seq_buffer)
 FILE* open_file(struct parameters* param, char* buffer, char* mode)
 {
         FILE* file = NULL;
-        int status;
+        //int status;
         //sprintf (buffer, "%s_READ%d.fq",param->outfile,i+1);
         //if ((file = fopen(buffer, mode )) == NULL){
         RUNP(file = fopen(buffer, mode));
@@ -1239,10 +1236,16 @@ void print_seq(struct read_info* ri,FILE* out)
     \param file Pointer to input file.
 
 */
-int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file,int* buffer_count)
+int read_sam_chunk(struct read_info_buffer* rb, struct file_handler* f_handle)//  struct read_info** ri,struct parameters* param,FILE* file,int* buffer_count)
 {
-        int status;
-        char line[MAX_LINE];
+        FILE* file = NULL;
+        struct read_info** ri = NULL;
+        //int status;
+        char* line = NULL;
+        size_t line_len = 0;
+        ssize_t nread;
+
+        //char line[MAX_LINE];
         int column = 0;
         int i,j,g,tmp;
         //unsigned int pos;
@@ -1251,17 +1254,23 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file,int
         //int hit = 0;
         int strand = 0;
 
-        *buffer_count = 0;
+        ri = rb->ri;
+        rb->num_seq = 0;
 
-        ri = clear_read_info(ri, param->num_query);
+        //*buffer_count = 0;
 
-        while(fgets(line, MAX_LINE, file)){
+        ri = clear_read_info(ri,   rb->num_alloc);
+
+        file = f_handle->f_ptr;
+
+        //while(fgets(line, MAX_LINE, file)){
+        while ((nread = getline(&line, &line_len, file)) != -1) {
                 if(line[0] != '@'){
                         column = 1; //<QNAME>
                         tmp = 0;
                         //		hit = 0;
                         //		pos = 0xFFFFFFFFu;
-                        for(j = 0;j < MAX_LINE;j++){
+                        for(j = 0;j < nread;j++){
                                 tmp++;
                                 if(isspace((int)line[j])){
                                         break;
@@ -1269,7 +1278,7 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file,int
                         }
 
                         MMALLOC(ri[c]->name,sizeof(unsigned char)* tmp);
-                        for(j = 0;j < MAX_LINE;j++){
+                        for(j = 0;j < nread;j++){
 
                                 if(isspace((int)line[j])){
                                         ri[c]->name[j] = 0;
@@ -1278,7 +1287,7 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file,int
                                 ri[c]->name[j] = line[j];
                         }
 
-                        for(i = 0; i < MAX_LINE;i++){
+                        for(i = 0; i < nread;i++){
                                 if(line[i] == '\n'){
                                         break;
                                 }
@@ -1324,7 +1333,7 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file,int
                                         case 10: // <SEQ>
 
                                                 tmp = 0;
-                                                for(j = i+1;j < MAX_LINE;j++){
+                                                for(j = i+1;j < nread;j++){
                                                         tmp++;
                                                         if(isspace((int)line[j])){
                                                                 break;
@@ -1335,7 +1344,7 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file,int
                                                 MMALLOC(ri[c]->labels,sizeof(unsigned char)* tmp);
 
                                                 g = 0;
-                                                for(j = i+1;j < MAX_LINE;j++){
+                                                for(j = i+1;j < nread;j++){
 
                                                         if(isspace((int)line[j])){
                                                                 ri[c]->seq[g] = 0;
@@ -1352,7 +1361,7 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file,int
                                                 break;
                                         case 11: // <QUAL>
                                                 tmp = 0;
-                                                for(j = i+1;j < MAX_LINE;j++){
+                                                for(j = i+1;j < nread;j++){
                                                         tmp++;
                                                         if(isspace((int)line[j])){
                                                                 break;
@@ -1360,7 +1369,7 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file,int
                                                 }
                                                 g= 0;
                                                 MMALLOC(ri[c]->qual,sizeof(unsigned char)* tmp);
-                                                for(j = i+1;j < MAX_LINE;j++){
+                                                for(j = i+1;j < nread;j++){
 
                                                         if(isspace((int)line[j])){
                                                                 ri[c]->qual[g] = 0;
@@ -1373,7 +1382,7 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file,int
                                         default:
 
 
-                                                i = MAX_LINE;
+                                                i = nread;
                                                 break;
                                         }				}
 
@@ -1396,17 +1405,23 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file,int
 
                         c++;
                         read++;
-                        if(c == param->num_query){
-                                *buffer_count = c;
-                                return c;
+                        if(c ==  rb->num_alloc){
+                                rb->num_seq = c;
+                                MFREE(line);
+                                return OK;
+                                //*buffer_count = c;
+                                //return c;
                         }
                 }
         }
-        *buffer_count = c;
+        rb->num_seq = c;
+        MFREE(line);
+        //*buffer_count = c;
         return OK;
         //return c;
 ERROR:
-        return status;
+        return FAIL;
+        //return status;
 }
 
 //FASTQ files from CASAVA-1.8 Should have the following READ-ID format:
@@ -1423,22 +1438,33 @@ ERROR:
     \param file Pointer to input file.
 
 */
-
-int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file,int* buffer_count)
+//int read_sam_chunk(struct read_info_buffer* rb, struct file_handler* f_handle)//  struct read_info** ri,struct parameters* param,FILE* file,int* buffer_count)
+int read_fasta_fastq(struct read_info_buffer* rb, struct file_handler* f_handle)//struct read_info** ri,struct parameters* param,FILE *file,int* buffer_count)
 {
+        FILE* file;
+        struct read_info** ri = NULL;
         int park_pos = -1;
-        char line[MAX_LINE];
+        char* line = NULL;
+        size_t line_len = 0;
+        ssize_t nread;
+        //char line[MAX_LINE];
         int i;//,j;
         int seq_p = 0;
         int set = 0;
         int len = 0;
         int size = 0;
-        int status;
+        //int status;
 
-        *buffer_count = 0;
+        ri = rb->ri;
+        rb->num_seq = 0;
+        //*buffer_count = 0;
 
-        ri = clear_read_info(ri, param->num_query);
-        while(fgets(line, MAX_LINE, file)){
+        ri = clear_read_info(ri, rb->num_alloc);
+
+        file = f_handle->f_ptr;
+
+        while ((nread = getline(&line, &line_len, file)) != -1) {
+                //while(fgets(line, MAX_LINE, file)){
                 if((line[0] == '@' && !set)|| (line[0] == '>' && !set)){
                         //set sequence length of previous read
 
@@ -1450,7 +1476,7 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file,i
                         park_pos++;
                         len = 0;
                         seq_p = 1;
-                        for(i = 1;i < MAX_LINE;i++){
+                        for(i = 1;i < nread;i++){
                                 len++;
                                 if(iscntrl((int)line[i])){
                                         break;
@@ -1461,7 +1487,7 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file,i
                         //ri[park_pos]->hits[0] = 0;
                         //ri[park_pos]->strand[0] = 0;
                         MMALLOC(ri[park_pos]->name,sizeof(unsigned char)* (len+1));
-                        for(i = 1;i < MAX_LINE;i++){
+                        for(i = 1;i < nread;i++){
 
                                 if(iscntrl((int)line[i])){
                                         ri[park_pos]->name[i-1] = 0;
@@ -1486,7 +1512,7 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file,i
                         if(set){
                                 if(seq_p){
                                         len = 0;
-                                        for(i = 0;i < MAX_LINE;i++){
+                                        for(i = 0;i < nread;i++){
                                                 len++;
                                                 if(iscntrl((int)line[i])){
                                                         break;
@@ -1497,7 +1523,7 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file,i
 
                                         MMALLOC(ri[park_pos]->labels, sizeof(unsigned char)* (len+1));
 
-                                        for(i = 0;i < MAX_LINE;i++){
+                                        for(i = 0;i < nread;i++){
                                                 if(iscntrl((int)line[i])){
                                                         ri[park_pos]->seq[i] = 0;
                                                         ri[park_pos]->labels[i] = 0;
@@ -1509,7 +1535,7 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file,i
                                         ri[park_pos]->len = len-1;
                                 }else{
                                         len = 0;
-                                        for(i = 0;i < MAX_LINE;i++){
+                                        for(i = 0;i < nread;i++){
                                                 len++;
                                                 if(iscntrl((int)line[i])){
                                                         break;
@@ -1518,15 +1544,14 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file,i
                                         }
 
                                         if(len-1 != ri[park_pos]->len ){
-                                                sprintf(param->buffer,"ERROR: Length of sequence and base qualities differ!.\n");
-                                                //param->messages = append_message(param->messages, param->buffer);
-                                                free_param(param);
-                                                exit(EXIT_FAILURE);
+                                                MFREE(line);
+                                                ERROR_MSG("Length of sequence and base qualities differ!.\n");
+
                                         }
 
                                         //fprintf(stderr,"QUAL LEN:%d\n",len);
                                         MMALLOC(ri[park_pos]->qual,sizeof(unsigned char)* (len+1));
-                                        for(i = 0;i < MAX_LINE;i++){
+                                        for(i = 0;i < nread;i++){
                                                 if(iscntrl((int)line[i])){
                                                         ri[park_pos]->qual[i] = 0;
                                                         break;
@@ -1537,23 +1562,28 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file,i
                         }
                         set = 0;
                 }
-                if(param->num_query == size ){//here I know I am in the last entry AND filled the quality...
-                        if(!param->fasta && ri[park_pos]->qual){
+                if( rb->num_alloc == size ){//here I know I am in the last entry AND filled the quality...
+                        if(! f_handle->fasta && ri[park_pos]->qual){
                                 //return size;
-                                *buffer_count = size;
+                                rb->num_seq = size;
+                                //*buffer_count = size;
+                                MFREE(line);
                                 return OK;
                         }
-                        if(param->fasta && ri[park_pos]->seq){
-                                *buffer_count = size;
+                        if(f_handle->fasta && ri[park_pos]->seq){
+                                //*buffer_count = size;
+                                rb->num_seq = size;
+                                MFREE(line);
                                 return OK;
 
                         }
                 }
         }
-        *buffer_count = size;
+        rb->num_seq = size;
+        MFREE(line);
         return OK;
 ERROR:
-        return status;
+        return FAIL;
 
 }
 
@@ -1568,7 +1598,7 @@ ERROR:
 
 struct fasta* get_fasta(struct fasta* p,char *infile)
 {
-        int status;
+        //int status;
         MMALLOC(p,sizeof(struct fasta));
         p->string = 0;
         p->mer_hash = 0;
@@ -1608,7 +1638,7 @@ ERROR:
 unsigned char* get_input_into_string(unsigned char* string,char* infile)
 {
         long int i = 0;
-        int status;
+        //int status;
         size_t bytes_read;
 
         FILE *file = NULL;
@@ -1655,7 +1685,7 @@ ERROR:
 
 struct fasta* read_fasta(struct fasta* f)
 {
-        int status;
+        //int status;
         int c = 0;
         int n = 0;
         int i = 0;
@@ -1773,11 +1803,37 @@ void free_fasta(struct fasta*f)
 }
 
 
+int alloc_read_info_buffer(struct read_info_buffer** rb, int size)
+{
+        struct read_info_buffer* read_buffer = NULL;
+
+        MMALLOC(read_buffer, sizeof(struct read_info_buffer));
+        read_buffer->num_alloc = size;
+        read_buffer->num_seq = 0;
+        read_buffer->ri = NULL;
+
+        RUNP(read_buffer->ri = malloc_read_info(read_buffer->ri, read_buffer->num_alloc));
+
+        *rb = read_buffer;
+        return OK;
+
+ERROR:
+        return FAIL;
+
+}
+
+void free_read_info_buffer(struct read_info_buffer* rb)
+{
+        if(rb){
+                free_read_info(rb->ri, rb->num_alloc);
+                MFREE(rb);
+        }
+}
 
 struct read_info** malloc_read_info(struct read_info** ri, int numseq)
 {
         int i;
-        int status;
+        //int status;
         MMALLOC(ri, sizeof(struct read_info*) * numseq);
 
         for(i = 0; i < numseq;i++){
@@ -2314,13 +2370,3 @@ ERROR:
 
 
 #endif
-
-
-
-
-
-
-
-
-
-

@@ -9,15 +9,26 @@ AM_LDFLAGS += -Wno-undef
 
 
 
-bin_PROGRAMS = #tagdust
+bin_PROGRAMS = tagdust
 
-# tagdust_SOURCES = \
-# tldevel.h \
-# tldevel.c \
-# sctagdust.h \
-# main.c \
-# interface.h \
-# interface.c \
+tagdust_SOURCES = \
+tldevel.h \
+tldevel.c \
+main.c \
+interface.h \
+interface.c \
+arch_lib.h \
+arch_lib.c \
+seq_stats.h \
+seq_stats.c \
+io.h \
+io.c \
+misc.h \
+misc.c \
+nuc_code.h \
+nuc_code.c
+
+tagdust_LDADD = -lpthread -lm
 # misc.h \
 # misc.c \
 # nuc_code.h \

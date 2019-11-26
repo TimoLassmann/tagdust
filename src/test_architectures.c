@@ -50,8 +50,8 @@ int test_architectures(struct parameters* param, int file_num)
 
 
         struct sequence_stats_info* ssi = 0;
-
         struct arch_bag* ab = 0;
+
         MMALLOC(ab,sizeof(struct arch_bag) );
         ab->archs = 0;
         ab->arch_posterior = 0;
