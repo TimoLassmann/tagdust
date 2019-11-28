@@ -9,7 +9,7 @@ int main (int argc,char * argv[]) {
         struct parameters* param = NULL;
         struct arch_library* al = NULL;
         struct seq_stats* si = NULL;
-        struct arch_bag* ab = NULL;
+
         int i,j;
 
         RUN(interface(&param,argc,argv));
@@ -50,33 +50,12 @@ int main (int argc,char * argv[]) {
                 fprintf(stdout,"\n");
         }
         /* allocate model for each architecture and each input file. */
-        MMALLOC(ab, sizeof(struct arch_bag));
-        ab->archs = 0;
-        ab->arch_posterior = 0;
 
-        MMALLOC(ab->archs,sizeof(struct model_bag*) * al->num_arch);
-        MMALLOC(ab->arch_posterior,sizeof(float) *  al->num_arch);
-
-        int file_index = 0;
-        for(i = 0; i < al->num_arch;i++){
-                ab->archs[i] = NULL;
-                ab->archs[i] = init_model_bag( al->read_structure[i], si->ssi[file_index], i );
-
-        }
-        ab->num_arch = al->num_arch;
-
-        for(i = 0; i < ab->num_arch;i++){
-                free_model_bag(ab->archs[i]);
-
-        }
-        MFREE(ab->arch_posterior);
-        MFREE(ab->archs);
-        MFREE(ab);
         /* figure out which architectures belong to which read infiles */
         /* need to work on each read sequentially OR on all if enough memory ... */
 
 
-
+        RUN(test_architectures(al,si,param));
         //sprintf(param->buffer,"Start Run\n--------------------------------------------------\n");
         //param->messages = append_message(param->messages, param->buffer);
         //hmm_controller_multiple(param);
@@ -92,15 +71,4 @@ ERROR:
         }
         return EXIT_SUCCESS;
 }
-
-
-
-
-
-
-
-
-
-
-
 

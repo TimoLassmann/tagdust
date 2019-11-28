@@ -5,6 +5,8 @@
 #include "misc.h"
 #include "core_hmm_functions.h"
 
+struct model* copy_model_parameters(struct model* org, struct model* copy );
+
 struct model_bag* init_model_bag(struct read_structure* rs,struct sequence_stats_info* ssi, int model_index)
 {
         int i,j,c;
@@ -300,4 +302,132 @@ void free_model_bag(struct model_bag* mb)
 
 
         MFREE(mb);// = malloc(sizeof(struct model_bag));
+}
+
+
+
+
+
+
+
+struct model_bag* copy_model_bag(struct model_bag* org)
+{
+        struct model_bag* copy = 0;
+        int status;
+        int i,j;
+        MMALLOC(copy , sizeof(struct model_bag));
+
+        copy->dyn_prog_matrix = 0;
+        copy->label = 0;
+        copy->model = 0;
+        copy->path = 0;
+        copy->transition_matrix =0;
+
+        MMALLOC(copy->model,sizeof(struct model* ) * org->num_models);//   param->read_structure->num_segments);
+        copy->current_dyn_length = org->current_dyn_length;
+
+
+
+        copy->average_raw_length = org->average_raw_length;
+        copy->num_models  = org->num_models;
+        copy->total_hmm_num = org->total_hmm_num;
+        for(i = 0; i < org->num_models;i++){
+                copy->model[i] = malloc_model_according_to_read_structure(org->model[i]->num_hmms,  org->model[i]->hmms[0]->num_columns,org->current_dyn_length);
+
+                copy->model[i]  = copy_model_parameters(org->model[i],copy->model[i]) ;
+        }
+        copy->previous_silent= NULL;
+        copy->next_silent = NULL;
+        MMALLOC(copy->previous_silent, sizeof(float) * org->current_dyn_length);
+        MMALLOC(copy->next_silent, sizeof(float) * org->current_dyn_length);
+
+        MMALLOC(copy->path,sizeof(int*) * org->current_dyn_length);
+        MMALLOC(copy->dyn_prog_matrix,sizeof(float*) * org->current_dyn_length );
+
+        for (i = 0; i < org->current_dyn_length;i++){
+                copy->path[i] =0;
+                copy->dyn_prog_matrix[i]  = 0;
+                MMALLOC(copy->path[i],sizeof(int)* (copy->total_hmm_num +1) );
+                MMALLOC(copy->dyn_prog_matrix[i] ,sizeof(float) * (copy->total_hmm_num +1) );
+        }
+
+        MMALLOC(copy->transition_matrix ,sizeof(float*) * (copy->total_hmm_num +1));
+        MMALLOC(copy->label,sizeof(int) *  (copy->total_hmm_num +1));
+
+        for(i = 0; i < copy->total_hmm_num +1;i++){
+                copy->label[i] = org->label[i];
+        }
+
+        for(i = 0; i < copy->total_hmm_num+1 ;i++){
+                copy->transition_matrix[i] = 0;
+                MMALLOC(copy->transition_matrix[i], sizeof(float) * (copy->total_hmm_num +1));
+                for(j = 0; j <  copy->total_hmm_num+1 ;j++){
+                        copy->transition_matrix[i][j] = org->transition_matrix[i][j];
+                }
+        }
+        // hmm parameters....
+
+
+
+
+
+
+
+
+        return copy;
+ERROR:
+        //KSLIB_MESSAGE(status,"Something wrong in copy_model_bag.\n");
+        return NULL;
+}
+
+
+/** \fn struct model* copy_model_parameters(struct model* org, struct model* copy )
+
+    \brief Copies HMM parametes into new HMM.
+
+    \param org  The original @ref model.
+    \param copy  The copy @ref model to be copied.
+
+*/
+
+struct model* copy_model_parameters(struct model* org, struct model* copy )
+{
+        int i,j,c;
+
+        struct hmm_column* org_col = 0;
+        struct hmm_column* copy_col = 0;
+        for(i = 0; i < 5;i++){
+                copy->background_nuc_frequency[i] = org->background_nuc_frequency[i];
+        }
+
+        for(i = 0; i < org->num_hmms;i++){
+
+
+                for(j = 0; j < org->hmms[i]->num_columns;j++){
+                        org_col = org->hmms[i]->hmm_column[j];
+                        copy_col = copy->hmms[i]->hmm_column[j];
+
+                        copy->silent_to_I[i][j] = org->silent_to_I[i][j];
+                        copy->silent_to_I_e[i][j] = org->silent_to_I_e[i][j];
+                        copy->silent_to_M[i][j] = org->silent_to_M[i][j];
+                        copy->silent_to_M_e[i][j] = org->silent_to_M_e[i][j];
+
+                        for(c = 0; c< 5;c++){
+                                copy_col->i_emit[c] = org_col->i_emit[c];
+                                copy_col->i_emit_e[c] = org_col->i_emit_e[c];
+
+                                copy_col->m_emit[c] = org_col->m_emit[c];
+                                copy_col->m_emit_e[c] = org_col->m_emit_e[c];
+                        }
+
+                        for(c = 0; c < 9;c++){
+                                copy_col->transition[c] = org_col->transition[c];
+                                copy_col->transition_e[c] = org_col->transition_e[c];
+                        }
+                }
+        }
+        copy->skip = org->skip;
+        copy->skip_e = org->skip_e;
+        copy->num_hmms = org->num_hmms;
+        return copy;
 }

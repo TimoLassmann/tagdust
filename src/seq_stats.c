@@ -118,6 +118,10 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
                         }
                         ri = rb->ri;
                         for(j = 0; j < rb->num_seq;j++){
+                                if(ri[j]->len > si->ssi[i]->max_seq_len){
+                                        si->ssi[i]->max_seq_len = ri[j]->len;
+                                }
+
                                 //print_sequence(rb->ri[j], stdout);
                                 si->ssi[i]->average_length += ri[j]->len;
                                 for(c = 0;c < ri[i]->len;c++){

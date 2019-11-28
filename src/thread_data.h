@@ -1,7 +1,7 @@
 #ifndef THREAD_DATA_H
 #define THREAD_DATA_H
 
-#include "barcode_hmm.h"
+#include "tldevel.h"
 
 struct thread_data{
         struct arch_bag* ab;
@@ -14,7 +14,7 @@ struct thread_data{
         int end; /** @brief Endoing index of sequences for a particular thread.*/
 };
 
-extern int alloc_thread_data(struct thread_data** td,struct model_bag* mb,struct read_info** ri,struct parameters* param,struct fasta* reference_fasta,int num_threads);
+extern int alloc_thread_data(struct thread_data** td,int num_threads, int num_arch);
 extern void free_thread_data(struct thread_data* thread_data);
 
 #endif

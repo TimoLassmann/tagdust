@@ -8,7 +8,7 @@
 
 int emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_length,unsigned int* seed );
 
-struct model_bag* backward(struct model_bag* mb, char* a, int len)
+int backward(struct model_bag* mb,const char* a,const int len)
 {
         int i,j;
         int f,g;
@@ -208,7 +208,7 @@ struct model_bag* backward(struct model_bag* mb, char* a, int len)
           }
         */
         //exit(0);
-        return mb;
+        return OK;
 }
 
 

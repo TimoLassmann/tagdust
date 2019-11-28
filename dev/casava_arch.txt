@@ -1,2 +1,7 @@
 tagdust   -1     B:ACAGTG,ACTTGA,TTAGGC 
+
+tagdust   -1     B:AAAGTG,AATTGA,AAAGGC 
+tagdust   -1     B:CCAGTG,CCTTGA,CCAGGC 
+tagdust   -1     B:GGAGTG,GGTTGA,GGAGGC 
+
 tagdust -1 R:N
