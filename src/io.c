@@ -501,7 +501,7 @@ ERROR:
 
         }*/
 
- /*int print_all(struct read_info*** read_info_container,struct parameters* param, int numseq, char*  read_present)
+int print_all(struct read_info*** read_info_container,struct parameters* param, int numseq, char*  read_present)
 {
         int i,j,c,f,status;
         int barsegment = -1;
@@ -755,7 +755,6 @@ ERROR:
         return status;
 
 }
-*/
 
 int get_finger_seq(int key,char* finger_seq_buffer)
 {

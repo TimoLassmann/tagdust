@@ -2587,6 +2587,8 @@ struct model_bag* estimate_model_from_labels(struct model_bag* mb, struct parame
 */
 
 
+
+
 int extract_reads(struct model_bag* mb, struct parameters* param,  struct read_info* ri)
 {
         int j,c1,c2,c3,key,bar,mem,fingerlen,required_finger_len,status;//,ret;

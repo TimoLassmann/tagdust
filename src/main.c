@@ -6,6 +6,7 @@
 #include "test_arch.h"
 #include "calibrate_hmm.h"
 
+
 int main (int argc,char * argv[]) {
         struct parameters* param = NULL;
         struct arch_library* al = NULL;
@@ -61,7 +62,7 @@ int main (int argc,char * argv[]) {
 
         RUN(calibrate_architectures(al,si));
 
-
+        RUN(extract_reads(al,si,param));
 //sprintf(param->buffer,"Start Run\n--------------------------------------------------\n");
         //param->messages = append_message(param->messages, param->buffer);
         //hmm_controller_multiple(param);

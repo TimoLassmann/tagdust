@@ -1,4 +1,8 @@
-
+*vgcore*
+*.h~
+*.c~
+*.in~
+*.o
 .deps/*
 .deps
 */.deps
