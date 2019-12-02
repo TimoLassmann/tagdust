@@ -8,7 +8,8 @@
 
 #include "arch_lib.h"
 
-extern struct model* init_model_according_to_read_structure(struct model* model,struct read_structure* rs , int key, double* background,int assumed_length);
+extern struct model* init_model_according_to_read_structure(struct model* model,struct read_structure* rs , int key,const  double* background,int assumed_length);
+
 extern struct model* malloc_model_according_to_read_structure(int num_hmm, int length,int dyn_length);
 
 

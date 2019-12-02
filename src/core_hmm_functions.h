@@ -3,13 +3,17 @@
 
 
 #include "io.h"
+#include "rng.h"
 
 extern struct model_bag* forward(struct model_bag* mb, char* a, int len);
 extern int backward(struct model_bag* mb,const char* a,const int len);
+extern int forward_max_posterior_decoding(struct model_bag* mb, struct read_info* ri, char* a, int len);
 
 extern struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, char* label, int len);
-extern struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct read_info* ri, char* a, int len);
 
+
+extern int  emit_random_sequence(struct model_bag* mb, struct read_info* ri,int average_length, struct rng_state* rng);
+extern int emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_length, struct rng_state* rng);
 
 extern struct model* reestimate(struct model* m, int mode);
 

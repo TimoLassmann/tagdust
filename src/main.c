@@ -3,7 +3,8 @@
 #include "seq_stats.h"
 #include "nuc_code.h"
 #include "hmm_model_bag.h"
-
+#include "test_arch.h"
+#include "calibrate_hmm.h"
 
 int main (int argc,char * argv[]) {
         struct parameters* param = NULL;
@@ -56,7 +57,10 @@ int main (int argc,char * argv[]) {
 
 
         RUN(test_architectures(al,si,param));
-        //sprintf(param->buffer,"Start Run\n--------------------------------------------------\n");
+
+
+        RUN(calibrate_architectures(al,si));
+//sprintf(param->buffer,"Start Run\n--------------------------------------------------\n");
         //param->messages = append_message(param->messages, param->buffer);
         //hmm_controller_multiple(param);
         free_arch_lib(al);

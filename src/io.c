@@ -95,7 +95,7 @@ int qsort_ri_barcode_compare(const void *a, const void *b)
     \param a void pointer to first @ref read_info.
     \param b void pointer to second @ref read_info.
 */
-int qsort_ri_mapq_compare(const void *a, const void *b)
+/*int qsort_ri_mapq_compare(const void *a, const void *b)
 {
 
         //struct mys **a = (struct mys **)i1;
@@ -115,7 +115,7 @@ int qsort_ri_mapq_compare(const void *a, const void *b)
         else
                 return 0;
 }
-
+*/
 
 
 /** \fn FILE* io_handler(FILE* file, int file_num,struct parameters* param)

@@ -132,7 +132,7 @@ int read_fasta_fastq(struct read_info_buffer* rb, struct file_handler* f_handle)
 //int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file,int* buffer_count);
 void print_sequence(struct read_info* ri,FILE* out);
 //int print_trimmed_sequence(struct model_bag* mb, struct parameters* param,  struct read_info* ri,FILE* out);
-int qsort_ri_mapq_compare(const void *a, const void *b);
+//int qsort_ri_mapq_compare(const void *a, const void *b);
 
 int qsort_ri_barcode_compare(const void *a, const void *b);
 

@@ -35,7 +35,11 @@ hmm_model_bag.c \
 core_hmm_functions.h \
 core_hmm_functions.c \
 test_arch.h \
-test_arch.c 
+test_arch.c \
+calibrate_hmm.h \
+calibrate_hmm.c \
+rng.h \
+rng.c
 
 tagdust_LDADD = -lpthread -lm
 # misc.h \

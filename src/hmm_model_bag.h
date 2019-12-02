@@ -39,8 +39,7 @@ struct arch_bag{
         int num_arch;
 };
 
-
-extern struct model_bag* init_model_bag(struct read_structure* rs,struct sequence_stats_info* ssi, int model_index);
+extern struct model_bag* init_model_bag(struct read_structure* rs,const struct sequence_stats_info* ssi, int model_index);
 extern struct model_bag* copy_model_bag(struct model_bag* org);
 extern void free_model_bag(struct model_bag* mb);
 

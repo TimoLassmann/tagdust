@@ -6,7 +6,8 @@
 #include "misc.h"
 
 
-int emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_length,unsigned int* seed );
+
+
 
 int backward(struct model_bag* mb,const char* a,const int len)
 {
@@ -661,7 +662,7 @@ struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, char
 
 
 
-struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct read_info* ri, char* a, int len)
+int forward_max_posterior_decoding(struct model_bag* mb, struct read_info* ri, char* a, int len)
 {
 
         //char* a = ri->seq;
@@ -1057,7 +1058,7 @@ struct model_bag* forward_max_posterior_decoding(struct model_bag* mb, struct re
                 //fprintf(stderr,"%d,%f	%e	%f	%f	%f\n",   i,scaledprob2prob(next_silent[0]),   scaledprob2prob(next_silent[0]),next_silent[0] , scaledprob2prob(mb->model[0]->background_nuc_frequency[c] ) , 1.0 - (1.0 / (float)len) );
         }
         mb->r_score  += prob2scaledprob(1.0 / (float)mb->average_raw_length);
-        return mb;
+        return OK;
 }
 
 
@@ -1462,8 +1463,83 @@ struct hmm* set_hmm_transition_parameters(struct hmm* hmm, int len,double base_e
 
 
 
+int  emit_random_sequence(struct model_bag* mb, struct read_info* ri,int average_length, struct rng_state* rng)
+{
+        int current_length = 0;
+        int allocated_length = 100;
+        double r;// = (float)rand()/(float)my_rand_max;
+        double sum = prob2scaledprob(0.0f);
+        //char alpha[] = "ACGTN";
+        int nuc,i;
+        ri->seq = NULL;
+        ri->name = NULL;
+        ri->qual = NULL;
+        ri->labels = NULL;
+        ri->len = 0;
+        ri->read_type = 0;
+        MMALLOC(ri->seq,sizeof(char) * allocated_length);
 
-int emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_length,unsigned int* seed )
+        while(current_length < average_length){
+
+                while(1){
+                        //emission
+                        r = tl_random_double(rng);
+                        sum = prob2scaledprob(0.0f);
+                        for(nuc = 0;nuc < 5;nuc++){
+                                sum = logsum(sum, mb->model[0]->background_nuc_frequency[nuc] );
+                                if(r <  scaledprob2prob(sum)){
+                                        ri->seq[current_length] = nuc;
+                                        //fprintf(stderr,"%c",alpha[(int)nuc]);
+                                        current_length++;
+                                        break;
+                                }
+                        }
+                        if(current_length == allocated_length){
+                                allocated_length = allocated_length*2;
+                                MREALLOC(ri->seq,sizeof(char) * allocated_length );
+                        }
+                        //transition
+                        r = tl_random_double(rng);
+                        //r = (float)rand()/(float)my_rand_max;
+                        // prob2scaledprob(1.0 - (1.0 / (float)len));
+                        if(r > 1.0 - (1.0 / (float)average_length)){
+                                break;
+                        }
+                }
+                //fprintf(stderr,"	%d\n",current_length);
+                if(current_length >= average_length){
+                        current_length = 0;
+                }else{
+                        break;
+                }
+
+                //if(current_length+2 >= MAX_HMM_SEQ_LEN){
+                //	current_length = 0;
+                //}
+        }
+
+        MREALLOC(ri->seq ,sizeof(char) * (current_length+1));
+        ri->seq[current_length] = 0;
+        ri->len = current_length;
+
+        MMALLOC(ri->qual,sizeof(char) * (current_length+1));
+        for(i = 0; i < current_length;i++){
+                ri->qual[i] = 'B';
+        }
+
+        ri->qual[current_length] = 0;
+
+        MMALLOC(ri->name,sizeof(char) *2);
+        ri->name[0] = 'N';
+        ri->name[1] = 0;
+
+        MMALLOC(ri->labels,sizeof(char) * (current_length+1));
+        return OK;
+ERROR:
+        return FAIL;
+}
+
+int emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_length, struct rng_state* rng)
 {
 
         int i,j,nuc;
@@ -1476,18 +1552,11 @@ int emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_le
         //int start = 1;
         int len;//mb->model[segment]->hmms[0]->num_columns;
         //char alpha[] = "ACGTN";
-        //int parashute = 0;
-
-#ifdef RTEST
-        unsigned int my_rand_max = 32768;
-#else
-        unsigned int my_rand_max = RAND_MAX;
-#endif
+        //int parachute = 0;
 
 
 
-
-        double r = (float)rand()/(float)my_rand_max;
+        double r;
 
         //fprintf(stderr,"RANd%f MAX:%d\n", r,my_rand_max );
 
@@ -1496,16 +1565,22 @@ int emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_le
         double prob = prob2scaledprob(1.0f);
 
         int current_length = 0;
-        int allocated_length = 100;
+        int allocated_length = average_length;
+        /*if(ri->seq){
+                MFREE(ri->seq);
+        }
+        if(ri->name){
+                MFREE(ri->name);
+        }
 
-        MFREE(ri->seq);
-        MFREE(ri->name);
+
         MFREE(ri->qual);
         MFREE(ri->labels);
-        ri->seq = 0;
-        ri->name = 0;
-        ri->qual = 0;
-        ri->labels = 0;
+        */
+        ri->seq = NULL;
+        ri->name = NULL;
+        ri->qual = NULL;
+        ri->labels = NULL;
         ri->len = 0;
         //ri[i]->xp = 0;
         ri->read_type = 0;
@@ -1524,7 +1599,8 @@ int emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_le
                 while(1){
 
                         //transition
-                        r = (float)rand()/(float)my_rand_max;
+                        r = tl_random_double(rng);
+                        //r = (float)rand()/(float)my_rand_max;
                         sum = prob2scaledprob(0.0f);
                         switch (state) {
                         case 0:
@@ -1567,12 +1643,6 @@ int emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_le
 
                                         }
                                 }
-
-
-
-
-
-
                                 break;
                         case 1:
                                 // MM
@@ -1705,7 +1775,8 @@ int emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_le
                         //fprintf(stderr,"%d state \n",state );
                         //
                         //emit...
-                        r = (float)rand()/(float)my_rand_max;
+                        //r = (float)rand()/(float)my_rand_max;
+                        r = tl_random_double(rng);
                         sum = prob2scaledprob(0.0f);
 
                         if(state == 1){
@@ -1760,13 +1831,13 @@ int emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_le
                         if(segment == mb->num_models){
                                 break;
                         }
-
-
-
                 }
-                //fprintf(stderr,"%d len %d %d \n",current_length,average_length, MAX_HMM_SEQ_LEN);
-                if(current_length < average_length){
+                //fprintf(stderr,"%d len %d \n",current_length,average_length);
+                if(current_length >=  average_length){
+                        //fprintf(stdout,"try again");
                         current_length = 0;
+                }else{
+                        break;
                 }
 
                 //if(current_length+2 >= MAX_HMM_SEQ_LEN){

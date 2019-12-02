@@ -12,9 +12,12 @@ struct read_structure{
 struct arch_library{
         struct read_structure** read_structure;
         char** spec_line;
+        float** arch_posteriors;
+        float* confidence_thresholds;
         int* arch_to_read_assignment;
         int num_arch;
         int num_alloc_arch;
+        int num_file;
 };
 
 

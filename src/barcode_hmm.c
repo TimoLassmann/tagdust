@@ -2383,17 +2383,12 @@ struct read_info** match_to_reference(struct thread_data *data)
 */
 
 
-int  emit_random_sequence(struct model_bag* mb, struct read_info* ri,int average_length,unsigned int* seed )
+int  emit_random_sequence(struct model_bag* mb, struct read_info* ri,int average_length, struct rng_state* rng)
 {
-#ifdef RTEST
-        unsigned int my_rand_max = 32768;
-#else
-        unsigned int my_rand_max = RAND_MAX;
-#endif
         int status;
         int current_length = 0;
         int allocated_length = 100;
-        double r = (float)rand()/(float)my_rand_max;
+        double r;// = (float)rand()/(float)my_rand_max;
         double sum = prob2scaledprob(0.0f);
         //char alpha[] = "ACGTN";
         int nuc,i;
@@ -2413,6 +2408,7 @@ int  emit_random_sequence(struct model_bag* mb, struct read_info* ri,int average
 
                 while(1){
                         //emission
+                        r = tl_random_double(rng);
                         sum = prob2scaledprob(0.0f);
                         for(nuc = 0;nuc < 5;nuc++){
                                 sum = logsum(sum, mb->model[0]->background_nuc_frequency[nuc] );
@@ -2428,7 +2424,8 @@ int  emit_random_sequence(struct model_bag* mb, struct read_info* ri,int average
                                 MREALLOC(ri->seq,sizeof(char) * allocated_length );
                         }
                         //transition
-                        r = (float)rand()/(float)my_rand_max;
+                        r = tl_random_double(rng);
+                        //r = (float)rand()/(float)my_rand_max;
                         // prob2scaledprob(1.0 - (1.0 / (float)len));
                         if(r > 1.0 - (1.0 / (float)average_length)){
                                 break;

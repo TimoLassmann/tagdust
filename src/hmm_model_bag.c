@@ -7,7 +7,7 @@
 
 struct model* copy_model_parameters(struct model* org, struct model* copy );
 
-struct model_bag* init_model_bag(struct read_structure* rs,struct sequence_stats_info* ssi, int model_index)
+struct model_bag* init_model_bag(struct read_structure* rs,const struct sequence_stats_info* ssi, int model_index)
 {
         int i,j,c;
         //int average_length = 12;
@@ -18,12 +18,16 @@ struct model_bag* init_model_bag(struct read_structure* rs,struct sequence_stats
 
         struct  model* model_p = 0;
         //struct hmm_column* col = 0;
+        ASSERT(rs != NULL, "No read structure");
+        ASSERT(ssi != NULL,"No sequence information");
+
 
         MMALLOC(mb,sizeof(struct model_bag));
         mb->path = 0;
         mb->dyn_prog_matrix = 0;
         mb->transition_matrix = 0;
         mb->label = 0;
+        //LOG_MSG("%d %d ALLOC",ssi->average_length,ssi->max_seq_len + 10);
         mb->average_raw_length = ssi->average_length;
         mb->current_dyn_length = ssi->max_seq_len + 10;
         mb->model = 0;
@@ -67,7 +71,7 @@ struct model_bag* init_model_bag(struct read_structure* rs,struct sequence_stats
 
 
         for(i = 0; i < mb->num_models;i++){
-                mb->model[i] = malloc_model_according_to_read_structure(rs->numseq_in_segment[i],(int)strlen(rs->sequence_matrix[i][0]),mb->current_dyn_length);
+                RUNP(mb->model[i] = malloc_model_according_to_read_structure(rs->numseq_in_segment[i],(int)strlen(rs->sequence_matrix[i][0]),mb->current_dyn_length));
                 segment_length = 0;
                 if(rs->type[i] == 'G'){
                         segment_length = 2;
@@ -75,7 +79,7 @@ struct model_bag* init_model_bag(struct read_structure* rs,struct sequence_stats
                 if(rs->type[i]  == 'R'){
                         segment_length = read_length;
                 }
-                mb->model[i] = init_model_according_to_read_structure(mb->model[i], rs, i,ssi->background,segment_length);
+                RUNP(mb->model[i] = init_model_according_to_read_structure(mb->model[i], rs, i,ssi->background,segment_length));
                 //print_model(mb->model[i] );
                 mb->total_hmm_num += mb->model[i]->num_hmms;
         }
@@ -114,7 +118,7 @@ struct model_bag* init_model_bag(struct read_structure* rs,struct sequence_stats
 
                                 //	temp1 = logsum(temp1, model_p->silent_to_M[i][j]);
                         }
-                        model_p->hmms[i] = set_hmm_transition_parameters(model_p->hmms[i],ssi->expected_5_len[model_index], 0.05, 0.1, -1.0, -1.0);
+                        RUNP(model_p->hmms[i] = set_hmm_transition_parameters(model_p->hmms[i],ssi->expected_5_len[model_index], 0.05, 0.1, -1.0, -1.0));
                 }
                 model_p->skip = prob2scaledprob(  gaussian_pdf(ssi->expected_5_len[model_index],ssi->mean_5_len[model_index] - ssi->expected_5_len[model_index], ssi->stdev_5_len[model_index]));
                 //fprintf(stderr,"5': skip: %f\n",gaussian_pdf(ssi->expected_5_len,ssi->mean_5_len - ssi->expected_5_len, ssi->stdev_5_len)  );
@@ -163,7 +167,7 @@ struct model_bag* init_model_bag(struct read_structure* rs,struct sequence_stats
                 temp1 = model_p->skip;
                 for(i = 0 ; i < model_p->num_hmms;i++){
                         model_p->silent_to_M[i][0] = prob2scaledprob(1.0 / (float) model_p->num_hmms) + prob2scaledprob(1.0 -  gaussian_pdf(0 ,ssi->mean_3_len[model_index] ,ssi->stdev_3_len[model_index]) / sum_prob );
-                        model_p->hmms[i] = set_hmm_transition_parameters(model_p->hmms[i],ssi->expected_3_len[model_index], 0.05, 0.1,ssi->mean_3_len[model_index] ,ssi->stdev_3_len[model_index]);
+                        RUNP(model_p->hmms[i] = set_hmm_transition_parameters(model_p->hmms[i],ssi->expected_3_len[model_index], 0.05, 0.1,ssi->mean_3_len[model_index] ,ssi->stdev_3_len[model_index]));
                 }
         }
         // 3) sets parameters fot all internal P segments (note the 1 -> num_models -1 )
@@ -174,7 +178,7 @@ struct model_bag* init_model_bag(struct read_structure* rs,struct sequence_stats
                         int len = model_p->hmms[0]->num_columns;
                         for(i = 0 ; i < model_p->num_hmms;i++){
                                 j = 0;
-                                model_p->hmms[i] = set_hmm_transition_parameters(model_p->hmms[i],len, 0.05,  0.1, 0.1, -1.0);
+                                RUNP(model_p->hmms[i] = set_hmm_transition_parameters(model_p->hmms[i],len, 0.05,  0.1, 0.1, -1.0));
                         }
                 }
         }
@@ -313,7 +317,6 @@ void free_model_bag(struct model_bag* mb)
 struct model_bag* copy_model_bag(struct model_bag* org)
 {
         struct model_bag* copy = 0;
-        int status;
         int i,j;
         MMALLOC(copy , sizeof(struct model_bag));
 

@@ -266,11 +266,13 @@ int alloc_arch_lib(struct arch_library** arch)
         //ASSERT(num != 0, "Too few architectures requested");
         MMALLOC(al, sizeof(struct arch_library));
         al->arch_to_read_assignment = NULL;
+        al->arch_posteriors = NULL;
         al->num_arch = 0;
         al->num_alloc_arch = 8;
-
+        al->confidence_thresholds = NULL;
         al->read_structure = NULL;
         al->spec_line = NULL;
+        MMALLOC(al->confidence_thresholds, sizeof(float) * al->num_alloc_arch);
         MMALLOC(al->spec_line, sizeof(char*) * al->num_alloc_arch);
         MMALLOC(al->read_structure, sizeof(struct read_structure*) * al->num_alloc_arch);
         for(i = 0; i < al->num_alloc_arch;i++){
@@ -299,6 +301,7 @@ int resize_arch_lib(struct arch_library* al)
         al->num_alloc_arch = al->num_alloc_arch << 1;
         MREALLOC(al->spec_line, sizeof(char*) * al->num_alloc_arch);
         MREALLOC(al->read_structure, sizeof(struct read_structure*) * al->num_alloc_arch);
+        MREALLOC(al->confidence_thresholds, sizeof(float) * al->num_alloc_arch);
         for(i = old;i < al->num_alloc_arch;i++){
                 al->spec_line[i] = NULL;
                 al->read_structure[i] = NULL;
@@ -319,6 +322,16 @@ void free_arch_lib(struct arch_library* al)
                         }
                         free_read_structure(al->read_structure[i]);
                 }
+                if(al->arch_posteriors){
+                        for(i = 0; i < al->num_arch ;i++){
+                                MFREE(al->arch_posteriors[i]);
+                        }
+                        MFREE(al->arch_posteriors);
+                }
+                if(al->confidence_thresholds){
+                        MFREE(al->confidence_thresholds);
+                }
+                MFREE(al->arch_to_read_assignment);
                 MFREE(al->spec_line);
                 MFREE(al->read_structure);
                 MFREE(al);
@@ -411,7 +424,7 @@ int QC_read_structure(struct read_structure* read_structure )
                 /*if(read_structure->type[i] == 'B'){
                         min_error = 1000;
                         for(g = 0;g <  read_structure->numseq_in_segment[i];g++){
-                                for(f = g+1;f < read_structure->numseq_in_segment[i];f++){
+p                                for(f = g+1;f < read_structure->numseq_in_segment[i];f++){
                                         errors = bpm(read_structure->sequence_matrix[i][g], read_structure->sequence_matrix[i][f], (int)strlen(read_structure->sequence_matrix[i][0]),(int)strlen(read_structure->sequence_matrix[i][0]));
 
                                         if(errors < min_error){
