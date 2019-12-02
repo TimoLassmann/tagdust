@@ -39,7 +39,9 @@ test_arch.c \
 calibrate_hmm.h \
 calibrate_hmm.c \
 rng.h \
-rng.c
+rng.c \
+extract_reads.h \
+extract_reads.c 
 
 tagdust_LDADD = -lpthread -lm
 # misc.h \
