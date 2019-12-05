@@ -1,16 +1,24 @@
 
 AC_INIT([tagdust], [m4_esyscmd_s([./version.sh])])
 
-#AC_CONFIG_AUX_DIR([.])
+AC_USE_SYSTEM_EXTENSIONS
+# Checks for programs.
+AC_PROG_CXX
+AC_PROG_AWK
+AC_PROG_CC
+AC_PROG_CPP
+AC_PROG_INSTALL
+AC_PROG_LN_S
+AC_PROG_MAKE_SET
+
+#AC_USE_SYSTEM_EXTENSIONS
 AM_INIT_AUTOMAKE
 AC_PROG_CC
 AC_PROG_INSTALL
 
-
 AM_SILENT_RULES([no])
 
 LT_INIT
-
 
 AC_CONFIG_MACRO_DIR([m4])
 # M4 macros for checking of CPU features.
@@ -21,9 +29,6 @@ m4_include([m4/ax_ext.m4])
 m4_include([m4/ax_openmp.m4])
 AX_EXT
 
-
-
-
 AC_ARG_WITH([openmp],
     AS_HELP_STRING([--without-openmp], [Do not use OpenMP]))
 AS_IF([test "x$with_openmp" = "xno"],
@@ -33,11 +38,11 @@ AS_IF([test "x$with_openmp" = "xno"],
              )]
      )
 AC_SUBST(OPENMP_CFLAGS)
+
 # according to http://beagle-lib.googlecode.com/svn-history/r824/trunk/configure.ac:
 # "OpenMP checker only defines for C when compiling both C and C++"
 OPENMP_CXXFLAGS=$OPENMP_CFLAGS
 AC_SUBST(OPENMP_CXXFLAGS)
-
 
 # test for working C11 _Generic support
 AN_IDENTIFIER([_Generic], [AC_C__GENERIC])
@@ -70,25 +75,39 @@ AC_MSG_ERROR([ERROR: C compiler too old!])
 
 AC_MSG_ERROR([We could not compile a simple C11 example. Install a new(er) compiler version (e.g.  GCC 4.9).])
 fi
-])# AC_C__GENERIC
+])
 
-
-# Checks for programs.
-AC_PROG_AWK
-AC_PROG_CC
 # Check for C11 _Generic support
 AC_C__GENERIC
-AC_PROG_INSTALL
 
-AC_CHECK_HEADERS([stdint.h])
-AC_CHECK_HEADERS([stdlib.h])
+AC_CHECK_HEADERS([math.h float.h inttypes.h limits.h stdint.h stdlib.h string.h unistd.h])
+
+AC_CHECK_LIB(m, sin)
+AC_CHECK_FUNCS([floor pow sqrt])
 
 
+
+AC_CHECK_FUNCS([dup2])
+AC_CHECK_FUNCS([memset])
+AC_CHECK_FUNCS([rmdir])
+AC_CHECK_FUNCS([strcspn])
+AC_CHECK_FUNCS([strerror])
+AC_CHECK_FUNCS([strstr])
 AC_CHECK_FUNCS([strndup])
 
+AC_C_INLINE
+AC_FUNC_ERROR_AT_LINE
+AC_FUNC_FORK
+AC_FUNC_MALLOC
+AC_FUNC_REALLOC
+AC_FUNC_STRNLEN
+AC_TYPE_INT8_T
+AC_TYPE_PID_T
 AC_TYPE_SIZE_T
+AC_TYPE_SSIZE_T
+AC_TYPE_UINT8_T
 AC_TYPE_UINT32_T
-
+AC_TYPE_UINT64_T
 
 AC_CANONICAL_HOST
 case $host_os in
@@ -145,12 +164,12 @@ AC_MSG_RESULT($opt_valgrind_tests)
 
 ac_configure_args="$ac_configure_args PACKAGE_VERSION=$PACKAGE_VERSION   PACKAGE_NAME=$PACKAGE_NAME"
 
-AC_CONFIG_FILES([Makefile
-src/Makefile])
+AC_CONFIG_FILES([
+Makefile
+src/Makefile
+])
 
 AC_CONFIG_HEADER([src/config.h])
-AC_CONFIG_SUBDIRS([tldevel])
-
 AC_OUTPUT
 
 AC_MSG_NOTICE([---------------------------------------------------------])

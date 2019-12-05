@@ -7,13 +7,34 @@ CLEANFILES =
 AM_LDFLAGS = @DEAD_STRIP@
 AM_LDFLAGS += -Wno-undef
 
+noinst_LIBRARIES = libtldevel.a
+
+TLHASHTABLESOURCES = tlhashtable.h tlhashtable.c
+TLMINHASHSOURCES = tlminhash.h tlminhash.c
+TLDEVELSOURCES = tldevel.h  tldevel.c
+TLRNGSOURCES = tlrng.c tlrng.h
+TLLOGSUMSOURCES = tllogsum.h tllogsum.c
+TLBITVECSOURCES = tlbitvec.h tlbitvec.c
+TLRBTREESOURCES  = tlrbtree.h tlrbtree.c
+TLCHECKPOINTSOURCES = tlcheckpoint.h tlcheckpoint.c
+TLMISCSOURCES = tlmisc.h tlmisc.c
+
+libtldevel_a_SOURCES = \
+$(TLHASHTABLESOURCES) \
+$(TLMINHASHSOURCES) \
+$(TLDEVELSOURCES) \
+$(TLRNGSOURCES) \
+$(TLLOGSUMSOURCES) \
+$(TLBITVECSOURCES) \
+$(TLRBTREESOURCES) \
+$(TLCHECKPOINTSOURCES) \
+$(TLMISCSOURCES)
+
 
 
 bin_PROGRAMS = tagdust
 
 tagdust_SOURCES = \
-tldevel.h \
-tldevel.c \
 main.c \
 interface.h \
 interface.c \
@@ -38,12 +59,13 @@ test_arch.h \
 test_arch.c \
 calibrate_hmm.h \
 calibrate_hmm.c \
-rng.h \
-rng.c \
 extract_reads.h \
 extract_reads.c 
 
-tagdust_LDADD = -lpthread -lm
+tagdust_LDADD = libtldevel.a -lpthread -lm
+
+
+
 # misc.h \
 # misc.c \
 # nuc_code.h \
@@ -148,20 +170,17 @@ check_PROGRAMS = arch_lib_test interface_test
 
 arch_lib_test_SOURCES = \
 arch_lib.h \
-arch_lib.c \
-tldevel.h \
-tldevel.c 
+arch_lib.c
 
 arch_lib_test_CPPFLAGS = $(AM_CPPFLAGS) -DARCH_TEST
+arch_lib_test_LDADD = libtldevel.a
 
 interface_test_SOURCES = \
 interface.h \
-interface.c \
-tldevel.h \
-tldevel.c
+interface.c
 
 interface_test_CPPFLAGS = $(AM_CPPFLAGS) -DINTERFACE_TEST
-
+interface_test_LDADD = libtldevel.a
 
 
 # tagdustiotest_SOURCES = io.c misc.c interface.c kslib.c

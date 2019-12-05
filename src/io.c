@@ -26,6 +26,9 @@ n
 */
 
 
+#include <ctype.h>
+#include <unistd.h>
+#include <string.h>
 
 #if HAVE_CONFIG_H
 #include "config.h"
@@ -34,18 +37,13 @@ n
 #include "tldevel.h"
 
 
-#include <ctype.h>
 #include "interface.h"
 #include "nuc_code.h"
 #include "misc.h"
 
 #include "io.h"
 
-//#include "tagdust2.h"
-
-#ifndef MMALLOC
-#include "malloc_macro.h"
-#endif
+#define MAX_LINE 10000
 
 int get_finger_seq(int key,char* finger_seq_buffer);
 
@@ -501,7 +499,7 @@ ERROR:
 
         }*/
 
-int print_all(struct read_info*** read_info_container,struct parameters* param, int numseq, char*  read_present)
+/*int print_all(struct read_info*** read_info_container,struct parameters* param, int numseq, char*  read_present)
 {
         int i,j,c,f,status;
         int barsegment = -1;
@@ -755,7 +753,7 @@ ERROR:
         return status;
 
 }
-
+*/
 int get_finger_seq(int key,char* finger_seq_buffer)
 {
         int i;

@@ -1,3 +1,8 @@
+#include <math.h>
+
+#include "tllogsum.h"
+#include "tlrng.h"
+
 #include "calibrate_hmm.h"
 
 
@@ -5,7 +10,7 @@
 #include "seq_stats.h"
 #include "hmm_model_bag.h"
 #include "core_hmm_functions.h"
-#include "rng.h"
+
 
 #define NUM_TEST_SEQ 1000000
 
@@ -33,8 +38,6 @@ int calibrate_architectures(struct arch_library* al, struct seq_stats* si)
 
 
         return OK;
-ERROR:
-        return FAIL;
 }
 
 

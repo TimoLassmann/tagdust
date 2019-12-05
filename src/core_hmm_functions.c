@@ -1,3 +1,5 @@
+
+#include "tllogsum.h"
 #include "core_hmm_functions.h"
 
 #include "hmm.h"

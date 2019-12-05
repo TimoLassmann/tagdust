@@ -1,8 +1,15 @@
 
+#include <string.h>
+#include <ctype.h>
+
 #include "arch_lib.h"
 
 #include "tldevel.h"
-//#include "string.h"
+
+#include "tlmisc.h"
+
+#define BUFFER_LEN 256
+
 
 static int malloc_read_structure(struct read_structure** rs);
 static void free_read_structure(struct read_structure* read_structure);
@@ -331,7 +338,9 @@ void free_arch_lib(struct arch_library* al)
                 if(al->confidence_thresholds){
                         MFREE(al->confidence_thresholds);
                 }
-                MFREE(al->arch_to_read_assignment);
+                if(al->arch_to_read_assignment){
+                        MFREE(al->arch_to_read_assignment);
+                }
                 MFREE(al->spec_line);
                 MFREE(al->read_structure);
                 MFREE(al);

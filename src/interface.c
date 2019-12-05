@@ -24,7 +24,10 @@
   \brief Functions to deal with user inputs.
 */
 
+#include <unistd.h>
 #include "interface.h"
+
+#include "tlmisc.h"
 
 static void usage(void);
 

@@ -1,10 +1,17 @@
-#include "seq_stats.h"
+#include <string.h>
+#include <math.h>
 
 #include "tldevel.h"
+#include "tllogsum.h"
+
+#include "seq_stats.h"
+
+
 //#include "interface.h"
 #include "nuc_code.h"
 
 #include "io.h"
+
 
 static int alloc_sequence_stats_info(struct sequence_stats_info** si, int n);
 static void free_sequence_stats_info(struct sequence_stats_info* si);

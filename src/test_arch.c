@@ -1,3 +1,6 @@
+#include <math.h>
+
+#include "tllogsum.h"
 #include "test_arch.h"
 
 #include "hmm_model_bag.h"

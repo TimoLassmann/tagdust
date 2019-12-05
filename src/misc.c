@@ -1,9 +1,12 @@
 #include "misc.h"
 #include "nuc_code.h"
 
+
+#include <ctype.h>
+#include <string.h>
 #include <emmintrin.h>
 #include <mmintrin.h>
-
+#include <math.h>
 
 
 #define INV_SQRT_2PI 0.3989422804014327

@@ -1,3 +1,7 @@
+#include <string.h>
+
+#include "tllogsum.h"
+
 #include "hmm_model_bag.h"
 
 #include "hmm.h"
