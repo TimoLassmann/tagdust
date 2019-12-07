@@ -32,7 +32,7 @@ int backward(struct model_bag* mb,const char* a,const int len)
         float* csilent;
 
 
-        char* seqa = a -1;
+        const char* seqa = a -1;
 
         int c;
 
@@ -215,7 +215,7 @@ int backward(struct model_bag* mb,const char* a,const int len)
 }
 
 
-struct model_bag* forward(struct model_bag* mb, char* a, int len)
+struct model_bag* forward(struct model_bag* mb, const char* a, int len)
 {
 
         int i,j,c;
@@ -225,7 +225,7 @@ struct model_bag* forward(struct model_bag* mb, char* a, int len)
         struct hmm_column* c_hmm_column = 0;
         struct hmm_column* p_hmm_column = 0;
 
-        char* seqa = a -1;
+        const char* seqa = a -1;
 
         float* psilent;
         float* csilent;
@@ -380,7 +380,7 @@ struct model_bag* forward(struct model_bag* mb, char* a, int len)
 
 
 
-struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, char* label, int len)
+struct model_bag* forward_extract_posteriors(struct model_bag* mb, const char* a, char* label, int len)
 {
 
         int i,j,c;
@@ -392,7 +392,7 @@ struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, char
         struct hmm_column* c_hmm_column = 0;
         struct hmm_column* p_hmm_column = 0;
 
-        char* seqa = a -1;
+        const char* seqa = a -1;
 
         float* psilent;
         float* csilent;
@@ -664,7 +664,7 @@ struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, char
 
 
 
-int forward_max_posterior_decoding(struct model_bag* mb, struct read_info* ri, char* a, int len)
+int forward_max_posterior_decoding(struct model_bag* mb, struct read_info* ri, const char* a, int len)
 {
 
         //char* a = ri->seq;
@@ -678,7 +678,7 @@ int forward_max_posterior_decoding(struct model_bag* mb, struct read_info* ri, c
         struct hmm_column* c_hmm_column = 0;
         struct hmm_column* p_hmm_column = 0;
 
-        char* seqa = a -1;
+        const char* seqa = a -1;
 
         float* psilent;
         float* csilent;

@@ -2,8 +2,13 @@
 
 #include <omp.h>
 #include <math.h>
+#include <string.h>
+
 #include "hmm_model_bag.h"
 #include "core_hmm_functions.h"
+
+
+#include "tllogsum.h"
 
 #define READ_CHUNK_SIZE 100000
 #define CHUNKS 5

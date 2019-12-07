@@ -151,14 +151,14 @@ arch_lib.h \
 arch_lib.c
 
 arch_lib_test_CPPFLAGS = $(AM_CPPFLAGS) -DARCH_TEST
-arch_lib_test_LDADD = libtldevel.a
+arch_lib_test_LDADD =
 
 interface_test_SOURCES = \
 interface.h \
 interface.c
 
 interface_test_CPPFLAGS = $(AM_CPPFLAGS) -DINTERFACE_TEST
-interface_test_LDADD = libtldevel.a
+interface_test_LDADD =
 
 
 # tagdustiotest_SOURCES = io.c misc.c interface.c kslib.c

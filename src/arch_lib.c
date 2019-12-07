@@ -493,7 +493,7 @@ ERROR:
 int main(int argc, char *argv[])
 {
         struct arch_library* al = NULL;
-        const char* in[] = {
+        char* in[] = {
                 "O:N",
                 "B:GTA,AAC",
                 "R:N",
