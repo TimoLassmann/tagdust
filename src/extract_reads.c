@@ -1,7 +1,7 @@
 #include "extract_reads.h"
 
 #include <omp.h>
-
+#include <math.h>
 #include "hmm_model_bag.h"
 #include "core_hmm_functions.h"
 

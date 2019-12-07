@@ -7,30 +7,8 @@ CLEANFILES =
 AM_LDFLAGS = @DEAD_STRIP@
 AM_LDFLAGS += -Wno-undef
 
-noinst_LIBRARIES = libtldevel.a
-
-TLHASHTABLESOURCES = tlhashtable.h tlhashtable.c
-TLMINHASHSOURCES = tlminhash.h tlminhash.c
-TLDEVELSOURCES = tldevel.h  tldevel.c
-TLRNGSOURCES = tlrng.c tlrng.h
-TLLOGSUMSOURCES = tllogsum.h tllogsum.c
-TLBITVECSOURCES = tlbitvec.h tlbitvec.c
-TLRBTREESOURCES  = tlrbtree.h tlrbtree.c
-TLCHECKPOINTSOURCES = tlcheckpoint.h tlcheckpoint.c
-TLMISCSOURCES = tlmisc.h tlmisc.c
-
-libtldevel_a_SOURCES = \
-$(TLHASHTABLESOURCES) \
-$(TLMINHASHSOURCES) \
-$(TLDEVELSOURCES) \
-$(TLRNGSOURCES) \
-$(TLLOGSUMSOURCES) \
-$(TLBITVECSOURCES) \
-$(TLRBTREESOURCES) \
-$(TLCHECKPOINTSOURCES) \
-$(TLMISCSOURCES)
-
-
+LIBS = ../lib_tldevel/libtldevel.a -lm
+AM_CPPFLAGS = -I$(top_srcdir)/lib_tldevel
 
 bin_PROGRAMS = tagdust
 
@@ -60,9 +38,9 @@ test_arch.c \
 calibrate_hmm.h \
 calibrate_hmm.c \
 extract_reads.h \
-extract_reads.c 
+extract_reads.c
 
-tagdust_LDADD = libtldevel.a -lpthread -lm
+tagdust_LDADD =  -lpthread -lm
 
 
 
@@ -198,9 +176,3 @@ interface_test_LDADD = libtldevel.a
 # evalres_rtest_SOURCES = $(evalres_SOURCES)
 # evalres_rtest_LDADD = $(evalres_LDADD)
 # evalres_rtest_CPPFLAGS  =  -DRTEST -DEVALRES
-
-
-
-
-
-
