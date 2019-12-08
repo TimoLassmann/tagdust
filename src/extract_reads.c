@@ -10,26 +10,60 @@
 
 #include "tllogsum.h"
 
-#define READ_CHUNK_SIZE 100000
+#define READ_CHUNK_SIZE 30000
 #define CHUNKS 5
+
+struct assign_struct{
+        int** assignment;
+        int* num_per_file;
+        int num_barcodes;
+        int num_files;
+        int total;
+};
+
+static int alloc_assign_structure(struct assign_struct** assign,int num_files);
+static void free_assign_structure(struct assign_struct* as);
+
+static int set_up_assign_structure(struct arch_library* al,struct assign_struct* as);
 
 static int sanity_check_inputs(struct read_info_buffer** rb, int num_files);
 
-static int run_extract(struct read_info_buffer** rb, struct arch_library* al, struct seq_stats* si,int i_file,int i_hmm);
+//static int run_extract( struct assign_struct* as,  struct read_info_buffer** rb, struct arch_library* al, strucnt seq_stats* si,int i_file,int i_hmm);
 
-static int analyze_and_extract_reads(struct model_bag* mb, struct read_structure* read_structure,  struct read_info* ri, float threshold);
+static int run_extract( struct assign_struct* as,  struct read_info_buffer** rb, struct arch_library* al, struct seq_stats* si,int i_file,int i_chunk);
+
+int analyze_and_extract_reads(struct assign_struct*as,  struct model_bag* mb, struct read_structure* read_structure,  struct read_info* ri, int i_file, float threshold);
+
+
+int process_read(struct read_info* ri, int* label,char* type,int* bar_assign, int i_file);
+//static int analyze_and_extract_reads(struct model_bag* mb, struct read_structure* read_structure,  struct read_info* ri, int i_file, float threshold);
 
 
 static int make_extracted_read(struct model_bag* mb, struct read_structure* read_structure,  struct read_info* ri);
+
+
 
 int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameters* param)
 {
         struct read_info_buffer** rb = NULL;
         struct file_handler** f_hand = NULL;
+        struct assign_struct* as = NULL;
         int (*fp)(struct read_info_buffer* rb, struct file_handler* f_handle) = NULL;
-        int i,j;
+        int i,j,c;
         int total_read;
 
+        /* figure out how many barcodes etc */
+        RUN(alloc_assign_structure(&as, al->num_file));
+        RUN(set_up_assign_structure(al,as));
+        as->total = si->ssi[0]->total_num_seq;
+        RUN(galloc(&as->assignment, as->total, as->num_barcodes));
+        /* not sure if this is required  */
+        for(i = 0;i < as->total;i++){
+                for(j = 0;j < as->num_barcodes;j++){
+                        as->assignment[i][j] = 0;
+                }
+        }
+        //exit(0);
         omp_set_num_threads(param->num_threads);
 
         /* here I combine: architectures with sequence parameters of individual input files  */
@@ -56,18 +90,26 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
                 total_read = 0;
 
                 for(i = 0; i < param->num_infiles;i++){
-                        LOG_MSG("Reading %d chunk %d ->%d", i,j, i + j * param->num_infiles);
+
                         if(f_hand[i]->sam == 0){
                                 fp = &read_fasta_fastq;
                         }else {
                                 fp = &read_sam_chunk;
                         }
+                        /* set offset of first chunk to be the off ser  */
+                        rb[i * CHUNKS]->offset =
+                                rb[i* CHUNKS + CHUNKS-1]->offset
+                                + rb[i* CHUNKS + CHUNKS-1]->num_seq;
                         for(j = 0; j < CHUNKS;j++){
+                                LOG_MSG("Reading %d chunk %d ->%d", i,j, i + j * param->num_infiles);
                                 RUN(fp(rb[i * CHUNKS + j],f_hand[i]));//  param,file,&numseq));
                                 total_read += rb[i* CHUNKS + j]->num_seq;
                         }
+                        for(j =1; j < CHUNKS;j++){
+                                rb[i* CHUNKS + j]->offset = rb[i* CHUNKS + j-1]->offset +  rb[i* CHUNKS + j-1]->num_seq;
+                        }
                 }
-
+                //if(!  )
                 if(!total_read){
                         LOG_MSG("Done");
                         break;
@@ -84,8 +126,22 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
 #pragma omp for collapse(2) private(i, j)
                 for(i = 0; i < param->num_infiles;i++){
                         for(j = 0; j < CHUNKS;j++){
-                                run_extract(rb,al,si,i,j);
+                                run_extract(as, rb,al,si,i,j);
                         }
+                }
+
+                //for(j = 0; j < CHUNKS;j++){
+                for(c = 0; c < MACRO_MIN(10, READ_CHUNK_SIZE);c++){
+                        for(i = 0; i < param->num_infiles;i++){
+                                LOG_MSG("FILE: %s",param->infile[i]);
+                                fprintf(stdout,"BARCODE:\t");
+                                for(j = 0; j < as->num_barcodes;j++){
+                                        fprintf(stdout,"%d ", as->assignment[rb[i*CHUNKS]->offset+c][j]);
+                                }
+                                fprintf(stdout,"\n");
+                                print_seq(rb[i*CHUNKS]->ri[c], stdout);
+                        }
+                                //}
                 }
         }
 
@@ -108,10 +164,11 @@ ERROR:
         return FAIL;
 }
 
-int run_extract(struct read_info_buffer** rb, struct arch_library* al, struct seq_stats* si,int i_file,int i_chunk)
+int run_extract( struct assign_struct* as,  struct read_info_buffer** rb, struct arch_library* al, struct seq_stats* si,int i_file,int i_chunk)
 {
         struct model_bag* mb = NULL;
         struct read_info** ri = NULL;
+        int* tmp_bar;
         float pbest = 0.0f;
         float Q = 0.0f;
 
@@ -120,6 +177,11 @@ int run_extract(struct read_info_buffer** rb, struct arch_library* al, struct se
         int i;
         int i_hmm;
 
+        int assign_offset;
+        int seq_offset;
+        assign_offset = as->num_per_file[i_file];
+
+
         c = i_file * CHUNKS + i_chunk;
 
 
@@ -127,7 +189,11 @@ int run_extract(struct read_info_buffer** rb, struct arch_library* al, struct se
         mb = init_model_bag(al->read_structure[i_hmm], si->ssi[i_file], i_hmm);
         num_seq = rb[c]->num_seq;
         ri = rb[c]->ri;
-        LOG_MSG("Working on %d (%d seq)",c,num_seq);
+
+        seq_offset = rb[c]->offset;
+        LOG_MSG("Working on file: %d  (%d seq) offset: %d",i_file,num_seq,rb[c]->offset);
+
+        //LOG_MSG("Offset = %d",
         for(i = 0; i < num_seq;i++){
                 RUN(backward(mb, ri[i]->seq,ri[i]->len));
                 RUN(forward_max_posterior_decoding(mb, ri[i], ri[i]->seq ,ri[i]->len));
@@ -148,39 +214,107 @@ int run_extract(struct read_info_buffer** rb, struct arch_library* al, struct se
                 }
 
                 ri[i]->mapq = Q;
-        }
+                //    }
 
-        for(i = 0; i < num_seq;i++){
+                //for(i = 0; i < num_seq;i++){
 
                 ri[i]->bar_prob = 100;
+
+                tmp_bar = as->assignment[seq_offset + i] + assign_offset;
                 //print_labelled_reads(mb,data->param ,ri[i]);
                 //RUN(extract_reads(mb,data->param,ri[i]));
-                RUN(analyze_and_extract_reads(mb, al->read_structure[i_hmm], ri[i], al->confidence_thresholds[i_file]));
+                //RUN(analyze_and_extract_reads(as,mb, al->read_structure[i_hmm], ri[i], i_file, al->confidence_thresholds[i_file]));
+                RUN(process_read(ri[i], mb->label,al->read_structure[i_hmm]->type,tmp_bar,i_file));
         }
-
         free_model_bag(mb);
         return OK;
 ERROR:
         return FAIL;
 }
 
+int process_read(struct read_info* ri, int* label,char* type,int* bar_assign, int i_file)
+{
+        char c;
+        int j;
+        int bar_segment = 0;
+        int bar;
+        int segment;
+        int hmm_in_segment;
+        int c1;
+        int umi;
+        int umi_len;
+        int mem = -1;
+        int s_pos = 0;
+        int len = ri->len;
+
+
+        //assign_offset = as->num_per_file[i_file];
+        for(j = 0; j < len;j++){
+
+                c1 = label[(int)ri->labels[j+1]];
+                segment = c1 & 0xFFFF; //which segment
+                hmm_in_segment = (c1 >> 16) & 0x7FFF; // which HMM in a particular segment....
+                c = type[segment];
+                switch (c) {
+                case 'F':
+                        umi_len++;
+
+                        umi = (umi << 2 )|  (ri->seq[j] & 0x3);
+                        ri->seq[s_pos] = 65; // 65 is the spacer! nucleotides are 0 -5....
+                        ri->qual[s_pos] = 65;
+
+                        break;
+                case 'B':
+                        bar = hmm_in_segment;
+
+                        if(segment != mem){
+                                bar_segment++;
+                        }
+                        bar_assign[ bar_segment] = bar;
+                        mem = segment;
+                        ri->seq[s_pos] = 65; // 65 is the spacer! nucleotides are 0 -5....
+                        ri->qual[s_pos] = 65;
+
+                        break;
+                case 'R':
+                        ri->seq[s_pos] = ri->seq[j];
+                        ri->qual[s_pos] = ri->qual[j];
+                        s_pos++;
+                        break;
+                default:
+                        break;
+                }
+        }
+        ri->len = s_pos;
+
+
+        return OK;
+ERROR:
+        return FAIL;
+
+}
 
 
 
-int analyze_and_extract_reads(struct model_bag* mb, struct read_structure* read_structure,  struct read_info* ri, float threshold)
+int analyze_and_extract_reads(struct assign_struct*as,  struct model_bag* mb, struct read_structure* read_structure,  struct read_info* ri, int i_file, float threshold)
 {
         int j,c1,c2,c3,key,bar,mem,fingerlen,required_finger_len;
 
         int s_pos = 0;
-        key = 0;
-        bar = -1;
-        mem = -1;
         //ret = 0;
         int offset = 0;
         int len;
         int hmm_has_barcode = 0;
         int too_short = 0;
         int in_read = 0;
+
+        int assign_offset;
+
+        assign_offset = as->num_per_file[i_file];
+
+        key = 0;
+        bar = -1;
+        mem = -1;
 
         len = ri->len;
         /*if(param->matchstart != -1 || param->matchend != -1){
@@ -217,8 +351,9 @@ int analyze_and_extract_reads(struct model_bag* mb, struct read_structure* read_
                                         hmm_has_barcode = -1;
                                 }
                                 mem = c2;
-                        }
 
+                                //as->assignment[]
+                        }
                         if(read_structure->type[c2] == 'R'){
                                 s_pos++;
                                 if(!in_read){
@@ -269,7 +404,6 @@ int analyze_and_extract_reads(struct model_bag* mb, struct read_structure* read_
                                 }else{
                                         ri->read_type  = EXTRACT_FAIL_BAR_FINGER_NOT_FOUND;
                                 }
-
                         }else if(required_finger_len){
                                 if(fingerlen == required_finger_len){
                                         RUN(make_extracted_read(mb, read_structure,ri));
@@ -278,6 +412,7 @@ int analyze_and_extract_reads(struct model_bag* mb, struct read_structure* read_
                                         }else{
                                                 ri->fingerprint = (key <<  8) | 255;
                                         }
+
 
 
                                         ri->read_type = EXTRACT_SUCCESS;
@@ -338,7 +473,6 @@ int make_extracted_read(struct model_bag* mb, struct read_structure* read_struct
         ri->len = s_pos;
         //exit(0);
         return OK;
-
 }
 
 
@@ -372,4 +506,76 @@ int sanity_check_inputs(struct read_info_buffer** rb, int num_infiles)
         return OK;
 ERROR:
         return FAIL;
+}
+
+
+int set_up_assign_structure(struct arch_library* al,struct assign_struct* as)
+{
+        struct read_structure* read_structure = NULL;
+        int i,j;
+        ASSERT(al != NULL,"No archlib");
+        ASSERT(as != NULL,"No assign struct ");
+
+        for(i = 0; i < al->num_file;i++){
+                read_structure = al->read_structure[al->arch_to_read_assignment[i]];
+                fprintf(stdout,"Read %d: ",i);
+                for(j = 0; j < read_structure->num_segments;j++){
+
+                        if(read_structure->type[j]  == 'B'){
+                                as->num_per_file[i]++;
+                                as->num_barcodes++;
+                                fprintf(stdout,"B(%d), ", j);
+                        }
+                        if(read_structure->type[j]  == 'F'){
+                                fprintf(stdout,"F(%d), ", j);
+                        }
+                }
+                fprintf(stdout,"\n");
+        }
+        /* create offsets  */
+        for(i = 1; i < al->num_file;i++){
+                as->num_per_file[i] = as->num_per_file[i-1];
+        }
+
+
+        return OK;
+ERROR:
+        return FAIL;
+}
+
+
+int alloc_assign_structure(struct assign_struct** assign,int num_files)
+{
+
+        struct assign_struct* as = NULL;
+        int i;
+
+        ASSERT(num_files >= 1,"no infiles");
+        MMALLOC(as, sizeof(struct assign_struct));
+        as->num_files = num_files;
+        as->assignment = NULL;
+        as->num_per_file = NULL;
+        as->num_barcodes =0;
+        MMALLOC(as->num_per_file, sizeof(int) * as->num_files);
+        for(i = 0; i < num_files;i++){
+                as->num_per_file[i] = 0;
+        }
+        *assign = as;
+        return OK;
+ERROR:
+        free_assign_structure(as);
+        return FAIL;
+}
+
+void free_assign_structure(struct assign_struct* as)
+{
+        if(as){
+                if(as->assignment){
+                        gfree(as->assignment);
+                }
+                if(as->num_per_file){
+                        MFREE(as->num_per_file);
+                }
+                MFREE(as);
+        }
 }

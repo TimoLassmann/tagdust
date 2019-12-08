@@ -64,7 +64,7 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
         }
 
 
-        RUN(alloc_read_info_buffer(&rb,10));
+        RUN(alloc_read_info_buffer(&rb,100000));
 
         /* copy5' and 3' sequences for matching in case of partial segments */
         MMALLOC(five_test_sequence, sizeof(char*) * al->num_arch);
@@ -156,20 +156,23 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
 
                         }
                         total_read += rb->num_seq;
+                        //LOG_MSG("total: %d", total_read);
 #if DEBUG
-                        if(total_read > 10){
-                                break;
-                        }
+                        //if(total_read > 10){
+                        //break;
+                        //}
 #else
-                        if(total_read > 10){
-                                break;
-                        }
+                        //if(total_read > 10){
+                        //break;
+                        //}
 #endif
 
 
                 }
                 pclose(f_hand->f_ptr);
+                //LOG_MSG("total: %d", total_read);
 
+                si->ssi[i]->total_num_seq = total_read;
                 si->ssi[i]->average_length = (int) floor((double) si->ssi[i]->average_length / (double) total_read   + 0.5);
 
                 sum = 0.0;

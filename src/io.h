@@ -1,32 +1,32 @@
 /*
- 
- Copyright (C) 2013 Timo Lassmann <timolassmann@gmail.com>
- 
- This file is part of TagDust.
- 
- TagDust is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
- 
- TagDust is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
- 
- You should have received a copy of the GNU General Public License
- along with Tagdust.  If not, see <http://www.gnu.org/licenses/>.
- 
- */
+
+  Copyright (C) 2013 Timo Lassmann <timolassmann@gmail.com>
+
+  This file is part of TagDust.
+
+  TagDust is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  TagDust is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with Tagdust.  If not, see <http://www.gnu.org/licenses/>.
+
+*/
 
 /*! \file io.h
- \brief functions for reading sequences.
- 
- */
+  \brief functions for reading sequences.
+
+*/
 
 /** \def LIST_STORE_SIZE
- \brief Sets maximum number of read mappings. 
- */
+    \brief Sets maximum number of read mappings.
+*/
 
 #ifndef IO_H
 #define IO_H
@@ -60,48 +60,49 @@
 #endif
 
 /**
- * @brief Deals with fasta files. 
+ * @brief Deals with fasta files.
  *
- *  Stores sequences in one big string. 
+ *  Stores sequences in one big string.
  */
 struct fasta{
-	unsigned char** sn;/**<  @brief Sequence names.*/
-	unsigned char* string;/**< @brief Holds sequence information.*/
-	int* mer_hash;
-	int* boost;
-	int* s_index;
-	int* suffix;
-	int numseq;/**< @brief  Number of sequences.*/
-	int max_len;
-	int string_len;
+        unsigned char** sn;/**<  @brief Sequence names.*/
+        unsigned char* string;/**< @brief Holds sequence information.*/
+        int* mer_hash;
+        int* boost;
+        int* s_index;
+        int* suffix;
+        int numseq;/**< @brief  Number of sequences.*/
+        int max_len;
+        int string_len;
 };
 
 /**
- * @brief Stores reads from SAM/ fastq formatted files.  
+ * @brief Stores reads from SAM/ fastq formatted files.
  *
- *  
+ *
  */
 struct read_info{
-	char* name;/**<  @brief  Name of read.*/
-	char* qual;/**<  @brief Base qualities. */
-	char* seq;/**<  @brief Sequence.*/
-	char* labels;/**<  @brief Labeling according to HMM.*/
-	unsigned int* strand;
-	unsigned int* hits;
-	char* barcode_string;
-	float mapq;/**<  @brief Mapping Quality.*/
-	//double prob;/**<  @brief Quality of read.*/
-	double bar_prob;/**< @brief Ambiguity */
-	int len;/**<  @brief Sequence length.*/
-	int read_type;
-	int barcode;
-	int fingerprint;
+        char* name;/**<  @brief  Name of read.*/
+        char* qual;/**<  @brief Base qualities. */
+        char* seq;/**<  @brief Sequence.*/
+        char* labels;/**<  @brief Labeling according to HMM.*/
+        unsigned int* strand;
+        unsigned int* hits;
+        char* barcode_string;
+        float mapq;/**<  @brief Mapping Quality.*/
+        //double prob;/**<  @brief Quality of read.*/
+        double bar_prob;/**< @brief Ambiguity */
+        int len;/**<  @brief Sequence length.*/
+        int read_type;
+        int barcode;
+        int fingerprint;
 };
 
 struct read_info_buffer{
         struct read_info** ri;
         int num_alloc;
         int num_seq;
+        int offset;
 };
 
 
@@ -114,7 +115,7 @@ struct file_handler{
 };
 
 /**
- * @brief Used to store info needed to initialize HMM. 
+ * @brief Used to store info needed to initialize HMM.
  *
  */
 

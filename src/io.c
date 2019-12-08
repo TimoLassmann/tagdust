@@ -22,7 +22,7 @@
 /*! \file io.c
   \brief functions for reading sequences.
 n
-  Initializes nucleotide alphabet needed to parse input. Calls parameter parser. Calls functions to process the data. \author Timo Lassmann \bug No known bugs.
+n  Initializes nucleotide alphabet needed to parse input. Calls parameter parser. Calls functions to process the data. \author Timo Lassmann \bug No known bugs.
 */
 
 
@@ -1807,6 +1807,7 @@ int alloc_read_info_buffer(struct read_info_buffer** rb, int size)
         MMALLOC(read_buffer, sizeof(struct read_info_buffer));
         read_buffer->num_alloc = size;
         read_buffer->num_seq = 0;
+        read_buffer->offset = 0;
         read_buffer->ri = NULL;
 
         RUNP(read_buffer->ri = malloc_read_info(read_buffer->ri, read_buffer->num_alloc));

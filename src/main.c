@@ -5,6 +5,8 @@
 #include "hmm_model_bag.h"
 #include "test_arch.h"
 #include "calibrate_hmm.h"
+#include "extract_reads.h"
+
 
 #include "tllogsum.h"
 
@@ -45,6 +47,13 @@ int main (int argc,char * argv[]) {
 
         RUN(get_sequence_stats(&si,al, param->infile, param->num_infiles));
 
+        /* here there have to be sanity checks  */
+        for(i = 0; i < param->num_infiles;i++){
+                for(j = i+1; j < param->num_infiles;j++){
+                        ASSERT(si->ssi[i]->total_num_seq == si->ssi[j]->total_num_seq,"File %s and %s contain different number of sequences", param->infile[i],param->infile[j]);
+                }
+        }
+        //exit(0);
         for(i = 0; i < si->num;i++){
                 LOG_MSG("%d %f", i,si->ssi[i]->average_length);
                 for(j = 0; j < 5;j++){
@@ -63,7 +72,9 @@ int main (int argc,char * argv[]) {
 
         RUN(calibrate_architectures(al,si));
 
-        //RUN(extract_reads(al,si,param));
+
+        //int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameters* param)
+        RUN(extract_reads(al,si,param));
 //sprintf(param->buffer,"Start Run\n--------------------------------------------------\n");
         //param->messages = append_message(param->messages, param->buffer);
         //hmm_controller_multiple(param);
