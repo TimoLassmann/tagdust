@@ -1478,7 +1478,7 @@ int  emit_random_sequence(struct model_bag* mb, struct read_info* ri,int average
         ri->qual = NULL;
         ri->labels = NULL;
         ri->len = 0;
-        ri->read_type = 0;
+        //ri->read_type = 0;
         MMALLOC(ri->seq,sizeof(char) * allocated_length);
 
         while(current_length < average_length){
@@ -1585,7 +1585,7 @@ int emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_le
         ri->labels = NULL;
         ri->len = 0;
         //ri[i]->xp = 0;
-        ri->read_type = 0;
+        //ri->read_type = 0;
 
 
         MMALLOC(ri->seq,sizeof(char) * allocated_length);

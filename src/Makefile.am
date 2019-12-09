@@ -7,7 +7,7 @@ CLEANFILES =
 AM_LDFLAGS = @DEAD_STRIP@
 AM_LDFLAGS += -Wno-undef
 
-LIBS = ../lib_tldevel/libtldevel.a -lm
+LIBS = ../lib_tldevel/libtldevel.a $(HDF5_LDFLAGS)  $(HDF5_LIBS) -lm
 AM_CPPFLAGS = -I$(top_srcdir)/lib_tldevel
 
 bin_PROGRAMS = tagdust
@@ -143,7 +143,12 @@ TESTS_ENVIRONMENT = \
          export devdir; \
 	$(VALGRIND)
 
-check_PROGRAMS = arch_lib_test interface_test
+check_PROGRAMS = arch_lib_test interface_test io_hdf5_test
+
+
+io_hdf5_test_SOURCES = \
+io_hdf5.h \
+io_hdf5.c
 
 
 arch_lib_test_SOURCES = \

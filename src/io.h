@@ -86,16 +86,16 @@ struct read_info{
         char* qual;/**<  @brief Base qualities. */
         char* seq;/**<  @brief Sequence.*/
         char* labels;/**<  @brief Labeling according to HMM.*/
-        unsigned int* strand;
-        unsigned int* hits;
-        char* barcode_string;
+        //unsigned int* strand;
+        //unsigned int* hits;
+        //char* barcode_string;
         float mapq;/**<  @brief Mapping Quality.*/
         //double prob;/**<  @brief Quality of read.*/
         double bar_prob;/**< @brief Ambiguity */
         int len;/**<  @brief Sequence length.*/
         int read_type;
-        int barcode;
-        int fingerprint;
+        //int barcode;
+        //int fingerprint;
 };
 
 struct read_info_buffer{

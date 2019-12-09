@@ -59,7 +59,7 @@ int get_finger_seq(int key,char* finger_seq_buffer);
     \param a void pointer to first @ref read_info.
     \param b void pointer to second @ref read_info.
 */
-int qsort_ri_barcode_compare(const void *a, const void *b)
+/*int qsort_ri_barcode_compare(const void *a, const void *b)
 {
 
         //struct mys **a = (struct mys **)i1;
@@ -86,7 +86,7 @@ int qsort_ri_barcode_compare(const void *a, const void *b)
 
 
 }
-
+*/
 /** \fn int qsort_ri_prob_compare(const void *a, const void *b)
     \brief Compares reads based their probability.
     Used to sort arrays of string using qsort.
@@ -1315,7 +1315,7 @@ int read_sam_chunk(struct read_info_buffer* rb, struct file_handler* f_handle)//
                                                 break;
                                         case 5: //  <MAPQ>
 
-                                                ri[c]->mapq =  atof(line +i +1);
+                                                //ri[c]->mapq =  atof(line +i +1);
 
                                                 break;
                                         case 6: //  <CIGAR>
@@ -1384,16 +1384,16 @@ int read_sam_chunk(struct read_info_buffer* rb, struct file_handler* f_handle)//
                                         }				}
 
                         }
-                        tmp = byg_end("NM:i:", line  );
+                        /*tmp = byg_end("NM:i:", line  );
                         if(tmp){
                                 ri[c]->read_type = atoi(line+tmp);
                         }else{
                                 ri[c]->read_type = -1;
-                        }
+                                }*/
 
-                        if(strand != 0){
+                        ///if(strand != 0){
                                 //	ri[c]->seq = reverse_complement(ri[c]->seq,ri[c]->len);
-                        }
+                        //}
 
 
 
@@ -1844,11 +1844,11 @@ struct read_info** malloc_read_info(struct read_info** ri, int numseq)
                 ri[i]->labels = 0;
                 ri[i]->len = 0;
                 ri[i]->bar_prob = 0;
-                ri[i]->mapq = -1.0;
-                ri[i]->barcode = -1;
-                ri[i]->fingerprint = -1;
-                ri[i]->read_type = 0;
-                ri[i]->barcode_string = NULL;
+                //ri[i]->mapq = -1.0;
+                //ri[i]->barcode = -1;
+                //ri[i]->fingerprint = -1;
+                //ri[i]->read_type = 0;
+                //ri[i]->barcode_string = NULL;
                 //ri[i]->strand = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
                 //ri[i]->hits = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
         }
@@ -1881,11 +1881,11 @@ struct read_info** clear_read_info(struct read_info** ri, int numseq)
                 ri[i]->labels = 0;
                 ri[i]->len = 0;
                 ri[i]->bar_prob = 0;
-                ri[i]->mapq = -1.0;
-                ri[i]->barcode = -1;
-                ri[i]->fingerprint = -1;
-                ri[i]->read_type = 0;
-                ri[i]->barcode_string = NULL;
+                //ri[i]->mapq = -1.0;
+                //ri[i]->barcode = -1;
+                //ri[i]->fingerprint = -1;
+                //ri[i]->read_type = 0;
+                //ri[i]->barcode_string = NULL;
                 //ri[i]->strand = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
                 //ri[i]->hits = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
         }

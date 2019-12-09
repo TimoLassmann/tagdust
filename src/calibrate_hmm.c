@@ -12,7 +12,7 @@
 #include "core_hmm_functions.h"
 
 
-#define NUM_TEST_SEQ 1000000
+#define NUM_TEST_SEQ 1000
 
 
 static int generate_test_sequences(struct read_info*** ri_b, struct model_bag* mb,int average_length);
@@ -77,6 +77,7 @@ int calibrate(struct arch_library* al, struct seq_stats* si,int i_file,int i_hmm
         RUNP(mb = init_model_bag(al->read_structure[i_hmm], si->ssi[i_file], i_hmm));
 
         RUN(run_scoring(mb, ri));
+
 
         free_model_bag(mb);
         qsort(ri,NUM_TEST_SEQ, sizeof(struct read_info*), qsort_ri_mapq_compare);
@@ -160,7 +161,7 @@ int calibrate(struct arch_library* al, struct seq_stats* si,int i_file,int i_hmm
         //sprintf(param->buffer,"Selected Threshold:: %f\n", param->confidence_threshold );
 
         //param->messages = append_message(param->messages, param->buffer);
-
+        free_read_info(ri,NUM_TEST_SEQ);
         return OK;
 ERROR:
         return FAIL;

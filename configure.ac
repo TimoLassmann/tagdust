@@ -30,19 +30,34 @@ m4_include([m4/ax_openmp.m4])
 AX_EXT
 
 AC_ARG_WITH([openmp],
-    AS_HELP_STRING([--without-openmp], [Do not use OpenMP]))
+AS_HELP_STRING([--without-openmp], [Do not use OpenMP]))
 AS_IF([test "x$with_openmp" = "xno"],
-            [],
-            [AX_OPENMP(
-                AC_DEFINE([HAVE_OPENMP],[1],[Defined if OpenMP should and can be used])
-             )]
-     )
+[],
+[AX_OPENMP(
+AC_DEFINE([HAVE_OPENMP],[1],[Defined if OpenMP should and can be used])
+)]
+)
 AC_SUBST(OPENMP_CFLAGS)
 
 # according to http://beagle-lib.googlecode.com/svn-history/r824/trunk/configure.ac:
 # "OpenMP checker only defines for C when compiling both C and C++"
 OPENMP_CXXFLAGS=$OPENMP_CFLAGS
 AC_SUBST(OPENMP_CXXFLAGS)
+
+AX_LIB_HDF5([serial])
+if test "$with_hdf5" = "yes"; then
+CC="$HDF5_CC"
+else
+AC_MSG_ERROR([
+
+Unable to find HDF5, we need parallel HDF5.
+Install on fedora:
+sudo dnf install hdf5 hdf5-devel
+
+])
+fi
+
+
 
 # test for working C11 _Generic support
 AN_IDENTIFIER([_Generic], [AC_C__GENERIC])
