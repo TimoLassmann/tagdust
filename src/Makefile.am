@@ -143,7 +143,7 @@ TESTS_ENVIRONMENT = \
          export devdir; \
 	$(VALGRIND)
 
-check_PROGRAMS = arch_lib_test interface_test io_hdf5_test
+check_PROGRAMS = arch_lib_test interface_test io_hdf5_test zwrite
 
 
 io_hdf5_test_SOURCES = \
@@ -165,6 +165,7 @@ interface.c
 interface_test_CPPFLAGS = $(AM_CPPFLAGS) -DINTERFACE_TEST
 interface_test_LDADD =
 
+zwrite_SOURCES = test_pipe.c
 
 # tagdustiotest_SOURCES = io.c misc.c interface.c kslib.c
 # tagdustiotest_LDADD = $(tagdust_LDADD)
@@ -181,3 +182,4 @@ interface_test_LDADD =
 # evalres_rtest_SOURCES = $(evalres_SOURCES)
 # evalres_rtest_LDADD = $(evalres_LDADD)
 # evalres_rtest_CPPFLAGS  =  -DRTEST -DEVALRES
+

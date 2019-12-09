@@ -3,7 +3,7 @@
 
 
 #include "io.h"
-#include "rng.h"
+#include "tlrng.h"
 
 extern struct model_bag* forward(struct model_bag* mb, const char* a, int len);
 extern int backward(struct model_bag* mb,const char* a,const int len);

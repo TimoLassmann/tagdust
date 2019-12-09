@@ -28,6 +28,7 @@ struct seq_bit{
 struct seq_bit_vec{
         struct seq_bit** bits;
         char* name;
+        char* bc;
         float* Q;
         int pass;
         uint8_t num_bit;
@@ -48,13 +49,17 @@ static void free_assign_structure(struct assign_struct* as);
 
 static int process_read(struct read_info* ri, int* label, struct read_structure* rs , struct seq_bit_vec* b , int i_file);
 
+static int post_process_assign(struct assign_struct* as);
+
+static int qsort_seq_bits_by_file(const void *a, const void *b);
+static int qsort_seq_bit_vec(const void *a, const void *b);
+
 
 static int sanity_check_inputs(struct read_info_buffer** rb, int num_files);
 
 //static int run_extract( struct assign_struct* as,  struct read_info_buffer** rb, struct arch_library* al, strucnt seq_stats* si,int i_file,int i_hmm);
 
 static int run_extract( struct assign_struct* as,  struct read_info_buffer** rb, struct arch_library* al, struct seq_stats* si,int i_file,int i_chunk);
-
 
 int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameters* param)
 {
@@ -147,10 +152,11 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
                 }
 
 
+
                 int gg;
                 char alphabet[] = "ACGTNN";
                 //for(j = 0; j < CHUNKS;j++){
-                for(c = 0; c < MACRO_MIN(1000, as->total);c++){
+                for(c = 0; c < MACRO_MIN(10, as->total);c++){
                         fprintf(stdout,"READ %d %s (PASS: %d)  ",c, as->bits[c]->name, as->bits[c]->pass);
                         for(j = 0; j < as->num_files;j++){
 
@@ -191,6 +197,7 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
                         }
 
                 }
+                RUN(post_process_assign(as));
         }
         free_assign_structure(as);
         for(i = 0; i < param->num_infiles* CHUNKS;i++){
@@ -211,6 +218,91 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
 ERROR:
         return FAIL;
 }
+
+int post_process_assign(struct assign_struct* as)
+{
+        struct seq_bit_vec* bv = NULL;
+        char* tmp =  NULL;
+        char* barcode;
+
+        int i,j,c,g;
+        int len;
+        for(i = 0; i < as->total;i++){
+                bv = as->bits[i];
+
+                /* qsort by file identifier  */
+
+                qsort(bv->bits, bv->num_bit,sizeof(struct seq_bit*), qsort_seq_bits_by_file);
+                len = 0;
+                for(j = 0; j < bv->num_bit;j++){
+                        if(bv->bits[j]->type == BAR_TYPE){
+                                len += strnlen(bv->bits[j]->p,256);
+                                len++;
+                        }
+
+                }
+                tmp = NULL;
+                MMALLOC(tmp, sizeof(char) * len);
+                g = 0;
+                for(j = 0; j < bv->num_bit;j++){
+                        if(bv->bits[j]->type == BAR_TYPE){
+                                barcode = bv->bits[j]->p;
+                                len = strnlen(barcode,256);
+                                for(c = 0; c < len;c++){
+                                        tmp[g] = barcode[c];
+                                        g++;
+                                }
+                                tmp[g] = '_';
+                                g++;
+                        }
+                }
+                tmp[g-1] = 0;
+                bv->bc = tmp;
+                tmp = NULL;
+        }
+        qsort(as->bits,as->total,sizeof(struct seq_bit_vec*) , qsort_seq_bit_vec);
+        return OK;
+ERROR:
+        return FAIL;
+}
+
+int qsort_seq_bits_by_file(const void *a, const void *b)
+{
+        const struct seq_bit **elem1 = (const struct seq_bit**) a;
+        const struct seq_bit **elem2 = (const struct seq_bit**) b;
+        if ( (*elem1)->file > (*elem2)->file){
+                return 1;
+        }else if ((*elem1)->file < (*elem2)->file){
+                return -1;
+        }else{
+                return 0;
+        }
+}
+
+
+
+
+int qsort_seq_bit_vec(const void *a, const void *b)
+{
+        const struct seq_bit_vec **elem1 = (const struct seq_bit_vec**) a;
+        const struct seq_bit_vec **elem2 = (const struct seq_bit_vec**) b;
+        if ( (*elem1)->pass > (*elem2)->pass){
+                return -1;
+        }else if ((*elem1)->pass < (*elem2)->pass){
+                return 1;
+        }else{
+                int c;
+                c = strcmp((*elem1)->bc, (*elem2)->bc);
+                if(c < 0){
+                        return -1;
+
+                }else if (c >= 0){
+                        return 1;
+                }
+                return 0;
+        }
+}
+
 
 int run_extract( struct assign_struct* as,  struct read_info_buffer** rb, struct arch_library* al, struct seq_stats* si,int i_file,int i_chunk)
 {
@@ -282,18 +374,14 @@ int process_read(struct read_info* ri, int* label, struct read_structure* rs , s
 {
         struct seq_bit* sb = NULL;
         char* type;
-
         char* read_label;
         char c;
         int j;
-
-
         int segment;
         int hmm_in_segment;
         int c1;
         int umi;
         int umi_len;
-
         int s_pos = 0;
         int len = ri->len;
         char old = '?';
@@ -331,7 +419,6 @@ int process_read(struct read_info* ri, int* label, struct read_structure* rs , s
                                 sb->p = rs->sequence_matrix[segment][hmm_in_segment];
                                 b->num_bit++;
                         }
-
                         break;
                 case 'R':
                         if(c != old){
@@ -344,9 +431,6 @@ int process_read(struct read_info* ri, int* label, struct read_structure* rs , s
                                 b->num_bit++;
                         }
                         sb->len++;
-                        //ri->seq[s_pos] = ri->seq[j];
-                        //ri->qual[s_pos] = ri->qual[j];
-                        //s_pos++;
                         break;
                 default:
                         break;
@@ -456,7 +540,6 @@ int init_assign_structure(struct assign_struct** assign,struct arch_library* al,
                         as->bits[i]->bits[j] = NULL;
                         MMALLOC(as->bits[i]->bits[j], sizeof(struct seq_bit));
                 }
-
         }
         *assign = as;
         return OK;
@@ -467,7 +550,6 @@ ERROR:
 
 void free_assign_structure(struct assign_struct* as)
 {
-
         if(as){
                 int i,j;
                 if(as->bits){
@@ -485,5 +567,4 @@ void free_assign_structure(struct assign_struct* as)
 
                 MFREE(as);
         }
-
 }
