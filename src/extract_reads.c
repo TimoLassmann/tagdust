@@ -6,45 +6,12 @@
 
 #include "hmm_model_bag.h"
 #include "core_hmm_functions.h"
-
+#include "assign_data.h"
 
 #include "tllogsum.h"
 
 #define READ_CHUNK_SIZE 30000
 #define CHUNKS 5
-
-#define READ_TYPE 1
-#define UMI_TYPE 2
-#define BAR_TYPE 3
-
-struct seq_bit{
-        char* p;
-        char* q;
-        uint16_t len;
-        uint8_t type;
-        uint8_t file;
-};
-
-struct seq_bit_vec{
-        struct seq_bit** bits;
-        char* name;
-        char* bc;
-        float* Q;
-        int pass;
-        uint8_t num_bit;
-};
-
-struct assign_struct{
-        struct seq_bit_vec** bits;
-        int num_files;
-        int num_bits;
-        int total;
-};
-
-static int init_assign_structure(struct assign_struct** assign,struct arch_library* al, int total);
-//static int alloc_assign_structure(struct assign_struct** assign,int num_files);
-static int set_up_assign_structure(struct arch_library* al,struct assign_struct* as);
-static void free_assign_structure(struct assign_struct* as);
 
 
 static int process_read(struct read_info* ri, int* label, struct read_structure* rs , struct seq_bit_vec* b , int i_file);
@@ -151,56 +118,9 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
                         }
                 }
 
-
-
-                int gg;
-                char alphabet[] = "ACGTNN";
-                //for(j = 0; j < CHUNKS;j++){
-                for(c = 0; c < MACRO_MIN(10, as->total);c++){
-                        fprintf(stdout,"READ %d %s (PASS: %d)  ",c, as->bits[c]->name, as->bits[c]->pass);
-                        for(j = 0; j < as->num_files;j++){
-
-                                fprintf(stdout,"%f ", as->bits[c]->Q[j]);
-                        }
-                        fprintf(stdout,"\n");
-                        for(j = 0; j < as->bits[c]->num_bit;j++){
-
-                                switch(as->bits[c]->bits[j]->type){
-                                case READ_TYPE:
-                                        fprintf(stdout,"READ (file: %d): ", as->bits[c]->bits[j]->file);
-                                        for(gg = 0; gg < as->bits[c]->bits[j]->len;gg++){
-                                                fprintf(stdout,"%c", alphabet[(int)as->bits[c]->bits[j]->p[gg]]);
-                                        }
-                                        fprintf(stdout,"\n");
-                                        fprintf(stdout,"QUAL (file: %d): ", as->bits[c]->bits[j]->file);
-                                        for(gg = 0; gg < as->bits[c]->bits[j]->len;gg++){
-                                                fprintf(stdout,"%c",as->bits[c]->bits[j]->q[gg]);
-                                        }
-                                        fprintf(stdout,"\n");
-                                        break;
-                                case BAR_TYPE:
-                                        fprintf(stdout,"BAR (file: %d): ", as->bits[c]->bits[j]->file);
-                                        fprintf(stdout,"%s  and then...:", as->bits[c]->bits[j]->p);
-
-                                        fprintf(stdout,"\n");
-                                        break;
-                                case UMI_TYPE:
-
-                                        fprintf(stdout,"UMI (file: %d): ", as->bits[c]->bits[j]->file);
-
-                                        for(gg = 0; gg < as->bits[c]->bits[j]->len;gg++){
-                                                fprintf(stdout,"%c", alphabet[(int)as->bits[c]->bits[j]->p[gg]]);
-                                        }
-                                        fprintf(stdout,"\n");
-                                        break;
-                                }
-                        }
-
-                }
                 RUN(post_process_assign(as));
-                for(i = 0; i < 10;i++){
-                        fprintf(stdout,"")
-                }
+
+                RUN(write_all(as, param->outfile));
         }
         free_assign_structure(as);
         for(i = 0; i < param->num_infiles* CHUNKS;i++){
@@ -212,12 +132,9 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
                 pclose(f_hand[i]->f_ptr);
                 MFREE(f_hand[i]);
         }
-
-
         MFREE(f_hand);
 
         return OK;
-
 ERROR:
         return FAIL;
 }
@@ -227,9 +144,10 @@ int post_process_assign(struct assign_struct* as)
         struct seq_bit_vec* bv = NULL;
         char* tmp =  NULL;
         char* barcode;
-
+        char* umi;
         int i,j,c,g;
         int len;
+        int umi_len;
         for(i = 0; i < as->total;i++){
                 bv = as->bits[i];
 
@@ -237,31 +155,63 @@ int post_process_assign(struct assign_struct* as)
 
                 qsort(bv->bits, bv->num_bit,sizeof(struct seq_bit*), qsort_seq_bits_by_file);
                 len = 0;
+                umi_len = 0;
                 for(j = 0; j < bv->num_bit;j++){
+                        if(i < 10){
+                                fprintf(stdout,"%d %d %d\n",i,bv->bits[j]->type, bv->bits[j]->file);
+                        }
                         if(bv->bits[j]->type == BAR_TYPE){
                                 len += strnlen(bv->bits[j]->p,256);
                                 len++;
+
+                        }
+                        if(bv->bits[j]->type == UMI_TYPE){
+
+                                umi_len += bv->bits[j]->len;
                         }
 
                 }
-                tmp = NULL;
-                MMALLOC(tmp, sizeof(char) * len);
-                g = 0;
-                for(j = 0; j < bv->num_bit;j++){
-                        if(bv->bits[j]->type == BAR_TYPE){
-                                barcode = bv->bits[j]->p;
-                                len = strnlen(barcode,256);
-                                for(c = 0; c < len;c++){
-                                        tmp[g] = barcode[c];
+                if(len){
+                        tmp = NULL;
+                        MMALLOC(tmp, sizeof(char) * len);
+                        g = 0;
+                        for(j = 0; j < bv->num_bit;j++){
+                                if(bv->bits[j]->type == BAR_TYPE){
+                                        barcode = bv->bits[j]->p;
+                                        len = strnlen(barcode,256);
+                                        for(c = 0; c < len;c++){
+                                                tmp[g] = barcode[c];
+                                                g++;
+                                        }
+                                        tmp[g] = '_';
                                         g++;
                                 }
-                                tmp[g] = '_';
-                                g++;
                         }
+                        tmp[g-1] = 0;
+                        bv->bc = tmp;
+                        tmp = NULL;
                 }
-                tmp[g-1] = 0;
-                bv->bc = tmp;
-                tmp = NULL;
+                if(umi_len){
+                        tmp = NULL;
+                        MMALLOC(tmp, sizeof(char) * umi_len);
+                        g = 0;
+                        for(j = 0; j < bv->num_bit;j++){
+                                if(bv->bits[j]->type == UMI_TYPE){
+                                        umi = bv->bits[j]->p;
+                                        len = bv->bits[j]->len;
+                                        for(c = 0; c < len;c++){
+                                                tmp[g] = umi[c];
+                                                g++;
+                                        }
+                                        tmp[g] = '_';
+                                        g++;
+                                }
+                        }
+                        tmp[g-1] = 0;
+                        bv->umi = tmp;
+                        tmp = NULL;
+                }
+
         }
         qsort(as->bits,as->total,sizeof(struct seq_bit_vec*) , qsort_seq_bit_vec);
         return OK;
@@ -273,17 +223,20 @@ int qsort_seq_bits_by_file(const void *a, const void *b)
 {
         const struct seq_bit **elem1 = (const struct seq_bit**) a;
         const struct seq_bit **elem2 = (const struct seq_bit**) b;
-        if ( (*elem1)->file > (*elem2)->file){
+        if((*elem1)->type > (*elem2)->type){
                 return 1;
-        }else if ((*elem1)->file < (*elem2)->file){
+        }else if((*elem1)->type < (*elem2)->type){
                 return -1;
         }else{
-                return 0;
+                if ( (*elem1)->file > (*elem2)->file){
+                        return 1;
+                }else if ((*elem1)->file < (*elem2)->file){
+                        return -1;
+                }else{
+                        return 0;
+                }
         }
 }
-
-
-
 
 int qsort_seq_bit_vec(const void *a, const void *b)
 {
@@ -478,96 +431,3 @@ ERROR:
 }
 
 
-int set_up_assign_structure(struct arch_library* al,struct assign_struct* as)
-{
-        struct read_structure* read_structure = NULL;
-        int i,j;
-        char c;
-        ASSERT(al != NULL,"No archlib");
-
-        ASSERT(as != NULL,"No assign struct ");
-
-        as->num_bits = 0;
-        for(i = 0; i < al->num_file;i++){
-                read_structure = al->read_structure[al->arch_to_read_assignment[i]];
-                //fprintf(stdout,"Read %d: ",i);
-                for(j = 0; j < read_structure->num_segments;j++){
-                        c = read_structure->type[j];
-                        switch (c) {
-                        case 'B':
-                        case 'R':
-                        case 'F':
-                                as->num_bits++;
-                                break;
-                        default:
-                                break;
-                        }
-                }
-                //fprintf(stdout,"\n");
-        }
-        /* create offsets  */
-        return OK;
-ERROR:
-        return FAIL;
-}
-
-
-int init_assign_structure(struct assign_struct** assign,struct arch_library* al, int total)
-{
-        struct assign_struct* as = NULL;
-        //ASSERT(num_files >= 1,"no infiles");
-        int i,j;
-        MMALLOC(as, sizeof(struct assign_struct));
-        as->num_files = al->num_file;
-        as->bits = NULL;
-        as->num_bits = 0;
-
-
-        RUN(set_up_assign_structure(al,as));
-
-        as->total = total;
-
-        as->bits = NULL;
-        MMALLOC(as->bits, sizeof(struct seq_bit_vec*)* as->total);
-        //MMALLOC(as->active_bits,sizeof(uint8_t) * as->total));
-        for(i = 0; i < as->total;i++){
-                as->bits[i] = NULL;
-                MMALLOC(as->bits[i], sizeof(struct seq_bit_vec));
-                as->bits[i]->num_bit = 0;
-                as->bits[i]->bits = NULL;
-                as->bits[i]->Q = NULL;
-                MMALLOC(as->bits[i]->Q,sizeof(float) * as->num_files);
-                as->bits[i]->pass = 1;
-                MMALLOC(as->bits[i]->bits , sizeof(struct seq_bit) * as->num_bits);
-                for(j = 0; j < as->num_bits;j++){
-                        as->bits[i]->bits[j] = NULL;
-                        MMALLOC(as->bits[i]->bits[j], sizeof(struct seq_bit));
-                }
-        }
-        *assign = as;
-        return OK;
-ERROR:
-        free_assign_structure(as);
-        return FAIL;
-}
-
-void free_assign_structure(struct assign_struct* as)
-{
-        if(as){
-                int i,j;
-                if(as->bits){
-                        //MMALLOC(as->active_bits,sizeof(uint8_t) * as->total));
-                        for(i = 0; i < as->total;i++){
-                                for(j = 0; j < as->num_bits;j++){
-                                        MFREE(as->bits[i]->bits[j]);
-                                }
-                                MFREE(as->bits[i]->Q);
-                                MFREE(as->bits[i]->bits);
-                                MFREE(as->bits[i]);
-                        }
-                        MFREE(as->bits);
-                }
-
-                MFREE(as);
-        }
-}

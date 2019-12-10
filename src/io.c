@@ -36,97 +36,69 @@ n  Initializes nucleotide alphabet needed to parse input. Calls parameter parser
 
 #include "tldevel.h"
 
-
-#include "interface.h"
+//#include "interface.h"
 #include "nuc_code.h"
-#include "misc.h"
+//#include "misc.h"
 
 #include "io.h"
 
+
+
+
 #define MAX_LINE 10000
 
-int get_finger_seq(int key,char* finger_seq_buffer);
 
-
-
-
-
-
-
-/** \fn int qsort_ri_prob_compare(const void *a, const void *b)
-    \brief Compares reads based their probability.
-    Used to sort arrays of string using qsort.
-    \param a void pointer to first @ref read_info.
-    \param b void pointer to second @ref read_info.
-*/
-/*int qsort_ri_barcode_compare(const void *a, const void *b)
+int write_all(struct assign_struct* as,char* prefix)
 {
+        char filename[256];
+        char alphabet[] = "ACGTNN";
+        int i,j,gg;
 
-        //struct mys **a = (struct mys **)i1;
-        //struct mys **b = (struct mys **)i2;
-        //return (*b)->id - (*a)->id;
 
-        const struct read_info **elem1 = (const struct read_info**) a;
+        /* should check before running if files exist */
+        for(i = 0; i < as->total;i++){
+                fprintf(stdout,"READ %d %s (PASS: %d)  ",i, as->bits[i]->name, as->bits[i]->pass);
+                for(j = 0; j < as->num_files;j++){
 
-        const struct read_info **elem2 = (const struct read_info**) b;
+                        fprintf(stdout,"%f ", as->bits[i]->Q[j]);
+                }
+                fprintf(stdout,"\n");
 
-        if ( (*elem1)->read_type <  (*elem2)->read_type){
-                return -1;
-        }else if ((*elem1)->read_type > (*elem2)->read_type){
-                return 1;
-        }else{
-                if ( (*elem1)->barcode <  (*elem2)->barcode){
-                        return -1;
-                }else if ((*elem1)->barcode > (*elem2)->barcode){
-                        return 1;
-                }else{
-                        return 0;
+                fprintf(stdout,"%s\n%s\n", as->bits[i]->name,as->bits[i]->bc);
+                for(j = 0; j < as->bits[i]->num_bit;j++){
+                        switch(as->bits[i]->bits[j]->type){
+                        case READ_TYPE:
+                                fprintf(stdout,"READ (file: %d): ", as->bits[i]->bits[j]->file);
+                                for(gg = 0; gg < as->bits[i]->bits[j]->len;gg++){
+                                        fprintf(stdout,"%c", alphabet[(int)as->bits[i]->bits[j]->p[gg]]);
+                                }
+                                fprintf(stdout,"\n");
+                                fprintf(stdout,"QUAL (file: %d): ", as->bits[i]->bits[j]->file);
+                                for(gg = 0; gg < as->bits[i]->bits[j]->len;gg++){
+                                        fprintf(stdout,"%c",as->bits[i]->bits[j]->q[gg]);
+                                }
+                                fprintf(stdout,"\n");
+                                break;
+                        case BAR_TYPE:
+                                fprintf(stdout,"BAR (file: %d): ", as->bits[i]->bits[j]->file);
+                                fprintf(stdout,"%s  and then...:", as->bits[i]->bits[j]->p);
+
+                                fprintf(stdout,"\n");
+                                break;
+                        case UMI_TYPE:
+                                fprintf(stdout,"UMI (file: %d): ", as->bits[i]->bits[j]->file);
+
+                                for(gg = 0; gg < as->bits[i]->bits[j]->len;gg++){
+                                        fprintf(stdout,"%c", alphabet[(int)as->bits[i]->bits[j]->p[gg]]);
+                                }
+                                fprintf(stdout,"\n");
+                                break;
+                        }
                 }
         }
-
-
+        return OK;
 }
-*/
-/** \fn int qsort_ri_prob_compare(const void *a, const void *b)
-    \brief Compares reads based their probability.
-    Used to sort arrays of string using qsort.
-    \param a void pointer to first @ref read_info.
-    \param b void pointer to second @ref read_info.
-*/
-/*int qsort_ri_mapq_compare(const void *a, const void *b)
-{
 
-        //struct mys **a = (struct mys **)i1;
-        //struct mys **b = (struct mys **)i2;
-        //return (*b)->id - (*a)->id;
-
-        const struct read_info **elem1 = (const struct read_info**) a;
-
-        const struct read_info **elem2 = (const struct read_info**) b;
-
-        if ( (*elem1)->mapq > (*elem2)->mapq)
-                return -1;
-
-        else if ((*elem1)->mapq < (*elem2)->mapq)
-                return 1;
-
-        else
-                return 0;
-}
-*/
-
-
-/** \fn FILE* io_handler(FILE* file, int file_num,struct parameters* param)
-    \brief Opens stream to files.
-
-    Recognizes file types by prefix.
-
-    Used to sort arrays of string using qsort.
-    \param file empty file pointer.
-    \param file_num index of input file.
-    \param param @ref parameters.
-
-*/
 
 int io_handler(struct file_handler** fh, char*filename)
 {
@@ -352,17 +324,6 @@ ERROR:
         return FAIL;
 }
 
-
-
-/** \fn void print_sequence(struct read_info* ri,FILE* out)
-    \brief Prints sequence and quality string to file.
-
-    \param ri @ref read_info containing the sequence.
-    \param out Pointer to output file.
-    \deprecated use @ref print_seq instead.
-
-*/
-
 void print_sequence(struct read_info* ri,FILE* out)
 {
         int i;
@@ -374,398 +335,6 @@ void print_sequence(struct read_info* ri,FILE* out)
         fprintf(out,"\n+\n%s\n" ,ri->qual);
 }
 
-
-/*int check_for_existing_demultiplexed_files_multiple(struct parameters* param, int num_reads)
-{
-        int i,j;
-        int barsegment = -1;
-        int found_files = 0;
-        int status;
-        char* buffer =  0;
-
-        MMALLOC(buffer,sizeof(char)* 1000 );
-
-        for(i = 0 ; i <param->read_structure->num_segments;i++){
-                if(param->read_structure->type[i] == 'B'){
-                        barsegment = i;
-                        break;
-                }
-        }
-
-        if(barsegment != -1){
-                for(i = 0; i < param->read_structure->numseq_in_segment[barsegment]-1; i++){
-                        buffer[0] = 0;
-
-                        if(num_reads > 1){
-                                for(j = 0;  j < num_reads;j++){
-                                        sprintf (buffer, "%s_BC_%s_READ%d.fq",param->outfile,param->read_structure->sequence_matrix[barsegment][i],j+1);
-                                        found_files += file_exists(buffer);
-                                }
-                        }else{
-                                sprintf (buffer, "%s_BC_%s.fq",param->outfile,param->read_structure->sequence_matrix[barsegment][i]);
-                                found_files += file_exists(buffer);
-                        }
-                }
-        }else{
-                buffer[0] = 0;
-                if(param->multiread == 2){
-                        for(j = 0;  j < num_reads;j++){
-                                sprintf (buffer, "%s_READ%d.fq",param->outfile, j+1);
-                                found_files += file_exists(buffer);
-                        }
-                }else{
-                        sprintf (buffer, "%s.fq",param->outfile);
-                        found_files += file_exists(buffer);
-                }
-        }
-
-        buffer[0] = 0;
-        if(param->multiread == 2){
-                for(j = 0;  j < num_reads;j++){
-                        sprintf (buffer, "%s_un_READ%d.fq",param->outfile,j+1);
-                        found_files += file_exists(buffer);
-                }
-        }else{
-                sprintf (buffer, "%s_un.fq",param->outfile);
-                found_files += file_exists(buffer);
-        }
-        MFREE(buffer);
-        return found_files;
-ERROR:
-        return status;
-        }*/
-
-
-
-/*int check_for_existing_demultiplexed_files(struct parameters* param)
-{
-        int i,status;
-        int barsegment = -1;
-        int found_files = 0;
-
-        char* buffer =  0;
-
-        MMALLOC(buffer,sizeof(char)* 1000 );
-
-        for(i = 0 ; i <param->read_structure->num_segments;i++){
-                if(param->read_structure->type[i] == 'B'){
-                        barsegment = i;
-                        break;
-                }
-        }
-
-        if(barsegment != -1){
-                for(i = 0; i < param->read_structure->numseq_in_segment[barsegment]-1; i++){
-                        buffer[0] = 0;
-
-                        if(param->multiread == 2){
-                                sprintf (buffer, "%s_BC_%s_READ1.fq",param->outfile,param->read_structure->sequence_matrix[barsegment][i]);
-                        }else{
-                                sprintf (buffer, "%s_BC_%s.fq",param->outfile,param->read_structure->sequence_matrix[barsegment][i]);
-                        }
-#ifdef DEBUG
-                        fprintf(stderr,"Looking for file: %s %d\n", buffer, file_exists(buffer));
-#endif
-                        found_files += file_exists(buffer);
-                }
-
-        }else{
-                buffer[0] = 0;
-                if(param->multiread == 2){
-                        sprintf (buffer, "%s_READ1.fq",param->outfile);
-                }else{
-                        sprintf (buffer, "%s.fq",param->outfile);
-                }
-#ifdef DEBUG
-                fprintf(stderr,"Looking for file: %s %d\n", buffer, file_exists(buffer));
-#endif
-                found_files += file_exists(buffer);
-        }
-
-        buffer[0] = 0;
-        if(param->multiread == 2){
-                sprintf (buffer, "%s_un_READ1.fq",param->outfile);
-        }else{
-                sprintf (buffer, "%s_un.fq",param->outfile);
-        }
-#ifdef DEBUG
-        fprintf(stderr,"Looking for file: %s %d\n", buffer, file_exists(buffer));
-#endif
-        found_files += file_exists(buffer);
-        MFREE(buffer);
-        return found_files;
-ERROR:
-        return FAIL;
-
-        }*/
-
-/*int print_all(struct read_info*** read_info_container,struct parameters* param, int numseq, char*  read_present)
-{
-        int i,j,c,f,status;
-        int barsegment = -1;
-        int num_outfiles = 0;
-        int num_alternatives = 0;
-        int num_out_reads = 0;
-        char** bar_matrix = NULL;
-
-        char* filemode = NULL;
-        char alphabet[] = "ACGTNN";
-        static int first = 1;
-        FILE** file_container = NULL;
-
-        char* buffer = NULL;
-
-        char* out_seq_buffer = NULL;
-        char* out_qual_buffer = NULL;
-
-        char* finger_seq_buffer = NULL;
-
-
-        MMALLOC(out_seq_buffer,sizeof(char)* MAX_LINE );
-        MMALLOC(out_qual_buffer,sizeof(char)* MAX_LINE );
-
-        MMALLOC(buffer,sizeof(char)* 1000 );
-
-        MMALLOC(filemode, sizeof(char) * 2);
-
-        MMALLOC(finger_seq_buffer, sizeof(char) * 256);
-
-        filemode[0] = 'a';
-        filemode[1] = 0;
-
-
-
-        for(i = 0; i < param->num_infiles;i++){
-                num_out_reads += (int) read_present[i];
-        }
-
-        if(first){
-                // check for existing files (should not occur since I check for files right at the beginning of a run
-                i = check_for_existing_demultiplexed_files_multiple(param, num_out_reads);
-                if(i){
-                        sprintf(param->buffer,"ERROR: some output files already exists.\n");
-                        //param->messages = append_message(param->messages, param->buffer);
-                        free_param(param);
-                        exit(EXIT_FAILURE);
-                }
-
-                filemode[0] = 'w';
-                filemode[1] = 0;
-                first = 0;
-
-        }
-
-
-
-
-
-        // make all file pointers.
-
-
-
-
-
-        for(i = 0 ; i <param->read_structure->num_segments;i++){
-                if(param->read_structure->type[i] == 'B'){
-                        barsegment = i;
-                        break;
-                }
-        }
-        if(barsegment != -1){
-                num_outfiles = (param->read_structure->numseq_in_segment[barsegment]) *num_out_reads;
-                num_alternatives =param->read_structure->numseq_in_segment[barsegment];
-                bar_matrix =param->read_structure->sequence_matrix[barsegment];
-
-
-        }else{
-                num_outfiles = (2) *num_out_reads;
-                num_alternatives = 2;
-        }
-
-
-#ifdef DEBUG
-        fprintf(stderr,"Number of out reads: %d\n",num_out_reads);
-        fprintf(stderr,"Number alternatived in each reads: %d\n",num_alternatives);
-        fprintf(stderr,"Total files: %d\n",num_outfiles);
-
-#endif
-
-
-        MMALLOC(file_container,sizeof(FILE*) * num_outfiles);
-
-        //open write file pointers....
-
-        c = 0;
-
-        if(barsegment != -1){
-                if(num_out_reads > 1){
-                        for(i = 0; i < num_out_reads; i++){
-                                for(j = 0; j < num_alternatives - 1;j++){
-                                        buffer[0] = 0;
-                                        sprintf (buffer, "%s_BC_%s_READ%d.fq",param->outfile,bar_matrix[j],i+1);
-                                        file_container[c] = open_file(param, buffer, filemode );
-                                        c++;
-                                }
-                                buffer[0] = 0;
-                                sprintf (buffer, "%s_un_READ%d.fq",param->outfile,i+1);
-                                file_container[c] = open_file(param, buffer, filemode );
-                                c++;
-                        }
-                }else{
-                        for(i = 0; i < num_out_reads; i++){
-                                for(j = 0; j < num_alternatives - 1;j++){
-                                        buffer[0] = 0;
-                                        sprintf (buffer, "%s_BC_%s.fq",param->outfile,bar_matrix[j]);
-                                        file_container[c] = open_file( param, buffer, filemode );
-                                        c++;
-                                }
-                                buffer[0] = 0;
-                                sprintf (buffer, "%s_un.fq",param->outfile);
-                                file_container[c] = open_file(param, buffer, filemode );
-                                c++;
-                        }
-                }
-        }else{
-                if(num_out_reads > 1){
-                        for(i = 0; i < num_out_reads; i++){
-                                buffer[0] = 0;
-                                sprintf (buffer, "%s_READ%d.fq",param->outfile,i+1);
-                                file_container[c] = open_file(param, buffer, filemode );
-                                c++;
-                                buffer[0] = 0;
-                                sprintf (buffer, "%s_un_READ%d.fq",param->outfile,i+1);
-                                file_container[c] = open_file(param, buffer, filemode );
-                                c++;
-                        }
-                }else{
-                        for(i = 0; i < num_out_reads; i++){
-                                buffer[0] = 0;
-                                sprintf (buffer, "%s.fq",param->outfile);
-                                file_container[c] = open_file(param, buffer, filemode );
-                                c++;
-                                buffer[0] = 0;
-                                sprintf (buffer, "%s_un.fq",param->outfile);
-                                file_container[c] = open_file(param, buffer, filemode );
-                                c++;
-                        }
-                }
-        }
-
-
-
-
-        int g,h;
-        struct read_info* tmp_ri = 0;
-        // loop through numseq, reads  print out.
-        for(i = 0; i < numseq;i++){
-                c = 0;// c is the base file handler. will be incremented to find output file handler
-                for(j = 0; j < param->num_infiles;j++){
-                        if(read_present[j]){
-
-                                if(read_info_container[0][i]->read_type ==  EXTRACT_SUCCESS){
-                                        if(read_info_container[0][i]->barcode != -1){
-                                                f = c + (read_info_container[0][i]->barcode & 0xFF);
-                                        }else{
-                                                f = c + 0;
-                                        }
-                                }else{
-                                        //unextracted - always last alternative..
-                                        f = c + num_alternatives-1;
-                                }
-                                tmp_ri =read_info_container[j][i];
-
-
-                                h =0;
-                                //for(g = 0;g < tmp_ri->len;g++){
-                                //	fprintf
-                                //}
-
-                                for(g = 0;g < tmp_ri->len;g++){
-                                        if(tmp_ri->seq[g]  < 5){
-                                                out_seq_buffer[h] = alphabet[(int) tmp_ri->seq[g]];
-                                                if(tmp_ri->qual){
-                                                        out_qual_buffer[h] =tmp_ri->qual[g];
-                                                }else{
-                                                        out_qual_buffer[h] = '.';
-                                                }
-                                                h++;
-                                        }else{
-                                                if(h){
-                                                        out_seq_buffer[h] = 0;
-                                                        out_qual_buffer[h] = 0;
-                                                        if(tmp_ri->fingerprint != -1){
-                                                                if(param->print_seq_finger){
-                                                                        RUN(get_finger_seq(tmp_ri->fingerprint, finger_seq_buffer));
-                                                                        //if((status = get_finger_seq(tmp_ri->fingerprint, finger_seq_buffer)) != kslOK) KSLIB_XFAIL(kslFAIL,param->errmsg,"Get Fingerprint sequence failed.\n");
-
-                                                                        fprintf(file_container[f], "@%s;FP:%s;RQ:%0.2f\n",tmp_ri->name,finger_seq_buffer,tmp_ri->mapq);
-                                                                }else{
-
-                                                                        fprintf(file_container[f], "@%s;FP:%d;RQ:%0.2f\n",tmp_ri->name,tmp_ri->fingerprint,tmp_ri->mapq);
-                                                                }
-                                                        }else{
-                                                                fprintf(file_container[f], "@%s;RQ:%0.2f\n",tmp_ri->name,tmp_ri->mapq);
-                                                        }
-
-
-                                                        fprintf(file_container[f],"%s\n+\n%s\n",out_seq_buffer,out_qual_buffer);
-
-                                                        f+=num_alternatives;
-                                                        h = 0;
-                                                }
-                                        }
-                                }
-                                if(h){
-                                        out_seq_buffer[h] = 0;
-                                        out_qual_buffer[h] = 0;
-                                        if(tmp_ri->fingerprint != -1){
-                                                if(param->print_seq_finger){
-                                                        RUN(get_finger_seq(tmp_ri->fingerprint, finger_seq_buffer));
-                                                        //if((status = get_finger_seq(tmp_ri->fingerprint, finger_seq_buffer)) != kslOK) KSLIB_XFAIL(kslFAIL,param->errmsg,"Get Fingerprint sequence failed.\n");
-
-                                                        fprintf(file_container[f], "@%s;FP:%s;RQ:%0.2f\n",tmp_ri->name,finger_seq_buffer,tmp_ri->mapq);
-                                                }else{
-                                                        fprintf(file_container[f], "@%s;FP:%d;RQ:%0.2f\n",tmp_ri->name,tmp_ri->fingerprint,tmp_ri->mapq);
-                                                }
-                                        }else{
-                                                fprintf(file_container[f],"@%s;RQ:%0.2f\n",tmp_ri->name,tmp_ri->mapq);
-                                        }
-                                        fprintf(file_container[f],"%s\n+\n%s\n",out_seq_buffer,out_qual_buffer);
-
-                                }
-
-                        }
-                        c+= num_alternatives * read_present[j];
-                }
-        }
-        for(i = 0; i < num_outfiles;i++){
-                fclose(file_container[i]);
-        }
-        MFREE(file_container);
-        // close all file poiters ..
-        MFREE(filemode);
-        MFREE(buffer);
-        MFREE(out_seq_buffer);
-        MFREE(out_qual_buffer);
-        MFREE(finger_seq_buffer);
-        return OK;
-ERROR:
-        return status;
-
-}
-*/
-int get_finger_seq(int key,char* finger_seq_buffer)
-{
-        int i;
-        int len = key & 0xFF;
-        key = key >> 8;
-        finger_seq_buffer[len] = 0;
-        for(i = 0; i < len;i++){
-                finger_seq_buffer[len-i-1] = "ACGTN"[key & 0x3];
-                key = key >> 2;
-        }
-        return OK;
-}
 
 FILE* open_file(struct parameters* param, char* buffer, char* mode)
 {
@@ -1249,7 +818,7 @@ int read_sam_chunk(struct read_info_buffer* rb, struct file_handler* f_handle)//
         int read = 0;
         int c = 0;
         //int hit = 0;
-        int strand = 0;
+        //int strand = 0;
 
         ri = rb->ri;
         rb->num_seq = 0;
@@ -1293,7 +862,7 @@ int read_sam_chunk(struct read_info_buffer* rb, struct file_handler* f_handle)//
                                         switch(column){
                                         case 2: // <FLAG>
                                                 tmp = atoi(line+i+1);
-                                                strand = (tmp & 0x10);
+                                                //strand = (tmp & 0x10);
 
                                                 //WARNING - read should be reverse complemented if mapped to negative strand before tagdusting...
 

@@ -34,6 +34,7 @@
 
 #include "tldevel.h"
 #include "interface.h"
+#include "assign_data.h"
 
 #define LIST_STORE_SIZE 1
 
@@ -167,6 +168,6 @@ FILE* open_file(struct parameters* param, char* buffer, char* mode);
 
 int print_all(struct read_info*** read_info_container,struct parameters* param, int numseq, char*  read_present);
 
-
+extern int write_all(struct assign_struct* as,char* prefix);
 
 #endif
