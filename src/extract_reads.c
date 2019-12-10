@@ -198,6 +198,9 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
 
                 }
                 RUN(post_process_assign(as));
+                for(i = 0; i < 10;i++){
+                        fprintf(stdout,"")
+                }
         }
         free_assign_structure(as);
         for(i = 0; i < param->num_infiles* CHUNKS;i++){
