@@ -43,7 +43,7 @@ n  Initializes nucleotide alphabet needed to parse input. Calls parameter parser
 #define MAX_LINE 10000
 
 
-#define BUFFSIZE 8388608 * 10
+#define BUFFSIZE 67108864
 
 int write_all(const struct assign_struct* as,char* prefix)
 {
@@ -67,6 +67,7 @@ int write_all(const struct assign_struct* as,char* prefix)
         static int called = 0;
 
         DECLARE_TIMER(t1);
+        DECLARE_TIMER(t2);
         /* determing if we should append or overwrite */
         if(!called){
                 file_mode[0] = 'w';
@@ -76,7 +77,7 @@ int write_all(const struct assign_struct* as,char* prefix)
         }
         file_mode[1] = 'b';
         /* if I want more compression ...  */
-        file_mode[2] = 0;//'9';
+        file_mode[2] = '1';//'9';
         file_mode[3] = 0;
 
         MMALLOC(buf, BUFFSIZE);
@@ -92,7 +93,10 @@ int write_all(const struct assign_struct* as,char* prefix)
                         bv = as->bits[i];
                         if(!bv->pass){
                                 if(index){
+                                        START_TIMER(t2);
                                         gzwrite(fp, buf, index);
+                                        STOP_TIMER(t2);
+                                        LOG_MSG("gzwrite took %f",GET_TIMING(t2));
                                         index = 0;
                                 }
                                 /* close file */
@@ -107,7 +111,12 @@ int write_all(const struct assign_struct* as,char* prefix)
                                 //LOG_MSG("New group: %s at %d", dm[bv->sample_group]->name,i);
                                 if(file != -1){
                                         if(index){
+                                                START_TIMER(t2);
                                                 gzwrite(fp, buf, index);
+                                                STOP_TIMER(t2);
+                                                LOG_MSG("gzwrite took %f",GET_TIMING(t2));
+
+
                                                 index = 0;
                                         }
                                         gzclose(fp);
@@ -120,7 +129,13 @@ int write_all(const struct assign_struct* as,char* prefix)
 
                         needed_space = strlen(bv->name) + sb->len*2 + 6; /* 4 because 3 newlines and a '+' */
                         if(index + needed_space >= BUFFSIZE){
+                                START_TIMER(t2);
                                 gzwrite(fp, buf, index);
+                                STOP_TIMER(t2);
+
+                                LOG_MSG("gzwrite took %f",GET_TIMING(t2));
+
+                                                        //gzwrite(fp, buf, index);
                                 /* write */
                                 index = 0;
                         }
@@ -153,7 +168,12 @@ int write_all(const struct assign_struct* as,char* prefix)
                 }
                 if(fp){
                         if(index){
+                                START_TIMER(t2);
                                 gzwrite(fp, buf, index);
+                                STOP_TIMER(t2);
+                                LOG_MSG("gzwrite took %f",GET_TIMING(t2));
+
+                                        //gzwrite(fp, buf, index);
                                 index = 0;
                         }
                         gzclose(fp);
