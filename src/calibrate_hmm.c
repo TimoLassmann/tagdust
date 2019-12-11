@@ -213,7 +213,7 @@ int run_scoring(struct model_bag* mb, struct read_info** ri)
                 RUN(forward_max_posterior_decoding(mb, ri[i], ri[i]->seq ,ri[i]->len));
 
                 pbest = ri[i]->mapq;
-
+                fprintf(stdout,"%d %f\n",i, pbest);
                 pbest = logsum(pbest, mb->f_score);
                 pbest = logsum(pbest, mb->r_score);
 

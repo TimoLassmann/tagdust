@@ -16,11 +16,6 @@
 
 static int process_read(struct read_info* ri, int* label, struct read_structure* rs , struct seq_bit_vec* b , int i_file);
 
-static int post_process_assign(struct assign_struct* as);
-
-static int qsort_seq_bits_by_file(const void *a, const void *b);
-static int qsort_seq_bit_vec(const void *a, const void *b);
-
 
 static int sanity_check_inputs(struct read_info_buffer** rb, int num_files);
 
@@ -139,125 +134,6 @@ ERROR:
         return FAIL;
 }
 
-int post_process_assign(struct assign_struct* as)
-{
-        struct seq_bit_vec* bv = NULL;
-        char* tmp =  NULL;
-        char* barcode;
-        char* umi;
-        int i,j,c,g;
-        int len;
-        int umi_len;
-        for(i = 0; i < as->total;i++){
-                bv = as->bits[i];
-
-                /* qsort by file identifier  */
-
-                qsort(bv->bits, bv->num_bit,sizeof(struct seq_bit*), qsort_seq_bits_by_file);
-                len = 0;
-                umi_len = 0;
-                for(j = 0; j < bv->num_bit;j++){
-                        if(i < 10){
-                                fprintf(stdout,"%d %d %d\n",i,bv->bits[j]->type, bv->bits[j]->file);
-                        }
-                        if(bv->bits[j]->type == BAR_TYPE){
-                                len += strnlen(bv->bits[j]->p,256);
-                                len++;
-
-                        }
-                        if(bv->bits[j]->type == UMI_TYPE){
-
-                                umi_len += bv->bits[j]->len;
-                        }
-
-                }
-                if(len){
-                        tmp = NULL;
-                        MMALLOC(tmp, sizeof(char) * len);
-                        g = 0;
-                        for(j = 0; j < bv->num_bit;j++){
-                                if(bv->bits[j]->type == BAR_TYPE){
-                                        barcode = bv->bits[j]->p;
-                                        len = strnlen(barcode,256);
-                                        for(c = 0; c < len;c++){
-                                                tmp[g] = barcode[c];
-                                                g++;
-                                        }
-                                        tmp[g] = '_';
-                                        g++;
-                                }
-                        }
-                        tmp[g-1] = 0;
-                        bv->bc = tmp;
-                        tmp = NULL;
-                }
-                if(umi_len){
-                        tmp = NULL;
-                        MMALLOC(tmp, sizeof(char) * umi_len);
-                        g = 0;
-                        for(j = 0; j < bv->num_bit;j++){
-                                if(bv->bits[j]->type == UMI_TYPE){
-                                        umi = bv->bits[j]->p;
-                                        len = bv->bits[j]->len;
-                                        for(c = 0; c < len;c++){
-                                                tmp[g] = umi[c];
-                                                g++;
-                                        }
-                                        tmp[g] = '_';
-                                        g++;
-                                }
-                        }
-                        tmp[g-1] = 0;
-                        bv->umi = tmp;
-                        tmp = NULL;
-                }
-
-        }
-        qsort(as->bits,as->total,sizeof(struct seq_bit_vec*) , qsort_seq_bit_vec);
-        return OK;
-ERROR:
-        return FAIL;
-}
-
-int qsort_seq_bits_by_file(const void *a, const void *b)
-{
-        const struct seq_bit **elem1 = (const struct seq_bit**) a;
-        const struct seq_bit **elem2 = (const struct seq_bit**) b;
-        if((*elem1)->type > (*elem2)->type){
-                return 1;
-        }else if((*elem1)->type < (*elem2)->type){
-                return -1;
-        }else{
-                if ( (*elem1)->file > (*elem2)->file){
-                        return 1;
-                }else if ((*elem1)->file < (*elem2)->file){
-                        return -1;
-                }else{
-                        return 0;
-                }
-        }
-}
-
-int qsort_seq_bit_vec(const void *a, const void *b)
-{
-        const struct seq_bit_vec **elem1 = (const struct seq_bit_vec**) a;
-        const struct seq_bit_vec **elem2 = (const struct seq_bit_vec**) b;
-        if ( (*elem1)->pass > (*elem2)->pass){
-                return -1;
-        }else if ((*elem1)->pass < (*elem2)->pass){
-                return 1;
-        }else{
-                int c;
-                c = strcmp((*elem1)->bc, (*elem2)->bc);
-                if(c < 0){
-                        return -1;
-
-                }else if (c >= 0){
-                        return 1;
-                }
-                return 0;
-        }
-}
 
 
 int run_extract( struct assign_struct* as,  struct read_info_buffer** rb, struct arch_library* al, struct seq_stats* si,int i_file,int i_chunk)

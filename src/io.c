@@ -35,28 +35,19 @@ n  Initializes nucleotide alphabet needed to parse input. Calls parameter parser
 #endif
 
 #include "tldevel.h"
-
-//#include "interface.h"
 #include "nuc_code.h"
-//#include "misc.h"
-
 #include "io.h"
 
-
-
-
 #define MAX_LINE 10000
-
 
 int write_all(struct assign_struct* as,char* prefix)
 {
         char filename[256];
         char alphabet[] = "ACGTNN";
         int i,j,gg;
-
-
         /* should check before running if files exist */
         for(i = 0; i < as->total;i++){
+
                 fprintf(stdout,"READ %d %s (PASS: %d)  ",i, as->bits[i]->name, as->bits[i]->pass);
                 for(j = 0; j < as->num_files;j++){
 
@@ -65,7 +56,7 @@ int write_all(struct assign_struct* as,char* prefix)
                 fprintf(stdout,"\n");
 
                 fprintf(stdout,"%s\n%s\n", as->bits[i]->name,as->bits[i]->bc);
-                for(j = 0; j < as->bits[i]->num_bit;j++){
+                /*for(j = 0; j < as->bits[i]->num_bit;j++){
                         switch(as->bits[i]->bits[j]->type){
                         case READ_TYPE:
                                 fprintf(stdout,"READ (file: %d): ", as->bits[i]->bits[j]->file);
@@ -94,7 +85,7 @@ int write_all(struct assign_struct* as,char* prefix)
                                 fprintf(stdout,"\n");
                                 break;
                         }
-                }
+                        }*/
         }
         return OK;
 }

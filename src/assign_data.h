@@ -34,10 +34,15 @@ struct assign_struct{
         int total;
 };
 
+
+
 extern int init_assign_structure(struct assign_struct** assign,struct arch_library* al, int total);
 //extern int alloc_assign_structure(struct assign_struct** assign,int num_files);
 extern int set_up_assign_structure(struct arch_library* al,struct assign_struct* as);
 extern void free_assign_structure(struct assign_struct* as);
+
+
+extern int post_process_assign(struct assign_struct* as);
 
 
 
