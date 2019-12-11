@@ -63,7 +63,6 @@ int write_all(const struct assign_struct* as,char* prefix)
 
         int needed_space;
 
-
         static int called = 0;
 
         DECLARE_TIMER(t1);
@@ -2004,7 +2003,6 @@ int main (int argc,char * argv[]) {
         name1[0] = 0;
         name2[0] = 0;
 
-
         sprintf (name1, "HWUSI-EAS747_0040_FC64GRTAAXX:8:1:3268:1065#0/1");
         sprintf (name2, "HWUSI-EAS747_0040_FC64GRTAAXX:8:1:3268:1065#0/2");
         i = compare_read_names(param, name1, name2);
@@ -2017,8 +2015,6 @@ int main (int argc,char * argv[]) {
                 free_param(param);
                 exit(EXIT_FAILURE);
         }
-
-
 
         MFREE(name1);
         MFREE(name2);

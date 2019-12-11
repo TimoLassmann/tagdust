@@ -8,7 +8,11 @@
 #include "misc.h"
 
 
-
+/* Logic for banding */
+        /* int beg = 1, end = l_ref, x; */
+        /* uint8_t qyi = query[i - 1]; */
+        /* x = i - bw; beg = beg > x? beg : x; // band start */
+        /* x = i + bw; end = end < x? end : x; // band end */
 
 
 int backward(struct model_bag* mb,const char* a,const int len)
@@ -41,6 +45,7 @@ int backward(struct model_bag* mb,const char* a,const int len)
         for(j = 0; j < mb->num_models;j++){
                 for(f = 0;f < mb->model[j]->num_hmms;f++){
                         model_len = mb->model[j]->hmms[f]->num_columns-1;
+
                         for(g = 0;g < mb->model[j]->hmms[f]->num_columns;g++){
                                 c_hmm_column = mb->model[j]->hmms[f]->hmm_column[g];
                                 for(i = 0; i <= len+1;i++){
