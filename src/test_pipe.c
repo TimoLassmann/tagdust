@@ -15,9 +15,10 @@ int main ()
         char* buf = malloc(BUFFSIZE);
         char* wb;
         int i;
+
+
         gzFile fp;
         fp = gzopen("testzlib.gz", "wb");
-
 
 
         int index = 0;
@@ -28,6 +29,7 @@ int main ()
                 fprintf(stdout,"Space: %d\n", BUFFSIZE-index);
                 c = snprintf(buf+index,BUFFSIZE-index, "%d,",i);
 
+                //If the output was truncated due to this limit then the return value is the number of characters (excluding the terminating null byte) which would have been written to the final string if enough space had been available
                 if(c > BUFFSIZE-index){
                         fprintf(stdout,"No space!\n");
                         fprintf(stdout,"%s\n",buf);

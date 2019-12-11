@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"

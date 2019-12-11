@@ -10,8 +10,8 @@
 
 #include "tllogsum.h"
 
-#define READ_CHUNK_SIZE 30000
-#define CHUNKS 5
+#define READ_CHUNK_SIZE 100000
+#define CHUNKS 10
 
 
 static int process_read(struct read_info* ri, int* label, struct read_structure* rs , struct seq_bit_vec* b , int i_file);
@@ -33,7 +33,7 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
         int total_read;
 
         /* figure out how many barcodes etc */
-        RUN(init_assign_structure(&as, al, si->ssi[0]->total_num_seq));
+        RUN(init_assign_structure(&as, al,   CHUNKS* READ_CHUNK_SIZE));
         //RUN(galloc(&as->assignment, as->total, as->num_barcodes));
         /* not sure if this is required  */
         //exit(0);
@@ -48,6 +48,7 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
         LOG_MSG("Got here");
         MMALLOC(rb, sizeof(struct read_info_buffer*) * param->num_infiles * CHUNKS);
         MMALLOC(f_hand, sizeof(struct file_handler*) * param->num_infiles);
+
         for(i = 0; i < param->num_infiles;i++){
                 f_hand[i] = NULL;
                 RUN(io_handler(&f_hand[i], param->infile[i]));
@@ -61,7 +62,10 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
         while(1){
                 /* read everything in  */
                 total_read = 0;
-
+                for(i = 0; i < param->num_infiles * CHUNKS;i++){
+                        rb[i]->offset = 0;
+                        rb[i]->num_seq = 0;
+                }
                 for(i = 0; i < param->num_infiles;i++){
 
                         if(f_hand[i]->sam == 0){
@@ -85,12 +89,13 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
                 /* Assign name to assign struct  */
                 //for(i = 0; i < param->num_infiles;i++){
                 i = 0;
-                        for(j = 0; j < CHUNKS;j++){
-                                for(c = 0;c < rb[j]->num_seq;c++){
-                                        as->bits[i]->name = rb[j]->ri[c]->name;
-                                        i++;
-                                }
+                for(j = 0; j < CHUNKS;j++){
+                        for(c = 0;c < rb[j]->num_seq;c++){
+                                as->bits[i]->name = rb[j]->ri[c]->name;
+                                i++;
                         }
+                }
+                as->num_reads = i;
                         //}
                 //if(!  )
                 if(!total_read){
@@ -113,9 +118,12 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
                         }
                 }
 
+                #pragma omp barrier
                 RUN(post_process_assign(as));
 
                 RUN(write_all(as, param->outfile));
+                RUN(reset_assign_structute(as));
+
         }
         free_assign_structure(as);
         for(i = 0; i < param->num_infiles* CHUNKS;i++){
@@ -158,15 +166,17 @@ int run_extract( struct assign_struct* as,  struct read_info_buffer** rb, struct
         ri = rb[c]->ri;
 
         seq_offset = rb[c]->offset;
-        LOG_MSG("Working on file: %d  (%d seq) offset: %d",i_file,num_seq,rb[c]->offset);
+
+        //int tid = omp_get_thread_num();
 
         //LOG_MSG("Offset = %d",
         for(i = 0; i < num_seq;i++){
+                //LOG_MSG("%d f:%d  on %d", tid,i_file,i);
                 RUN(backward(mb, ri[i]->seq,ri[i]->len));
                 RUN(forward_max_posterior_decoding(mb, ri[i], ri[i]->seq ,ri[i]->len));
 
-                pbest = ri[i]->mapq;
-
+                //pbest = ri[i]->mapq;
+                pbest = prob2scaledprob(0.0f);
                 pbest = logsum(pbest, mb->f_score);
                 pbest = logsum(pbest, mb->r_score);
 
@@ -186,14 +196,17 @@ int run_extract( struct assign_struct* as,  struct read_info_buffer** rb, struct
                 as->bits[seq_offset+i]->Q[i_file] = Q;
 
 
-                if(Q < al->confidence_thresholds[i_file]){
+                //if(Q < al->confidence_thresholds[i_file]){
                         //fprintf(stdout,"File:%d %f %f\n",i_file, Q, al->confidence_thresholds[i_file]);
-                        as->bits[seq_offset+i]->pass = 0;
-                }
+                        //as->bits[seq_offset+i]->pass = 0;
+                //}
                 //tmp_bar = as->assignment[seq_offset + i] + assign_offset;
                 //print_labelled_reads(mb,data->param ,ri[i]);
                 //RUN(extract_reads(mb,data->param,ri[i]));
                 //RUN(analyze_and_extract_reads(as,mb, al->read_structure[i_hmm], ri[i], i_file, al->confidence_thresholds[i_file]));
+                //LOG_MSG("i:%d, seqoff = %d",i, seq_offset);
+                //LOG_MSG("t: %d Working on file: %d  %d (%d seq) offset: %d",tid, i_file,i,num_seq,rb[c]->offset);
+
                 RUN(process_read(ri[i], mb->label,al->read_structure[i_hmm], as->bits[seq_offset+i],i_file));
         }
         free_model_bag(mb);
@@ -212,14 +225,24 @@ int process_read(struct read_info* ri, int* label, struct read_structure* rs , s
         int segment;
         int hmm_in_segment;
         int c1;
-        int umi;
-        int umi_len;
-        int s_pos = 0;
+        //int umi;
+        //int umi_len;
+        //int s_pos = 0;
         int len = ri->len;
         char old = '?';
+        int local_bit_index;
 
         read_label = ri->labels+1;
         type = rs->type;
+
+        local_bit_index = 0;
+        for(j = 0; j < b->num_bit;j++){
+                sb = b->bits[j];
+                if(sb->file == i_file){
+                        local_bit_index = j;
+                        break;
+                }
+        }
         //assign_offset = as->num_per_file[i_file];
         for(j = 0; j < len;j++){
                 c1 = label[(int)read_label[j]];
@@ -229,38 +252,41 @@ int process_read(struct read_info* ri, int* label, struct read_structure* rs , s
                 switch (c) {
                 case 'F':
                         if(c != old){
-                                sb = b->bits[b->num_bit];
+                                sb = b->bits[local_bit_index];
                                 sb->len = 0;
-                                sb->file = i_file;
+                                ASSERT(i_file == sb->file, "Oh dear: want %d got %d",i_file,sb->file);
+                                //sb->file = i_file;
                                 sb->type = UMI_TYPE;
                                 sb->p = ri->seq+j;
-                                b->num_bit++;
+                                local_bit_index++;
                         }
 
-                        umi_len++;
-                        umi = (umi << 2 )|  (ri->seq[j] & 0x3);
-                        ri->seq[s_pos] = 65; // 65 is the spacer! nucleotides are 0 -5....
-                        ri->qual[s_pos] = 65;
+                        //umi_len++;
+                        //umi = (umi << 2 )|  (ri->seq[j] & 0x3);
+                        //ri->seq[s_pos] = 65; // 65 is the spacer! nucleotides are 0 -5....
+                        //ri->qual[s_pos] = 65;
                         break;
                 case 'B':
                         if(c != old){
-                                sb = b->bits[b->num_bit];
+                                sb = b->bits[local_bit_index];
                                 sb->len = 0;
-                                sb->file = i_file;
+                                ASSERT(i_file == sb->file, "Oh dear: want %d got %d",i_file,sb->file);
+                                //sb->file = i_file;
                                 sb->type = BAR_TYPE;
                                 sb->p = rs->sequence_matrix[segment][hmm_in_segment];
-                                b->num_bit++;
+                                local_bit_index++;
                         }
                         break;
                 case 'R':
                         if(c != old){
-                                sb = b->bits[b->num_bit];
+                                sb = b->bits[local_bit_index];
                                 sb->len = 0;
-                                sb->file = i_file;
+                                ASSERT(i_file == sb->file, "Oh dear: want %d got %d",i_file,sb->file);
+                                //sb->file = i_file;
                                 sb->type = READ_TYPE;
                                 sb->p = ri->seq + j;
                                 sb->q = ri->qual + j;
-                                b->num_bit++;
+                                local_bit_index++;
                         }
                         sb->len++;
                         break;
@@ -269,8 +295,10 @@ int process_read(struct read_info* ri, int* label, struct read_structure* rs , s
                 }
                 old = c;
         }
-        ri->len = s_pos;
+        //ri->len = s_pos;
         return OK;
+ERROR:
+        return FAIL;
 }
 
 

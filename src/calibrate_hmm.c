@@ -174,7 +174,7 @@ int generate_test_sequences(struct read_info*** ri_b, struct model_bag* mb,int a
         int i,j;
 
 
-        RUNP(rng = init_rng(0));
+        RUNP(rng = init_rng(42));
         RUNP(ri = malloc_read_info(ri,NUM_TEST_SEQ));
         RUNP(ri = clear_read_info(ri,NUM_TEST_SEQ));
         //LOG_MSG("target: %d", average_length);
@@ -212,8 +212,8 @@ int run_scoring(struct model_bag* mb, struct read_info** ri)
                 RUN(backward(mb, ri[i]->seq,ri[i]->len));
                 RUN(forward_max_posterior_decoding(mb, ri[i], ri[i]->seq ,ri[i]->len));
 
-                pbest = ri[i]->mapq;
-                fprintf(stdout,"%d %f\n",i, pbest);
+                pbest = prob2scaledprob(0.0f);
+                //fprintf(stdout,"%d %f\n",i, pbest);
                 pbest = logsum(pbest, mb->f_score);
                 pbest = logsum(pbest, mb->r_score);
 

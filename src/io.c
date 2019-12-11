@@ -30,6 +30,8 @@ n  Initializes nucleotide alphabet needed to parse input. Calls parameter parser
 #include <unistd.h>
 #include <string.h>
 
+#include <zlib.h>
+
 #if HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -40,54 +42,135 @@ n  Initializes nucleotide alphabet needed to parse input. Calls parameter parser
 
 #define MAX_LINE 10000
 
-int write_all(struct assign_struct* as,char* prefix)
+
+#define BUFFSIZE 8388608
+
+int write_all(const struct assign_struct* as,char* prefix)
 {
+        gzFile fp = NULL;
+        struct demux_struct** dm;
+        struct seq_bit_vec* bv;
+        struct seq_bit*sb;
+
+        char* buf = NULL;
+        char file_mode[4];
         char filename[256];
         char alphabet[] = "ACGTNN";
-        int i,j,gg;
-        /* should check before running if files exist */
-        for(i = 0; i < as->total;i++){
+        int out_read,i,j;
+        int file = -1;
 
-                fprintf(stdout,"READ %d %s (PASS: %d)  ",i, as->bits[i]->name, as->bits[i]->pass);
-                for(j = 0; j < as->num_files;j++){
+        int index;
 
-                        fprintf(stdout,"%f ", as->bits[i]->Q[j]);
-                }
-                fprintf(stdout,"\n");
+        int needed_space;
 
-                fprintf(stdout,"%s\n%s\n", as->bits[i]->name,as->bits[i]->bc);
-                /*for(j = 0; j < as->bits[i]->num_bit;j++){
-                        switch(as->bits[i]->bits[j]->type){
-                        case READ_TYPE:
-                                fprintf(stdout,"READ (file: %d): ", as->bits[i]->bits[j]->file);
-                                for(gg = 0; gg < as->bits[i]->bits[j]->len;gg++){
-                                        fprintf(stdout,"%c", alphabet[(int)as->bits[i]->bits[j]->p[gg]]);
+
+        static int called = 0;
+
+
+        DECLARE_TIMER(t1);
+        /* determing if we should append or overwrite */
+        if(!called){
+                file_mode[0] = 'w';
+                called = 1;
+        }else{
+                file_mode[0] = 'a';
+        }
+        file_mode[1] = 'b';
+        /* if I want more compression ...  */
+        file_mode[2] = 0;//'9';
+        file_mode[3] = 0;
+
+        MMALLOC(buf, BUFFSIZE);
+        index =0;
+
+        dm = (struct demux_struct**)as->demux_names->data_nodes;
+
+        START_TIMER(t1);
+        for(out_read = 0; out_read < as->out_reads;out_read++){
+                LOG_MSG("OUT:%d: mode: %s",out_read, file_mode);
+                file = -1;
+                for(i = 0; i < as->num_reads ;i++){
+                        bv = as->bits[i];
+                        if(!bv->pass){
+                                if(index){
+                                        gzwrite(fp, buf, index);
+                                        index = 0;
                                 }
-                                fprintf(stdout,"\n");
-                                fprintf(stdout,"QUAL (file: %d): ", as->bits[i]->bits[j]->file);
-                                for(gg = 0; gg < as->bits[i]->bits[j]->len;gg++){
-                                        fprintf(stdout,"%c",as->bits[i]->bits[j]->q[gg]);
-                                }
-                                fprintf(stdout,"\n");
-                                break;
-                        case BAR_TYPE:
-                                fprintf(stdout,"BAR (file: %d): ", as->bits[i]->bits[j]->file);
-                                fprintf(stdout,"%s  and then...:", as->bits[i]->bits[j]->p);
-
-                                fprintf(stdout,"\n");
-                                break;
-                        case UMI_TYPE:
-                                fprintf(stdout,"UMI (file: %d): ", as->bits[i]->bits[j]->file);
-
-                                for(gg = 0; gg < as->bits[i]->bits[j]->len;gg++){
-                                        fprintf(stdout,"%c", alphabet[(int)as->bits[i]->bits[j]->p[gg]]);
-                                }
-                                fprintf(stdout,"\n");
+                                /* close file */
+                                gzclose(fp);
+                                fp = NULL;
                                 break;
                         }
-                        }*/
+
+                        sb = bv->bits[out_read];
+                        /* check if we should write to new file */
+                        if(dm[bv->sample_group]->id != file){
+                                LOG_MSG("New group: %s at %d", dm[bv->sample_group]->name,i);
+                                if(file != -1){
+                                        if(index){
+                                                gzwrite(fp, buf, index);
+                                                index = 0;
+                                        }
+                                        gzclose(fp);
+                                }
+                                snprintf(filename, 256, "%s_%s_R%d.fastg.gz", prefix, dm[bv->sample_group]->name,out_read+1);
+                                RUNP(fp = gzopen(filename, file_mode));
+                                file = dm[bv->sample_group]->id;
+                        }
+
+
+                        needed_space = strlen(bv->name) + sb->len*2 + 6; /* 4 because 3 newlines and a '+' */
+                        if(index + needed_space >= BUFFSIZE){
+                                gzwrite(fp, buf, index);
+                                /* write */
+                                index = 0;
+                        }
+                        buf[index] = '@';
+                        index++;
+
+                        j = snprintf(buf+index, BUFFSIZE - index, "%s\n", bv->name);
+                        index += j;
+                        for(j = 0; j < sb->len;j++){
+                                buf[index] =alphabet[(int)sb->p[j]];
+                                index++;
+                                //fprintf(stdout,"%c", alphabet[(int)sb->p[j]]);
+                        }
+
+
+                        buf[index] = '\n';
+                        buf[index+1] = '+';
+                        buf[index+2] = '\n';
+                        index += 3;
+                        for(j = 0; j < sb->len;j++){
+                                buf[index] = sb->q[j];
+                                index++;
+                                //fprintf(stdout,"%c", alphabet[(int)sb->p[j]]);
+                        }
+                        buf[index] = '\n';
+                        index++;
+
+
+
+                }
+                if(fp){
+                        if(index){
+                                gzwrite(fp, buf, index);
+                                index = 0;
+                        }
+                        gzclose(fp);
+                        fp = NULL;
+                }
+
         }
+
+        STOP_TIMER(t1);
+        LOG_MSG("took %f",GET_TIMING(t1));
+
+
+        MFREE(buf);
         return OK;
+ERROR:
+        return FAIL;
 }
 
 

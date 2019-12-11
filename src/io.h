@@ -168,6 +168,6 @@ FILE* open_file(struct parameters* param, char* buffer, char* mode);
 
 int print_all(struct read_info*** read_info_container,struct parameters* param, int numseq, char*  read_present);
 
-extern int write_all(struct assign_struct* as,char* prefix);
+extern int write_all(const struct assign_struct* as,char* prefix);
 
 #endif

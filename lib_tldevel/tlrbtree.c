@@ -26,6 +26,8 @@ struct rbtree_node{
         unsigned int num;
 };
 
+
+
 static struct rbtree_root* flatten_tree_worker(struct rbtree_root* root,struct rbtree_node* n);
 static struct rbtree_node* search_node(struct rbtree_root* root, struct rbtree_node* n,void* key);
 static struct rbtree_node* insert_val_start(struct rbtree_root* root, struct rbtree_node* n,void* datanode);
@@ -39,6 +41,8 @@ static void print_tree(struct rbtree_root* root,FILE* out_ptr);
 static int flatten_tree(struct rbtree_root* root);
 static void* tree_get_data(struct rbtree_root* root, void* key);
 static struct rbtree_node* tree_get_node(struct rbtree_root* root, void* key);
+
+
 
 int rank(struct rbtree_node* n);
 static struct rbtree_node* set_num(struct rbtree_node* n);
@@ -693,7 +697,6 @@ int main (int argc,char * argv[])
         fp_cmp = &compare_name;
         fp_print = &print_test_struct;
         fp_cmp_same = &resolve_default;
-
         fp_free = &free_test_struct;
 
         root = init_tree(fp_get,fp_cmp,fp_cmp_same,fp_print,fp_free);
