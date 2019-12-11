@@ -43,7 +43,7 @@ n  Initializes nucleotide alphabet needed to parse input. Calls parameter parser
 #define MAX_LINE 10000
 
 
-#define BUFFSIZE 8388608
+#define BUFFSIZE 8388608 * 10
 
 int write_all(const struct assign_struct* as,char* prefix)
 {
@@ -66,7 +66,6 @@ int write_all(const struct assign_struct* as,char* prefix)
 
         static int called = 0;
 
-
         DECLARE_TIMER(t1);
         /* determing if we should append or overwrite */
         if(!called){
@@ -87,7 +86,7 @@ int write_all(const struct assign_struct* as,char* prefix)
 
         START_TIMER(t1);
         for(out_read = 0; out_read < as->out_reads;out_read++){
-                LOG_MSG("OUT:%d: mode: %s",out_read, file_mode);
+                //LOG_MSG("OUT:%d: mode: %s",out_read, file_mode);
                 file = -1;
                 for(i = 0; i < as->num_reads ;i++){
                         bv = as->bits[i];
@@ -105,7 +104,7 @@ int write_all(const struct assign_struct* as,char* prefix)
                         sb = bv->bits[out_read];
                         /* check if we should write to new file */
                         if(dm[bv->sample_group]->id != file){
-                                LOG_MSG("New group: %s at %d", dm[bv->sample_group]->name,i);
+                                //LOG_MSG("New group: %s at %d", dm[bv->sample_group]->name,i);
                                 if(file != -1){
                                         if(index){
                                                 gzwrite(fp, buf, index);

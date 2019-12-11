@@ -12,7 +12,7 @@
 #include "core_hmm_functions.h"
 
 
-#define NUM_TEST_SEQ 1000
+#define NUM_TEST_SEQ 100000
 
 
 static int generate_test_sequences(struct read_info*** ri_b, struct model_bag* mb,int average_length);

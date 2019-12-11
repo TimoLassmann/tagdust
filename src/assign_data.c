@@ -426,7 +426,7 @@ int set_up_barcode_files(struct arch_library* al, struct assign_struct* as)
                 //fprintf(stdout,"\n");
         }
         //}
-        root->print_tree(root,NULL);
+        //root->print_tree(root,NULL);
 
 
         //tmp_ptr =  root->tree_get_data(root, "ACTTGA_ACAGTG_TTAGGC");
@@ -440,7 +440,7 @@ int set_up_barcode_files(struct arch_library* al, struct assign_struct* as)
 
                 tmp_ptr = root->data_nodes[f];
                 tmp_ptr->id = f;
-                fprintf(stdout,"%s %d\n",tmp_ptr->name,tmp_ptr->count);
+                //fprintf(stdout,"%s %d\n",tmp_ptr->name,tmp_ptr->count);
         }
         //root->free_tree(root);
         as->demux_names = root;

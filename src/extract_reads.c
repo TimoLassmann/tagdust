@@ -32,6 +32,8 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
         int i,j,c;
         int total_read;
 
+        DECLARE_TIMER(t1);
+
         /* figure out how many barcodes etc */
         RUN(init_assign_structure(&as, al,   CHUNKS* READ_CHUNK_SIZE));
         //RUN(galloc(&as->assignment, as->total, as->num_barcodes));
@@ -45,7 +47,7 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
         ASSERT(al != NULL, "No arch library");
         ASSERT(si != NULL, "no seq stats");
 
-        LOG_MSG("Got here");
+        //LOG_MSG("Got here");
         MMALLOC(rb, sizeof(struct read_info_buffer*) * param->num_infiles * CHUNKS);
         MMALLOC(f_hand, sizeof(struct file_handler*) * param->num_infiles);
 
@@ -78,7 +80,7 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
                                 rb[i* CHUNKS + CHUNKS-1]->offset
                                 + rb[i* CHUNKS + CHUNKS-1]->num_seq;
                         for(j = 0; j < CHUNKS;j++){
-                                LOG_MSG("Reading %d chunk %d ->%d", i,j, i + j * param->num_infiles);
+                                //LOG_MSG("Reading %d chunk %d ->%d", i,j, i + j * param->num_infiles);
                                 RUN(fp(rb[i * CHUNKS + j],f_hand[i]));//  param,file,&numseq));
                                 total_read += rb[i* CHUNKS + j]->num_seq;
                         }
@@ -110,6 +112,8 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
                 fflush(stdout);
                 /* extract reads  */
 
+                START_TIMER(t1);
+
 #pragma omp parallel default(shared)
 #pragma omp for collapse(2) private(i, j)
                 for(i = 0; i < param->num_infiles;i++){
@@ -121,6 +125,8 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
                 #pragma omp barrier
                 RUN(post_process_assign(as));
 
+                STOP_TIMER(t1);
+                LOG_MSG("Took %f ",GET_TIMING(t1));
                 RUN(write_all(as, param->outfile));
                 RUN(reset_assign_structute(as));
 

@@ -9,7 +9,7 @@
 
 #include <omp.h>
 
-#define NUM_TEST_SEQ 1000
+#define NUM_TEST_SEQ 100000
 
 
 static int test_arch(struct read_info_buffer** rb, struct arch_library* al, struct seq_stats* si,int file,int hmm);
