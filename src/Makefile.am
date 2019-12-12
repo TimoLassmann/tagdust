@@ -145,8 +145,26 @@ TESTS_ENVIRONMENT = \
          export devdir; \
 	$(VALGRIND)
 
-check_PROGRAMS = arch_lib_test interface_test io_hdf5_test zwrite
+check_PROGRAMS = arch_lib_test interface_test io_hdf5_test zwrite core_hmm_test
 
+
+core_hmm_test_SOURCES = \
+misc.h \
+misc.c \
+arch_lib.h \
+arch_lib.c \
+seq_stats.h \
+seq_stats.c \
+hmm.h \
+init_hmm.h \
+init_hmm.c \
+hmm_model_bag.h \
+hmm_model_bag.c \
+core_hmm_functions.h \
+core_hmm_functions.c 
+
+
+core_hmm_test_CPPFLAGS = $(AM_CPPFLAGS) -DCORE_HMM_TEST
 
 io_hdf5_test_SOURCES = \
 io_hdf5.h \

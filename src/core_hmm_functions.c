@@ -8,17 +8,10 @@
 #include "misc.h"
 
 
-/* Logic for banding */
-        /* int beg = 1, end = l_ref, x; */
-        /* uint8_t qyi = query[i - 1]; */
-        /* x = i - bw; beg = beg > x? beg : x; // band start */
-        /* x = i + bw; end = end < x? end : x; // band end */
-
-
 int backward(struct model_bag* mb,const char* a,const int len)
 {
         int i,j;
-        int f,g;
+        int f,g,c;
 
         int model_len = 0;
 
@@ -38,14 +31,9 @@ int backward(struct model_bag* mb,const char* a,const int len)
 
         const char* seqa = a -1;
 
-        int c;
-
-        //init - len+1 set to zero....
-
         for(j = 0; j < mb->num_models;j++){
                 for(f = 0;f < mb->model[j]->num_hmms;f++){
                         model_len = mb->model[j]->hmms[f]->num_columns-1;
-
                         for(g = 0;g < mb->model[j]->hmms[f]->num_columns;g++){
                                 c_hmm_column = mb->model[j]->hmms[f]->hmm_column[g];
                                 for(i = 0; i <= len+1;i++){
@@ -65,12 +53,12 @@ int backward(struct model_bag* mb,const char* a,const int len)
         }
         previous_silent[len+1] = prob2scaledprob(1.0f);
 
+
         mb->model[mb->num_models-1]->silent_backward[len+1] = prob2scaledprob(1.0) + mb->model[mb->num_models-1]->skip;
 
         for(j = mb->num_models-2 ; j >= 0;j--){
                 mb->model[j]->silent_backward[len+1] = mb->model[j+1]->silent_backward[len+1] + mb->model[j]->skip;
         }
-
 
         //start with last segment...
         for(j = mb->num_models-1 ; j >= 0;j--){
@@ -92,9 +80,7 @@ int backward(struct model_bag* mb,const char* a,const int len)
                                 //for(i = len-1 ; i >= 0;i--){ /// DONT MESS WITH THIS - the code takes the first letter to calculate the silent states - EVERYHTHIN is ok..
                                 // in the last column an I state will emit a letter not present in the seuqence BUT this will not make it when joined to the forward... messy but works.
                                 //	c = (int) seqa[i+1];
-
                                 c = (int)seqa[i+1];
-
                                 c_hmm_column = hmm->hmm_column[model_len];
 
                                 //c_hmm_column->M_backward[i] = psilent[i+1] + mb->model[j]->M_to_silent[f] ;
@@ -1890,3 +1876,97 @@ int emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_le
 ERROR:
         return FAIL;
 }
+
+
+
+
+#ifdef CORE_HMM_TEST
+
+#include "arch_lib.h"
+
+#include "hmm_model_bag.h"
+
+#include "seq_stats.h"
+
+int default_ssi(struct sequence_stats_info** seq_info);
+int default_ssi(struct sequence_stats_info** seq_info)
+{
+        struct sequence_stats_info* ssi = NULL;
+
+        MMALLOC(ssi, sizeof (struct sequence_stats_info));
+        ssi->average_length = 500;
+        ssi->background[0] = prob2scaledprob(0.25);
+        ssi->background[1] = prob2scaledprob(0.25);
+        ssi->background[2] = prob2scaledprob(0.25);
+        ssi->background[3] = prob2scaledprob(0.25);
+        ssi->background[4] = prob2scaledprob(0.0);
+        ssi->expected_3_len = NULL;
+        ssi->expected_5_len = NULL;
+        MMALLOC(ssi->expected_3_len,sizeof(double));
+        MMALLOC(ssi->expected_5_len,sizeof(double));
+        ssi->expected_3_len[0]  = 0;
+        ssi->expected_5_len[0]  = 0;
+        ssi->total_num_seq = 1;
+        ssi->max_seq_len = 500;
+        *seq_info = ssi;
+        return OK;
+ERROR:
+        return FAIL;
+}
+
+int main(int argc, char *argv[])
+{
+        struct arch_library* al = NULL;
+        struct model_bag* mb = NULL;
+        struct sequence_stats_info* ssi = NULL;
+        char* in[] = {
+                //"O:N",
+                "B:GTA,AAC",
+                "R:N",
+                "L:CCTTAA",
+                "B:ACAGTG,ACTTGA,TTAGGC"
+        };
+        char* seq = NULL;
+        int seq_len = 30;
+        int size;
+        int i;
+
+        init_logsum();
+
+        RUN(default_ssi(&ssi));
+
+        RUN(alloc_arch_lib(&al));
+
+        size= sizeof(in) / sizeof(char*);
+
+        read_arch_into_lib(al, in, size);
+        LOG_MSG("Read in %d architectures.",al->num_arch);
+
+        MMALLOC(seq, sizeof(char) * (seq_len+1));
+        for(i = 0; i < seq_len;i++){
+                seq[i] = i % 4;
+
+        }
+        seq[seq_len] =0;
+
+        fflush(stdout);
+
+        RUNP( mb = init_model_bag(al->read_structure[1], ssi, 0));
+
+
+        backward(mb, seq, seq_len);
+
+        fprintf(stdout,"Score: %f\n", mb->b_score);
+
+        free_model_bag(mb);
+        MFREE(seq);
+        free_arch_lib(al);
+        MFREE(ssi->expected_5_len);
+        MFREE(ssi->expected_3_len);
+        MFREE(ssi);
+        return EXIT_SUCCESS;
+ERROR:
+        free_arch_lib(al);
+        return EXIT_FAILURE;
+}
+#endif
