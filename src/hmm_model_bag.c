@@ -76,7 +76,7 @@ struct model_bag* init_model_bag(struct read_structure* rs,const struct sequence
 
         for(i = 0; i < mb->num_models;i++){
                 //RUNP(mb->model[i] = malloc_model_according_to_read_structure(rs->numseq_in_segment[i],(int)strlen(rs->sequence_matrix[i][0]),mb->current_dyn_length));
-
+                //LOG_MSG("Allocing segment %d %d", i, rs->segment_length[i]);
                 RUNP(mb->model[i] = malloc_model_according_to_read_structure(rs->numseq_in_segment[i], rs->segment_length[i],mb->current_dyn_length));
                 segment_length = 0;
                 if(rs->type[i] == 'G'){

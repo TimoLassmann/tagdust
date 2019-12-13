@@ -379,11 +379,13 @@ int set_up_barcode_files(struct arch_library* al, struct assign_struct* as)
                                                 }
                                                 MMALLOC(tmp_ptr, sizeof(struct demux_struct));
                                                 tmp_ptr->name = NULL;
-                                                MMALLOC(tmp_ptr->name,sizeof(uint8_t) * (len+1));
+                                                MMALLOC(tmp_ptr->name,sizeof(char) * (len+1));
                                                 //for(f = 0;f < len;f++){
                                                 //tmp_ptr->name =
                                                 //}
                                                 strncpy(tmp_ptr->name, (char*)read_structure->sequence_matrix[j][g], len+1);
+
+                                                tmp_ptr->name[len] =0;
                                                 //snprintf(sample1->name , 10,"ABBBB");
                                                 tmp_ptr->id = 0;
                                                 tmp_ptr->count = 0;
@@ -414,6 +416,7 @@ int set_up_barcode_files(struct arch_library* al, struct assign_struct* as)
                                                         MMALLOC(new_ptr->name,sizeof(char) * (len+1));
 
                                                         snprintf(new_ptr->name, len, "%s_%s",tmp_ptr->name,read_structure->sequence_matrix[j][g]);
+                                                        tmp_ptr->name[len] =0;
                                                         //snprintf(sample1->name , 10,"ABBBB");
                                                         new_ptr->id =0;
                                                         new_ptr->count = 0;

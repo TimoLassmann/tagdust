@@ -40,6 +40,7 @@ struct model* init_model_according_to_read_structure(struct model* model,struct 
 
                         col->transition_e[DD] =  prob2scaledprob(0.0);
                         col->transition_e[DM] =  prob2scaledprob(0.0);
+                        //fprintf(stdout,"%d %d\n", j, tmp[j]);
                         current_nuc = nuc_code[(int) tmp[j]];
                         col->identifier = -1;
                         if(current_nuc < 4){
