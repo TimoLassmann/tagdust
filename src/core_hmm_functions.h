@@ -5,11 +5,11 @@
 #include "io.h"
 #include "tlrng.h"
 
-extern struct model_bag* forward(struct model_bag* mb, const char* a, int len);
-extern int backward(struct model_bag* mb,const char* a,const int len);
-extern int forward_max_posterior_decoding(struct model_bag* mb, struct read_info* ri, const char* a, int len);
+extern struct model_bag* forward(struct model_bag* mb, const uint8_t* a, int len);
+extern int backward(struct model_bag* mb,const uint8_t* a,const int len);
+extern int forward_max_posterior_decoding(struct model_bag* mb, struct read_info* ri, const uint8_t* a, int len);
 
-extern struct model_bag* forward_extract_posteriors(struct model_bag* mb,const char* a, char* label, int len);
+extern struct model_bag* forward_extract_posteriors(struct model_bag* mb,const uint8_t* a, char* label, int len);
 
 
 extern int  emit_random_sequence(struct model_bag* mb, struct read_info* ri,int average_length, struct rng_state* rng);

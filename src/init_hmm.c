@@ -15,7 +15,7 @@ struct model* init_model_according_to_read_structure(struct model* model,struct 
         struct hmm_column* col =0;
         int i,j,c,len;
         int current_nuc;
-        char* tmp = 0;
+        uint8_t* tmp = 0;
 
         for(i= 0;i < 5;i++){
                 model->background_nuc_frequency[i]= background[i];

@@ -50,10 +50,10 @@ struct model_bag* init_model_bag(struct read_structure* rs,const struct sequence
                         read_length = read_length -2;
                 }else if(rs->type[i] == 'R'){
                 }else if(rs->type[i] == 'P'){
-                        read_length = read_length - (int)strlen(rs->sequence_matrix[i][0])/2; // Initial guess - we don't know how much of the linker is present at this stage
+                        read_length = read_length - rs->segment_length[i]/2;// (int)strlen(rs->sequence_matrix[i][0])/2; // Initial guess - we don't know how much of the linker is present at this stage
                 }else{
                         //	fprintf(stderr,"%s : %d \n", rs->sequence_matrix[i][0], (int)strlen(rs->sequence_matrix[i][0]));
-                        read_length = read_length - (int)strlen(rs->sequence_matrix[i][0]);
+                        read_length = read_length - rs->segment_length[i]/2;// (int)strlen(rs->sequence_matrix[i][0]);
                 }
 
                 //	fprintf(stderr,"READlength: %d\n",read_length);
@@ -75,7 +75,9 @@ struct model_bag* init_model_bag(struct read_structure* rs,const struct sequence
 
 
         for(i = 0; i < mb->num_models;i++){
-                RUNP(mb->model[i] = malloc_model_according_to_read_structure(rs->numseq_in_segment[i],(int)strlen(rs->sequence_matrix[i][0]),mb->current_dyn_length));
+                //RUNP(mb->model[i] = malloc_model_according_to_read_structure(rs->numseq_in_segment[i],(int)strlen(rs->sequence_matrix[i][0]),mb->current_dyn_length));
+
+                RUNP(mb->model[i] = malloc_model_according_to_read_structure(rs->numseq_in_segment[i], rs->segment_length[i],mb->current_dyn_length));
                 segment_length = 0;
                 if(rs->type[i] == 'G'){
                         segment_length = 2;

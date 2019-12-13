@@ -12,7 +12,7 @@
 #include "tlrbtree.h"
 
 struct seq_bit{
-        char* p;
+        uint8_t* p;
         char* q;
         uint16_t len;
         uint8_t type;
@@ -26,7 +26,7 @@ struct seq_bit_vec{
         char* umi;
         float* Q;
         int sample_group;
-        int pass;
+        uint8_t fail;
         uint8_t num_bit;
 };
 

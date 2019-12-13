@@ -12,7 +12,7 @@
   TagDust is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+n  GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
   along with Tagdust.  If not, see <http://www.gnu.org/licenses/>.
@@ -42,8 +42,9 @@ n  Initializes nucleotide alphabet needed to parse input. Calls parameter parser
 
 #define MAX_LINE 10000
 
-
 #define BUFFSIZE 67108864
+
+static int get_input_into_string(uint8_t** s ,char* infile);
 
 int write_all(const struct assign_struct* as,char* prefix)
 {
@@ -90,7 +91,7 @@ int write_all(const struct assign_struct* as,char* prefix)
                 file = -1;
                 for(i = 0; i < as->num_reads ;i++){
                         bv = as->bits[i];
-                        if(!bv->pass){
+                        if(bv->fail){
                                 if(index){
                                         START_TIMER(t2);
                                         gzwrite(fp, buf, index);
@@ -127,21 +128,28 @@ int write_all(const struct assign_struct* as,char* prefix)
 
 
                         needed_space = strlen(bv->name) + sb->len*2 + 6; /* 4 because 3 newlines and a '+' */
+                        if(bv->umi){
+
+                                needed_space += strlen(bv->umi) + 1;
+                        }
                         if(index + needed_space >= BUFFSIZE){
                                 START_TIMER(t2);
                                 gzwrite(fp, buf, index);
                                 STOP_TIMER(t2);
 
                                 LOG_MSG("gzwrite took %f",GET_TIMING(t2));
-
-                                                        //gzwrite(fp, buf, index);
+                                //gzwrite(fp, buf, index);
                                 /* write */
                                 index = 0;
                         }
                         buf[index] = '@';
                         index++;
+                        if(bv->umi){
+                                j = snprintf(buf+index, BUFFSIZE - index, "%s %s\n", bv->name,bv->umi);
+                        }else{
+                                j = snprintf(buf+index, BUFFSIZE - index, "%s\n", bv->name);
+                        }
 
-                        j = snprintf(buf+index, BUFFSIZE - index, "%s\n", bv->name);
                         index += j;
                         for(j = 0; j < sb->len;j++){
                                 buf[index] =alphabet[(int)sb->p[j]];
@@ -422,7 +430,7 @@ void print_sequence(struct read_info* ri,FILE* out)
         char alpha[6] = "ACGTNN";
         fprintf(out,"@%s\n",ri->name);
         for(i = 0; i < ri->len;i++){
-                fprintf(out,"%c", alpha[(int) ri->seq[i]]);
+                fprintf(out,"%c", alpha[ri->seq[i]]);
         }
         fprintf(out,"\n+\n%s\n" ,ri->qual);
 }
@@ -998,7 +1006,7 @@ int read_sam_chunk(struct read_info_buffer* rb, struct file_handler* f_handle)//
                                                         }
                                                 }
 
-                                                MMALLOC(ri[c]->seq,sizeof(unsigned char)* tmp);
+                                                MMALLOC(ri[c]->seq,sizeof(uint8_t )* tmp);
                                                 MMALLOC(ri[c]->labels,sizeof(unsigned char)* tmp);
 
                                                 g = 0;
@@ -1177,7 +1185,7 @@ int read_fasta_fastq(struct read_info_buffer* rb, struct file_handler* f_handle)
                                                 }
                                         }
                                         //fprintf(stderr,"SEQ LEN:%d	%s\n",len,line);
-                                        MMALLOC(ri[park_pos]->seq,sizeof(unsigned char)* (len+1));
+                                        MMALLOC(ri[park_pos]->seq,sizeof(uint8_t)* (len+1));
 
                                         MMALLOC(ri[park_pos]->labels, sizeof(unsigned char)* (len+1));
 
@@ -1269,7 +1277,7 @@ struct fasta* get_fasta(struct fasta* p,char *infile)
         p->string_len = 0;
         p->suffix = 0;
 
-        p->string =  get_input_into_string(p->string,infile);
+        RUN(get_input_into_string(&p->string,infile));
         if(!p->string){
                 fprintf(stderr,"Analysing input %s ... nothing\n",infile);
                 exit(-1);
@@ -1293,11 +1301,12 @@ ERROR:
 
 */
 
-unsigned char* get_input_into_string(unsigned char* string,char* infile)
+int get_input_into_string(uint8_t** s ,char* infile)
 {
         long int i = 0;
         //int status;
         size_t bytes_read;
+        uint8_t* string = NULL;
 
         FILE *file = NULL;
         RUNP(file = fopen(infile, "r"));
@@ -1313,10 +1322,10 @@ unsigned char* get_input_into_string(unsigned char* string,char* infile)
                 (void)exit(EXIT_FAILURE);
         }
         if(!string){
-                MMALLOC(string,(i+1+18)* sizeof(unsigned char));
+                MMALLOC(string,(i+1+18)* sizeof(uint8_t));
 
         }
-        bytes_read = fread(string,sizeof(unsigned char), i, file);
+        bytes_read = fread(string,sizeof(uint8_t ), i, file);
         if(!bytes_read){
                 fprintf(stderr,"Reading from file:%s failed \n", infile );
                 exit(EXIT_FAILURE);
@@ -1324,10 +1333,11 @@ unsigned char* get_input_into_string(unsigned char* string,char* infile)
         string[i] = 0;
         fclose(file);
 
-        return string;
+        *s = string;
+
+        return OK;
 ERROR:
-        //KSLIB_MESSAGE(status,"Something went wrong in get_input_into_string");
-        return NULL;
+        return FAIL;
 }
 
 

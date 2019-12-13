@@ -20,18 +20,23 @@ int post_process_assign(struct assign_struct* as)
         struct seq_bit_vec* bv = NULL;
         struct demux_struct* tmp_ptr = NULL;
         char* tmp =  NULL;
-        char* barcode;
-        char* umi;
+        uint8_t* barcode;
+        uint8_t* umi;
         int i,j,c,g;
         int len;
         int umi_len;
         int tmp_len = 256;
 
-
         MMALLOC(tmp, sizeof(char) * tmp_len);
 
         for(i = 0; i < as->num_reads ;i++){
                 bv = as->bits[i];
+                for(j = 0; j < as->num_files;j++){
+                        if(bv->Q[j] < 0.0){
+                                bv->fail = 1;
+                                break;
+                        }
+                }
 
                 /* qsort by file identifier  */
                 qsort(bv->bits, bv->num_bit,sizeof(struct seq_bit*), qsort_seq_bits_by_type_file);
@@ -39,12 +44,11 @@ int post_process_assign(struct assign_struct* as)
                 umi_len = 0;
                 for(j = 0; j < bv->num_bit;j++){
                         if(bv->bits[j]->type == BAR_TYPE){
-                                len += strnlen(bv->bits[j]->p,256);
+                                len += bv->bits[j]->len;// strnlen(bv->bits[j]->p,256);
                                 len++;
 
                         }
                         if(bv->bits[j]->type == UMI_TYPE){
-
                                 umi_len += bv->bits[j]->len;
                         }
                 }
@@ -53,7 +57,8 @@ int post_process_assign(struct assign_struct* as)
                         for(j = 0; j < bv->num_bit;j++){
                                 if(bv->bits[j]->type == BAR_TYPE){
                                         barcode = bv->bits[j]->p;
-                                        len = strnlen(barcode,256);
+                                        len = bv->bits[j]->len;
+                                        //len = strnlen(barcode,256);
                                         for(c = 0; c < len;c++){
                                                 tmp[g] = barcode[c];
                                                 g++;
@@ -154,7 +159,7 @@ int init_assign_structure(struct assign_struct** assign,struct arch_library* al,
                 //as->bits[i]->bc = NULL;
                 as->bits[i]->umi = NULL;
                 MMALLOC(as->bits[i]->Q,sizeof(float) * as->num_files);
-                as->bits[i]->pass = 1;
+                as->bits[i]->fail = 0;
                 MMALLOC(as->bits[i]->bits , sizeof(struct seq_bit) * as->num_bits);
                 for(j = 0; j < as->num_bits;j++){
                         as->bits[i]->bits[j] = NULL;
@@ -175,8 +180,11 @@ int reset_assign_structute(struct assign_struct* as)
         int i;
         for(i = 0; i < as->alloc_total;i++){
                 qsort(  as->bits[i]->bits,  as->bits[i]->num_bit,sizeof(struct seq_bit*), qsort_seq_bits_by_file);
-
+                as->bits[i]->fail =0;
                 as->bits[i]->sample_group = -1;
+                if(as->bits[i]->umi){
+                        MFREE(as->bits[i]->umi);
+                }
                 //as->bits[i]->num_bit = 0;
         }
         return OK;
@@ -301,9 +309,9 @@ int qsort_seq_bit_vec(const void *a, const void *b)
 {
         const struct seq_bit_vec **elem1 = (const struct seq_bit_vec**) a;
         const struct seq_bit_vec **elem2 = (const struct seq_bit_vec**) b;
-        if ( (*elem1)->pass > (*elem2)->pass){
+        if ( (*elem1)->fail < (*elem2)->fail){
                 return -1;
-        }else if ((*elem1)->pass < (*elem2)->pass){
+        }else if ((*elem1)->fail > (*elem2)->fail){
                 return 1;
         }else{
                 if ( (*elem1)->sample_group > (*elem2)->sample_group){
@@ -364,15 +372,18 @@ int set_up_barcode_files(struct arch_library* al, struct assign_struct* as)
                         case 'B':
                                 if(!num_barcodes){
                                         for(g = 0;g < read_structure->numseq_in_segment[j];g++){
-                                                len = strnlen(read_structure->sequence_matrix[j][g], 256);
-
+                                                //len = strnlen(read_structure->sequence_matrix[j][g], 256);
+                                                len = read_structure->segment_length[j];
                                                 if(len > as->max_bar_len){
                                                         as->max_bar_len = len;
                                                 }
                                                 MMALLOC(tmp_ptr, sizeof(struct demux_struct));
                                                 tmp_ptr->name = NULL;
-                                                MMALLOC(tmp_ptr->name,sizeof(char) * (len+1));
-                                                strncpy(tmp_ptr->name, read_structure->sequence_matrix[j][g], len+1);
+                                                MMALLOC(tmp_ptr->name,sizeof(uint8_t) * (len+1));
+                                                //for(f = 0;f < len;f++){
+                                                //tmp_ptr->name =
+                                                //}
+                                                strncpy(tmp_ptr->name, (char*)read_structure->sequence_matrix[j][g], len+1);
                                                 //snprintf(sample1->name , 10,"ABBBB");
                                                 tmp_ptr->id = 0;
                                                 tmp_ptr->count = 0;
@@ -391,7 +402,8 @@ int set_up_barcode_files(struct arch_library* al, struct assign_struct* as)
                                                 for(g = 0;g < read_structure->numseq_in_segment[j];g++){
                                                         len = strnlen(tmp_ptr->name, 256);
                                                         len++;
-                                                        len += strnlen(read_structure->sequence_matrix[j][g], 256);
+                                                        len += read_structure->segment_length[j];
+                                                        //len += strnlen(read_structure->sequence_matrix[j][g], 256);
                                                         len++;
                                                         if(len > as->max_bar_len){
                                                                 as->max_bar_len = len;

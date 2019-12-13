@@ -67,7 +67,7 @@
  */
 struct fasta{
         unsigned char** sn;/**<  @brief Sequence names.*/
-        unsigned char* string;/**< @brief Holds sequence information.*/
+        uint8_t* string;/**< @brief Holds sequence information.*/
         int* mer_hash;
         int* boost;
         int* s_index;
@@ -85,7 +85,7 @@ struct fasta{
 struct read_info{
         char* name;/**<  @brief  Name of read.*/
         char* qual;/**<  @brief Base qualities. */
-        char* seq;/**<  @brief Sequence.*/
+        uint8_t* seq;/**<  @brief Sequence.*/
         char* labels;/**<  @brief Labeling according to HMM.*/
         //unsigned int* strand;
         //unsigned int* hits;
@@ -147,7 +147,7 @@ int file_exists (char * name);
 
 struct fasta* read_fasta(struct fasta* f);
 struct fasta* get_fasta(struct fasta* p,char *infile);
-unsigned char* get_input_into_string(unsigned char* string,char* infile);
+//unsigned char* get_input_into_string(unsigned char* string,char* infile);
 void free_fasta(struct fasta*f);
 
 //void print_split_files(struct parameters* param, struct read_info** ri, int numseq);

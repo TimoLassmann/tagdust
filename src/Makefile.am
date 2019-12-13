@@ -10,10 +10,24 @@ AM_LDFLAGS += -Wno-undef
 LIBS = ../lib_tldevel/libtldevel.a $(HDF5_LDFLAGS)  $(HDF5_LIBS) -lm
 AM_CPPFLAGS = -I$(top_srcdir)/lib_tldevel
 
-bin_PROGRAMS = tagdust
+bin_PROGRAMS = tagdust_demux tagdust
 
 tagdust_SOURCES = \
-main.c \
+main_dust.c \
+interface.h \
+interface.c \
+nuc_code.h \
+nuc_code.c \
+io.h \
+io.c \
+filter.h \
+filter.c \
+bpm.h \
+bpm.c
+
+
+tagdust_demux_SOURCES = \
+main_demux.c \
 interface.h \
 interface.c \
 arch_lib.h \

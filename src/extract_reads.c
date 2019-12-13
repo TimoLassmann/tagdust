@@ -1,5 +1,4 @@
 #include "extract_reads.h"
-
 #include <omp.h>
 #include <math.h>
 #include <string.h>
@@ -16,7 +15,6 @@
 
 static int process_read(struct read_info* ri, int* label, struct read_structure* rs , struct seq_bit_vec* b , int i_file);
 
-
 static int sanity_check_inputs(struct read_info_buffer** rb, int num_files);
 
 //static int run_extract( struct assign_struct* as,  struct read_info_buffer** rb, struct arch_library* al, strucnt seq_stats* si,int i_file,int i_hmm);
@@ -28,11 +26,14 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
         struct read_info_buffer** rb = NULL;
         struct file_handler** f_hand = NULL;
         struct assign_struct* as = NULL;
+
+
         int (*fp)(struct read_info_buffer* rb, struct file_handler* f_handle) = NULL;
         int i,j,c;
         int total_read;
 
         DECLARE_TIMER(t1);
+
 
         /* figure out how many barcodes etc */
         RUN(init_assign_structure(&as, al,   CHUNKS* READ_CHUNK_SIZE));
@@ -121,8 +122,8 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
                                 run_extract(as, rb,al,si,i,j);
                         }
                 }
-
-                #pragma omp barrier
+                /* not necessary I think ... */
+#pragma omp barrier
                 RUN(post_process_assign(as));
 
                 STOP_TIMER(t1);
@@ -172,9 +173,7 @@ int run_extract( struct assign_struct* as,  struct read_info_buffer** rb, struct
         ri = rb[c]->ri;
 
         seq_offset = rb[c]->offset;
-
         //int tid = omp_get_thread_num();
-
         //LOG_MSG("Offset = %d",
         for(i = 0; i < num_seq;i++){
                 //LOG_MSG("%d f:%d  on %d", tid,i_file,i);
@@ -199,12 +198,14 @@ int run_extract( struct assign_struct* as,  struct read_info_buffer** rb, struct
                 ri[i]->mapq = Q;
                 ri[i]->bar_prob = 100;
 
-                as->bits[seq_offset+i]->Q[i_file] = Q;
 
-
-                //if(Q < al->confidence_thresholds[i_file]){
-                        //fprintf(stdout,"File:%d %f %f\n",i_file, Q, al->confidence_thresholds[i_file]);
-                        //as->bits[seq_offset+i]->pass = 0;
+                if(Q < al->confidence_thresholds[i_file]){
+                        as->bits[seq_offset+i]->Q[i_file] = -Q;
+                }else{
+                        as->bits[seq_offset+i]->Q[i_file] = Q;
+                }
+                //fprintf(stdout,"File:%d %f %f\n",i_file, Q, al->confidence_thresholds[i_file]);
+                //as->bits[seq_offset+i]->pass = 0;
                 //}
                 //tmp_bar = as->assignment[seq_offset + i] + assign_offset;
                 //print_labelled_reads(mb,data->param ,ri[i]);
@@ -280,6 +281,7 @@ int process_read(struct read_info* ri, int* label, struct read_structure* rs , s
                                 //sb->file = i_file;
                                 sb->type = BAR_TYPE;
                                 sb->p = rs->sequence_matrix[segment][hmm_in_segment];
+                                sb->len = rs->segment_length[segment];
                                 local_bit_index++;
                         }
                         break;

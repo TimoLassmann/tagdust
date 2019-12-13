@@ -195,13 +195,14 @@ int assign_segment_sequences(struct read_structure* read_structure, char* tmp, i
         //fprintf(stderr,"Segment %d: %d	X%sX sequences\n",segment,count+1,tmp);
         read_structure->numseq_in_segment[segment] = count+1;
 
-        MMALLOC(read_structure->sequence_matrix[segment],sizeof(char*) * (count+1));
+        MMALLOC(read_structure->sequence_matrix[segment],sizeof(uint8_t*) * (count+1));
         for(i = 0; i < count+1;i++){
                 read_structure->sequence_matrix[segment][i] = 0;
-                MMALLOC(read_structure->sequence_matrix[segment][i],sizeof(char)* strlen(tmp));
+                MMALLOC(read_structure->sequence_matrix[segment][i],sizeof(uint8_t)* strlen(tmp));
         }
         //fprintf(stdout,"%s %d\n",tmp, (int) tmp[0]);
         read_structure->type[segment] = tmp[0];
+        read_structure->segment_length[segment] = strlen(tmp);
 
         if(tmp[0] == 'R'){
                 read_structure->sequence_matrix[segment][0][0] = 'N';
@@ -228,7 +229,7 @@ int assign_segment_sequences(struct read_structure* read_structure, char* tmp, i
         if(tmp[0] == 'B'){
                 f = f + 1;
                 g = 0;
-                for(i = 0; i < strlen(read_structure->sequence_matrix[segment][0]);i++){
+                for(i = 0; i <  read_structure->segment_length[segment];i++){
                         read_structure->sequence_matrix[segment][f][g] = 'N';
                         g++;
                 }
@@ -238,7 +239,7 @@ int assign_segment_sequences(struct read_structure* read_structure, char* tmp, i
         if(tmp[0] == 'S'){
                 f = f + 1;
                 g = 0;
-                for(i = 0; i < strlen(read_structure->sequence_matrix[segment][0]);i++){
+                for(i = 0; i < read_structure->segment_length[segment];i++){
                         read_structure->sequence_matrix[segment][f][g] = 'N';
                         g++;
                 }
@@ -357,14 +358,16 @@ int malloc_read_structure(struct read_structure** rs)
         read_structure->numseq_in_segment = 0;
         read_structure->type = 0;
         //read_structure->assignment_to_read = 0;
-        MMALLOC(read_structure->sequence_matrix ,sizeof(char**) * 10 );
+        MMALLOC(read_structure->sequence_matrix ,sizeof(uint8_t**) * 10 );
         MMALLOC(read_structure->numseq_in_segment, sizeof(int) * 10);
+        MMALLOC(read_structure->segment_length, sizeof(int) * 10);
         MMALLOC(read_structure->type ,sizeof(char) * 10 );
 
 
         for(i = 0;i < 10;i++){
                 read_structure->sequence_matrix[i] = NULL;
                 read_structure->numseq_in_segment[i] = 0;
+                read_structure->segment_length[i] = 0;
                 read_structure->type[i] = 0;
 
         }
@@ -391,7 +394,7 @@ void free_read_structure(struct read_structure* read_structure)
                         }
                 }
                 MFREE(read_structure->sequence_matrix);
-
+                MFREE(read_structure->segment_length);
                 MFREE(read_structure->numseq_in_segment );
                 MFREE(read_structure->type);
                 MFREE(read_structure);
@@ -420,9 +423,9 @@ int QC_read_structure(struct read_structure* read_structure )
                         //serious checking...
                         for(g = 0;g < read_structure->numseq_in_segment[i];g++){
                                 for(f = g+1;f < read_structure->numseq_in_segment[i];f++){
-                                        if(strlen(read_structure->sequence_matrix[i][g]) != strlen(read_structure->sequence_matrix[i][f])){
-                                                ERROR_MSG("ERROR: the sequences in the same segment have to have the same length.\n");
-                                        }
+                                        //if(read_structure->segment_length[i] != read_structure->segment_length[i]){
+                                        //      ERROR_MSG("ERROR: the sequences in the same segment have to have the same length.\n");
+                                        //}
                                 }
                         }
                         last = i;

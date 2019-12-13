@@ -1,8 +1,10 @@
 #ifndef ARCH_LIB_H
 #define ARCH_LIB_H
 
+#include <stdint.h>
 struct read_structure{
-        char*** sequence_matrix;
+        uint8_t*** sequence_matrix;
+        int* segment_length;
         int* numseq_in_segment;
         char* type;
         int num_segments;

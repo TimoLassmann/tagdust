@@ -16,8 +16,8 @@
 static int alloc_sequence_stats_info(struct sequence_stats_info** si, int n);
 static void free_sequence_stats_info(struct sequence_stats_info* si);
 
-static int five_prime_exact_match(char* seq,char*p,int seq_len, double* res);
-static int three_prime_exact_match(char* seq,char*p,int seq_len, double* res);
+static int five_prime_exact_match(uint8_t* seq,char*p,int seq_len, double* res);
+static int three_prime_exact_match(uint8_t* seq,char*p,int seq_len, double* res);
 
 int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* al,char** infiles,int numfiles)
 {
@@ -73,7 +73,7 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
                 five_test_sequence[i] = NULL;
                 three_test_sequence[i] = NULL;
                 if(al->read_structure[i]->type[0] == 'P'){
-                        len = strlen(al->read_structure[i]->sequence_matrix[0][0]);
+                        len =   al->read_structure[i]->segment_length[0];//  strlen(al->read_structure[i]->sequence_matrix[0][0]);
                         MMALLOC(five_test_sequence[i], sizeof(char) * (len+1));
                         for(c = 0; c < numfiles;c++){
                                 si->ssi[c]->expected_5_len[i] = (double)len;
@@ -85,7 +85,7 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
                 }
                 last = al->read_structure[i]->num_segments -1;
                 if(al->read_structure[i]->type[last] == 'P'){
-                        len = strlen(al->read_structure[i]->sequence_matrix[last][0]);
+                        len =  al->read_structure[i]->segment_length[last];// strlen(al->read_structure[i]->sequence_matrix[last][0]);
                         MMALLOC(three_test_sequence[i], sizeof(char) * (len+1));
                         for(c = 0; c < numfiles;c++){
                                 si->ssi[c]->expected_3_len[i] = (double)len;
@@ -275,7 +275,7 @@ ERROR:
         return FAIL;
 }
 
-int five_prime_exact_match(char* seq,char*p,int seq_len, double* res)
+int five_prime_exact_match(uint8_t* seq,char*p,int seq_len, double* res)
 {
         int i,j;
         int five_len;
@@ -301,7 +301,7 @@ int five_prime_exact_match(char* seq,char*p,int seq_len, double* res)
         return OK;
 }
 
-int three_prime_exact_match(char* seq,char*p,int seq_len, double* res)
+int three_prime_exact_match(uint8_t* seq,char*p,int seq_len, double* res)
 {
         int three_len;
         int i,j;
