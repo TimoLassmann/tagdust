@@ -7,8 +7,8 @@ CLEANFILES =
 AM_LDFLAGS = @DEAD_STRIP@
 AM_LDFLAGS += -Wno-undef
 
-LIBS = ../lib_tldevel/libtldevel.a $(HDF5_LDFLAGS)  $(HDF5_LIBS) -lm
-AM_CPPFLAGS = -I$(top_srcdir)/lib_tldevel
+LIBS = ../tldevel/libtldevel.a $(HDF5_LDFLAGS)  $(HDF5_LIBS) -lm
+AM_CPPFLAGS = -I$(top_srcdir)/tldevel
 
 bin_PROGRAMS = tagdust_demux tagdust
 

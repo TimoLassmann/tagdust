@@ -4,7 +4,6 @@ AM_INIT_AUTOMAKE
 AC_PROG_CC
 AC_PROG_INSTALL
 
-AM_SILENT_RULES([no])
 
 
 
@@ -117,17 +116,10 @@ AC_SUBST([UNAME_INFO]) UNAME_INFO=`uname -n`
 
 AC_SUBST([COMPILER]) COMPILER=`$CC --version | head -n 1`
 
-
-
-ac_configure_args="$ac_configure_args PACKAGE_VERSION=$PACKAGE_VERSION   PACKAGE_NAME=$PACKAGE_NAME"
-
-
 AC_CONFIG_FILES([
 Makefile
 dev/Makefile
 ])
-
-AC_CONFIG_HEADERS([config.h])
 
 AC_OUTPUT
 

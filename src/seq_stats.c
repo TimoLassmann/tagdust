@@ -10,7 +10,9 @@
 //#include "interface.h"
 #include "nuc_code.h"
 
-#include "io.h"
+#include "tlseqio.h"
+
+//#include "io.h"
 
 
 static int alloc_sequence_stats_info(struct sequence_stats_info** si, int n);
@@ -23,10 +25,13 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
 {
         struct seq_stats* si = NULL;
         struct file_handler* f_hand = NULL;
-        struct read_info_buffer* rb = NULL;
-        struct read_info** ri = NULL;
 
-        int (*fp)(struct read_info_buffer* rb, struct file_handler* f_handle) = NULL;
+        struct tl_seq_buffer* rb = NULL;
+        struct tl_seq** ri = NULL;
+        //struct read_info_buffer* rb = NULL;
+        //struct read_info** ri = NULL;
+
+        //int (*fp)(struct read_info_buffer* rb, struct file_handler* f_handle) = NULL;
 
         int i,j,c;
         int total_read;
@@ -52,8 +57,6 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
         MMALLOC(three_s1, sizeof(double) * al->num_arch);
         MMALLOC(three_s2, sizeof(double) * al->num_arch);
 
-
-
         MMALLOC(si, sizeof(struct seq_stats));
         si->num = numfiles;
         si->ssi = NULL;
@@ -64,7 +67,7 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
         }
 
 
-        RUN(alloc_read_info_buffer(&rb,100000));
+        //RUN(alloc_read_info_buffer(&rb,100000));
 
         /* copy5' and 3' sequences for matching in case of partial segments */
         MMALLOC(five_test_sequence, sizeof(char*) * al->num_arch);
@@ -100,12 +103,9 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
         /* Do stuff */
 
         for(i = 0; i < numfiles;i++){
-                RUN(io_handler(&f_hand,infiles[i]));
-                if(f_hand->sam == 0){
-                        fp = &read_fasta_fastq;
-                }else {
-                        fp = &read_sam_chunk;
-                }
+                RUN(open_fasta_fastq_file(&f_hand, infiles[i], TLSEQIO_READ));
+                //aopen_fasta_fastq_file(struct file_handler **fh, char *filename, int mode)
+                //RUN(io_handler(&f_hand,infiles[i]));
                 for(c = 0;c < al->num_arch;c++){
                         five_s0[c] = 0.0;
                         five_s1[c] = 0.0;
@@ -118,12 +118,15 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
                 total_read = 0;
                 LOG_MSG("FILE:%s", infiles[i]);
                 while(1){
-                        RUN(fp(rb,f_hand));//  param,file,&numseq));
+                        RUN(read_fasta_fastq_file(f_hand, &rb,100000));
+                        //read_fasta_fastq(struct read_info_buffer *rb, struct file_handler *f_handle)
+                        //RUN(fp(rb,f_hand));//  param,file,&numseq));
                         //if((status = fp(ri, param,file,&numseq)) != OK)  exit(status);
+
                         if(!rb->num_seq ){
                                 break;
                         }
-                        ri = rb->ri;
+                        ri = rb->sequences ;
                         for(j = 0; j < rb->num_seq;j++){
                                 if(ri[j]->len > si->ssi[i]->max_seq_len){
                                         si->ssi[i]->max_seq_len = ri[j]->len;
@@ -169,7 +172,8 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
 
 
                 }
-                pclose(f_hand->f_ptr);
+                RUN(close_fasta_fastq_file(&f_hand));
+                //pclose(f_hand->f_ptr);
                 //LOG_MSG("total: %d", total_read);
 
                 si->ssi[i]->total_num_seq = total_read;
@@ -264,8 +268,8 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
         MFREE(three_s0);
         MFREE(three_s1);
         MFREE(three_s2);
-
-        free_read_info_buffer(rb);
+        free_tl_seq_buffer(rb);
+        //free_read_info_buffer(rb);
         MFREE(f_hand);
 
         *sequence_stats = si;

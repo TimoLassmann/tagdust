@@ -1130,14 +1130,14 @@ int read_fasta_fastq(struct read_info_buffer* rb, struct file_handler* f_handle)
                         }
                         if(type == 1){
                                 //ERROR not @ or > should be in reads
-                                type ==0;
+                                //type ==0;
                                 /* -> i.e. start new entry.  */
                         }
                         if(type == 2){
                                 /* read Q */
-                                if(q_len == len){
-                                        type = 0;
-                                }
+                                //if(q_len == len){
+                                //type = 0;
+                                //}
                         }
 
                 }else if(line[0] == '+'){

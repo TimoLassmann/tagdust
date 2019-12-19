@@ -46,7 +46,7 @@ int main (int argc,char * argv[]) {
         /* get all sequence stats  */
 
         RUN(get_sequence_stats(&si,al, param->infile, param->num_infiles));
-
+        exit(0);
         /* here there have to be sanity checks  */
         for(i = 0; i < param->num_infiles;i++){
                 for(j = i+1; j < param->num_infiles;j++){

@@ -187,8 +187,6 @@ Makefile
 ])
 AC_CONFIG_SUBDIRS([tldevel])
 
-AC_CONFIG_HEADER([config.h])
-
 AC_OUTPUT
 
 

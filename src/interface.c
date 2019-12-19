@@ -346,8 +346,7 @@ int interface(struct parameters** p,int argc, char *argv[])
                         exit(1);
                         break;
                 default:
-                        fprintf(stderr,"default\n\n\n\n");
-                        abort ();
+                        ERROR_MSG("Option not recognised");
                 }
         }
         if(help){

@@ -56,7 +56,7 @@ esac
 
 
 aclocal -I m4 $AL_OPTS
-autoheader $AH_OPTS
+#autoheader $AH_OPTS
 automake --add-missing --copy --gnu $AM_OPTS
 autoconf $AC_OPTS
 
@@ -71,7 +71,7 @@ case `uname` in Darwin*) glibtoolize --force --copy ;;
 esac
 
 aclocal -I m4 $AL_OPTS
-autoheader $AH_OPTS
+#autoheader $AH_OPTS
 automake --add-missing --copy --gnu $AM_OPTS
 autoconf $AC_OPTS
 
