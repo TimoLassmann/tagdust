@@ -9,7 +9,7 @@
 #define EXTERN extern
 #endif
 
-EXTERN int my_file_exists(char* name);
+EXTERN int my_file_exists(const char* name);
 
 #undef TLMISC_IMPORT
 #undef EXTERN

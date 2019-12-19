@@ -44,7 +44,8 @@ n  Initializes nucleotide alphabet needed to parse input. Calls parameter parser
 
 #define BUFFSIZE 67108864
 
-static int get_input_into_string(uint8_t** s ,char* infile);
+
+static int extend_read_info(struct read_info* ri);
 
 int write_all(const struct assign_struct* as,char* prefix)
 {
@@ -169,8 +170,6 @@ int write_all(const struct assign_struct* as,char* prefix)
                         }
                         buf[index] = '\n';
                         index++;
-
-
 
                 }
                 if(fp){
@@ -363,6 +362,7 @@ int io_handler(struct file_handler** fh, char*filename)
                                 sprintf (tmp, "%s ", filename);
                                 strcat ( command, tmp);
                         }
+
 
                         RUNP(file = popen(command, "r"));
                 }else if(f_handle->sam == 1){
@@ -998,52 +998,43 @@ int read_sam_chunk(struct read_info_buffer* rb, struct file_handler* f_handle)//
                                                 break;
                                         case 10: // <SEQ>
 
-                                                tmp = 0;
+                                                g = ri[c]->len;
                                                 for(j = i+1;j < nread;j++){
-                                                        tmp++;
-                                                        if(isspace((int)line[j])){
-                                                                break;
+                                                        ri[c]->seq[g] = nuc_code[(int)line[j]];
+                                                        ri[c]->labels[g] = 0;
+                                                        g++;
+                                                        if(g == ri[c]->malloc_len){
+                                                                RUN(extend_read_info(ri[c]));
                                                         }
-                                                }
-
-                                                MMALLOC(ri[c]->seq,sizeof(uint8_t )* tmp);
-                                                MMALLOC(ri[c]->labels,sizeof(unsigned char)* tmp);
-
-                                                g = 0;
-                                                for(j = i+1;j < nread;j++){
-
                                                         if(isspace((int)line[j])){
                                                                 ri[c]->seq[g] = 0;
                                                                 ri[c]->labels[g] = 0;
                                                                 break;
                                                         }
-                                                        ri[c]->seq[g] = nuc_code[(int)line[j]];
-                                                        ri[c]->labels[g] = 0;
 
                                                         g++;
                                                 }
-
                                                 ri[c]->len = g;
                                                 break;
                                         case 11: // <QUAL>
-                                                tmp = 0;
-                                                for(j = i+1;j < nread;j++){
-                                                        tmp++;
-                                                        if(isspace((int)line[j])){
-                                                                break;
-                                                        }
-                                                }
-                                                g= 0;
-                                                MMALLOC(ri[c]->qual,sizeof(unsigned char)* tmp);
+
+                                                g = ri[c]->q_len;
+
                                                 for(j = i+1;j < nread;j++){
 
+                                                        ri[c]->qual[g] = line[j];
+                                                        g++;
+                                                        if(g == ri[c]->malloc_len){
+                                                                RUN(extend_read_info(ri[c]));
+                                                        }
                                                         if(isspace((int)line[j])){
                                                                 ri[c]->qual[g] = 0;
                                                                 break;
                                                         }
-                                                        ri[c]->qual[g] = line[j];
-                                                        g++;
+
+
                                                 }
+                                                ri[c]->q_len = g;
                                                 break;
                                         default:
 
@@ -1090,35 +1081,24 @@ ERROR:
         //return status;
 }
 
-//FASTQ files from CASAVA-1.8 Should have the following READ-ID format:
-//@<instrument>:<run number>:<flowcell ID>:<lane>:<tile>:<x-pos>:<y-pos> <read>:<is filtered>:<control number>:<index sequence>
-
-
-
-/** \fn int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file)
-    \brief Reads sequences from fasta / fastq file.
-    Sequences are converted to 0-4 strings.
-
-    \param ri Array of @ref read_info to hold the sequences.
-    \param param @ref parameters .
-    \param file Pointer to input file.
-
-*/
-//int read_sam_chunk(struct read_info_buffer* rb, struct file_handler* f_handle)//  struct read_info** ri,struct parameters* param,FILE* file,int* buffer_count)
-int read_fasta_fastq(struct read_info_buffer* rb, struct file_handler* f_handle)//struct read_info** ri,struct parameters* param,FILE *file,int* buffer_count)
+/* LOGIC: 2 functions : one for fastq; one for fasta  */
+int read_fasta_fastq(struct read_info_buffer* rb, struct file_handler* f_handle)
 {
+
         FILE* file;
         struct read_info** ri = NULL;
-        int park_pos = -1;
         char* line = NULL;
+        char* tmp;
         size_t line_len = 0;
         ssize_t nread;
         //char line[MAX_LINE];
         int i;//,j;
         int seq_p = 0;
-        int set = 0;
+        //int set = 0;
+
+        int type = 0;
         int len = 0;
-        int size = 0;
+        int entry = -1;
         //int status;
 
         ri = rb->ri;
@@ -1127,21 +1107,58 @@ int read_fasta_fastq(struct read_info_buffer* rb, struct file_handler* f_handle)
 
         ri = clear_read_info(ri, rb->num_alloc);
 
+        if(rb->left_over_name){
+                LOG_MSG("Found leftover : %s", rb->left_over_name);
+                entry++;
+                ri[entry]->name = rb->left_over_name;
+                rb->left_over_name = NULL;
+                seq_p = 1;
+                type = 1;
+        }
+
         file = f_handle->f_ptr;
 
         while ((nread = getline(&line, &line_len, file)) != -1) {
                 //while(fgets(line, MAX_LINE, file)){
-                if((line[0] == '@' && !set)|| (line[0] == '>' && !set)){
-                        //set sequence length of previous read
+                //fprintf(stdout,"%s",line);
+                //if(type == 0){
+                if(line[0] == '@' || line[0] == '>'){
+                        if(type == 0){
+                                /* readname  */
+                                type++;
 
-                        //check if there is still space....
-                        //if(param->num_query == size){
-                        //	fseek (file , -  strlen(line) , SEEK_CUR);
-                        //	return size;
+                        }
+                        if(type == 1){
+                                //ERROR not @ or > should be in reads
+                                type ==0;
+                                /* -> i.e. start new entry.  */
+                        }
+                        if(type == 2){
+                                /* read Q */
+                                if(q_len == len){
+                                        type = 0;
+                                }
+                        }
+
+                }else if(line[0] == '+'){
+                        type++;
+                }else{
+                        if(type == 1){
+                                /* read seq */
+                        }else if(type == 0){
+                                /* ERROR: should never happen */
+                        }else{
+                                /* read qual  */
+                        }
+                }
                         //}
-                        park_pos++;
+                if(line[0] == '@' || line[0] == '>'){
+
+                        //set sequence length of previous read
+                        entry++;
+                        //check if there is still space....
                         len = 0;
-                        seq_p = 1;
+
                         for(i = 1;i < nread;i++){
                                 len++;
                                 if(iscntrl((int)line[i])){
@@ -1149,325 +1166,93 @@ int read_fasta_fastq(struct read_info_buffer* rb, struct file_handler* f_handle)
                                 }
 
                         }
-
-                        //ri[park_pos]->hits[0] = 0;
-                        //ri[park_pos]->strand[0] = 0;
-                        MMALLOC(ri[park_pos]->name,sizeof(unsigned char)* (len+1));
+                        tmp= NULL;
+                        MMALLOC(tmp,sizeof(unsigned char)* (len+1));
                         for(i = 1;i < nread;i++){
 
                                 if(iscntrl((int)line[i])){
-                                        ri[park_pos]->name[i-1] = 0;
+                                        tmp[i-1] = 0;
                                         break;
                                 }
                                 if(isspace((int)line[i])){
-                                        ri[park_pos]->name[i-1] = ';';
+                                        tmp[i-1] = ';';
                                 }
 
-                                ri[park_pos]->name[i-1] = line[i];
+                                tmp[i-1] = line[i];
                         }
-                        //fprintf(stderr,"LEN:%d	%s\n",len,ri[park_pos]->name);
 
-                        set = 1;
-                        size++;
+                        if(rb->num_alloc  == entry){
+                                rb->left_over_name = tmp;
+                                rb->num_seq = entry;
+                                //LOG_MSG("going over limit; saving: %s", tmp);
+                                //f_handle->f_ptr = file;
+                                MFREE(line);
+                                return OK;
+                        }
+                        ri[entry]->name = tmp;
+
+                        //seq_p = 1;
+                        type++;
                         //get ready to read quality if present
-                }else if(line[0] == '+' && !set){
+                }else if(line[0] == '+'){
                         seq_p = 0;
-                        set = 1;
+                        type++;
+
+                        //set = 1;
                         //reading sequence or quality
                 }else{
-                        if(set){
-                                if(seq_p){
-                                        len = 0;
-                                        for(i = 0;i < nread;i++){
-                                                len++;
-                                                if(iscntrl((int)line[i])){
-                                                        break;
-                                                }
+
+                        if(type == 1){
+                                len = ri[entry]->len;
+                                for(i = 0;i < nread;i++){
+                                        //fprintf(stdout,"%d\n",i);
+                                        ri[entry]->seq[len] = nuc_code[(int)line[i]];
+
+                                        ri[entry]->labels[len] = 0;
+                                        len++;
+
+                                        if(len == ri[entry]->malloc_len){
+                                                RUN(extend_read_info(ri[entry]));
                                         }
-                                        //fprintf(stderr,"SEQ LEN:%d	%s\n",len,line);
-                                        MMALLOC(ri[park_pos]->seq,sizeof(uint8_t)* (len+1));
-
-                                        MMALLOC(ri[park_pos]->labels, sizeof(unsigned char)* (len+1));
-
-                                        for(i = 0;i < nread;i++){
-                                                if(iscntrl((int)line[i])){
-                                                        ri[park_pos]->seq[i] = 0;
-                                                        ri[park_pos]->labels[i] = 0;
-                                                        break;
-                                                }
-                                                ri[park_pos]->seq[i] = nuc_code[(int)line[i]];
-                                                ri[park_pos]->labels[i] = 0;
-                                        }
-                                        ri[park_pos]->len = len-1;
-                                }else{
-                                        len = 0;
-                                        for(i = 0;i < nread;i++){
-                                                len++;
-                                                if(iscntrl((int)line[i])){
-                                                        break;
-                                                }
-
-                                        }
-
-                                        if(len-1 != ri[park_pos]->len ){
-                                                MFREE(line);
-                                                ERROR_MSG("Length of sequence and base qualities differ!.\n");
-
-                                        }
-
-                                        //fprintf(stderr,"QUAL LEN:%d\n",len);
-                                        MMALLOC(ri[park_pos]->qual,sizeof(unsigned char)* (len+1));
-                                        for(i = 0;i < nread;i++){
-                                                if(iscntrl((int)line[i])){
-                                                        ri[park_pos]->qual[i] = 0;
-                                                        break;
-                                                }
-                                                ri[park_pos]->qual[i] = line[i];
+                                        if(iscntrl((int)line[i])){
+                                                break;
                                         }
                                 }
-                        }
-                        set = 0;
-                }
-                if( rb->num_alloc == size ){//here I know I am in the last entry AND filled the quality...
-                        if(! f_handle->fasta && ri[park_pos]->qual){
-                                //return size;
-                                rb->num_seq = size;
-                                //*buffer_count = size;
-                                MFREE(line);
-                                return OK;
-                        }
-                        if(f_handle->fasta && ri[park_pos]->seq){
-                                //*buffer_count = size;
-                                rb->num_seq = size;
-                                MFREE(line);
-                                return OK;
+                                ri[entry]->len = len;
 
+                        }else if(type == 2){
+                                len = ri[entry]->q_len;
+                                for(i = 0;i < nread;i++){
+                                        ri[entry]->qual[len] = line[i];
+                                        len++;
+
+                                        if(len == ri[entry]->malloc_len){
+                                                RUN(extend_read_info(ri[entry]));
+                                        }
+                                        if(iscntrl((int)line[i])){
+                                                break;
+                                        }
+                                }
+                                ri[entry]->q_len = len;
+                                if(ri[entry]->len = ri[entry]->q_len){
+                                        type = 0;
+                                }
                         }
+
                 }
         }
-        rb->num_seq = size;
+        if(entry == -1){
+                entry = 0;
+        }
+        rb->num_seq = entry;
+        if(rb->left_over_name){
+                WARNING_MSG("This should not be here...");
+        }
         MFREE(line);
         return OK;
 ERROR:
         return FAIL;
 
-}
-
-/** \fn struct fasta* get_fasta(struct fasta* p,char *infile)
-    \brief Old Kalign function to read in fasta sequences.
-    All sequences are read into one array indexed by pointers.
-    \param p @ref fasta struct to hold sequences.
-
-    \param infile Pointer to input file.
-
-*/
-
-struct fasta* get_fasta(struct fasta* p,char *infile)
-{
-        //int status;
-        MMALLOC(p,sizeof(struct fasta));
-        p->string = 0;
-        p->mer_hash = 0;
-        p->s_index = 0;
-        p->sn = 0;
-        p->string = 0;
-        p->boost = 0;
-        p->max_len = 0;
-        p->numseq = 0;
-        p->string_len = 0;
-        p->suffix = 0;
-
-        RUN(get_input_into_string(&p->string,infile));
-        if(!p->string){
-                fprintf(stderr,"Analysing input %s ... nothing\n",infile);
-                exit(-1);
-        }
-
-        p = read_fasta(p);
-
-        return p;
-ERROR:
-        //KSLIB_MESSAGE(status,"Something went wrong in get_fasta.\n ");
-        return NULL;
-}
-
-
-
-/** \fn unsigned char* get_input_into_string(unsigned char* string,char* infile)
-    \brief Old Kalign function to copy file content into a string.
-    All sequences are read into one array indexed by pointers.
-    \param string target string.
-    \param infile Pointer to input file.
-
-*/
-
-int get_input_into_string(uint8_t** s ,char* infile)
-{
-        long int i = 0;
-        //int status;
-        size_t bytes_read;
-        uint8_t* string = NULL;
-
-        FILE *file = NULL;
-        RUNP(file = fopen(infile, "r"));
-        //if((file = fopen(infile, "r")) == NULL) KSLIB_XEXCEPTION_SYS(kslEWRT,"Failed to open file:%s",infile);
-
-        if (fseek(file,0,SEEK_END) != 0){
-                (void)fprintf(stderr, "ERROR: fseek failed\n");
-                (void)exit(EXIT_FAILURE);
-        }
-        i= ftell (file);
-        if (fseek(file,0,SEEK_START) != 0){
-                (void)fprintf(stderr, "ERROR: fseek failed\n");
-                (void)exit(EXIT_FAILURE);
-        }
-        if(!string){
-                MMALLOC(string,(i+1+18)* sizeof(uint8_t));
-
-        }
-        bytes_read = fread(string,sizeof(uint8_t ), i, file);
-        if(!bytes_read){
-                fprintf(stderr,"Reading from file:%s failed \n", infile );
-                exit(EXIT_FAILURE);
-        }
-        string[i] = 0;
-        fclose(file);
-
-        *s = string;
-
-        return OK;
-ERROR:
-        return FAIL;
-}
-
-
-/** \fn struct fasta* read_fasta(struct fasta* f)
-    \brief Old Kalign function to set pointers to start of sequence names, sequences ...
-
-    Also sets the sequence lengths.
-    \param string target string.
-    \param f @ref fasta .
-
-*/
-
-
-struct fasta* read_fasta(struct fasta* f)
-{
-        //int status;
-        int c = 0;
-        int n = 0;
-        int i = 0;
-        int j = 0;
-        int len = 0;
-        int stop = 0;
-        int nbytes;
-
-        nbytes = (int) strlen((char*) f->string);
-
-
-        //aln->org_seq = 0;
-        stop = 0;
-
-        //count filenames....
-        for (i =0;i < nbytes;i++){
-                if (f->string[i] == '>'&& stop == 0){
-                        f->numseq++;
-                        stop = 1;
-                }else if (f->string[i] == '\n'){
-                        stop = 0;
-                }else if(f->string[i] == '\r'){
-                        f->string[i] = '\n';
-                }
-        }
-
-
-        MMALLOC(f->sn, sizeof(unsigned char*)*f->numseq);
-        //aln->c = 0;
-
-        MMALLOC(f->s_index, sizeof(int)*(f->numseq+1));
-
-        for(i = 0; i < f->numseq;i++){
-                f->sn[i] = 0;
-                f->s_index[i] = 0;
-        }
-        f->s_index[f->numseq] = 0;
-
-
-        for (i =0;i < nbytes;i++){
-                if (f->string[i] == '>'){
-                        if(f->max_len < len){
-                                f->max_len = len;
-                        }
-
-                        len = 0;
-                        j = i+1;
-                        while(f->string[j] != '\n'){
-                                //	fprintf(stderr,"%c",aln->string[j]);
-                                j++;
-                        }
-                        //fprintf(stderr,"	%d\n",j-i);
-                        MMALLOC(f->sn[c],sizeof(char)*(j-i));
-                        f->s_index[c] = n;
-                        j = i+1;
-                        len = 0;
-                        while(f->string[j] != '\n'){
-                                if(isspace((int)f->string[j])){
-                                        f->sn[c][len] = '_';
-                                }else{
-                                        f->sn[c][len] = f->string[j];
-                                }
-                                len++;
-                                j++;
-                        }
-                        f->sn[c][len] = 0;
-                        f->string[n] = 'X';
-                        n++;
-                        i+= j-i;
-                        c++;
-                }else if(isalnum((int)f->string[i])){// if (aln->string[i] != '\n' && aln->string[i] != 0 ){
-                        f->string[n] =   nuc_code[(int)f->string[i]];//  toupper(aln->string[i]);
-                        n++;
-                        len++;
-                }
-        }
-
-        f->s_index[c] = n;
-        f->string[n] = 'X';
-        f->string[n+1] = 0;
-
-        f->string_len = n+1;
-        return f;
-ERROR:
-        //KSLIB_MESSAGE(status,"Something wrong in read_fasta.\n");
-        return NULL;
-}
-
-
-/** \fn void free_fasta(struct fasta*f)
-
-    \brief frees @ref fasta .
-    \param f @ref fasta.
-    \warning I used to free f->mer_hash even though it is allocated / used in this project....
-*/
-void free_fasta(struct fasta*f)
-{
-        int i;
-        for (i =0;i < f->numseq;i++){
-                MFREE(f->sn[i]);
-        }
-        if(f->mer_hash){
-                MFREE(f->mer_hash);
-        }
-        if(f->suffix){
-                MFREE(f->suffix);
-        }
-
-        //free(aln->mer_hash);
-        MFREE(f->s_index);
-        MFREE(f->string);
-        MFREE(f->sn);
-
-        MFREE(f);
 }
 
 
@@ -1480,7 +1265,7 @@ int alloc_read_info_buffer(struct read_info_buffer** rb, int size)
         read_buffer->num_seq = 0;
         read_buffer->offset = 0;
         read_buffer->ri = NULL;
-
+        read_buffer->left_over_name = NULL;
         RUNP(read_buffer->ri = malloc_read_info(read_buffer->ri, read_buffer->num_alloc));
 
         *rb = read_buffer;
@@ -1508,13 +1293,21 @@ struct read_info** malloc_read_info(struct read_info** ri, int numseq)
         for(i = 0; i < numseq;i++){
                 ri[i] = 0;
                 MMALLOC(ri[i], sizeof(struct read_info));
-
-                ri[i]->seq = 0;
-                ri[i]->name = 0;
-                ri[i]->qual = 0;
-                ri[i]->labels = 0;
+                ri[i]->labels = NULL;
                 ri[i]->len = 0;
+                ri[i]->q_len = 0;
+                ri[i]->malloc_len = 128;
                 ri[i]->bar_prob = 0;
+
+                ri[i]->seq = NULL;
+                ri[i]->qual = NULL;
+                ri[i]->name = NULL;
+                ri[i]->labels = NULL;
+
+                MMALLOC(ri[i]->seq, sizeof(uint8_t)* ri[i]->malloc_len);
+                MMALLOC(ri[i]->qual, sizeof(char)* ri[i]->malloc_len);
+                MMALLOC(ri[i]->labels, sizeof(char)* ri[i]->malloc_len);
+
                 //ri[i]->mapq = -1.0;
                 //ri[i]->barcode = -1;
                 //ri[i]->fingerprint = -1;
@@ -1529,36 +1322,34 @@ ERROR:
         return NULL;
 }
 
+int extend_read_info(struct read_info* ri)
+{
+        int len;
+
+        len = ri->malloc_len;
+        len = len + len / 2;
+        ri->malloc_len = len;
+
+        MREALLOC(ri->seq, sizeof(uint8_t)* ri->malloc_len);
+        MREALLOC(ri->qual, sizeof(char)* ri->malloc_len);
+        MREALLOC(ri->labels, sizeof(char)* ri->malloc_len);
+        return OK;
+ERROR:
+        return FAIL;
+}
+
 struct read_info** clear_read_info(struct read_info** ri, int numseq)
 {
         int i;
 
         for(i = 0; i < numseq;i++){
-                if(ri[i]->seq){
-                        MFREE(ri[i]->seq);
-                }
                 if(ri[i]->name){
                         MFREE(ri[i]->name);
                 }
-                if(ri[i]->qual){
-                        MFREE(ri[i]->qual);
-                }
-                if(ri[i]->labels){
-                        MFREE(ri[i]->labels);
-                }
-                ri[i]->seq = 0;
-                ri[i]->name = 0;
-                ri[i]->qual = 0;
-                ri[i]->labels = 0;
+                ri[i]->name = NULL;
                 ri[i]->len = 0;
+                ri[i]->q_len = 0;
                 ri[i]->bar_prob = 0;
-                //ri[i]->mapq = -1.0;
-                //ri[i]->barcode = -1;
-                //ri[i]->fingerprint = -1;
-                //ri[i]->read_type = 0;
-                //ri[i]->barcode_string = NULL;
-                //ri[i]->strand = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
-                //ri[i]->hits = malloc(sizeof(unsigned int)* (LIST_STORE_SIZE+1));
         }
         return ri;
 }
@@ -2038,3 +1829,6 @@ ERROR:
 
 
 #endif
+
+/*  LocalWords:  MMALLOC
+ */

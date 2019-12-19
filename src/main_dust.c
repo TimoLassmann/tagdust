@@ -21,6 +21,7 @@ int main (int argc,char * argv[])
         init_logsum();
         RUN(init_nuc_code());
 
+        RUN(filter_reads(param));
 
         free_param(param);
 

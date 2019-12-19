@@ -4,7 +4,7 @@
 #include "tlmisc.h"
 
 
-int my_file_exists(char* name)
+int my_file_exists(const char* name)
 {
         struct stat buf;
         int ret,local_ret;

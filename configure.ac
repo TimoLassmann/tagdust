@@ -1,25 +1,27 @@
+AC_INIT([tagdust], [1.3.0])
 
-AC_INIT([tagdust], [m4_esyscmd_s([./version.sh])])
-
+AC_CONFIG_AUX_DIR([.])
+AM_INIT_AUTOMAKE
 AC_USE_SYSTEM_EXTENSIONS
+
+AC_PROG_CC
+AC_PROG_INSTALL
+
+
 # Checks for programs.
 AC_PROG_CXX
 AC_PROG_AWK
-AC_PROG_CC
 AC_PROG_CPP
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
 
 #AC_USE_SYSTEM_EXTENSIONS
-AM_INIT_AUTOMAKE
-AC_PROG_CC
-AC_PROG_INSTALL
 
-AM_SILENT_RULES([no])
+
+#AM_SILENT_RULES([no])
 
 LT_INIT
-
 AC_CONFIG_MACRO_DIR([m4])
 # M4 macros for checking of CPU features.
 m4_include([m4/ax_gcc_x86_avx_xgetbv.m4])
@@ -53,7 +55,7 @@ AC_MSG_ERROR([
 Unable to find HDF5, we need parallel HDF5.
 Install on fedora:
 sudo dnf install hdf5 hdf5-devel
-
+n
 ])
 fi
 
@@ -157,7 +159,7 @@ CFLAGS="-O3 -pedantic -funroll-loops -Wall -std=gnu11 -fdata-sections -ffunction
 DEBUG=0
 fi
 
-ac_configure_args="$ac_configure_args PACKAGE_VERSION=$PACKAGE_VERSION   PACKAGE_NAME=$PACKAGE_NAME"
+
 
 AC_ARG_ENABLE(valgrind-tests,
 [--enable-valgrind-tests run self tests under valgrind],
@@ -177,18 +179,19 @@ fi
 AC_MSG_CHECKING([whether self tests are run under valgrind])
 AC_MSG_RESULT($opt_valgrind_tests)
 
-ac_configure_args="$ac_configure_args PACKAGE_VERSION=$PACKAGE_VERSION   PACKAGE_NAME=$PACKAGE_NAME"
+
 
 AC_CONFIG_FILES([
-lib_tldevel/Makefile
-lib_tldevel/dev/Makefile
 src/Makefile
 Makefile
 ])
+AC_CONFIG_SUBDIRS([tldevel])
 
+AC_CONFIG_HEADER([config.h])
 
-AC_CONFIG_HEADER([src/config.h])
 AC_OUTPUT
+
+
 
 AC_MSG_NOTICE([---------------------------------------------------------])
 AC_MSG_NOTICE([Configuration complete - $PACKAGE_NAME-$PACKAGE_VERSION])

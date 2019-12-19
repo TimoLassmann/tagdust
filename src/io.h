@@ -61,23 +61,6 @@
 #endif
 
 /**
- * @brief Deals with fasta files.
- *
- *  Stores sequences in one big string.
- */
-struct fasta{
-        unsigned char** sn;/**<  @brief Sequence names.*/
-        uint8_t* string;/**< @brief Holds sequence information.*/
-        int* mer_hash;
-        int* boost;
-        int* s_index;
-        int* suffix;
-        int numseq;/**< @brief  Number of sequences.*/
-        int max_len;
-        int string_len;
-};
-
-/**
  * @brief Stores reads from SAM/ fastq formatted files.
  *
  *
@@ -93,6 +76,8 @@ struct read_info{
         float mapq;/**<  @brief Mapping Quality.*/
         //double prob;/**<  @brief Quality of read.*/
         double bar_prob;/**< @brief Ambiguity */
+        int malloc_len;
+        int q_len;
         int len;/**<  @brief Sequence length.*/
         int read_type;
         //int barcode;
@@ -101,6 +86,7 @@ struct read_info{
 
 struct read_info_buffer{
         struct read_info** ri;
+        char* left_over_name;
         int num_alloc;
         int num_seq;
         int offset;
@@ -145,10 +131,6 @@ void split(struct parameters* param,int (*fp)(struct read_info** ,struct paramet
 int file_exists (char * name);
 
 
-struct fasta* read_fasta(struct fasta* f);
-struct fasta* get_fasta(struct fasta* p,char *infile);
-//unsigned char* get_input_into_string(unsigned char* string,char* infile);
-void free_fasta(struct fasta*f);
 
 //void print_split_files(struct parameters* param, struct read_info** ri, int numseq);
 
