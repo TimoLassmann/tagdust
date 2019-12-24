@@ -20,8 +20,8 @@ int post_process_assign(struct assign_struct* as)
         struct seq_bit_vec* bv = NULL;
         struct demux_struct* tmp_ptr = NULL;
         char* tmp =  NULL;
-        uint8_t* barcode;
-        uint8_t* umi;
+        char* barcode;
+        char* umi;
         int i,j,c,g;
         int len;
         int umi_len;
@@ -358,7 +358,7 @@ int set_up_barcode_files(struct arch_library* al, struct assign_struct* as)
         fp_cmp_same = &resolve_default;
         fp_free = &free_demux_struct;
 
-        root = init_tree(fp_get,fp_cmp,fp_cmp_same,fp_print,fp_free);
+        RUNP(root = init_tree(fp_get,fp_cmp,fp_cmp_same,fp_print,fp_free));
 
         //int test;
 
@@ -379,6 +379,7 @@ int set_up_barcode_files(struct arch_library* al, struct assign_struct* as)
                                                 }
                                                 MMALLOC(tmp_ptr, sizeof(struct demux_struct));
                                                 tmp_ptr->name = NULL;
+                                                tmp_ptr->open = 0;
                                                 MMALLOC(tmp_ptr->name,sizeof(char) * (len+1));
                                                 //for(f = 0;f < len;f++){
                                                 //tmp_ptr->name =
@@ -392,13 +393,13 @@ int set_up_barcode_files(struct arch_library* al, struct assign_struct* as)
 
 
 
-                                                root->tree_insert(root,tmp_ptr);
+                                                RUN(root->tree_insert(root,tmp_ptr));
                                                 tmp_ptr = NULL;
                                         }
 
                                 }else{
-                                        root->flatten_tree(root);
-                                        root_new = init_tree(fp_get,fp_cmp,fp_cmp_same,fp_print,fp_free);
+                                        RUN(root->flatten_tree(root));
+                                        RUNP(root_new = init_tree(fp_get,fp_cmp,fp_cmp_same,fp_print,fp_free));
                                         for(f = 0;f < root->num_entries;f++){
                                                 tmp_ptr = root->data_nodes[f];
                                                 for(g = 0;g < read_structure->numseq_in_segment[j];g++){
@@ -413,6 +414,8 @@ int set_up_barcode_files(struct arch_library* al, struct assign_struct* as)
 
                                                         MMALLOC(new_ptr, sizeof(struct demux_struct));
                                                         new_ptr->name = NULL;
+                                                        new_ptr->open = 0;
+
                                                         MMALLOC(new_ptr->name,sizeof(char) * (len+1));
 
                                                         snprintf(new_ptr->name, len, "%s_%s",tmp_ptr->name,read_structure->sequence_matrix[j][g]);
@@ -420,7 +423,7 @@ int set_up_barcode_files(struct arch_library* al, struct assign_struct* as)
                                                         //snprintf(sample1->name , 10,"ABBBB");
                                                         new_ptr->id =0;
                                                         new_ptr->count = 0;
-                                                        root_new->tree_insert(root_new,new_ptr);
+                                                        RUN(root_new->tree_insert(root_new,new_ptr));
                                                         new_ptr = NULL;
                                                 }
 //root->data_nodes[f]
@@ -448,13 +451,14 @@ int set_up_barcode_files(struct arch_library* al, struct assign_struct* as)
 
 
         //tmp_ptr->count++;
-        root->flatten_tree(root);
+        RUN(root->flatten_tree(root));
 
         //root_new = init_tree(fp_get,fp_cmp,fp_cmp_same,fp_print,fp_free);
         for(f = 0;f < root->num_entries;f++){
 
                 tmp_ptr = root->data_nodes[f];
                 tmp_ptr->id = f;
+                tmp_ptr->open = 0;
                 //fprintf(stdout,"%s %d\n",tmp_ptr->name,tmp_ptr->count);
         }
         //root->free_tree(root);

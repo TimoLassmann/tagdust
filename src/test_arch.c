@@ -159,7 +159,7 @@ int test_arch(struct tl_seq_buffer** rb, struct arch_library* al, struct seq_sta
         int num_seq;
         int i,j;
         float score = prob2scaledprob(1.0);
-        mb = init_model_bag(al->read_structure[i_hmm], si->ssi[i_file], i_hmm);
+        mb = init_model_bag(al->read_structure[i_hmm], si->ssi[i_file], si->a, i_hmm);
         num_seq = rb[i_file]->num_seq;
         ri = rb[i_file]->sequences;
 
@@ -174,12 +174,12 @@ int test_arch(struct tl_seq_buffer** rb, struct arch_library* al, struct seq_sta
                 tmp_seq[ri[i]->len] = 0;
                 RUN(backward(mb, tmp_seq,ri[i]->len));
                 score +=  mb->b_score;
-                //fprintf(stdout,"%f\n", m->b_score);
-
+                //fprintf(stdout,"%d %d %d %f %d\n",i,i_file,i_hmm, mb->b_score, ri[i]->len);
         }
         free_model_bag(mb);
 
         MFREE(tmp_seq);
+        fprintf(stdout,"F:%d HMM:%d SCORE:%f\n",i_file,i_hmm,score);
         al->arch_posteriors[i_hmm][i_file] = score;
         return OK;
 ERROR:

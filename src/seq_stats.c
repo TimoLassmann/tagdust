@@ -118,7 +118,8 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
                 //LOG_MSG("FILE:%s", infiles[i]);
                 while(1){
                         RUN(read_fasta_fastq_file(f_hand, &rb,100000));
-                        //read_fasta_fastq(struct read_info_buffer *rb, struct file_handler *f_handle)
+                        //read
+//read_fasta_fastq(struct read_info_buffer *rb, struct file_handler *f_handle)
                         //RUN(fp(rb,f_hand));//  param,file,&numseq));
                         //if((status = fp(ri, param,file,&numseq)) != OK)  exit(status);
 
@@ -159,7 +160,7 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
 
                         }
                         total_read += rb->num_seq;
-                        //LOG_MSG("total: %d", total_read);
+                        LOG_MSG("total: %d", total_read);
 #if DEBUG
                         //if(total_read > 10){
                         //break;

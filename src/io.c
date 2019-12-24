@@ -50,6 +50,7 @@ static int extend_read_info(struct read_info* ri);
 int write_all(const struct assign_struct* as,char* prefix)
 {
         gzFile fp = NULL;
+
         struct demux_struct** dm;
         struct seq_bit_vec* bv;
         struct seq_bit*sb;
@@ -85,7 +86,7 @@ int write_all(const struct assign_struct* as,char* prefix)
         index =0;
 
         dm = (struct demux_struct**)as->demux_names->data_nodes;
-
+//EXTERN int write_fasta_fastq(struct tl_seq_buffer* sb, struct file_handler* fh);
         START_TIMER(t1);
         for(out_read = 0; out_read < as->out_reads;out_read++){
                 //LOG_MSG("OUT:%d: mode: %s",out_read, file_mode);
@@ -95,6 +96,7 @@ int write_all(const struct assign_struct* as,char* prefix)
                         if(bv->fail){
                                 if(index){
                                         START_TIMER(t2);
+
                                         gzwrite(fp, buf, index);
                                         STOP_TIMER(t2);
                                         LOG_MSG("gzwrite took %f",GET_TIMING(t2));

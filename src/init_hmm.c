@@ -6,7 +6,8 @@
 #include "core_hmm_functions.h"
 
 
-struct model* init_model_according_to_read_structure(struct model* model,struct read_structure* rs , int key,const  double* background,int assumed_length)
+
+struct model* init_model_according_to_read_structure(struct model* model,struct read_structure* rs ,struct alphabet* a, int key,const  double* background,int assumed_length)
 {
 
         //struct read_structure* rs = param->read_structure;
@@ -15,7 +16,7 @@ struct model* init_model_according_to_read_structure(struct model* model,struct 
         struct hmm_column* col =0;
         int i,j,c,len;
         int current_nuc;
-        uint8_t* tmp = 0;
+        char* tmp = 0;
 
         for(i= 0;i < 5;i++){
                 model->background_nuc_frequency[i]= background[i];
@@ -40,8 +41,9 @@ struct model* init_model_according_to_read_structure(struct model* model,struct 
 
                         col->transition_e[DD] =  prob2scaledprob(0.0);
                         col->transition_e[DM] =  prob2scaledprob(0.0);
-                        //fprintf(stdout,"%d %d\n", j, tmp[j]);
-                        current_nuc = nuc_code[(int) tmp[j]];
+                        //fprintf(stdout,"%d %d code:%d\n", j, tmp[j],nuc_code[(int) tmp[j]]);
+
+                        current_nuc = tlalphabet_get_code(a, tmp[j]);
                         col->identifier = -1;
                         if(current_nuc < 4){
                                 // before distributed the error probabilityequally to all remaining 4 letters. Now: distribute to 3 and set probability to emit 'N' to background...

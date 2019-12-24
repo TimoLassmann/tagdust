@@ -17,8 +17,6 @@ interface.h \
 interface.c \
 nuc_code.h \
 nuc_code.c \
-io.h \
-io.c \
 filter.h \
 filter.c \
 bpm.h \
@@ -37,8 +35,6 @@ io.h \
 io.c \
 misc.h \
 misc.c \
-nuc_code.h \
-nuc_code.c \
 hmm.h \
 init_hmm.h \
 init_hmm.c \

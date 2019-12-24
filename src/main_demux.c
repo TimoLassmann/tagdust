@@ -78,14 +78,13 @@ int main (int argc,char * argv[]) {
 
 
         RUN(test_architectures(al,si,param));
-        //exit(0);
 
         RUN(calibrate_architectures(al,si, main_rng));
-        exit(0);
+
 
         //int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameters* param)
         RUN(extract_reads(al,si,param));
-
+        exit(0);
 //sprintf(param->buffer,"Start Run\n--------------------------------------------------\n");
         //param->messages = append_message(param->messages, param->buffer);
         //hmm_controller_multiple(param);

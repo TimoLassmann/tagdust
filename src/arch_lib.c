@@ -195,10 +195,10 @@ int assign_segment_sequences(struct read_structure* read_structure, char* tmp, i
         //fprintf(stderr,"Segment %d: %d	X%sX sequences\n",segment,count+1,tmp);
         read_structure->numseq_in_segment[segment] = count+1;
 
-        MMALLOC(read_structure->sequence_matrix[segment],sizeof(uint8_t*) * (count+1));
+        MMALLOC(read_structure->sequence_matrix[segment],sizeof(char*) * (count+1));
         for(i = 0; i < count+1;i++){
                 read_structure->sequence_matrix[segment][i] = 0;
-                MMALLOC(read_structure->sequence_matrix[segment][i],sizeof(uint8_t)* strlen(tmp));
+                MMALLOC(read_structure->sequence_matrix[segment][i],sizeof(char)* strlen(tmp));
         }
 
         read_structure->type[segment] = tmp[0];
@@ -361,7 +361,7 @@ int malloc_read_structure(struct read_structure** rs)
         read_structure->type = NULL;
         read_structure->segment_length = NULL;
         //read_structure->assignment_to_read = 0;
-        MMALLOC(read_structure->sequence_matrix ,sizeof(uint8_t**) * 10 );
+        MMALLOC(read_structure->sequence_matrix ,sizeof(char**) * 10 );
         MMALLOC(read_structure->numseq_in_segment, sizeof(int) * 10);
         MMALLOC(read_structure->segment_length, sizeof(int) * 10);
         MMALLOC(read_structure->type ,sizeof(char) * 10 );

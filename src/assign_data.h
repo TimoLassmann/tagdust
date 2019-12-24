@@ -12,7 +12,7 @@
 #include "tlrbtree.h"
 
 struct seq_bit{
-        uint8_t* p;
+        char* p;
         char* q;
         uint16_t len;
         uint8_t type;
@@ -34,9 +34,8 @@ struct demux_struct{
         char* name;
         int id;
         int count;
-
+        int open;
 };
-
 
 struct assign_struct{
         struct seq_bit_vec** bits;

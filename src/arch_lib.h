@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 struct read_structure{
-        uint8_t*** sequence_matrix;
+        char*** sequence_matrix;
         int* segment_length;
         int* numseq_in_segment;
         char* type;

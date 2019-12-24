@@ -2,7 +2,7 @@
 #define CORE_HMM_FUNCTIONS_H
 
 
-#include "io.h"
+//#include "io.h"
 #include "tlrng.h"
 
 extern struct model_bag* forward(struct model_bag* mb, const uint8_t* a, int len);
