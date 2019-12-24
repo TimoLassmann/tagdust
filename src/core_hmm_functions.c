@@ -7,6 +7,22 @@
 
 #include "misc.h"
 
+int random_score(struct model_bag* mb,const uint8_t* a,const int len)
+{
+        int i;
+        int c;
+        const uint8_t* seqa = a -1;
+
+        float add = prob2scaledprob(1.0 - (1.0 / (float)mb->average_raw_length));
+        mb->r_score  = prob2scaledprob(1.0);
+
+        for(i = 1; i <= len;i++){
+                c = seqa[i];
+                mb->r_score  = mb->r_score  + mb->model[0]->background_nuc_frequency[c] + add;
+        }
+        mb->r_score  += prob2scaledprob(1.0 / (float)mb->average_raw_length);
+        return OK;
+}
 
 int backward(struct model_bag* mb,const uint8_t* a,const int len)
 {
@@ -655,7 +671,7 @@ struct model_bag* forward_extract_posteriors(struct model_bag* mb, const uint8_t
 
 
 
-int forward_max_posterior_decoding(struct model_bag* mb, struct read_info* ri, const uint8_t* a, int len)
+int forward_max_posterior_decoding(struct model_bag* mb, const uint8_t* a,char** label, int len)
 {
 
         //char* a = ri->seq;
@@ -948,109 +964,87 @@ int forward_max_posterior_decoding(struct model_bag* mb, struct read_info* ri, c
         }
 
         if(g){
-                ri->bar_prob = prob2scaledprob(1.0);
+                mb->bar_score = prob2scaledprob(1.0);
+                //ri->bar_prob = prob2scaledprob(1.0);
         }else{
                 if(next_silent[2] > 0){
-                        ri->bar_prob = prob2scaledprob(1.0);
+                        mb->bar_score = prob2scaledprob(1.0);
+                        //ri->bar_prob = prob2scaledprob(1.0);
                 }else{
-                        ri->bar_prob  = next_silent[2];
+                        mb->bar_score = next_silent[2];
+                        //ri->bar_prob  = next_silent[2];
                 }
                 //fprintf(stderr,"SELECTED: %f	%f\n", next_silent[2] , scaledprob2prob(next_silent[2] ));
         }
 
-        for(i = 0; i <= len;i++){
-                //	fprintf(stderr,"%d ",i);
-                for(j = 0; j < mb->total_hmm_num;j++){
-                        //		fprintf(stderr,"%0.3f ",scaledprob2prob( mb->dyn_prog_matrix[i][j]));
-                        mb->dyn_prog_matrix[i][j] = scaledprob2prob( mb->dyn_prog_matrix[i][j]);
-                        //	total_prob[j] = logsum(total_prob[j] ,  mb->dyn_prog_matrix[i][j]);
-                }
-
-                //	fprintf(stderr,"\n");
-        }
-        /*fprintf(stderr,"totalprob: \n");
-          for(j = 0; j < mb->total_hmm_num;j++){
-          fprintf(stderr,"%d	%d	%f	%f\n", j, mb->label[j], total_prob[j], scaledprob2prob(total_prob[j]));
-          }*/
-
-
-        float max = 0;
-        float tmp;
-        int move = -1;
-
-        for(i = 1;i <= len;i++){
-                for(j = 0; j < mb->total_hmm_num;j++){
-                        max = -1;
-                        for(c = 0 ;c <= j ;c++){
-                                tmp =  mb->dyn_prog_matrix[i-1][c] * mb->transition_matrix[c][j];
-
-                                if(tmp > max){
-                                        move = c;
-                                        max = tmp;
-                                }
-                                if(tmp == max && c == j){
-                                        move = c;
-                                        max = tmp;
-                                }
-
-                                //	fprintf(stderr,"%0.3f ",scaledprob2prob( mb->dyn_prog_matrix[i][j]));
+        if(label){
+                for(i = 0; i <= len;i++){
+                        //	fprintf(stderr,"%d ",i);
+                        for(j = 0; j < mb->total_hmm_num;j++){
+                                //		fprintf(stderr,"%0.3f ",scaledprob2prob( mb->dyn_prog_matrix[i][j]));
+                                mb->dyn_prog_matrix[i][j] = scaledprob2prob( mb->dyn_prog_matrix[i][j]);
+                                //	total_prob[j] = logsum(total_prob[j] ,  mb->dyn_prog_matrix[i][j]);
                         }
 
-                        mb->dyn_prog_matrix[i][j]+= max;
-                        mb->path[i][j] = move;
+                        //	fprintf(stderr,"\n");
+                }
+                /*fprintf(stderr,"totalprob: \n");
+                  for(j = 0; j < mb->total_hmm_num;j++){
+                  fprintf(stderr,"%d	%d	%f	%f\n", j, mb->label[j], total_prob[j], scaledprob2prob(total_prob[j]));
+                  }*/
+
+
+                char* l = *label;
+                float max = 0;
+                float tmp;
+                int move = -1;
+
+                for(i = 1;i <= len;i++){
+                        for(j = 0; j < mb->total_hmm_num;j++){
+                                max = -1;
+                                for(c = 0 ;c <= j ;c++){
+                                        tmp =  mb->dyn_prog_matrix[i-1][c] * mb->transition_matrix[c][j];
+
+                                        if(tmp > max){
+                                                move = c;
+                                                max = tmp;
+                                        }
+                                        if(tmp == max && c == j){
+                                                move = c;
+                                                max = tmp;
+                                        }
+
+                                        //	fprintf(stderr,"%0.3f ",scaledprob2prob( mb->dyn_prog_matrix[i][j]));
+                                }
+
+                                mb->dyn_prog_matrix[i][j]+= max;
+                                mb->path[i][j] = move;
+                        }
+                }
+                i = len;
+                max = -1;
+                for(j = 0; j < mb->total_hmm_num;j++){
+                        if(mb->dyn_prog_matrix[i][j] > max){
+                                max = mb->dyn_prog_matrix[i][j];
+                                move = j;
+                        }
+                }
+
+                for(i = 0; i <= len;i++){
+                        l[i] = 0;
+                        //ri->labels[i] = 0;
+                }
+                l[len] = move;
+                //path[len] = move;
+                //ri->labels[len] = move;
+
+                for(i = len ;i > 0;i--){
+                        move = mb->path[i][move];
+                        //	path[i-1] = move;
+                        l[i-1] = move;
+                        //ri->labels[i-1] = move;
                 }
         }
-        /*fprintf(stderr,"MATRIX:\n");
-          for(i = 0; i <= len;i++){
-          fprintf(stderr,"%d ",i);
-          for(j = 0; j < mb->total_hmm_num;j++){
-          fprintf(stderr,"%0.3f ", mb->dyn_prog_matrix[i][j]);
-          //mb->dyn_prog_matrix[i][j] = scaledprob2prob( mb->dyn_prog_matrix[i][j]);
-          }
-          fprintf(stderr,"\n");
-          }
-          fprintf(stderr,"PATH:\n");
-          for(i = 0; i <= len;i++){
-          fprintf(stderr,"%d ",i);
-          for(j = 0; j < mb->total_hmm_num;j++){
-          fprintf(stderr,"%d ", mb->path[i][j]);
-          //mb->dyn_prog_matrix[i][j] = scaledprob2prob( mb->dyn_prog_matrix[i][j]);
-          }
-          fprintf(stderr,"\n");
-          }
-        */
-        //char path[100];
-
-        i = len;
-        max = -1;
-        for(j = 0; j < mb->total_hmm_num;j++){
-                if(mb->dyn_prog_matrix[i][j] > max){
-                        max = mb->dyn_prog_matrix[i][j];
-                        move = j;
-                }
-        }
-
-        for(i = 0; i <= len;i++){
-                ri->labels[i] = 0;
-        }
-
-        //path[len] = move;
-        ri->labels[len] = move;
-
-        for(i = len ;i > 0;i--){
-                move = mb->path[i][move];
-                //	path[i-1] = move;
-                ri->labels[i-1] = move;
-        }
-
-        mb->r_score  = prob2scaledprob(1.0);
-
-        for(i = 1; i <= len;i++){
-                c = seqa[i];
-                mb->r_score  = mb->r_score  + mb->model[0]->background_nuc_frequency[c] + prob2scaledprob(1.0 - (1.0 / (float)mb->average_raw_length ));
-                //fprintf(stderr,"%d,%f	%e	%f	%f	%f\n",   i,scaledprob2prob(next_silent[0]),   scaledprob2prob(next_silent[0]),next_silent[0] , scaledprob2prob(mb->model[0]->background_nuc_frequency[c] ) , 1.0 - (1.0 / (float)len) );
-        }
-        mb->r_score  += prob2scaledprob(1.0 / (float)mb->average_raw_length);
         return OK;
 }
 
@@ -1456,23 +1450,24 @@ struct hmm* set_hmm_transition_parameters(struct hmm* hmm, int len,double base_e
 
 
 
-int  emit_random_sequence(struct model_bag* mb, struct read_info* ri,int average_length, struct rng_state* rng)
+
+int emit_random_sequence(struct model_bag* mb, uint8_t** r_seq, int* r_len, int average_length, struct rng_state* rng)
 {
-        int current_length = 0;
-        int allocated_length = 100;
+        uint8_t* s = NULL;
+        int s_len = 0;
+        int s_malloc_len = 128;
+
+
         double r;// = (float)rand()/(float)my_rand_max;
         double sum = prob2scaledprob(0.0f);
         //char alpha[] = "ACGTN";
-        int nuc,i;
-        ri->seq = NULL;
-        ri->name = NULL;
-        ri->qual = NULL;
-        ri->labels = NULL;
-        ri->len = 0;
+        int nuc;
         //ri->read_type = 0;
-        MMALLOC(ri->seq,sizeof(char) * allocated_length);
 
-        while(current_length < average_length){
+        MMALLOC(s, sizeof(uint8_t) * s_malloc_len);
+        s_len = 0;
+
+        while(s_len < average_length){
 
                 while(1){
                         //emission
@@ -1481,16 +1476,16 @@ int  emit_random_sequence(struct model_bag* mb, struct read_info* ri,int average
                         for(nuc = 0;nuc < 5;nuc++){
                                 sum = logsum(sum, mb->model[0]->background_nuc_frequency[nuc] );
                                 if(r <  scaledprob2prob(sum)){
-                                        ri->seq[current_length] = nuc;
-                                        //fprintf(stderr,"%c",alpha[(int)nuc]);
-                                        current_length++;
+                                        s[s_len] = nuc;
+                                        s_len++;
                                         break;
                                 }
                         }
-                        if(current_length == allocated_length){
-                                allocated_length = allocated_length*2;
-                                MREALLOC(ri->seq,sizeof(char) * allocated_length );
+                        if(s_len == s_malloc_len){
+                                s_malloc_len = s_malloc_len + s_malloc_len /2;
+                                MREALLOC(s, sizeof(uint8_t) * s_malloc_len);
                         }
+
                         //transition
                         r = tl_random_double(rng);
                         //r = (float)rand()/(float)my_rand_max;
@@ -1500,8 +1495,8 @@ int  emit_random_sequence(struct model_bag* mb, struct read_info* ri,int average
                         }
                 }
                 //fprintf(stderr,"	%d\n",current_length);
-                if(current_length >= average_length){
-                        current_length = 0;
+                if(s_len >= average_length){
+                        s_len = 0;
                 }else{
                         break;
                 }
@@ -1511,30 +1506,23 @@ int  emit_random_sequence(struct model_bag* mb, struct read_info* ri,int average
                 //}
         }
 
-        MREALLOC(ri->seq ,sizeof(char) * (current_length+1));
-        ri->seq[current_length] = 0;
-        ri->len = current_length;
+        s[s_len] = 0;
+        //s_len++;
 
-        MMALLOC(ri->qual,sizeof(char) * (current_length+1));
-        for(i = 0; i < current_length;i++){
-                ri->qual[i] = 'B';
-        }
+        *r_seq = s;
+        *r_len = s_len;
 
-        ri->qual[current_length] = 0;
-
-        MMALLOC(ri->name,sizeof(char) *2);
-        ri->name[0] = 'N';
-        ri->name[1] = 0;
-
-        MMALLOC(ri->labels,sizeof(char) * (current_length+1));
         return OK;
 ERROR:
         return FAIL;
 }
 
-int emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_length, struct rng_state* rng)
+int emit_read_sequence(struct model_bag* mb, uint8_t** r_seq, int* r_len, int average_length, struct rng_state* rng)
 {
 
+        uint8_t* s = NULL;
+        int s_len = 0;
+        int s_malloc_len = 128;
         int i,j,nuc;
         int state = 0; //0 silent ; 1 M , 2 I , 3 D
         int column = 0;
@@ -1557,32 +1545,10 @@ int emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_le
 
         double prob = prob2scaledprob(1.0f);
 
-        int current_length = 0;
-        int allocated_length = average_length;
-        /*if(ri->seq){
-                MFREE(ri->seq);
-        }
-        if(ri->name){
-                MFREE(ri->name);
-        }
+        MMALLOC(s, sizeof(uint8_t) * s_malloc_len);
+        s_len = 0;
 
-
-        MFREE(ri->qual);
-        MFREE(ri->labels);
-        */
-        ri->seq = NULL;
-        ri->name = NULL;
-        ri->qual = NULL;
-        ri->labels = NULL;
-        ri->len = 0;
-        //ri[i]->xp = 0;
-        //ri->read_type = 0;
-
-
-        MMALLOC(ri->seq,sizeof(char) * allocated_length);
-        MMALLOC(ri->labels,sizeof(char) * allocated_length);
-
-        while(current_length < average_length){
+        while(s_len < average_length){
                 //KSL_DPRINTF2(("%d %d\n", current_length , average_length ));
                 state = 0; //0 silent ; 1 M , 2 I , 3 D
                 column = 0;
@@ -1777,11 +1743,8 @@ int emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_le
                                         sum = logsum(sum, mb->model[segment]->hmms[hmm]->hmm_column[column]->m_emit[nuc]);
                                         if(r <  scaledprob2prob(sum)){
                                                 prob += mb->model[segment]->hmms[hmm]->hmm_column[column]->m_emit[nuc];
-                                                ri->seq[current_length] = nuc;
-                                                ri->labels[current_length] = segment;
-
-                                                //fprintf(stderr,"%c",alpha[(int)nuc]);
-                                                current_length++;
+                                                s[s_len] = nuc;
+                                                s_len++;
                                                 //fprintf(stderr,"Letter: %d	Segment:%d	hmm:%d	column:%d	state:%d\n",nuc, segment,hmm,column,state );
                                                 break;
                                         }
@@ -1804,31 +1767,28 @@ int emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_le
                                         //		fprintf(stderr,"%d %f %f\n",nuc,r,scaledprob2prob(sum) );
                                         if(r <  scaledprob2prob(sum)){
                                                 prob += mb->model[segment]->hmms[hmm]->hmm_column[column]->i_emit[nuc];
-                                                ri->seq[current_length] = nuc;
-                                                ri->labels[current_length] = segment;
-                                                //fprintf(stderr,"%c",alpha[(int)nuc]);
-                                                current_length++;
-                                                //fprintf(stderr,"Letter: %d	Segment:%d	hmm:%d	column:%d	state:%d\n",nuc, segment,hmm,column,state );
+
+                                                s[s_len] = nuc;
+                                                s_len++;
+
                                                 break;
                                         }
                                 }
                         }
 
-                        if(current_length == allocated_length){
-                                allocated_length = allocated_length*2;
-                                MREALLOC(ri->seq , sizeof(char) * allocated_length );
-                                MREALLOC(ri->labels , sizeof(char) * allocated_length );
+                        if(s_len == s_malloc_len){
+                                s_malloc_len = s_malloc_len + s_malloc_len /2;
+                                MREALLOC(s, sizeof(uint8_t) * s_malloc_len);
                         }
-
                         //fprintf(stderr,"segement: %d %d %d\n", segment,mb->num_models,state);
                         if(segment == mb->num_models){
                                 break;
                         }
                 }
                 //fprintf(stderr,"%d len %d \n",current_length,average_length);
-                if(current_length >=  average_length){
+                if(s_len >=  average_length){
                         //fprintf(stdout,"try again");
-                        current_length = 0;
+                        s_len = 0;
                 }else{
                         break;
                 }
@@ -1838,44 +1798,16 @@ int emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_le
                 //}
 
         }
-        //fprintf(stderr,"	%f\n", prob);
-        //fprintf(stderr,"%d len \n",current_length );
+        s[s_len] = 0;
+        //s_len++;
 
-
-        MREALLOC(ri->seq, sizeof(char) * (current_length+1));
-        ri->seq[current_length] = 0;
-
-        MREALLOC(ri->labels, sizeof(char) * (current_length+1));
-        ri->labels[current_length] = 0;
-
-
-        MMALLOC(ri->qual,sizeof(char) * (current_length+1));
-        //assert(ri->qual != NULL);
-        for(i = 0; i < current_length;i++){
-                ri->qual[i] = 'B';
-        }
-
-        ri->qual[current_length] = 0;
-
-
-
-        ri->len = current_length;
-
-        MMALLOC(ri->name,sizeof(char) *2);
-        ri->name[0] = 'P';
-        ri->name[1] = 0;
-
-        //MMALLOC(ri->labels,sizeof(char) * (current_length+1));
-
-
-        //ri->qual = malloc(sizeof(char) *2);
-        //ri->qual[0] = 'P';
-        //ri->qual[1] = 0;
-
+        *r_seq = s;
+        *r_len = s_len;
         return OK;
 ERROR:
         return FAIL;
 }
+
 
 
 

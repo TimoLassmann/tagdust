@@ -2,8 +2,10 @@
 #ifndef SEQ_STATS_H
 #define SEQ_STATS_H
 
+#include "tlalphabet.h"
+
 #include "arch_lib.h"
-#include "io.h"
+//#include "io.h"
 struct sequence_stats_info{
         double background[5];
         double* expected_5_len;
@@ -20,10 +22,13 @@ struct sequence_stats_info{
 
 struct seq_stats{
         struct sequence_stats_info** ssi;
+        struct alphabet* a;
         int num;
 };
 
-extern int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* al,char** infiles,int numfiles);
+extern int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* al,char** infiles,int numfiles,struct rng_state* main_rng);
+
+//extern int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* al,char** infiles,int numfiles);
 
 void free_sequence_stats(struct seq_stats* si);
 

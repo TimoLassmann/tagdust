@@ -1,14 +1,13 @@
-ACLOCAL_AMFLAGS = -I m4
+ACLOCAL_AMFLAGS= -I m4
 
-AM_CFLAGS =  @SIMD_FLAGS@ @OPENMP_CFLAGS@
+AM_CFLAGS =  @SIMD_FLAGS@ @OPENMP_CFLAGS@  @TLDEVEL_CPPFLAGS@
 
 CLEANFILES =
 
 AM_LDFLAGS = @DEAD_STRIP@
 AM_LDFLAGS += -Wno-undef
 
-LIBS = ../tldevel/libtldevel.a $(HDF5_LDFLAGS)  $(HDF5_LIBS) -lm
-AM_CPPFLAGS = -I$(top_srcdir)/tldevel
+LIBS = @TLDEVEL_LIB@ $(HDF5_LDFLAGS)  $(HDF5_LIBS) -lm
 
 bin_PROGRAMS = tagdust_demux tagdust
 

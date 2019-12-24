@@ -1,37 +1,29 @@
 #include <string.h>
 #include <math.h>
 
-#include "tldevel.h"
-#include "tllogsum.h"
-
 #include "seq_stats.h"
 
-
-//#include "interface.h"
-#include "nuc_code.h"
-
+#include "tldevel.h"
+#include "tllogsum.h"
 #include "tlseqio.h"
-
-//#include "io.h"
-
+#include "tlalphabet.h"
 
 static int alloc_sequence_stats_info(struct sequence_stats_info** si, int n);
 static void free_sequence_stats_info(struct sequence_stats_info* si);
 
-static int five_prime_exact_match(uint8_t* seq,char*p,int seq_len, double* res);
-static int three_prime_exact_match(uint8_t* seq,char*p,int seq_len, double* res);
+static int five_prime_exact_match(char* seq,char*p,int seq_len, double* res);
+static int three_prime_exact_match(char* seq,char*p,int seq_len, double* res);
 
-int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* al,char** infiles,int numfiles)
+int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* al,char** infiles,int numfiles,struct rng_state* main_rng)
 {
         struct seq_stats* si = NULL;
         struct file_handler* f_hand = NULL;
 
         struct tl_seq_buffer* rb = NULL;
         struct tl_seq** ri = NULL;
-        //struct read_info_buffer* rb = NULL;
-        //struct read_info** ri = NULL;
 
-        //int (*fp)(struct read_info_buffer* rb, struct file_handler* f_handle) = NULL;
+        struct alphabet* a = NULL;
+
 
         int i,j,c;
         int total_read;
@@ -50,6 +42,8 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
         double res;
         double sum;
 
+
+
         MMALLOC(five_s0, sizeof(double) * al->num_arch);
         MMALLOC(five_s1, sizeof(double) * al->num_arch);
         MMALLOC(five_s2, sizeof(double) * al->num_arch);
@@ -61,6 +55,11 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
         si->num = numfiles;
         si->ssi = NULL;
         MMALLOC(si->ssi, sizeof(struct sequence_stats_info*) * si->num);
+        si->a = NULL;
+
+        RUN(create_alphabet(&si->a, main_rng, TLALPHABET_DEFAULT_DNA));
+        a = si->a;
+
         for(i = 0; i < si->num;i++){
                 si->ssi[i] = NULL;
                 RUN(alloc_sequence_stats_info(&si->ssi[i], al->num_arch));
@@ -82,7 +81,7 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
                                 si->ssi[c]->expected_5_len[i] = (double)len;
                         }
                         for(j = 0; j < len;j++){
-                                five_test_sequence[i][j] = nuc_code[(int) al->read_structure[i]->sequence_matrix[0][0][j]];
+                                five_test_sequence[i][j] =  tlalphabet_get_code(a,al->read_structure[i]->sequence_matrix[0][0][j]);
                         }
                         five_test_sequence[i][len] = 0;
                 }
@@ -94,7 +93,7 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
                                 si->ssi[c]->expected_3_len[i] = (double)len;
                         }
                         for(j = 0; j < len;j++){
-                                three_test_sequence[i][j] = nuc_code[(int) al->read_structure[i]->sequence_matrix[last][0][j]];
+                                three_test_sequence[i][j] =  tlalphabet_get_code(a,al->read_structure[i]->sequence_matrix[0][0][j]);
                         }
                         three_test_sequence[i][len] = 0;
                 }
@@ -116,7 +115,7 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
                 }
 
                 total_read = 0;
-                LOG_MSG("FILE:%s", infiles[i]);
+                //LOG_MSG("FILE:%s", infiles[i]);
                 while(1){
                         RUN(read_fasta_fastq_file(f_hand, &rb,100000));
                         //read_fasta_fastq(struct read_info_buffer *rb, struct file_handler *f_handle)
@@ -135,7 +134,8 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
                                 //print_sequence(rb->ri[j], stdout);
                                 si->ssi[i]->average_length += ri[j]->len;
                                 for(c = 0;c < ri[i]->len;c++){
-                                        si->ssi[i]->background[(int)ri[j]->seq[c]] += 1.0f;
+
+                                        si->ssi[i]->background[tlalphabet_get_code(a,ri[j]->seq[c])] += 1.0f;
                                 }
                                 for(c = 0;c < al->num_arch;c++){
                                         if(five_test_sequence[c]){
@@ -270,8 +270,8 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
         MFREE(three_s2);
         free_tl_seq_buffer(rb);
         //free_read_info_buffer(rb);
-        MFREE(f_hand);
-
+        //free_alphabet(a);
+        //LOG_MSG("Got here");
         *sequence_stats = si;
         return OK;
 ERROR:
@@ -279,7 +279,7 @@ ERROR:
         return FAIL;
 }
 
-int five_prime_exact_match(uint8_t* seq,char*p,int seq_len, double* res)
+int five_prime_exact_match(char* seq,char*p,int seq_len, double* res)
 {
         int i,j;
         int five_len;
@@ -305,7 +305,7 @@ int five_prime_exact_match(uint8_t* seq,char*p,int seq_len, double* res)
         return OK;
 }
 
-int three_prime_exact_match(uint8_t* seq,char*p,int seq_len, double* res)
+int three_prime_exact_match(char* seq,char*p,int seq_len, double* res)
 {
         int three_len;
         int i,j;
@@ -339,6 +339,7 @@ void free_sequence_stats(struct seq_stats* si)
                 for(i = 0; i < si->num;i++){
                         free_sequence_stats_info(si->ssi[i]);
                 }
+                free_alphabet(si->a);
                 MFREE(si->ssi);
                 MFREE(si);
         }

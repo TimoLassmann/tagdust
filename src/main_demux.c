@@ -1,12 +1,12 @@
 #include "interface.h"
 #include "arch_lib.h"
 #include "seq_stats.h"
-#include "nuc_code.h"
 #include "hmm_model_bag.h"
 #include "test_arch.h"
 #include "calibrate_hmm.h"
 #include "extract_reads.h"
 
+#include "tlrng.h"
 
 #include "tllogsum.h"
 
@@ -14,7 +14,7 @@ int main (int argc,char * argv[]) {
         struct parameters* param = NULL;
         struct arch_library* al = NULL;
         struct seq_stats* si = NULL;
-
+        struct rng_state* main_rng = NULL;
         int i,j;
 
         RUN(interface(&param,argc,argv));
@@ -25,6 +25,10 @@ int main (int argc,char * argv[]) {
         ASSERT(param->num_infiles > 0, "Number of inputs has to be greater than 0");
 
         ASSERT(param->outfile != NULL, "No output file suffix");
+
+
+        /* set top level rng generator  */
+        RUNP(main_rng = init_rng(param->seed));
 
         /* create architecture library */
         RUN(alloc_arch_lib(&al));
@@ -41,12 +45,17 @@ int main (int argc,char * argv[]) {
 
         /* Start HMM stuff */
         init_logsum();
-        RUN(init_nuc_code());
+
 
         /* get all sequence stats  */
+        LOG_MSG("Got here");
+        for( i = 0; i < param->num_infiles;i++){
+                fprintf(stdout," File %d max: %s\n",i, param->infile[i]);
+        }
 
-        RUN(get_sequence_stats(&si,al, param->infile, param->num_infiles));
-        exit(0);
+        RUN(get_sequence_stats(&si,al, param->infile, param->num_infiles, main_rng));
+        //si->ssi[0]->average_length;
+
         /* here there have to be sanity checks  */
         for(i = 0; i < param->num_infiles;i++){
                 for(j = i+1; j < param->num_infiles;j++){
@@ -61,6 +70,7 @@ int main (int argc,char * argv[]) {
                 }
                 fprintf(stdout,"\n");
         }
+        //exit(0);
         /* allocate model for each architecture and each input file. */
 
         /* figure out which architectures belong to which read infiles */
@@ -68,10 +78,10 @@ int main (int argc,char * argv[]) {
 
 
         RUN(test_architectures(al,si,param));
+        //exit(0);
 
-
-        RUN(calibrate_architectures(al,si));
-
+        RUN(calibrate_architectures(al,si, main_rng));
+        exit(0);
 
         //int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameters* param)
         RUN(extract_reads(al,si,param));
@@ -82,6 +92,7 @@ int main (int argc,char * argv[]) {
         free_arch_lib(al);
         free_sequence_stats(si);
         free_param(param);
+        free_rng(main_rng);
 
         return EXIT_SUCCESS;
 ERROR:

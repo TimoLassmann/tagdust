@@ -4,9 +4,11 @@ AC_CONFIG_AUX_DIR([.])
 AM_INIT_AUTOMAKE
 AC_USE_SYSTEM_EXTENSIONS
 
+
+
 AC_PROG_CC
 AC_PROG_INSTALL
-
+AC_PROG_LIBTOOL
 
 # Checks for programs.
 AC_PROG_CXX
@@ -18,10 +20,11 @@ AC_PROG_MAKE_SET
 
 #AC_USE_SYSTEM_EXTENSIONS
 
-
 #AM_SILENT_RULES([no])
 
+
 LT_INIT
+
 AC_CONFIG_MACRO_DIR([m4])
 # M4 macros for checking of CPU features.
 m4_include([m4/ax_gcc_x86_avx_xgetbv.m4])
@@ -29,7 +32,19 @@ m4_include([m4/ax_gcc_x86_cpuid.m4])
 m4_include([m4/ax_check_compile_flag.m4])
 m4_include([m4/ax_ext.m4])
 m4_include([m4/ax_openmp.m4])
+m4_include([m4/ax_with_tldevel.m4])
 AX_EXT
+
+AX_WITH_TLDEVEL
+
+
+AC_SEARCH_LIBS([tldevel_version], [tldevel $TLDEVELDIR/tldevel], [], [
+  AC_MSG_ERROR([unable to find the dlopen() function])
+])
+
+AC_MSG_NOTICE([$TLDEVEL_CPPFLAGS])
+AC_MSG_NOTICE([$TLDEVEL_LDFLAGS])
+AC_MSG_NOTICE([$TLDEVEL_LIB])
 
 AC_ARG_WITH([openmp],
 AS_HELP_STRING([--without-openmp], [Do not use OpenMP]))
@@ -45,6 +60,7 @@ AC_SUBST(OPENMP_CFLAGS)
 # "OpenMP checker only defines for C when compiling both C and C++"
 OPENMP_CXXFLAGS=$OPENMP_CFLAGS
 AC_SUBST(OPENMP_CXXFLAGS)
+
 
 AX_LIB_HDF5([serial])
 if test "$with_hdf5" = "yes"; then
@@ -185,11 +201,9 @@ AC_CONFIG_FILES([
 src/Makefile
 Makefile
 ])
-AC_CONFIG_SUBDIRS([tldevel])
+
 
 AC_OUTPUT
-
-
 
 AC_MSG_NOTICE([---------------------------------------------------------])
 AC_MSG_NOTICE([Configuration complete - $PACKAGE_NAME-$PACKAGE_VERSION])
@@ -200,6 +214,10 @@ AC_MSG_NOTICE([         Configured on: $DATE])
 AC_MSG_NOTICE([         Configured by: $USER])
 AC_MSG_NOTICE([           Host system: $host_cpu-$host_vendor-$host_os])
 AC_MSG_NOTICE([     Uname information: $UNAME_INFO])
+AC_MSG_NOTICE([                CFLAGS: $CFLAGS])
+AC_MSG_NOTICE([               CPFLAGS: $CPPFLAGS   $TLDEVEL_CPPFLAGS])
+AC_MSG_NOTICE([                  LIBS: $LIBS $TLDEVEL_LIB])
+AC_MSG_NOTICE([               LDFLAGS: $LDFLAGS $TLDEVEL_LDFLAGS])
 AC_MSG_NOTICE([    Installation point: $prefix])
-AC_MSG_NOTICE([            SIMD flags: $SIMD_FLAGS])
 AC_MSG_NOTICE([---------------------------------------------------------])
+

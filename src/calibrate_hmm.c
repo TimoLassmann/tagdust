@@ -1,7 +1,7 @@
 #include <math.h>
 
 #include "tllogsum.h"
-#include "tlrng.h"
+
 
 #include "calibrate_hmm.h"
 
@@ -14,21 +14,46 @@
 
 #define NUM_TEST_SEQ 100
 
+struct calibrate_seq{
+        uint8_t* seq;
+        int len;
+        uint8_t type;
+        float Q;
+};
 
-static int generate_test_sequences(struct read_info*** ri_b, struct model_bag* mb,int average_length);
-static int run_scoring(struct model_bag* mb, struct read_info** ri);
-static int qsort_ri_mapq_compare(const void *a, const void *b);
-static int calibrate(struct arch_library* al, struct seq_stats* si,int i_file,int i_hmm);
+struct calibrate_buffer{
+        struct calibrate_seq** seq;
+        int num_seq;
+};
 
-int calibrate_architectures(struct arch_library* al, struct seq_stats* si)
+
+
+static int generate_test_sequences(struct  calibrate_buffer** ri_b, struct model_bag* mb,int average_length,struct rng_state* rng);
+
+
+static int run_scoring(struct model_bag* mb, struct calibrate_buffer* cb);
+static int qsort_cb_q_compare(const void *a, const void *b);
+static int calibrate(struct arch_library* al, struct seq_stats* si,int* seeds,int i_file,int i_hmm);
+
+
+int calibrate_architectures(struct arch_library* al, struct seq_stats* si,struct rng_state* main_rng)
 {
         int i,j;
+
+        int* seeds = NULL;
+
+        MMALLOC(seeds, sizeof(int) * al->num_file);
+        for(i = 0; i < al->num_file;i++){
+                seeds[i] = tl_random_int(main_rng, INT32_MAX);
+        }
+
+
 #pragma omp parallel default(shared)
 #pragma omp for private(i)
         for(i = 0; i < al->num_file;i++){
                 j = al->arch_to_read_assignment[i];
                 LOG_MSG("File %d HMM: %d",i,j);
-                calibrate(al, si, i, j);
+                calibrate(al, si,seeds, i, j);
 
         }
 
@@ -36,16 +61,17 @@ int calibrate_architectures(struct arch_library* al, struct seq_stats* si)
                 LOG_MSG("File %d threshold:%f", i, al->confidence_thresholds[i]);
         }
 
-
+        MFREE(seeds);
         return OK;
+ERROR:
+        return FAIL;
 }
 
-
-int calibrate(struct arch_library* al, struct seq_stats* si,int i_file,int i_hmm)
+int calibrate(struct arch_library* al, struct seq_stats* si,int* seeds,int i_file,int i_hmm)
 {
         struct model_bag* mb = NULL;
-        struct read_info** ri = NULL;
-
+        struct calibrate_buffer* cb = NULL;
+        struct rng_state* local_rng = NULL;
         int i,j;
         double TP,FP,TN,FN;
         TP = 0.0;
@@ -70,17 +96,18 @@ int calibrate(struct arch_library* al, struct seq_stats* si,int i_file,int i_hmm
                 }
         }
 
-        RUN(generate_test_sequences(&ri, mb, si->ssi[i_file]->average_length));
+        RUNP(local_rng = init_rng(seeds[i_file]));
+        RUN(generate_test_sequences(&cb, mb, si->ssi[i_file]->average_length,local_rng));
         free_model_bag(mb);
 
 
         RUNP(mb = init_model_bag(al->read_structure[i_hmm], si->ssi[i_file], i_hmm));
 
-        RUN(run_scoring(mb, ri));
+        RUN(run_scoring(mb, cb));
 
 
         free_model_bag(mb);
-        qsort(ri,NUM_TEST_SEQ, sizeof(struct read_info*), qsort_ri_mapq_compare);
+        qsort(cb->seq,NUM_TEST_SEQ, sizeof(struct calibrate_seq*), qsort_cb_q_compare);
 
         double kappa = 0.0;
         double tmp = 0.0;
@@ -104,7 +131,7 @@ int calibrate(struct arch_library* al, struct seq_stats* si,int i_file,int i_hmm
         FN = NUM_TEST_SEQ / 2;
         TN = NUM_TEST_SEQ / 2;
         for(i = 0; i < NUM_TEST_SEQ;i++){
-                if(ri[i]->read_type){
+                if(cb->seq[i]->type){
                         FP += 1.0;
                         TN -= 1.0;
                 }else{
@@ -118,16 +145,16 @@ int calibrate(struct arch_library* al, struct seq_stats* si,int i_file,int i_hmm
                 specificity =  TN / ( TN + FP);
 
                 if(FP /(FP+ TP) < 0.01){
-                        thres[0] =  ri[i]->mapq;
+                        thres[0] = cb->seq[i]->Q;
                 }else if(FP /(FP+ TP) < 0.05){
-                        thres[1] = ri[i]->mapq;
+                        thres[1] = cb->seq[i]->Q;
                 }else if(FP /(FP+ TP) < 0.1){
-                        thres[2] = ri[i]->mapq;
+                        thres[2] = cb->seq[i]->Q;
                 }
 
                 if(sensitivity + specificity > thres[3]){
                         thres[3] = specificity + sensitivity;
-                        thres[4] = ri[i]->mapq;
+                        thres[4] = cb->seq[i]->Q;
                 }
                 P_e = ((TP+FN) / (double) NUM_TEST_SEQ) * ((TP+FP) / (double)NUM_TEST_SEQ) +  ( ((FP+TN) / (double)NUM_TEST_SEQ ) * ((FN+TN) / (double)NUM_TEST_SEQ));
                 P_o =(TP+TN)/(double)NUM_TEST_SEQ ;
@@ -138,7 +165,7 @@ int calibrate(struct arch_library* al, struct seq_stats* si,int i_file,int i_hmm
                 if(tmp > kappa ){
 
                         kappa = tmp;
-                        thres[5] = ri[i]->mapq;
+                        thres[5] = cb->seq[i]->Q;
                         //fprintf(stderr,"%d	KAPPA:%f	%f\n",i,kappa,ri[i]->mapq);
                 }
 
@@ -161,63 +188,79 @@ int calibrate(struct arch_library* al, struct seq_stats* si,int i_file,int i_hmm
         //sprintf(param->buffer,"Selected Threshold:: %f\n", param->confidence_threshold );
 
         //param->messages = append_message(param->messages, param->buffer);
-        free_read_info(ri,NUM_TEST_SEQ);
+        //free_read_info(ri,NUM_TEST_SEQ);
+        for(i = 0; i < cb->num_seq;i++){
+                MFREE(cb->seq[i]->seq);
+                MFREE(cb->seq[i]);
+        }
+        MFREE(cb->seq);
+        MFREE(cb);
+        free_rng(local_rng);
         return OK;
 ERROR:
         return FAIL;
 }
 
-int generate_test_sequences(struct read_info*** ri_b, struct model_bag* mb,int average_length)
+int generate_test_sequences(struct  calibrate_buffer** ri_b, struct model_bag* mb,int average_length,struct rng_state* rng)
 {
-        struct read_info** ri = NULL;
-        struct rng_state* rng = NULL;
+
+        struct calibrate_buffer* cb = NULL;
+
         int i,j;
 
+        MMALLOC(cb, sizeof(struct calibrate_buffer));
+        cb->num_seq = NUM_TEST_SEQ;
+        cb->seq = NULL;
 
-        RUNP(rng = init_rng(42));
-        RUNP(ri = malloc_read_info(ri,NUM_TEST_SEQ));
-        RUNP(ri = clear_read_info(ri,NUM_TEST_SEQ));
-        //LOG_MSG("target: %d", average_length);
+        MMALLOC(cb->seq, sizeof(struct calibrate_seq*) * cb->num_seq);
+        for(i = 0; i < cb->num_seq;i++){
+                cb->seq[i] = NULL;
+                MMALLOC(cb->seq[i], sizeof(struct calibrate_seq));
+                cb->seq[i]->len = 0;
+                cb->seq[i]->seq = NULL;
+                cb->seq[i]->type = 0;
+        }
+
+         //LOG_MSG("target: %d", average_length);
         j = NUM_TEST_SEQ /2;
         for(i = 0; i < j;i++){
-                RUN(emit_read_sequence(mb, ri[i], average_length, rng));
-                ASSERT(ri[i]->len < average_length,"Emit failed! %d < %d",ri[i]->len,average_length);
-                //print_seq(ri[i], stdout);
-                //fprintf(stdout,"%d ", ri[i]->len);
-                ri[i]->read_type = 0;
+                RUN(emit_read_sequence(mb, &cb->seq[i]->seq, &cb->seq[i]->len, average_length, rng));
+                cb->seq[i]->type = 0;
         }
         for(i = j; i < NUM_TEST_SEQ ;i++){
-                RUN(emit_random_sequence(mb, ri[i], average_length, rng));
-                ASSERT(ri[i]->len < average_length,"RAND emit failed!");
-                //print_seq(ri[i], stdout);
-                ri[i]->read_type = 1;
+                RUN(emit_random_sequence(mb, &cb->seq[i]->seq, &cb->seq[i]->len, average_length, rng));
+                cb->seq[i]->type = 1;
+
                 //fprintf(stdout,"%d ", ri[i]->len);
         }
-        //fprintf(stdout,"\n");
-        //LOG_MSG("Emit Done");
-        free_rng(rng);
-        *ri_b = ri;
+
+        //free_rng(rng);
+        *ri_b = cb;
         return OK;
 ERROR:
         return FAIL;
 }
 
-int run_scoring(struct model_bag* mb, struct read_info** ri)
+int run_scoring(struct model_bag* mb, struct calibrate_buffer* cb)
 {
         float pbest = 0.0f;
         float Q = 0.0f;
         int i;
-
+        uint8_t* seq = NULL;
+        int len;
         for(i = 0; i < NUM_TEST_SEQ;i++){
-                RUN(backward(mb, ri[i]->seq,ri[i]->len));
-                RUN(forward_max_posterior_decoding(mb, ri[i], ri[i]->seq ,ri[i]->len));
 
+                seq = cb->seq[i]->seq;
+                len = cb->seq[i]->len;
+                RUN(backward(mb, seq,len));
+                RUN(forward_max_posterior_decoding(mb,seq,NULL,len));
+                RUN(random_score(mb, seq, len));
                 pbest = prob2scaledprob(0.0f);
                 //fprintf(stdout,"%d %f\n",i, pbest);
                 pbest = logsum(pbest, mb->f_score);
                 pbest = logsum(pbest, mb->r_score);
 
-                pbest = 1.0 - scaledprob2prob(  (ri[i]->bar_prob + mb->f_score ) - pbest);
+                pbest = 1.0 - scaledprob2prob(  (mb->bar_score + mb->f_score ) - pbest);
 
                 if(!pbest){
                         Q = 40.0;
@@ -226,8 +269,7 @@ int run_scoring(struct model_bag* mb, struct read_info** ri)
                 }else{
                         Q = -10.0 * log10(pbest) ;
                 }
-
-                ri[i]->mapq = Q;
+                cb->seq[i]->Q = Q;
         }
         return OK;
 ERROR:
@@ -236,13 +278,13 @@ ERROR:
 
 
 
-int qsort_ri_mapq_compare(const void *a, const void *b)
+int qsort_cb_q_compare(const void *a, const void *b)
 {
-        const struct read_info **elem1 = (const struct read_info**) a;
-        const struct read_info **elem2 = (const struct read_info**) b;
-        if ( (*elem1)->mapq > (*elem2)->mapq){
+        const struct calibrate_seq **elem1 = (const struct calibrate_seq**) a;
+        const struct calibrate_seq **elem2 = (const struct calibrate_seq**) b;
+        if ( (*elem1)->Q > (*elem2)->Q){
                 return -1;
-        }else if ((*elem1)->mapq < (*elem2)->mapq){
+        }else if ((*elem1)->Q < (*elem2)->Q){
                 return 1;
         }else{
                 return 0;

@@ -6,6 +6,7 @@
 #include "arch_lib.h"
 #include "seq_stats.h"
 
+#include "interface.h"
 
 extern int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameters* param);
 #endif

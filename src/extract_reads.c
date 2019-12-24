@@ -178,7 +178,9 @@ int run_extract( struct assign_struct* as,  struct read_info_buffer** rb, struct
         for(i = 0; i < num_seq;i++){
                 //LOG_MSG("%d f:%d  on %d", tid,i_file,i);
                 RUN(backward(mb, ri[i]->seq,ri[i]->len));
-                RUN(forward_max_posterior_decoding(mb, ri[i], ri[i]->seq ,ri[i]->len));
+
+                /* FIXMEEEEE  */
+                //RUN(forward_max_posterior_decoding(mb, ri[i], ri[i]->seq ,ri[i]->len));
 
                 //pbest = ri[i]->mapq;
                 pbest = prob2scaledprob(0.0f);

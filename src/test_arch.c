@@ -1,29 +1,38 @@
 #include <math.h>
 
 #include "tllogsum.h"
+#include "tlseqio.h"
+#include "tlalphabet.h"
+
 #include "test_arch.h"
 
+
 #include "hmm_model_bag.h"
-#include "io.h"
+//#include "io.h"
 #include "core_hmm_functions.h"
 
 #include <omp.h>
 
 #define NUM_TEST_SEQ 100
 
-
-static int test_arch(struct read_info_buffer** rb, struct arch_library* al, struct seq_stats* si,int file,int hmm);
+static int test_arch(struct tl_seq_buffer** rb, struct arch_library* al, struct seq_stats* si,int i_file,int i_hmm);
 
 int test_architectures(struct arch_library* al, struct seq_stats* si, struct parameters* param)
 {
         struct arch_bag* ab = NULL;
         struct file_handler* f_hand = NULL;
-        struct read_info_buffer** rb = NULL;
+
+        struct tl_seq_buffer** rb = NULL;
+        //struct tl_seq** ri = NULL;
+
+        struct alphabet* a = NULL;
+
+        RUN(create_alphabet(&a, 0, TLALPHABET_DEFAULT_DNA));
 
         float sum;
         int best;
         int i,j;
-        int (*fp)(struct read_info_buffer* rb, struct file_handler* f_handle) = NULL;
+        //int (*fp)(struct read_info_buffer* rb, struct file_handler* f_handle) = NULL;
 
         /* alloc matrix for posteriors  */
         al->arch_posteriors = NULL;
@@ -56,21 +65,24 @@ int test_architectures(struct arch_library* al, struct seq_stats* si, struct par
         MMALLOC(ab->arch_posterior,sizeof(float) *  al->num_arch);
         ab->num_arch = al->num_arch; /* I'm not going to miss hmms in this process */
 
-        MMALLOC(rb, sizeof(struct read_info_buffer*) * param->num_infiles);
+        MMALLOC(rb, sizeof(struct tl_seq_buffer*) * param->num_infiles);
         for(i = 0; i < param->num_infiles;i++){
-
                 rb[i] = NULL;
-                RUN(alloc_read_info_buffer(&rb[i], NUM_TEST_SEQ));
-                RUN(io_handler(&f_hand, param->infile[i]));
-                if(f_hand->sam == 0){
-                        fp = &read_fasta_fastq;
-                }else {
-                        fp = &read_sam_chunk;
-                }
+                RUN(open_fasta_fastq_file(&f_hand, param->infile[i], TLSEQIO_READ));
+                RUN(read_fasta_fastq_file(f_hand, &rb[i],NUM_TEST_SEQ));
+                //rb[i] = NULL;
+                //RUN(alloc_read_info_buffer(&rb[i], NUM_TEST_SEQ));
+                //RUN(io_handler(&f_hand, param->infile[i]));
+                //if(f_hand->sam == 0){
+                //fp = &read_fasta_fastq;
+                //}else {
+                //fp = &read_sam_chunk;
+                //}
                 /* read in sequences  */
-                RUN(fp(rb[i],f_hand));//  param,file,&numseq));
-                pclose(f_hand->f_ptr);
+                RUN(close_fasta_fastq_file(&f_hand));
         }
+
+
 
 #pragma omp parallel default(shared)
 #pragma omp for collapse(2) private(i, j)
@@ -121,40 +133,53 @@ int test_architectures(struct arch_library* al, struct seq_stats* si, struct par
 
         al->num_file = param->num_infiles;
         for(i = 0; i < param->num_infiles;i++){
-                free_read_info_buffer(rb[i]);
+                free_tl_seq_buffer(rb[i]);
+                //free_read_info_buffer(rb[i]);
         }
         MFREE(rb);
-        MFREE(f_hand);
 
         MFREE(ab->arch_posterior);
         MFREE(ab->archs);
         MFREE(ab);
+        free_alphabet(a);
         return OK;
 ERROR:
         return FAIL;
 }
 
-int test_arch(struct read_info_buffer** rb, struct arch_library* al, struct seq_stats* si,int i_file,int i_hmm)
+int test_arch(struct tl_seq_buffer** rb, struct arch_library* al, struct seq_stats* si,int i_file,int i_hmm)
 {
         fprintf(stdout,"Thread %d working on file %d; hmm %d\n",omp_get_thread_num(),i_file,i_hmm);
         //printf ("num_thds=%d, max_thds=%d\n",omp_get_thread_num(),omp_get_max_threads());
 
         struct model_bag* mb = NULL;
-        struct read_info** ri = NULL;
+        struct tl_seq** ri = NULL;
+        struct alphabet* a = NULL;
+        uint8_t* tmp_seq = NULL;
         int num_seq;
-        int i;
+        int i,j;
         float score = prob2scaledprob(1.0);
         mb = init_model_bag(al->read_structure[i_hmm], si->ssi[i_file], i_hmm);
         num_seq = rb[i_file]->num_seq;
-        ri = rb[i_file]->ri;
+        ri = rb[i_file]->sequences;
+
+        a = si->a;
+
+        MMALLOC(tmp_seq, sizeof(uint8_t) * (si->ssi[i_file]->max_seq_len+1));
+
         for(i = 0; i < num_seq;i++){
-                RUN(backward(mb, ri[i]->seq,ri[i]->len));
+                for(j = 0; j < ri[i]->len;j++){
+                        tmp_seq[j] = tlalphabet_get_code(a, ri[i]->seq[j]);
+                }
+                tmp_seq[ri[i]->len] = 0;
+                RUN(backward(mb, tmp_seq,ri[i]->len));
                 score +=  mb->b_score;
                 //fprintf(stdout,"%f\n", m->b_score);
 
         }
         free_model_bag(mb);
 
+        MFREE(tmp_seq);
         al->arch_posteriors[i_hmm][i_file] = score;
         return OK;
 ERROR:
