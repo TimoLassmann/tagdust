@@ -107,7 +107,7 @@ int interface(struct parameters** p,int argc, char *argv[])
         param->split = 0;
         param->messages = 0;
         param->buffer = 0;
-        param->seed = 0;
+        param->seed = 42;
 
         param->arch_file = NULL;
 

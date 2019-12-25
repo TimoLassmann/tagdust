@@ -69,4 +69,6 @@ struct model{
         int num_hmms;/**<@brief Number of HMMs in segment.*/
 }_MM_ALIGN16;
 
+extern double gaussian_pdf(double x, double m,double s);
+
 #endif

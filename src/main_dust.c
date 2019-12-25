@@ -1,7 +1,7 @@
 #include "tllogsum.h"
 
 #include "interface.h"
-#include "nuc_code.h"
+
 
 #include "io.h"
 #include "filter.h"
@@ -18,8 +18,8 @@ int main (int argc,char * argv[])
                 return EXIT_SUCCESS;
         }
 
-        init_logsum();
-        RUN(init_nuc_code());
+        //init_logsum();
+
 
         RUN(filter_reads(param));
 

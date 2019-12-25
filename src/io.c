@@ -12,7 +12,7 @@
   TagDust is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-n  GNU General Public License for more details.
+  n  GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
   along with Tagdust.  If not, see <http://www.gnu.org/licenses/>.
@@ -21,8 +21,8 @@ n  GNU General Public License for more details.
 
 /*! \file io.c
   \brief functions for reading sequences.
-n
-n  Initializes nucleotide alphabet needed to parse input. Calls parameter parser. Calls functions to process the data. \author Timo Lassmann \bug No known bugs.
+  n
+  n  Initializes nucleotide alphabet needed to parse input. Calls parameter parser. Calls functions to process the data. \author Timo Lassmann \bug No known bugs.
 */
 
 
@@ -1386,7 +1386,6 @@ void free_read_info(struct read_info** ri, int numseq)
 
 
 
-
 int compare_read_names(char* name1, char* name2)
 {
 
@@ -1420,6 +1419,8 @@ int compare_read_names(char* name1, char* name2)
 
         flowcell_R1[0] = 0;
         flowcell_R2[0] = 0;
+
+
 
         if(detected == -1){
                 //option 1: casava 1.8

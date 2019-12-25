@@ -9,21 +9,9 @@ AM_LDFLAGS += -Wno-undef
 
 LIBS = @TLDEVEL_LIB@ $(HDF5_LDFLAGS)  $(HDF5_LIBS) -lm
 
-bin_PROGRAMS = tagdust_demux tagdust
+bin_PROGRAMS = tagdust
 
 tagdust_SOURCES = \
-main_dust.c \
-interface.h \
-interface.c \
-nuc_code.h \
-nuc_code.c \
-filter.h \
-filter.c \
-bpm.h \
-bpm.c
-
-
-tagdust_demux_SOURCES = \
 main_demux.c \
 interface.h \
 interface.c \
@@ -31,11 +19,8 @@ arch_lib.h \
 arch_lib.c \
 seq_stats.h \
 seq_stats.c \
-io.h \
-io.c \
-misc.h \
-misc.c \
 hmm.h \
+hmm.c \
 init_hmm.h \
 init_hmm.c \
 hmm_model_bag.h \
@@ -49,7 +34,12 @@ calibrate_hmm.c \
 extract_reads.h \
 extract_reads.c \
 assign_data.h \
-assign_data.c
+assign_data.c \
+filter.h \
+filter.c \
+bpm.h \
+bpm.c
+
 
 tagdust_LDADD =  -lpthread -lm
 

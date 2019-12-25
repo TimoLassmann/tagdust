@@ -12,13 +12,27 @@ static int qsort_seq_bits_by_type_file(const void *a, const void *b);
 static int qsort_seq_bits_by_file(const void *a, const void *b);
 static int qsort_seq_bit_vec(const void *a, const void *b);
 
-static int set_up_assign_structure(struct arch_library* al,struct assign_struct* as,int** plan);
-static int set_up_barcode_files(struct arch_library* al, struct assign_struct* as);
+static int setup_assign_structure(struct arch_library* al,struct assign_struct* as,int** plan);
+static int setup_barcode_files(struct arch_library* al, struct assign_struct* as);
+static int setup_output_files(struct assign_struct* as);
+
+int sort_as_by_file_type(struct assign_struct* as)
+{
+        struct seq_bit_vec* bv = NULL;
+        int i;
+        for(i = 0; i < as->num_reads ;i++){
+                bv = as->bits[i];
+                qsort(bv->bits, bv->num_bit,sizeof(struct seq_bit*), qsort_seq_bits_by_type_file);
+        }
+
+        return OK;
+}
 
 int post_process_assign(struct assign_struct* as)
 {
         struct seq_bit_vec* bv = NULL;
         struct demux_struct* tmp_ptr = NULL;
+
         char* tmp =  NULL;
         char* barcode;
         char* umi;
@@ -27,19 +41,32 @@ int post_process_assign(struct assign_struct* as)
         int umi_len;
         int tmp_len = 256;
 
+        int e_fail;
+        int d_fail;
+
+
+        e_fail = 0;
+        d_fail = 0;
         MMALLOC(tmp, sizeof(char) * tmp_len);
 
         for(i = 0; i < as->num_reads ;i++){
                 bv = as->bits[i];
                 for(j = 0; j < as->num_files;j++){
+                        if(bv->Q[j] == -1.0f){
+                                e_fail++;
+                        }
+
+                        if(bv->Q[j] == -2.0f){
+                                d_fail++;
+                        }
                         if(bv->Q[j] < 0.0){
                                 bv->fail = 1;
                                 break;
                         }
                 }
 
-                /* qsort by file identifier  */
-                qsort(bv->bits, bv->num_bit,sizeof(struct seq_bit*), qsort_seq_bits_by_type_file);
+                ///* qsort by file identifier  */
+                //qsort(bv->bits, bv->num_bit,sizeof(struct seq_bit*), qsort_seq_bits_by_type_file);
                 len = 0;
                 umi_len = 0;
                 for(j = 0; j < bv->num_bit;j++){
@@ -117,6 +144,7 @@ int post_process_assign(struct assign_struct* as)
                         ERROR_MSG("asda");
                 }
         }
+        LOG_MSG("%d %d", e_fail,d_fail);
         MFREE(tmp);
         qsort(as->bits,as->num_reads ,sizeof(struct seq_bit_vec*) , qsort_seq_bit_vec);
         return OK;
@@ -129,6 +157,7 @@ int init_assign_structure(struct assign_struct** assign,struct arch_library* al,
 {
         struct assign_struct* as = NULL;
         //ASSERT(num_files >= 1,"no infiles");
+
         int* plan;
         int i,j;
         MMALLOC(as, sizeof(struct assign_struct));
@@ -137,10 +166,11 @@ int init_assign_structure(struct assign_struct** assign,struct arch_library* al,
         as->bits = NULL;
         as->num_bits = 0;
         as->max_bar_len = 0;
+        as->max_seq_len = 0;
         as->out_reads = 0;
-        RUN(set_up_assign_structure(al,as,&plan));
-        RUN(set_up_barcode_files(al,as));
-
+        RUN(setup_assign_structure(al,as,&plan));
+        RUN(setup_barcode_files(al,as));
+        RUN(setup_output_files(as));
         //LOG_MSG("%d", as->out_reads);
         //exit(0);
         as->alloc_total = total;
@@ -190,7 +220,7 @@ int reset_assign_structute(struct assign_struct* as)
         return OK;
 }
 
-int set_up_assign_structure(struct arch_library* al,struct assign_struct* as,int** plan)
+int setup_assign_structure(struct arch_library* al,struct assign_struct* as,int** plan)
 {
         struct read_structure* read_structure = NULL;
         int* p = NULL;
@@ -268,6 +298,10 @@ void free_assign_structure(struct assign_struct* as)
                 if(as->demux_names){
                         as->demux_names->free_tree(as->demux_names);
                 }
+                if(as->file_names){
+                        as->file_names->free_tree(as->file_names);
+                }
+
                 MFREE(as);
         }
 }
@@ -333,7 +367,30 @@ static void print_demux_struct(void* ptr,FILE* out_ptr);
 static int resolve_default(void* ptr_a,void* ptr_b);
 static void free_demux_struct(void* ptr);
 
-int set_up_barcode_files(struct arch_library* al, struct assign_struct* as)
+int setup_output_files(struct assign_struct* as)
+{
+        struct rbtree_root* root = NULL;
+        void*  (*fp_get)(void* ptr) = NULL;
+        long int (*fp_cmp)(void* keyA, void* keyB)= NULL;
+        int (*fp_cmp_same)(void* ptr_a,void* ptr_b);
+        void (*fp_print)(void* ptr,FILE* out_ptr) = NULL;
+
+        void (*fp_free)(void* ptr) = NULL;
+
+
+        fp_get = &get_name;
+        fp_cmp = &compare_name;
+        fp_print = &print_demux_struct;
+        fp_cmp_same = &resolve_default;
+        fp_free = &free_demux_struct;
+        RUNP(root = init_tree(fp_get,fp_cmp,fp_cmp_same,fp_print,fp_free));
+        as->file_names = root;
+        return OK;
+ERROR:
+        return FAIL;
+}
+
+int setup_barcode_files(struct arch_library* al, struct assign_struct* as)
 {
         struct read_structure* read_structure = NULL;
         int i,j,g,f,len;
@@ -379,7 +436,6 @@ int set_up_barcode_files(struct arch_library* al, struct assign_struct* as)
                                                 }
                                                 MMALLOC(tmp_ptr, sizeof(struct demux_struct));
                                                 tmp_ptr->name = NULL;
-                                                tmp_ptr->open = 0;
                                                 MMALLOC(tmp_ptr->name,sizeof(char) * (len+1));
                                                 //for(f = 0;f < len;f++){
                                                 //tmp_ptr->name =
@@ -414,7 +470,6 @@ int set_up_barcode_files(struct arch_library* al, struct assign_struct* as)
 
                                                         MMALLOC(new_ptr, sizeof(struct demux_struct));
                                                         new_ptr->name = NULL;
-                                                        new_ptr->open = 0;
 
                                                         MMALLOC(new_ptr->name,sizeof(char) * (len+1));
 
@@ -458,7 +513,6 @@ int set_up_barcode_files(struct arch_library* al, struct assign_struct* as)
 
                 tmp_ptr = root->data_nodes[f];
                 tmp_ptr->id = f;
-                tmp_ptr->open = 0;
                 //fprintf(stdout,"%s %d\n",tmp_ptr->name,tmp_ptr->count);
         }
         //root->free_tree(root);

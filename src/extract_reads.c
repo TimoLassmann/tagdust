@@ -6,13 +6,13 @@
 #include "hmm_model_bag.h"
 #include "core_hmm_functions.h"
 #include "assign_data.h"
-
+#include "filter.h"
 #include "tllogsum.h"
 
 #include "tlseqio.h"
 
 #define READ_CHUNK_SIZE 100000
-#define CHUNKS 5
+#define CHUNKS 10
 
 #define MAX_OUTREADNAME 128
 
@@ -34,6 +34,8 @@ static int sanity_check_inputs(struct tl_seq_buffer** rb, int num_files);
 
 static int run_extract( struct assign_struct* as,  struct tl_seq_buffer** rb, struct arch_library* al, struct seq_stats* si,int i_file,int i_chunk);
 
+
+
 static int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb,  char* prefix);
 
 
@@ -43,16 +45,20 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
         struct file_handler** f_hand = NULL;
         struct assign_struct* as = NULL;
         struct tl_seq_buffer*  wb = NULL;
-
+        struct ref* ref = NULL;
 
         int i,j,c;
         int total_read;
 
         DECLARE_TIMER(t1);
 
+        if(param->reference_fasta){
+                RUN(read_reference_sequences(&ref, param->reference_fasta,param->seed));
+        }
 
         /* figure out how many barcodes etc */
         RUN(init_assign_structure(&as, al,   CHUNKS* READ_CHUNK_SIZE));
+        as->block_size = READ_CHUNK_SIZE;
         //RUN(galloc(&as->assignment, as->total, as->num_barcodes));
         /* not sure if this is required  */
         //exit(0);
@@ -118,6 +124,10 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
                                 as->bits[i]->name = rb[j]->sequences[c]->name;
                                 i++;
                         }
+                        /* IMPORTANT!!!  */
+                        if(rb[j]->max_len > as->max_seq_len){
+                                as->max_seq_len = rb[j]->max_len;
+                        }
                 }
                 as->num_reads = i;
                         //}
@@ -145,6 +155,22 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
                 }
                 /* not necessary I think ... */
 #pragma omp barrier
+                STOP_TIMER(t1);
+                LOG_MSG("extract Took %f ",GET_TIMING(t1));
+                START_TIMER(t1);
+                RUN(sort_as_by_file_type(as));
+
+
+#pragma omp parallel default(shared)
+#pragma omp for private(i)
+                for(i = 0; i < as->num_reads;i++){
+                        run_filteras(as, ref, i);
+                }
+                /* not necessary I think ... */
+#pragma omp barrier
+                STOP_TIMER(t1);
+                LOG_MSG("filter Took %f ",GET_TIMING(t1));
+
                 RUN(post_process_assign(as));
 
                 STOP_TIMER(t1);
@@ -245,7 +271,7 @@ int run_extract( struct assign_struct* as,  struct tl_seq_buffer** rb, struct ar
 
 
                 if(Q < al->confidence_thresholds[i_file]){
-                        as->bits[seq_offset+i]->Q[i_file] = -Q;
+                        as->bits[seq_offset+i]->Q[i_file] = -1.0;
                 }else{
                         as->bits[seq_offset+i]->Q[i_file] = Q;
                 }
@@ -362,6 +388,7 @@ ERROR:
 int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb,  char* prefix)
 {
         struct demux_struct** dm;
+        struct demux_struct* tmp_ptr = NULL;
         struct seq_bit_vec* bv;
         struct seq_bit*sb;
         struct tl_seq_buffer* write_buf;
@@ -371,7 +398,7 @@ int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb,  char* 
 
         int out_read,i;
         int file = -1;
-
+        int len;
         f_hand = NULL;
 
         if(*wb){
@@ -420,15 +447,33 @@ int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb,  char* 
                                         write_buf->num_seq = 0;
                                         RUN(close_fasta_fastq_file(&f_hand));
                                 }
-                                snprintf(filename, 256, "%s_%s_R%d.fastg.gz", prefix, dm[bv->sample_group]->name,out_read+1);
-                                if(dm[bv->sample_group]->open <= out_read+1){
+                                snprintf(filename, 256, "%s_%s_R%d.fastq.gz", prefix, dm[bv->sample_group]->name,out_read+1);
+
+                                tmp_ptr = as->file_names->tree_get_data(as->file_names,filename);
+                                if(!tmp_ptr){
+                                        LOG_MSG("Never seen this %s before; will write",filename);
+                                        MMALLOC(tmp_ptr, sizeof(struct demux_struct));
+                                        len = strnlen(filename, 256);
+                                        len++;
+                                        tmp_ptr->name = NULL;
+                                        MMALLOC(tmp_ptr->name,sizeof(char) * len);
+                                        strncpy(tmp_ptr->name, filename, len);
+                                        RUN(as->file_names->tree_insert(as->file_names, tmp_ptr));
+                                        LOG_MSG("Num entries: %d",as->file_names->num_entries);
+                                        open_fasta_fastq_file(&f_hand, filename, TLSEQIO_WRITE_GZIPPED);
+                                }else{
+                                        open_fasta_fastq_file(&f_hand, filename, TLSEQIO_APPEND_GZIPPED);
+                                }
+                                //as->file_names->tree_get_data
+
+                                /*if(dm[bv->sample_group]->open <= out_read+1){
                                         LOG_MSG("Open %s for write", filename);
                                         open_fasta_fastq_file(&f_hand, filename, TLSEQIO_WRITE_GZIPPED);
                                         dm[bv->sample_group]->open++;
                                 }else{
                                         LOG_MSG("Open %s for append", filename);
                                         open_fasta_fastq_file(&f_hand, filename, TLSEQIO_APPEND_GZIPPED);
-                                }
+                                        }*/
                                 //snprintf(filename, 256, "%s_%s_R%d.fastg.gz", prefix, dm[bv->sample_group]->name,out_read+1);
                                 //RUNP(fp = gzopen(filename, file_mode));
                                 file = dm[bv->sample_group]->id;

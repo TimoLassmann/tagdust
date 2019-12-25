@@ -2,6 +2,8 @@
 #define ARCH_LIB_H
 
 #include <stdint.h>
+
+
 struct read_structure{
         char*** sequence_matrix;
         int* segment_length;
