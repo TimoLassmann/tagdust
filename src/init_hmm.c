@@ -2,7 +2,6 @@
 #include "tllogsum.h"
 
 #include "init_hmm.h"
-#include "nuc_code.h"
 #include "core_hmm_functions.h"
 
 

@@ -37,11 +37,6 @@ AX_EXT
 
 AX_WITH_TLDEVEL
 
-
-AC_SEARCH_LIBS([tldevel_version], [tldevel $TLDEVELDIR/tldevel], [], [
-  AC_MSG_ERROR([unable to find the dlopen() function])
-])
-
 AC_MSG_NOTICE([$TLDEVEL_CPPFLAGS])
 AC_MSG_NOTICE([$TLDEVEL_LDFLAGS])
 AC_MSG_NOTICE([$TLDEVEL_LIB])
