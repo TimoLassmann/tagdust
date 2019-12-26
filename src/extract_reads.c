@@ -157,7 +157,7 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
 #pragma omp parallel default(shared)
 #pragma omp for private(i)
                 for(i = 0; i < as->num_reads;i++){
-                        run_filter(as, ref, i);
+                        run_filter(as, ref, i, param->filter_error);
                 }
                 /* not necessary I think ... */
 #pragma omp barrier
