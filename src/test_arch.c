@@ -70,15 +70,6 @@ int test_architectures(struct arch_library* al, struct seq_stats* si, struct par
                 rb[i] = NULL;
                 RUN(open_fasta_fastq_file(&f_hand, param->infile[i], TLSEQIO_READ));
                 RUN(read_fasta_fastq_file(f_hand, &rb[i],NUM_TEST_SEQ));
-                //rb[i] = NULL;
-                //RUN(alloc_read_info_buffer(&rb[i], NUM_TEST_SEQ));
-                //RUN(io_handler(&f_hand, param->infile[i]));
-                //if(f_hand->sam == 0){
-                //fp = &read_fasta_fastq;
-                //}else {
-                //fp = &read_sam_chunk;
-                //}
-                /* read in sequences  */
                 RUN(close_fasta_fastq_file(&f_hand));
         }
 
@@ -149,7 +140,7 @@ ERROR:
 
 int test_arch(struct tl_seq_buffer** rb, struct arch_library* al, struct seq_stats* si,int i_file,int i_hmm)
 {
-        fprintf(stdout,"Thread %d working on file %d; hmm %d\n",omp_get_thread_num(),i_file,i_hmm);
+        //fprintf(stdout,"Thread %d working on file %d; hmm %d\n",omp_get_thread_num(),i_file,i_hmm);
         //printf ("num_thds=%d, max_thds=%d\n",omp_get_thread_num(),omp_get_max_threads());
 
         struct model_bag* mb = NULL;
@@ -179,7 +170,7 @@ int test_arch(struct tl_seq_buffer** rb, struct arch_library* al, struct seq_sta
         free_model_bag(mb);
 
         MFREE(tmp_seq);
-        fprintf(stdout,"F:%d HMM:%d SCORE:%f\n",i_file,i_hmm,score);
+        //fprintf(stdout,"F:%d HMM:%d SCORE:%f\n",i_file,i_hmm,score);
         al->arch_posteriors[i_hmm][i_file] = score;
         return OK;
 ERROR:

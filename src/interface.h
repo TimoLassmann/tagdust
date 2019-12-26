@@ -10,47 +10,6 @@
 //#include <string.h>
 
 
-#define OPT_SEG1 1
-#define OPT_SEG2 2
-#define OPT_SEG3 3
-#define OPT_SEG4 4
-#define OPT_SEG5 5
-#define OPT_SEG6 6
-#define OPT_SEG7 7
-#define OPT_SEG8 8
-#define OPT_SEG9 9
-#define OPT_SEG10 10
-#define OPT_TRAIN 11
-#define OPT_FORMAT 12
-#define OPT_START 13
-#define OPT_END 14
-#define OPT_MINLEN 15
-#define OPT_THRESHOLD 16
-#define OPT_EXACT5 17
-#define OPT_SIM 18
-#define OPT_NUMBARCODE 19
-#define OPT_FILTER_ERROR 20
-#define OPT_FILTER_REFERENCE 21
-#define OPT_DUST 22
-
-#define OPT_sim_barlen 23
-#define OPT_sim_barnum 24
-#define OPT_sim_5seq 25
-#define OPT_sim_3seq 26
-#define OPT_sim_readlen 27
-#define OPT_sim_readlen_mod 28
-#define OPT_sim_error_rate 29
-#define OPT_sim_InDel_frac 30
-#define OPT_sim_numseq 31
-#define OPT_sim_random_frac 32
-#define OPT_sim_endloss 33
-
-#define OPT_join_paired 34
-#define OPT_split 35
-#define OPT_archfile 36
-#define OPT_seed 37
-
-#define OPT_show_finger_seq 38
 
 
 

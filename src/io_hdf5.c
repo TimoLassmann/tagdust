@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
 
         ep->data = NULL;
 
-        RUN(galloc(&ep->data,100000000,10));
+        RUN(galloc(&ep->data,100000,10));
 
         int len1 , len2;
 

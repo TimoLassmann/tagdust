@@ -26,15 +26,9 @@ struct collect_read{
 //static int process_read(struct tl_seq_buffer* ri, int* label, struct read_structure* rs , struct seq_bit_vec* b , int i_file);
 static int process_read(struct collect_read* ri, int* label, struct read_structure* rs , struct seq_bit_vec* b , int i_file);
 
-
-
 static int sanity_check_inputs(struct tl_seq_buffer** rb, int num_files);
 
-//static int run_extract( struct assign_struct* as,  struct read_info_buffer** rb, struct arch_library* al, strucnt seq_stats* si,int i_file,int i_hmm);
-
 static int run_extract( struct assign_struct* as,  struct tl_seq_buffer** rb, struct arch_library* al, struct seq_stats* si,int i_file,int i_chunk);
-
-
 
 static int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb,  char* prefix);
 
@@ -61,7 +55,6 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
         as->block_size = READ_CHUNK_SIZE;
         //RUN(galloc(&as->assignment, as->total, as->num_barcodes));
         /* not sure if this is required  */
-        //exit(0);
         omp_set_num_threads(param->num_threads);
 
         /* here I combine: architectures with sequence parameters of individual input files  */
@@ -121,7 +114,7 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
                 i = 0;
                 for(j = 0; j < CHUNKS;j++){
                         for(c = 0;c < rb[j]->num_seq;c++){
-                                as->bits[i]->name = rb[j]->sequences[c]->name;
+                                as->bit_vec[i]->name = rb[j]->sequences[c]->name;
                                 i++;
                         }
                         /* IMPORTANT!!!  */
@@ -164,7 +157,7 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
 #pragma omp parallel default(shared)
 #pragma omp for private(i)
                 for(i = 0; i < as->num_reads;i++){
-                        run_filteras(as, ref, i);
+                        run_filter(as, ref, i);
                 }
                 /* not necessary I think ... */
 #pragma omp barrier
@@ -180,6 +173,10 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
                 RUN(reset_assign_structute(as));
 
         }
+        for(i = 0; i < ref->num_seq;i++){
+                fprintf(stdout,"%d : %d\n",i, ref->hits[i]);
+        }
+
         free_assign_structure(as);
         for(i = 0; i < param->num_infiles* CHUNKS;i++){
                 free_tl_seq_buffer(rb[i]);
@@ -196,16 +193,13 @@ ERROR:
         return FAIL;
 }
 
-
-
 int run_extract( struct assign_struct* as,  struct tl_seq_buffer** rb, struct arch_library* al, struct seq_stats* si,int i_file,int i_chunk)
 {
         struct model_bag* mb = NULL;
         struct alphabet* a = NULL;
         struct tl_seq** ri = NULL;
-
         struct collect_read cs;
-//int* tmp_bar;
+
         uint8_t* tmp_seq = NULL;
         char* label = NULL;
         float pbest = 0.0f;
@@ -218,13 +212,10 @@ int run_extract( struct assign_struct* as,  struct tl_seq_buffer** rb, struct ar
         int i_hmm;
         int seq_offset;
 
-
-
         a = si->a;
 
         MMALLOC(tmp_seq, sizeof(uint8_t) * (si->ssi[i_file]->max_seq_len+1));
         MMALLOC(label, sizeof(char) * (si->ssi[i_file]->max_seq_len+1));
-
 
         c = i_file * CHUNKS + i_chunk;
 
@@ -234,8 +225,6 @@ int run_extract( struct assign_struct* as,  struct tl_seq_buffer** rb, struct ar
         ri = rb[c]->sequences;
 
         seq_offset = rb[c]->offset;
-        //int tid = omp_get_thread_num();
-        //LOG_MSG("Offset = %d",
         for(i = 0; i < num_seq;i++){
                 for(j = 0; j < ri[i]->len;j++){
                         tmp_seq[j] = tlalphabet_get_code(a, ri[i]->seq[j]);
@@ -271,10 +260,15 @@ int run_extract( struct assign_struct* as,  struct tl_seq_buffer** rb, struct ar
 
 
                 if(Q < al->confidence_thresholds[i_file]){
-                        as->bits[seq_offset+i]->Q[i_file] = -1.0;
-                }else{
-                        as->bits[seq_offset+i]->Q[i_file] = Q;
-                }
+#pragma omp critical
+                        {
+
+                                as->bit_vec[seq_offset+1]->fail = 1;
+                        }
+                        //as->bits[seq_offset+i]->Q[i_file] = -1.0;
+                }//else{
+                        //as->bits[seq_offset+i]->Q[i_file] = Q;
+                //}
                 //fprintf(stdout,"File:%d %f %f\n",i_file, Q, al->confidence_thresholds[i_file]);
                 //as->bits[seq_offset+i]->pass = 0;
                 //}
@@ -288,7 +282,7 @@ int run_extract( struct assign_struct* as,  struct tl_seq_buffer** rb, struct ar
                 cs.qual = ri[i]->qual;
                 cs.seq = ri[i]->seq;
                 cs.len = ri[i]->len;
-                RUN(process_read(&cs, mb->label,al->read_structure[i_hmm], as->bits[seq_offset+i],i_file));
+                RUN(process_read(&cs, mb->label,al->read_structure[i_hmm], as->bit_vec[seq_offset+i],i_file));
         }
         free_model_bag(mb);
         MFREE(label);
@@ -430,7 +424,7 @@ int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb,  char* 
                 //LOG_MSG("OUT:%d: mode: %s",out_read, file_mode);
                 file = -1;
                 for(i = 0; i < as->num_reads ;i++){
-                        bv = as->bits[i];
+                        bv = as->bit_vec[i];
                         if(bv->fail){
                                 RUN(write_fasta_fastq(write_buf, f_hand));
                                 write_buf->num_seq = 0;
@@ -451,7 +445,7 @@ int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb,  char* 
 
                                 tmp_ptr = as->file_names->tree_get_data(as->file_names,filename);
                                 if(!tmp_ptr){
-                                        LOG_MSG("Never seen this %s before; will write",filename);
+                                        //LOG_MSG("Never seen this %s before; will write",filename);
                                         MMALLOC(tmp_ptr, sizeof(struct demux_struct));
                                         len = strnlen(filename, 256);
                                         len++;
@@ -459,7 +453,7 @@ int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb,  char* 
                                         MMALLOC(tmp_ptr->name,sizeof(char) * len);
                                         strncpy(tmp_ptr->name, filename, len);
                                         RUN(as->file_names->tree_insert(as->file_names, tmp_ptr));
-                                        LOG_MSG("Num entries: %d",as->file_names->num_entries);
+                                        //LOG_MSG("Num entries: %d",as->file_names->num_entries);
                                         open_fasta_fastq_file(&f_hand, filename, TLSEQIO_WRITE_GZIPPED);
                                 }else{
                                         open_fasta_fastq_file(&f_hand, filename, TLSEQIO_APPEND_GZIPPED);

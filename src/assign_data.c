@@ -1,11 +1,6 @@
 #include "assign_data.h"
 #include <string.h>
-
 #include "tldevel.h"
-
-
-
-
 
 //static int qsort_seq_bits_by_file(const void *a, const void *b);
 static int qsort_seq_bits_by_type_file(const void *a, const void *b);
@@ -21,7 +16,7 @@ int sort_as_by_file_type(struct assign_struct* as)
         struct seq_bit_vec* bv = NULL;
         int i;
         for(i = 0; i < as->num_reads ;i++){
-                bv = as->bits[i];
+                bv = as->bit_vec[i];
                 qsort(bv->bits, bv->num_bit,sizeof(struct seq_bit*), qsort_seq_bits_by_type_file);
         }
 
@@ -50,21 +45,7 @@ int post_process_assign(struct assign_struct* as)
         MMALLOC(tmp, sizeof(char) * tmp_len);
 
         for(i = 0; i < as->num_reads ;i++){
-                bv = as->bits[i];
-                for(j = 0; j < as->num_files;j++){
-                        if(bv->Q[j] == -1.0f){
-                                e_fail++;
-                        }
-
-                        if(bv->Q[j] == -2.0f){
-                                d_fail++;
-                        }
-                        if(bv->Q[j] < 0.0){
-                                bv->fail = 1;
-                                break;
-                        }
-                }
-
+                bv = as->bit_vec[i];
                 ///* qsort by file identifier  */
                 //qsort(bv->bits, bv->num_bit,sizeof(struct seq_bit*), qsort_seq_bits_by_type_file);
                 len = 0;
@@ -146,7 +127,7 @@ int post_process_assign(struct assign_struct* as)
         }
         LOG_MSG("%d %d", e_fail,d_fail);
         MFREE(tmp);
-        qsort(as->bits,as->num_reads ,sizeof(struct seq_bit_vec*) , qsort_seq_bit_vec);
+        qsort(as->bit_vec,as->num_reads ,sizeof(struct seq_bit_vec*) , qsort_seq_bit_vec);
         return OK;
 ERROR:
         return FAIL;
@@ -163,7 +144,7 @@ int init_assign_structure(struct assign_struct** assign,struct arch_library* al,
         MMALLOC(as, sizeof(struct assign_struct));
         as->num_files = al->num_file;
         as->demux_names = NULL;
-        as->bits = NULL;
+        as->bit_vec = NULL;
         as->num_bits = 0;
         as->max_bar_len = 0;
         as->max_seq_len = 0;
@@ -176,25 +157,25 @@ int init_assign_structure(struct assign_struct** assign,struct arch_library* al,
         as->alloc_total = total;
         as->num_reads = 0;
 
-        as->bits = NULL;
-        MMALLOC(as->bits, sizeof(struct seq_bit_vec*)* as->alloc_total );
+        as->bit_vec = NULL;
+        MMALLOC(as->bit_vec, sizeof(struct seq_bit_vec*)* as->alloc_total );
         //MMALLOC(as->active_bits,sizeof(uint8_t) * as->total));
         for(i = 0; i < as->alloc_total;i++){
-                as->bits[i] = NULL;
-                MMALLOC(as->bits[i], sizeof(struct seq_bit_vec));
-                as->bits[i]->sample_group = -1;
-                as->bits[i]->num_bit = as->num_bits;
-                as->bits[i]->bits = NULL;
-                as->bits[i]->Q = NULL;
-                //as->bits[i]->bc = NULL;
-                as->bits[i]->umi = NULL;
-                MMALLOC(as->bits[i]->Q,sizeof(float) * as->num_files);
-                as->bits[i]->fail = 0;
-                MMALLOC(as->bits[i]->bits , sizeof(struct seq_bit) * as->num_bits);
+                as->bit_vec[i] = NULL;
+                MMALLOC(as->bit_vec[i], sizeof(struct seq_bit_vec));
+                as->bit_vec[i]->sample_group = -1;
+                as->bit_vec[i]->num_bit = as->num_bits;
+                as->bit_vec[i]->bits = NULL;
+                //as->bit_vec[i]->Q = NULL;
+                //as->bit_vec[i]->bc = NULL;
+                as->bit_vec[i]->umi = NULL;
+                //MMALLOC(as->bit_vec[i]->Q,sizeof(float) * as->num_files);
+                as->bit_vec[i]->fail = 0;
+                MMALLOC(as->bit_vec[i]->bits , sizeof(struct seq_bit) * as->num_bits);
                 for(j = 0; j < as->num_bits;j++){
-                        as->bits[i]->bits[j] = NULL;
-                        MMALLOC(as->bits[i]->bits[j], sizeof(struct seq_bit));
-                        as->bits[i]->bits[j]->file = plan[j];
+                        as->bit_vec[i]->bits[j] = NULL;
+                        MMALLOC(as->bit_vec[i]->bits[j], sizeof(struct seq_bit));
+                        as->bit_vec[i]->bits[j]->file = plan[j];
                 }
         }
         MFREE(plan);
@@ -209,11 +190,11 @@ int reset_assign_structute(struct assign_struct* as)
 {
         int i;
         for(i = 0; i < as->alloc_total;i++){
-                qsort(  as->bits[i]->bits,  as->bits[i]->num_bit,sizeof(struct seq_bit*), qsort_seq_bits_by_file);
-                as->bits[i]->fail =0;
-                as->bits[i]->sample_group = -1;
-                if(as->bits[i]->umi){
-                        MFREE(as->bits[i]->umi);
+                qsort(  as->bit_vec[i]->bits,  as->bit_vec[i]->num_bit,sizeof(struct seq_bit*), qsort_seq_bits_by_file);
+                as->bit_vec[i]->fail = 0;
+                as->bit_vec[i]->sample_group = -1;
+                if(as->bit_vec[i]->umi){
+                        MFREE(as->bit_vec[i]->umi);
                 }
                 //as->bits[i]->num_bit = 0;
         }
@@ -282,17 +263,17 @@ void free_assign_structure(struct assign_struct* as)
 {
         if(as){
                 int i,j;
-                if(as->bits){
+                if(as->bit_vec){
                         //MMALLOC(as->active_bits,sizeof(uint8_t) * as->total));
                         for(i = 0; i < as->alloc_total;i++){
                                 for(j = 0; j < as->num_bits;j++){
-                                        MFREE(as->bits[i]->bits[j]);
+                                        MFREE(as->bit_vec[i]->bits[j]);
                                 }
-                                MFREE(as->bits[i]->Q);
-                                MFREE(as->bits[i]->bits);
-                                MFREE(as->bits[i]);
+                                //MFREE(as->bits[i]->Q);
+                                MFREE(as->bit_vec[i]->bits);
+                                MFREE(as->bit_vec[i]);
                         }
-                        MFREE(as->bits);
+                        MFREE(as->bit_vec);
 
                 }
                 if(as->demux_names){

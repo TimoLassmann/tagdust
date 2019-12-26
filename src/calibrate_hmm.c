@@ -52,14 +52,14 @@ int calibrate_architectures(struct arch_library* al, struct seq_stats* si,struct
 #pragma omp for private(i)
         for(i = 0; i < al->num_file;i++){
                 j = al->arch_to_read_assignment[i];
-                LOG_MSG("File %d HMM: %d",i,j);
+                //LOG_MSG("File %d HMM: %d",i,j);
                 calibrate(al, si,seeds, i, j);
 
         }
 
-        for(i = 0; i < al->num_file;i++){
-                LOG_MSG("File %d threshold:%f", i, al->confidence_thresholds[i]);
-        }
+        //for(i = 0; i < al->num_file;i++){
+        //LOG_MSG("File %d threshold:%f", i, al->confidence_thresholds[i]);
+        //}
 
         MFREE(seeds);
         return OK;
@@ -177,14 +177,14 @@ int calibrate(struct arch_library* al, struct seq_stats* si,int* seeds,int i_fil
                 al->confidence_thresholds[i_file] =  20;
         }
 
-        fprintf(stderr,"FDR:0.01: %f\n", thres[0]);
+        /*fprintf(stderr,"FDR:0.01: %f\n", thres[0]);
         fprintf(stderr,"FDR:0.05: %f\n", thres[1]);
         fprintf(stderr,"FDR:0.1: %f\n", thres[2]);
         fprintf(stderr,"Sen+spe: %f\n", thres[4]);
 
         fprintf(stderr,"Kappa: %f at %f\n",  kappa,thres[5]   );
 
-        fprintf(stderr,"Selected Threshold: %f\n", al->confidence_thresholds[i_file]);
+        fprintf(stderr,"Selected Threshold: %f\n", al->confidence_thresholds[i_file]);*/
         //sprintf(param->buffer,"Selected Threshold:: %f\n", param->confidence_threshold );
 
         //param->messages = append_message(param->messages, param->buffer);

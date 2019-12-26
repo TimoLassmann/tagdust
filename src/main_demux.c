@@ -48,10 +48,10 @@ int main (int argc,char * argv[]) {
 
 
         /* get all sequence stats  */
-        LOG_MSG("Got here");
-        for( i = 0; i < param->num_infiles;i++){
-                fprintf(stdout," File %d max: %s\n",i, param->infile[i]);
-        }
+        //LOG_MSG("Got here");
+        //for( i = 0; i < param->num_infiles;i++){
+        //fprintf(stdout," File %d max: %s\n",i, param->infile[i]);
+        //}
 
         RUN(get_sequence_stats(&si,al, param->infile, param->num_infiles, main_rng));
         //si->ssi[0]->average_length;
@@ -62,20 +62,6 @@ int main (int argc,char * argv[]) {
                         ASSERT(si->ssi[i]->total_num_seq == si->ssi[j]->total_num_seq,"File %s and %s contain different number of sequences", param->infile[i],param->infile[j]);
                 }
         }
-        //exit(0);
-        for(i = 0; i < si->num;i++){
-                LOG_MSG("%d %f", i,si->ssi[i]->average_length);
-                for(j = 0; j < 5;j++){
-                        fprintf(stdout,"%f ", scaledprob2prob(si->ssi[i]->background[j]));
-                }
-                fprintf(stdout,"\n");
-        }
-        //exit(0);
-        /* allocate model for each architecture and each input file. */
-
-        /* figure out which architectures belong to which read infiles */
-        /* need to work on each read sequentially OR on all if enough memory ... */
-
 
         RUN(test_architectures(al,si,param));
 
@@ -84,7 +70,6 @@ int main (int argc,char * argv[]) {
 
         //int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameters* param)
         RUN(extract_reads(al,si,param));
-        exit(0);
 //sprintf(param->buffer,"Start Run\n--------------------------------------------------\n");
         //param->messages = append_message(param->messages, param->buffer);
         //hmm_controller_multiple(param);

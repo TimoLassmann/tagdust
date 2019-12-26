@@ -29,6 +29,117 @@
 
 #include "tlmisc.h"
 
+#define OPT_SEG1 1
+#define OPT_SEG2 2
+#define OPT_SEG3 3
+#define OPT_SEG4 4
+#define OPT_SEG5 5
+#define OPT_SEG6 6
+#define OPT_SEG7 7
+#define OPT_SEG8 8
+#define OPT_SEG9 9
+#define OPT_SEG10 10
+#define OPT_TRAIN 11
+#define OPT_FORMAT 12
+#define OPT_START 13
+#define OPT_END 14
+#define OPT_MINLEN 15
+#define OPT_THRESHOLD 16
+#define OPT_EXACT5 17
+#define OPT_SIM 18
+#define OPT_NUMBARCODE 19
+#define OPT_FILTER_ERROR 20
+#define OPT_FILTER_REFERENCE 21
+#define OPT_DUST 22
+
+#define OPT_sim_barlen 23
+#define OPT_sim_barnum 24
+#define OPT_sim_5seq 25
+#define OPT_sim_3seq 26
+#define OPT_sim_readlen 27
+#define OPT_sim_readlen_mod 28
+#define OPT_sim_error_rate 29
+#define OPT_sim_InDel_frac 30
+#define OPT_sim_numseq 31
+#define OPT_sim_random_frac 32
+#define OPT_sim_endloss 33
+
+#define OPT_join_paired 34
+#define OPT_split 35
+#define OPT_archfile 36
+#define OPT_seed 37
+
+#define OPT_show_finger_seq 38
+
+#define  OPT_SHOWW 39
+
+static int print_tagdust_warranty(void);
+static int print_AVX_warning(void);
+static int print_tagdust_header(void);
+
+int print_tagdust_header(void)
+{
+        fprintf(stdout,"\n");
+        fprintf(stdout,"Tagdust (%s)\n", PACKAGE_VERSION);
+        fprintf(stdout,"\n");
+        fprintf(stdout,"Copyright (C) 2009,2020 Timo Lassmann\n");
+        fprintf(stdout,"\n");
+        fprintf(stdout,"This program comes with ABSOLUTELY NO WARRANTY; for details type:\n");
+        fprintf(stdout,"`tagdust -showw'.\n");
+        fprintf(stdout,"This is free software, and you are welcome to redistribute it\n");
+        fprintf(stdout,"under certain conditions; consult the COPYING file for details.\n");
+        fprintf(stdout,"\n");
+        fprintf(stdout,"Please cite:\n");
+
+
+        fprintf(stdout,"  Lassmann, Timo.\n");
+        fprintf(stdout,"  \"TagDust2: a generic method to extract reads from sequencing data.\"\n");
+        fprintf(stdout,"  BMC bioinformatics (2015) \n");
+        fprintf(stdout,"  https://doi.org/10.1186/s12859-015-0454-y\n");
+        fprintf(stdout,"\n");
+
+        /*fprintf(stdout,"  Lassmann, Timo, Oliver Frings, and Erik LL Sonnhammer.\n");
+        fprintf(stdout,"  \"Kalign2: high-performance multiple alignment of protein and\n");
+        fprintf(stdout,"  nucleotide sequences allowing external features.\"\n");
+        fprintf(stdout,"  Nucleic acids research 37.3 (2008): 858-865.\n");
+        fprintf(stdout,"\n");
+        fprintf(stdout,"  Lassmann, Timo, and Erik LL Sonnhammer. \"Kalign–an accurate and\n");
+        fprintf(stdout,"  fast multiple sequence alignment algorithm.\"\n  BMC bioinformatics 6.1 (2005): 298.\n");
+        fprintf(stdout,"\n");*/
+
+        return OK;
+}
+
+int print_tagdust_warranty(void)
+{
+        fprintf(stdout,"Here is the Disclaimer of Warranty section of the GNU General Public License (GPL):\n");
+        fprintf(stdout,"\n");
+        fprintf(stdout,"15. Disclaimer of Warranty.\n");
+        fprintf(stdout,"THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY\n");
+        fprintf(stdout,"APPLICABLE LAW.  EXCEPT WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT\n");
+        fprintf(stdout,"HOLDERS AND/OR OTHER PARTIES PROVIDE THE PROGRAM \"AS IS\" WITHOUT WARRANTY\n");
+        fprintf(stdout,"OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO,\n");
+        fprintf(stdout,"THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR\n");
+        fprintf(stdout,"PURPOSE.  THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE PROGRAM\n");
+        fprintf(stdout,"IS WITH YOU.  SHOULD THE PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF\n");
+        fprintf(stdout,"ALL NECESSARY SERVICING, REPAIR OR CORRECTION.\n");
+        fprintf(stdout,"\n");
+        fprintf(stdout,"A complete copy of the GPL can be found in the \"COPYING\" file.\n");
+        return OK;
+}
+
+
+int print_AVX_warning(void)
+{
+        fprintf(stdout,"\n");
+        fprintf(stdout,"WARNING: AVX2 instruction set not found!\n");
+        fprintf(stdout,"         Tagdust will not run optimally.\n");
+        fprintf(stdout,"\n");
+
+        return OK;
+}
+
+
 static void usage(void);
 
 int interface(struct parameters** p,int argc, char *argv[])
@@ -37,12 +148,21 @@ int interface(struct parameters** p,int argc, char *argv[])
         int i,c;
         int help = 0;
         int version = 0;
+        int showw = 0;
 
+        print_tagdust_header();
         if (argc < 2 && isatty(0)){
                 usage();
                 return OK;
         }
 
+
+
+#ifndef HAVE_AVX2
+        RUN(print_AVX_warning());
+#endif
+
+        //int showw = 0;
         MMALLOC(param,sizeof(struct parameters));
         param->segments = NULL;
         param->num_segments = 0;
@@ -118,6 +238,7 @@ int interface(struct parameters** p,int argc, char *argv[])
 
         while (1){
                 static struct option long_options[] ={
+                        {"showw", 0,0,OPT_SHOWW },
                         {"1",required_argument,0, OPT_SEG1},
                         {"2",required_argument,0, OPT_SEG2},
                         {"3",required_argument,0, OPT_SEG3},
@@ -361,6 +482,12 @@ int interface(struct parameters** p,int argc, char *argv[])
                 return OK;
         }
 
+        if(showw){
+                print_tagdust_warranty();
+                free_param(param);
+                return OK;
+
+        }
 
         //MMALLOC(param->buffer,sizeof(char) * kslibMSGBUFSIZE);
 
@@ -449,8 +576,6 @@ ERROR:
 
 void usage()
 {
-        fprintf(stdout, "\n%s %s, Copyright (C) 2015-2019 Timo Lassmann <%s>\n",PACKAGE_NAME, PACKAGE_VERSION,PACKAGE_BUGREPORT);
-        fprintf(stdout, "\n");
         fprintf(stdout, "Usage:   tagdust [options] <file>  -o <output prefix> \n\n");
         fprintf(stdout, "Options:\n");
 
@@ -460,7 +585,7 @@ void usage()
         fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-start","INT","", "start of search area [0].");
         fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-end","INT","", "end of search area [length of sequence].");
         fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-format","STR","", "format of input sequence file.");
-        fprintf (stdout,"\t%-17s%10s%7s%-30s\n"," -minlen","INT","", "minimal accepted read length [16].");
+        fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-minlen","INT","", "minimal accepted read length [16].");
         fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-ref","STR","", "reference fasta file to be compared against[].");
         fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-fe","INT","", "number of errors allowed when comparing to reference[2].");
         fprintf (stdout,"\t%-17s%10s%7s%-30s\n","-dust","INT","", "remove low complexity sequences. [100].");
@@ -602,6 +727,8 @@ int free_param(struct parameters* param)
 ERROR:
         return FAIL;
 }
+
+
 
 
 

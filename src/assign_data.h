@@ -24,7 +24,7 @@ struct seq_bit_vec{
         char* name;
         //char* bc;
         char* umi;
-        float* Q;
+        //float* Q;
         int sample_group;
         uint8_t fail;
         uint8_t num_bit;
@@ -37,7 +37,7 @@ struct demux_struct{
 };
 
 struct assign_struct{
-        struct seq_bit_vec** bits;
+        struct seq_bit_vec** bit_vec;
         struct rbtree_root* demux_names;
         struct rbtree_root* file_names;
         int block_size;

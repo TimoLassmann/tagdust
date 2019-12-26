@@ -42,8 +42,6 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
         double res;
         double sum;
 
-
-
         MMALLOC(five_s0, sizeof(double) * al->num_arch);
         MMALLOC(five_s1, sizeof(double) * al->num_arch);
         MMALLOC(five_s2, sizeof(double) * al->num_arch);
@@ -160,18 +158,7 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
 
                         }
                         total_read += rb->num_seq;
-                        LOG_MSG("total: %d", total_read);
-#if DEBUG
-                        //if(total_read > 10){
-                        //break;
-                        //}
-#else
-                        //if(total_read > 10){
-                        //break;
-                        //}
-#endif
-
-
+                        //LOG_MSG("total: %d", total_read);
                 }
                 RUN(close_fasta_fastq_file(&f_hand));
                 //pclose(f_hand->f_ptr);

@@ -137,7 +137,7 @@ io.c
 rename_qiime_CPPFLAGS = -DRENAME
 rename_qiime_LDADD = -lm
 
-TESTS =
+TESTS =arch_lib_test interface_test io_hdf5_test zwrite core_hmm_test
 
 TESTS_ENVIRONMENT = \
 	devdir='$(top_srcdir)'/dev; \

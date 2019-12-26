@@ -1851,6 +1851,7 @@ int main(int argc, char *argv[])
         struct arch_library* al = NULL;
         struct model_bag* mb = NULL;
         struct sequence_stats_info* ssi = NULL;
+        struct alphabet* a = NULL;
         char* in[] = {
                 //"O:N",
                 "B:GTA,AAC",
@@ -1858,11 +1859,12 @@ int main(int argc, char *argv[])
                 "L:CCTTAA",
                 "B:ACAGTG,ACTTGA,TTAGGC"
         };
-        char* seq = NULL;
+        uint8_t* seq = NULL;
         int seq_len = 30;
         int size;
         int i;
 
+        RUN(create_alphabet(&a, NULL, TLALPHABET_DEFAULT_DNA));
         init_logsum();
 
         RUN(default_ssi(&ssi));
@@ -1874,7 +1876,7 @@ int main(int argc, char *argv[])
         read_arch_into_lib(al, in, size);
         LOG_MSG("Read in %d architectures.",al->num_arch);
 
-        MMALLOC(seq, sizeof(char) * (seq_len+1));
+        MMALLOC(seq, sizeof(uint8_t) * (seq_len+1));
         for(i = 0; i < seq_len;i++){
                 seq[i] = i % 4;
 
@@ -1883,7 +1885,7 @@ int main(int argc, char *argv[])
 
         fflush(stdout);
 
-        RUNP( mb = init_model_bag(al->read_structure[1], ssi, 0));
+        RUNP( mb = init_model_bag(al->read_structure[1], ssi,a, 0));
 
 
         backward(mb, seq, seq_len);
@@ -1896,6 +1898,7 @@ int main(int argc, char *argv[])
         MFREE(ssi->expected_5_len);
         MFREE(ssi->expected_3_len);
         MFREE(ssi);
+        free_alphabet(a);
         return EXIT_SUCCESS;
 ERROR:
         free_arch_lib(al);
