@@ -153,7 +153,7 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
                 START_TIMER(t1);
                 RUN(sort_as_by_file_type(as));
 
-
+                if(ref){
 #pragma omp parallel default(shared)
 #pragma omp for private(i)
                 for(i = 0; i < as->num_reads;i++){
@@ -163,7 +163,7 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
 #pragma omp barrier
                 STOP_TIMER(t1);
                 LOG_MSG("filter Took %f ",GET_TIMING(t1));
-
+                }
                 RUN(post_process_assign(as));
 
                 STOP_TIMER(t1);
@@ -173,8 +173,11 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
                 RUN(reset_assign_structute(as));
 
         }
-        for(i = 0; i < ref->num_seq;i++){
-                fprintf(stdout,"%d : %d\n",i, ref->hits[i]);
+        /* FIXME */
+        if(ref){
+                for(i = 0; i < ref->num_seq;i++){
+                        fprintf(stdout,"%d : %d\n",i, ref->hits[i]);
+                }
         }
 
         free_assign_structure(as);
@@ -441,7 +444,11 @@ int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb,  char* 
                                         write_buf->num_seq = 0;
                                         RUN(close_seq_file(&f_hand));
                                 }
-                                snprintf(filename, 256, "%s_%s_R%d.fastq.gz", prefix, dm[bv->sample_group]->name,out_read+1);
+                                if(dm[bv->sample_group]->name[0]){
+                                        snprintf(filename, 256, "%s_%s_R%d.fastq.gz", prefix, dm[bv->sample_group]->name,out_read+1);
+                                }else{
+                                        snprintf(filename, 256, "%s_R%d.fastq.gz", prefix,out_read+1);
+                                }
 
                                 tmp_ptr = as->file_names->tree_get_data(as->file_names,filename);
                                 if(!tmp_ptr){

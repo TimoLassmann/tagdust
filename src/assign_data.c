@@ -85,6 +85,7 @@ int post_process_assign(struct assign_struct* as)
                         }
                         tmp[g-1] = 0;
 
+                        LOG_MSG("searchfor >%s<\n");
                         RUNP(tmp_ptr = as->demux_names->tree_get_data(as->demux_names,tmp));
                         //if(tmp_ptr){
                         tmp_ptr->count++;
@@ -92,6 +93,8 @@ int post_process_assign(struct assign_struct* as)
                         bv->sample_group = tmp_ptr->id;
                         //bv->bc = tmp;
                         //tmp = NULL;
+                }else{  /* the arch has no barcode */
+                        bv->sample_group = 0;
                 }
                 if(umi_len){
                         tmp = NULL;
@@ -483,18 +486,26 @@ int setup_barcode_files(struct arch_library* al, struct assign_struct* as)
         //root->print_tree(root,NULL);
 
 
-        //tmp_ptr =  root->tree_get_data(root, "ACTTGA_ACAGTG_TTAGGC");
+//tmp_ptr->count++;
 
+        if(!num_barcodes){
+                MMALLOC(tmp_ptr, sizeof(struct demux_struct));
+                tmp_ptr->name = NULL;
+                MMALLOC(tmp_ptr->name,sizeof(char) * (1));
+                tmp_ptr->name[0] = 0;
+                tmp_ptr->id = 0;
+                tmp_ptr->count = 0;
+                RUN(root->tree_insert(root,tmp_ptr));
+                tmp_ptr = NULL;
+        }
 
-        //tmp_ptr->count++;
         RUN(root->flatten_tree(root));
 
-        //root_new = init_tree(fp_get,fp_cmp,fp_cmp_same,fp_print,fp_free);
+                //root_new = init_tree(fp_get,fp_cmp,fp_cmp_same,fp_print,fp_free);
         for(f = 0;f < root->num_entries;f++){
-
                 tmp_ptr = root->data_nodes[f];
                 tmp_ptr->id = f;
-                //fprintf(stdout,"%s %d\n",tmp_ptr->name,tmp_ptr->count);
+                        //fprintf(stdout,"%s %d\n",tmp_ptr->name,tmp_ptr->count);
         }
         //root->free_tree(root);
         as->demux_names = root;
