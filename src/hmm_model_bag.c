@@ -12,7 +12,7 @@
 
 struct model* copy_model_parameters(struct model* org, struct model* copy );
 
-struct model_bag* init_model_bag(struct read_structure* rs,const struct sequence_stats_info* ssi, struct alphabet* a,  int model_index)
+struct model_bag* init_model_bag(struct read_structure* rs,const struct sequence_stats_info* ssi, struct alphabet* a, int model_index)
 {
         int i,j,c;
         //int average_length = 12;

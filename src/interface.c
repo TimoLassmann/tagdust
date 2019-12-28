@@ -128,7 +128,7 @@ int print_tagdust_warranty(void)
         return OK;
 }
 
-
+#ifndef HAVE_AVX2
 int print_AVX_warning(void)
 {
         fprintf(stdout,"\n");
@@ -138,7 +138,7 @@ int print_AVX_warning(void)
 
         return OK;
 }
-
+#endif
 
 static void usage(void);
 
@@ -539,14 +539,6 @@ int interface(struct parameters** p,int argc, char *argv[])
                 param->multiread = c;
         }
         */
-        if(param->reference_fasta || param->dust){
-                if(param->multiread){
-                        WARNING_MSG("WARNING: cannot dust or filter sequences by comparison to a known sequence if multiple reads are present in one input seqeunce.\n");
-                        param->dust = 0;
-                        param->reference_fasta = 0;
-
-                }
-        }
         if(argc-optind){
                 MMALLOC(param->infile,sizeof(char*)* (argc-optind));
 
@@ -563,8 +555,6 @@ int interface(struct parameters** p,int argc, char *argv[])
                         ASSERT(my_file_exists(param->infile[i]),"Could not find file %s.",param->infile[i]);
                 }
         }
-
-
         *p = param;
         return OK;
 ERROR:

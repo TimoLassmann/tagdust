@@ -160,7 +160,7 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
                         total_read += rb->num_seq;
                         //LOG_MSG("total: %d", total_read);
                 }
-                RUN(close_fasta_fastq_file(&f_hand));
+                RUN(close_seq_file(&f_hand));
                 //pclose(f_hand->f_ptr);
                 //LOG_MSG("total: %d", total_read);
 

@@ -70,7 +70,7 @@ int test_architectures(struct arch_library* al, struct seq_stats* si, struct par
                 rb[i] = NULL;
                 RUN(open_fasta_fastq_file(&f_hand, param->infile[i], TLSEQIO_READ));
                 RUN(read_fasta_fastq_file(f_hand, &rb[i],NUM_TEST_SEQ));
-                RUN(close_fasta_fastq_file(&f_hand));
+                RUN(close_seq_file(&f_hand));
         }
 
 

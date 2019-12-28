@@ -12,7 +12,7 @@ LIBS = @TLDEVEL_LIB@ $(HDF5_LDFLAGS)  $(HDF5_LIBS) -lm
 bin_PROGRAMS = tagdust
 
 tagdust_SOURCES = \
-main_demux.c \
+main.c \
 interface.h \
 interface.c \
 arch_lib.h \

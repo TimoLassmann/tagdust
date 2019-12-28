@@ -184,7 +184,7 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
         MFREE(rb);
 
         for(i = 0; i < param->num_infiles;i++){
-                RUN(close_fasta_fastq_file(&f_hand[i]));
+                RUN(close_seq_file(&f_hand[i]));
         }
         MFREE(f_hand);
 
@@ -428,7 +428,7 @@ int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb,  char* 
                         if(bv->fail){
                                 RUN(write_fasta_fastq(write_buf, f_hand));
                                 write_buf->num_seq = 0;
-                                RUN(close_fasta_fastq_file(&f_hand));
+                                RUN(close_seq_file(&f_hand));
                                 break;
                         }
 
@@ -439,7 +439,7 @@ int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb,  char* 
                                 if(file != -1){
                                         RUN(write_fasta_fastq(write_buf, f_hand));
                                         write_buf->num_seq = 0;
-                                        RUN(close_fasta_fastq_file(&f_hand));
+                                        RUN(close_seq_file(&f_hand));
                                 }
                                 snprintf(filename, 256, "%s_%s_R%d.fastq.gz", prefix, dm[bv->sample_group]->name,out_read+1);
 
@@ -493,7 +493,7 @@ int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb,  char* 
                 if(write_buf->num_seq){
                         RUN(write_fasta_fastq(write_buf, f_hand));
                         write_buf->num_seq = 0;
-                        RUN(close_fasta_fastq_file(&f_hand));
+                        RUN(close_seq_file(&f_hand));
 
                 }
 
