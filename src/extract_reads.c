@@ -202,7 +202,6 @@ int run_extract( struct assign_struct* as,  struct tl_seq_buffer** rb, struct ar
         struct alphabet* a = NULL;
         struct tl_seq** ri = NULL;
         struct collect_read cs;
-
         uint8_t* tmp_seq = NULL;
         char* label = NULL;
         float pbest = 0.0f;
