@@ -13,7 +13,7 @@ bin_PROGRAMS = tagdust pst
 
 pst_SOURCES = \
 pst.h \
-pst.c
+pst.c 
 
 tagdust_SOURCES = \
 main.c \

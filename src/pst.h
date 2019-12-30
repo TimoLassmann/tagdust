@@ -1,6 +1,9 @@
 #ifndef PST_H
 #define PST_H
 
+
+#include <stdint.h>
+
 struct pst_node{
         struct pst_node* next[5];
         float nuc_probability[5];
@@ -12,6 +15,7 @@ struct pst {
         struct pst_node* ppt_root;
         char** suffix_array;
 
+        uint32_t** counts;
         //char** suffix_array_local;
         int* seq_id_in_suffix;
 
@@ -34,5 +38,6 @@ struct pst {
 
 };
 
+extern int nuc_to_internal(char c);
 
 #endif
