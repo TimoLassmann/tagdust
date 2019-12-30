@@ -10,10 +10,6 @@
 #include "pst.h"
 #define MAX_PST_LEN 12
 
-static int count_string(const char*p,const char** suffix,int h,int len);
-static int binsearch_down(const char*p,const char** suffix,int h,int len);
-static int binsearch_up(const char*p,const char** suffix,int h,int len);
-
 int read_10x_white_list(struct tl_seq_buffer** b,char* filename);
 
 int run_build_pst(struct pst** pst, struct tl_seq_buffer* sb);
@@ -38,10 +34,10 @@ static void free_pst_node(struct pst_node* n);
 static struct pst_node* alloc_node(struct pst_node* n,char* string,int len);
 
 static void free_node(struct pst_node*n);
-static int qsort_string_cmp(const void *a, const void *b);
 
 
 
+static inline int nuc_to_internal(const char c);
 
 int main(int argc, char *argv[])
 {
@@ -52,7 +48,7 @@ int main(int argc, char *argv[])
         struct tl_seq_buffer* sb = NULL;
         struct pst* p = NULL;
         struct rng_state* rng = NULL;
-        int i;
+        int i,j;
 
         LOG_MSG("%d",argc);
         if(argc == 2){
@@ -79,7 +75,7 @@ int main(int argc, char *argv[])
                 }
                 rng = init_rng(0);
                 MMALLOC(test_seq, sizeof(char) * (sb->sequences[0]->len+1));
-                for(i = 0; i < 1;i++){
+                for(i = 0; i < 10;i++){
                         //fprintf(stdout,">%s\n%s\n",sb->sequences[i]->name,sb->sequences[i]->seq);
 
                         scan_read_with_pst(p, sb->sequences[i]->seq, sb->sequences[i]->len);
@@ -87,12 +83,13 @@ int main(int argc, char *argv[])
                         sb->sequences[i]->seq[6] = 'T';
                         scan_read_with_pst(p, sb->sequences[i]->seq, sb->sequences[i]->len);
 
-                        /*
+
+
                         for(j = 0; j < sb->sequences[i]->len;j++){
                                 test_seq[j] = alphabet[ tl_random_int(rng,4)];
                         }
                         test_seq[sb->sequences[i]->len]= 0;
-                        scan_read_with_pst(p, test_seq, sb->sequences[i]->len);*/
+                        scan_read_with_pst(p, test_seq, sb->sequences[i]->len);
                 }
                 //free_error_correct_seq(&e);
 
@@ -101,6 +98,7 @@ int main(int argc, char *argv[])
                 //if()
                 free_pst(p);
                 free_tl_seq_buffer(sb);
+                free_rng(rng);
         }
 
         return EXIT_SUCCESS;
@@ -140,14 +138,13 @@ int scan_read_with_pst(struct pst* pst, char* seq, int len)
 
                 B = get_ppt_prob(pst->ppt_root, seq,c, i);
                 P_P = P_P + prob2scaledprob(B);
-                LOG_MSG("%c %f %f %f %f ",seq[i],A,B, P_S,P_P);
-
+                //LOG_MSG("%c %f %f %f %f ",seq[i],A,B, P_S,P_P);
         }
         A = exp2f(P_S-P_R) / (1.0 + exp2f(P_S-P_R));
         fprintf(stdout,"%f\t%f,%s\n", P_S - P_R,A, seq);
-
         A = exp2f(P_P-P_R) / (1.0 + exp2f(P_P-P_R));
         fprintf(stdout,"%f\t%f,%s\n", P_P - P_R,A, seq);
+
 
         return OK;
 ERROR:
@@ -195,24 +192,30 @@ float get_ppt_prob(struct pst_node* n, char* string,int target, int pos)
 {
         struct pst* p = NULL;
         char alphabet[] = "ACGT";
-        char tmp[MAX_PST_LEN+4];
+        //char tmp[MAX_PST_LEN+4];
         float sum;
         int i;
         int c;
+        uint32_t x;
         RUN(init_pst(&p, sb));
 
         init_logsum();
 
         sum = 0.0;
         for(i = 0;i < 4;i++){
-                tmp[0] = alphabet[i];
-                tmp[1] = 0;//alphabet[i];
-                c = count_string(tmp,(const char**)p->suffix_array,p->suffix_len-1,1);
+                x = i;
 
+                c = p->counts[0][x];
+                //fprintf(stdout," %c: %d\n", alphabet[i],c);
+                //tmp[0] = alphabet[i];
+                //tmp[1] = 0;//alphabet[i];
+                //c = count_string(tmp,(const char**)p->suffix_array,p->suffix_len-1,1);
+                //fprintf(stdout," %c: %d\n", alphabet[i],c);
                 p->pst_root->nuc_probability[i] = c;
                 //p->ppt_root->nuc_probability[i] = c;
                 sum+= c;
         }
+        //exit(0);
         for(i = 0;i < 4;i++){
                 p->pst_root->nuc_probability[i] = p->pst_root->nuc_probability[i]/ sum;
                 p->ppt_root->nuc_probability[i] = p->pst_root->nuc_probability[i];
@@ -268,15 +271,19 @@ struct pst_node* build_pst(struct pst* pst,struct pst_node* n )
                                 sum = 0.0;
                                 for(j = 0; j < 4;j++){
                                         x = x << 2 | j;
+                                        c = pst->counts[len+1][x];
                                         tmp[len+1]  = alphabet[j];
                                         tmp[len+2] = 0;
-                                        c = count_string(tmp,(const char**)pst->suffix_array,pst->suffix_len-1,len+2);
+                                        //c = count_string(tmp,(const char**)pst->suffix_array,pst->suffix_len-1,len+2);
                                         tmp_counts_s[j] = c;
                                         sum+= c;
-                                        LOG_MSG("Counts: %d %d %s", c, pst->counts[len+1][x], tmp);
+
+                                        //LOG_MSG("Counts: %d %d %s", c, pst->counts[len+1][x], tmp);
+                                        //ASSERT(c ==pst->counts[len+1][x],"Counts: %d %d %s", c, pst->counts[len+1][x], tmp);
+
                                         x = x >> 2;
                                 }
-                                fprintf(stdout,"\n");
+                                //fprintf(stdout,"\n");
 
                                 for(j = 0; j < 4;j++){
                                         tmp_counts_s[j] = tmp_counts_s[j]/sum;
@@ -318,6 +325,8 @@ struct pst_node* build_pst(struct pst* pst,struct pst_node* n )
                 }
         }
         return n;
+ERROR:
+        return NULL;
 }
 
 struct pst_node* build_ppt(struct pst* pst,struct pst_node* n )
@@ -334,7 +343,8 @@ struct pst_node* build_ppt(struct pst* pst,struct pst_node* n )
 
         float tmp_counts_s[4];
 
-
+        uint32_t x;
+        uint32_t y;
 
         //fprintf(stderr,"NODE: %s\n", n->label);
         //for(i = 0;i < 5;i++){
@@ -358,18 +368,32 @@ struct pst_node* build_ppt(struct pst* pst,struct pst_node* n )
 
 
                                 //init longer prefix!!!!
-
+                                x = 0;
                                 for(j = 0; j < len;j++){
                                         tmp[j+1] = n->label[j];
+                                        x = x << 2 |nuc_to_internal(n->label[j]);
+
+                                        //x = x |  (nuc_to_internal(n->label[j]) << (2*(j+1)));
                                 }
                                 tmp[len+1] = alphabet[i];
+                                x = x << 2 | i;
+
+                                //x = x |  (i << (2*(len+1)));
 
                                 sum = 0.0;
                                 for(j = 0; j < 4;j++){
+                                        y = j << (2 * (len+1));
+//x = (x & 0xFFFFFFFC) | j;
+                                        //x | j
                                         tmp[0]  = alphabet[j];
                                         tmp[len+2] = 0;
-                                        c = count_string(tmp,(const char**)pst->suffix_array,pst->suffix_len-1,len+2);
+                                        c = pst->counts[len+1][x+y];
+                                        //c = pst->counts[len+1][x];
+                                        //c = count_string(tmp,(const char**)pst->suffix_array,pst->suffix_len-1,len+2);
                                         tmp_counts_s[j] = c;
+                                        //if(c != pst->counts[len+1][x+ y]){
+                                        //LOG_MSG("Counts: %d %d %s", c, pst->counts[len+1][x+ y], tmp);
+                                        //}
                                         sum+= c;
                                 }
 
@@ -410,6 +434,8 @@ struct pst_node* build_ppt(struct pst* pst,struct pst_node* n )
                 }
         }
         return n;
+ERROR:
+        return NULL;
 }
 
 
@@ -422,12 +448,13 @@ int init_pst(struct pst** pst, struct tl_seq_buffer* sb)
         int j;
         int c;
         int l;
+        int len;
         uint32_t x;
         uint32_t mask[MAX_PST_LEN];
         char* seq;
         MMALLOC(p, sizeof(struct pst));
         p->L = MAX_PST_LEN;
-        p->gamma_min = 0.00001f;
+        p->gamma_min = 0.02f;
 
         p->p_min = 0.0001;
         //p->lamba = 0.001;
@@ -453,22 +480,26 @@ int init_pst(struct pst** pst, struct tl_seq_buffer* sb)
                 p->counts[i] = NULL;
                 c *= 4;
                 MMALLOC(p->counts[i], sizeof(uint32_t) * c);
-                LOG_MSG("Allocing: %d",c);
+                //LOG_MSG("Allocing: %d",c);
                 for(j = 0; j < c;j++){
                         p->counts[i][j] = 0;
                 }
         }
         mask[0] = 0x3;
-        LOG_MSG("MASK: %x", mask[0]);
+        //LOG_MSG("MASK: %x", mask[0]);
         for(i = 1;i < MAX_PST_LEN;i++){
                 mask[i] = (mask[i-1] << 2) | 0x3;
-                LOG_MSG("MASK: %x", mask[i]);
+                //LOG_MSG("MASK: %x", mask[i]);
         }
+        //sb->num_seq = 1;
+        int total_len = 0;
         for(i = 0; i < sb->num_seq;i++){
                 x = 0;
                 seq = sb->sequences[i]->seq;
+                len = sb->sequences[i]->len;
+                //fprintf(stdout,"%s\n", seq);
                 l = 0;
-                for(j = 0; j < sb->sequences[i]->len;j++){
+                for(j = 0; j < len;j++){
                         x = (x << 2) | nuc_to_internal(seq[j]);
                         for(c = 0; c <= l;c++){
                                 //LOG_MSG("Inserting len:%d seq: %d mask %x", c,x,x &mask[c]);
@@ -477,11 +508,12 @@ int init_pst(struct pst** pst, struct tl_seq_buffer* sb)
                         l++;
                         l = MACRO_MIN(l, MAX_PST_LEN-1);
                 }
+                total_len+= sb->sequences[i]->len;
         }
 
         STOP_TIMER(t);
-        LOG_MSG("counting took %f", GET_TIMING(t));
-        START_TIMER(t);
+        LOG_MSG("counting took %f (%d)", GET_TIMING(t), total_len);
+        /*START_TIMER(t);
         p->suffix_len = 0;
         for(i =0; i < sb->num_seq;i++){
                 p->suffix_len += sb->sequences[i]->len;
@@ -501,13 +533,14 @@ int init_pst(struct pst** pst, struct tl_seq_buffer* sb)
         //p->mean_length = p->mean_length / (float) sb->num_seq;
 
         p->numseq = sb->num_seq;
+        ASSERT(c == p->suffix_len,"lengths differ");
         //p->suffix_len = sb->num_seq;
         ///exit(0);
         qsort(p->suffix_array, p->suffix_len, sizeof(char *), qsort_string_cmp);
 
         STOP_TIMER(t);
         LOG_MSG("counting took %f", GET_TIMING(t));
-        exit(0);
+        //exit(0);*/
         *pst = p;
         return OK;
 ERROR:
@@ -524,7 +557,7 @@ void free_pst(struct pst* p)
                 MFREE(p->counts);
 
                 free_pst_node(p->pst_root);
-                MFREE(p->suffix_array);
+                //MFREE(p->suffix_array);
                 MFREE(p);
         }
 }
@@ -666,87 +699,7 @@ void print_pst(struct pst* pst,struct pst_node* n,int* num)
 
 
 
-
-int count_string(const char*p,const char** suffix,int h,int len)
-{
-        int a,b;
-        //for(i = 0; i < 1000000;i++){
-        a = binsearch_down(p,suffix,h,len);
-        b = binsearch_up(p,suffix,h,len);
-        return b-a;
-}
-
-/** \fn int binsearch_down(const char*p,const char** suffix,int h,int len)
-    \brief finds first occurance of p in suffix array.
-    \param p string containing pattern.
-    \param suffix suffix array.
-    \param h size of suffix array.
-    \param len length of pattern.
-    \return index.
-*/
-int binsearch_down(const char*p,const char** suffix,int h,int len)
-{
-        int m = 0;
-        int l = 0;
-        /*if (t_long_strncmp(p,text+suffix[l],len)<= 0){
-          l = l;
-          }else */
-        if(strncmp(p,suffix[h],len) >  0){
-                return h;
-        }else{
-                while(h-l > 1){
-                        //m = (l+h)/2;
-                        m = (l + h) >> 1;
-                        if(strncmp(p,suffix[m],len) <= 0){
-                                h = m;
-                        }else{
-                                l = m;
-                        }
-                }
-        }
-        return l+1;
-}
-
-/** \fn int binsearch_up(const char*p,const char** suffix,int h,int len)
-    \brief finds last occurance of p in suffix array.
-    \param p string containing pattern.
-    \param suffix suffix array.
-    \param h size of suffix array.
-    \param len length of pattern.
-    \return index.
-*/
-int binsearch_up(const char*p,const char** suffix,int h,int len)
-{
-        int m = 0;
-        int l = 0;
-        /*if (t_long_strncmp(p,text+suffix[l],len)<= 0){
-          l = l;
-          }else*/
-        if(strncmp(p,suffix[h],len) >  0){
-                return h;
-        }else{
-                while(h-l > 1){
-                        //m = (l+h)/2;
-                        m = (l + h) >> 1;
-                        if(strncmp(p,suffix[m],len) < 0){
-                                h = m;
-                        }else{
-                                l = m;
-                        }
-                }
-        }
-        return l+1;
-}
-
-int qsort_string_cmp(const void *a, const void *b)
-{
-        const char **one = (const char **)a;
-        const char **two = (const char **)b;
-        return strcmp(*one, *two);
-}
-
-
-int nuc_to_internal(char c)
+static inline int nuc_to_internal(const char c)
 {
         switch (c) {
         case 'A':
