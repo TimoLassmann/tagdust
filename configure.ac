@@ -197,3 +197,17 @@ AC_MSG_NOTICE([               LDFLAGS: $LDFLAGS $TLDEVEL_LDFLAGS])
 AC_MSG_NOTICE([    Installation point: $prefix])
 AC_MSG_NOTICE([---------------------------------------------------------])
 
+AS_IF([test "x$with_openmp" = "xno"],[
+   AC_MSG_NOTICE([])
+   AC_MSG_NOTICE([---------------------------------------------------------])
+   AC_MSG_WARN([Could not find the OpenMP library!])
+   AC_MSG_WARN([TagDust will run but much more slowly.])
+   AC_MSG_WARN([consider installing openMP: ])
+   AC_MSG_WARN([Ubuntu:])
+   AC_MSG_WARN([sudo apt install libomp-dev])
+   AC_MSG_WARN([Fedora:])
+   AC_MSG_WARN([sudo dnf install libomp-dev])
+   AC_MSG_NOTICE([---------------------------------------------------------])
+   AC_MSG_NOTICE([])
+])
+

@@ -1,42 +1,25 @@
 #ifndef PST_H
 #define PST_H
 
+#include "tlseqio.h"
 
-#include <stdint.h>
+#ifdef PST_IMPORT
+#define EXTERN
+#else
+#define EXTERN extern
+#endif
 
-struct pst_node{
-        struct pst_node* next[5];
-        float nuc_probability[5];
-        char* label;
-};
 
-struct pst {
-        struct pst_node* pst_root;
-        struct pst_node* ppt_root;
-        //char** suffix_array;
 
-        uint32_t** counts;
-        //char** suffix_array_local;
-        //int* seq_id_in_suffix;
+struct pst_node;
+struct pst;
 
-        //struct suffix_node** sn;
 
-        int total_len;
+EXTERN int run_build_pst(struct pst** pst, struct tl_seq_buffer* sb);
+EXTERN int scan_read_with_pst(struct pst* pst, char* seq, int len, float* r);
+EXTERN void free_pst(struct pst* p);
 
-        float p_min;
-        float gamma_min;
-        //float alpha;
-        //float lamba;
-        float r;
-        int L;
-
-        float numseq;
-        float mean_length;
-        //int suffix_len;
-        //int suffix_len_local;
-        //int current_suffix_size;
-
-};
-
+#undef PST_IMPORT
+#undef EXTERN
 
 #endif

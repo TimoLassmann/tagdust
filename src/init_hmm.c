@@ -388,7 +388,6 @@ struct model* init_model_according_to_read_structure(struct model* model,struct 
                 col->transition[DD] = prob2scaledprob(0.0);
                 col->transition[DM] = prob2scaledprob(0.0);
 
-
                 col->transition_e[MM] =  prob2scaledprob(0.0);
                 col->transition_e[MI] =  prob2scaledprob(0.0);
                 col->transition_e[MD] =  prob2scaledprob(0.0);

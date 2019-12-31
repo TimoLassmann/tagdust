@@ -2,6 +2,9 @@
 #include <string.h>
 #include "tldevel.h"
 
+
+#include "tlseqio.h"
+
 //static int qsort_seq_bits_by_file(const void *a, const void *b);
 static int qsort_seq_bits_by_type_file(const void *a, const void *b);
 static int qsort_seq_bits_by_file(const void *a, const void *b);
@@ -10,6 +13,8 @@ static int qsort_seq_bit_vec(const void *a, const void *b);
 static int setup_assign_structure(struct arch_library* al,struct assign_struct* as,int** plan);
 static int setup_barcode_files(struct arch_library* al, struct assign_struct* as);
 static int setup_output_files(struct assign_struct* as);
+
+static int alloc_seq_bit(struct seq_bit** sb);
 
 int sort_as_by_file_type(struct assign_struct* as)
 {
@@ -59,6 +64,7 @@ int post_process_assign(struct assign_struct* as)
                         if(bv->bits[j]->type == UMI_TYPE){
                                 umi_len += bv->bits[j]->len;
                         }
+                        bv->fail |= bv->bits[j]->fail;
                 }
                 if(len){
                         g = 0;
@@ -85,7 +91,7 @@ int post_process_assign(struct assign_struct* as)
                         }
                         tmp[g-1] = 0;
 
-                        LOG_MSG("searchfor >%s<\n");
+                        //LOG_MSG("searchfor >%s<\n",tmp);
                         RUNP(tmp_ptr = as->demux_names->tree_get_data(as->demux_names,tmp));
                         //if(tmp_ptr){
                         tmp_ptr->count++;
@@ -136,7 +142,6 @@ ERROR:
         return FAIL;
 }
 
-
 int init_assign_structure(struct assign_struct** assign,struct arch_library* al, int total)
 {
         struct assign_struct* as = NULL;
@@ -177,7 +182,9 @@ int init_assign_structure(struct assign_struct** assign,struct arch_library* al,
                 MMALLOC(as->bit_vec[i]->bits , sizeof(struct seq_bit) * as->num_bits);
                 for(j = 0; j < as->num_bits;j++){
                         as->bit_vec[i]->bits[j] = NULL;
-                        MMALLOC(as->bit_vec[i]->bits[j], sizeof(struct seq_bit));
+
+                        RUN(alloc_seq_bit(&as->bit_vec[i]->bits[j]));
+                        //MMALLOC(as->bit_vec[i]->bits[j], sizeof(struct seq_bit));
                         as->bit_vec[i]->bits[j]->file = plan[j];
                 }
         }
@@ -186,6 +193,23 @@ int init_assign_structure(struct assign_struct** assign,struct arch_library* al,
         return OK;
 ERROR:
         free_assign_structure(as);
+        return FAIL;
+}
+
+int alloc_seq_bit(struct seq_bit** sb)
+{
+        struct seq_bit* b = NULL;
+
+        MMALLOC(b, sizeof(struct seq_bit));
+        b->fail = 0;
+        b->file = 0;
+        b->type = 0;
+        b->p = NULL;
+        b->q = 0;
+        b->len = 0;
+        *sb = b;
+        return OK;
+ERROR:
         return FAIL;
 }
 
@@ -426,9 +450,9 @@ int setup_barcode_files(struct arch_library* al, struct assign_struct* as)
                                                 //}
                                                 strncpy(tmp_ptr->name, (char*)read_structure->sequence_matrix[j][g], len+1);
 
-                                                tmp_ptr->name[len] = '_';
-                                                tmp_ptr->name[len+1] = 0;
-
+                                                tmp_ptr->name[len] = 0;
+                                                //tmp_ptr->name[len+1] = 0;
+                                                tmp_ptr->f_hand = NULL;
                                                 //snprintf(sample1->name , 10,"ABBBB");
                                                 tmp_ptr->id = 0;
                                                 tmp_ptr->count = 0;
@@ -459,9 +483,10 @@ int setup_barcode_files(struct arch_library* al, struct assign_struct* as)
 
                                                         MMALLOC(new_ptr->name,sizeof(char) * (len+2));
 
-                                                        snprintf(new_ptr->name, len, "%s%s",tmp_ptr->name,read_structure->sequence_matrix[j][g]);
-                                                        tmp_ptr->name[len] = '_';
-                                                        tmp_ptr->name[len+1] = 0;
+                                                        snprintf(new_ptr->name, len, "%s_%s",tmp_ptr->name,read_structure->sequence_matrix[j][g]);
+                                                        tmp_ptr->name[len] = 0;
+                                                        //tmp_ptr->name[len+1] = 0;
+                                                        tmp_ptr->f_hand = NULL;
                                                         //snprintf(sample1->name , 10,"ABBBB");
                                                         new_ptr->id =0;
                                                         new_ptr->count = 0;
@@ -495,11 +520,12 @@ int setup_barcode_files(struct arch_library* al, struct assign_struct* as)
                 MMALLOC(tmp_ptr, sizeof(struct demux_struct));
                 tmp_ptr->name = NULL;
                 MMALLOC(tmp_ptr->name,sizeof(char) * (2));
-                tmp_ptr->name[0] = '_';
-                tmp_ptr->name[1] = 0;
+                tmp_ptr->name[0] = 0;
+                //tmp_ptr->name[1] = 0;
 
                 tmp_ptr->id = 0;
                 tmp_ptr->count = 0;
+                tmp_ptr->f_hand = NULL;
                 RUN(root->tree_insert(root,tmp_ptr));
                 tmp_ptr = NULL;
         }
@@ -510,7 +536,7 @@ int setup_barcode_files(struct arch_library* al, struct assign_struct* as)
         for(f = 0;f < root->num_entries;f++){
                 tmp_ptr = root->data_nodes[f];
                 tmp_ptr->id = f;
-                        //fprintf(stdout,"%s %d\n",tmp_ptr->name,tmp_ptr->count);
+                fprintf(stdout,"%s %d\n",tmp_ptr->name,tmp_ptr->count);
         }
         //root->free_tree(root);
         as->demux_names = root;
@@ -547,6 +573,9 @@ void free_demux_struct(void* ptr)
 {
         struct demux_struct* tmp = (struct demux_struct*)  ptr;
         if(tmp){
+                if(tmp->f_hand){
+                        close_seq_file(&tmp->f_hand);
+                }
                 if(tmp->name){
                         MFREE(tmp->name);
                 }

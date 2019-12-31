@@ -26,7 +26,6 @@ int main (int argc,char * argv[]) {
 
         ASSERT(param->outfile != NULL, "No output file suffix");
 
-
         /* set top level rng generator  */
         RUNP(main_rng = init_rng(param->seed));
 
@@ -42,20 +41,20 @@ int main (int argc,char * argv[]) {
         }
 
         /* QC on architecture ?? */
-
+#ifdef HAVE_OPENMP
+        omp_set_num_threads(param->num_threads);
+#else
+        WARNING_MSG("Running without OpenMP!");
+#endif
         /* Start HMM stuff */
         init_logsum();
-
-
         /* get all sequence stats  */
         //LOG_MSG("Got here");
         //for( i = 0; i < param->num_infiles;i++){
         //fprintf(stdout," File %d max: %s\n",i, param->infile[i]);
         //}
-
         RUN(get_sequence_stats(&si,al, param->infile, param->num_infiles, main_rng));
         //si->ssi[0]->average_length;
-
         /* here there have to be sanity checks  */
         for(i = 0; i < param->num_infiles;i++){
                 for(j = i+1; j < param->num_infiles;j++){
@@ -66,10 +65,8 @@ int main (int argc,char * argv[]) {
         RUN(test_architectures(al,si,param));
 
         RUN(calibrate_architectures(al,si, main_rng));
-
-
         //int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameters* param)
-        RUN(extract_reads(al,si,param));
+        RUN(extract_reads(al,si,param,main_rng));
 //sprintf(param->buffer,"Start Run\n--------------------------------------------------\n");
         //param->messages = append_message(param->messages, param->buffer);
         //hmm_controller_multiple(param);

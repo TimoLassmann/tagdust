@@ -11,12 +11,17 @@
 
 #include "tlrbtree.h"
 
+#define READ_FAILQ 1
+#define READ_FAILR 2
+#define READ_FAILP 4
+
 struct seq_bit{
         char* p;
         char* q;
         uint16_t len;
         uint8_t type;
         uint8_t file;
+        uint8_t fail;
 };
 
 struct seq_bit_vec{
@@ -31,6 +36,7 @@ struct seq_bit_vec{
 };
 
 struct demux_struct{
+        struct file_handler* f_hand;
         char* name;
         int id;
         int count;
@@ -40,6 +46,7 @@ struct assign_struct{
         struct seq_bit_vec** bit_vec;
         struct rbtree_root* demux_names;
         struct rbtree_root* file_names;
+
         int block_size;
         int max_seq_len;
         int max_bar_len;

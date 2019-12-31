@@ -6,6 +6,7 @@
 #include "filter.h"
 #include "bpm.h"
 
+#include "pst.h"
 
 #include "tlseqio.h"
 #include "tlrng.h"
@@ -15,31 +16,31 @@
 
 #define CHUNKS 10
 
-
-static int init_ref(struct ref** r, struct tl_seq_buffer* sb,struct rng_state* rng);
-
-
-int run_filter(struct assign_struct* as, struct ref* ref, int index, int thres)
+int run_filter_exact(struct assign_struct* as, struct ref* ref, int index, int thres)
 {
         struct seq_bit_vec* bv;
         struct seq_bit* sb;
 
-        uint8_t* seq_a = NULL;
+        uint8_t seq_a[256];
         uint8_t* seq_b = NULL;
         uint8_t dist;
         int len_a;
         int len_b;
         char* tmp_seq;
         int i,j;
-
-        MMALLOC(seq_a, sizeof(uint8_t)* as->max_seq_len);
-
+        float out;
+        int d;
         bv = as->bit_vec[index];
+
         for(i = 0; i < as->out_reads;i++){
+
+
+                d = 256;
                 sb = bv->bits[i];
-                //ASSERT(sb->type == READ_TYPE, "NO READ TYPE!!! ");
+
+//ASSERT(sb->type == READ_TYPE, "NO READ TYPE!!! ");
                 tmp_seq = sb->p;
-                len_a = sb->len;
+                len_a = MACRO_MIN(256, sb->len);
                 //fprintf(stdout,"%s\n", tmp_seq);
                 for(j = 0; j < len_a;j++){
                         seq_a[j] = tlalphabet_get_code(ref->a, tmp_seq[j]);
@@ -53,93 +54,87 @@ int run_filter(struct assign_struct* as, struct ref* ref, int index, int thres)
                                 dist = bpm_256(seq_b, seq_a, len_b, len_a);
                         }
                         //fprintf(stdout,"%d ", dist);
-
+                        if(dist < d){
+                                d = dist;
+                        }
                         if(dist < thres){
-                                //bv->Q[sb->file] = bv->Q[sb->file] - 1.0f;
-#pragma omp critical
-                                {
-                                        bv->fail |= 2;
-                                        ref->hits[j]++;
-                                }
-                                goto EARLY;
+                                sb->fail |= READ_FAILR;
+                                //goto EARLY;
 
                         }
                 }
+                //RUN(scan_read_with_pst(pst,  sb->p , sb->len,&out));
+                //fprintf(stdout,"ERR_%03d,%f\n",d,out);
+                //fflush(stdout);
 
         }
-EARLY:
 
-        MFREE(seq_a);
+        return OK;
+ERROR:
+        return FAIL;
+
+}
+
+int run_filter_pst(struct assign_struct* as, struct pst* pst, int index, float thres)
+
+{
+        struct seq_bit_vec* bv;
+        struct seq_bit* sb;
+
+        uint8_t seq_a[256];
+        uint8_t* seq_b = NULL;
+        uint8_t dist;
+        int len_a;
+        int len_b;
+        char* tmp_seq;
+        int i,j;
+        float out;
+        int d;
+        bv = as->bit_vec[index];
+
+        for(i = 0; i < as->out_reads;i++){
+                sb = bv->bits[i];
+                RUN(scan_read_with_pst(pst,  sb->p , sb->len,&out));
+                if(out >= thres){
+                        sb->fail |= READ_FAILP;
+                }
+        }
         return OK;
 ERROR:
         return FAIL;
 }
 
-int read_reference_sequences(struct ref** r, char* filename,int seed)
+
+/*int read_reference_sequences(struct ref** r, struct tl_seq_buffer** ref,char* filename)
 {
-        struct rng_state* rng = NULL;
-        struct ref* ref = NULL;
+        //struct rng_state* rng = NULL;
+        //struct ref* ref = NULL;
         struct tl_seq_buffer* sb_fasta = NULL;
         struct file_handler* f_fasta = NULL;
 
         ASSERT(filename!= NULL, "No filename");
         ASSERT(my_file_exists(filename), "File %d not found", filename);
 
-        RUNP(rng = init_rng(seed));
+        //RUNP(rng = init_rng(seed));
 
         if(filename){
                 RUN(open_fasta_fastq_file(&f_fasta, filename, TLSEQIO_READ));
 
                 RUN(read_fasta_fastq_file(f_fasta, &sb_fasta, 65536));
                 RUN(close_seq_file(&f_fasta));
-
-                /*for(i = 0; i < sb_fasta->num_seq;i++){
-                        fprintf(stdout,">%s\n", sb_fasta->sequences[i]->name);
-                        for(j = 0; j < sb_fasta->sequences[i]->len;j++){
-                                fprintf(stdout,"%c", sb_fasta->sequences[i]->seq[j]);
-                        }
-                        fprintf(stdout,"\n");
-                }
-                LOG_MSG("Max_len: %d", sb_fasta->max_len);*/
-
-                RUN(init_ref(&ref, sb_fasta,rng));
-                free_tl_seq_buffer(sb_fasta);
-
+                //RUN(init_ref(&ref, sb_fasta,rng));
+                //free_tl_seq_buffer(sb_fasta);
+                *ref = sb_fasta;
         }else{
                 ERROR_MSG("No reference sequences to map against!");
         }
 
-#if HAVE_AVX2
-        set_broadcast_mask();
-#endif
-
-        *r = ref;
+        //*r = ref;
         return OK;
 ERROR:
         return FAIL;
 
-}
-
-//static int run_filter(struct read_info_buffer** rb, struct read_info_buffer* con, int i_file, int  i_chunk);
-
-
-
-/*
-
-int filter.
-
-
-
-
-if(len_a > len_b){
-                dist = bpm_256(seq_a, seq_b, len_a, len_b);
-        }else{
-                dist = bpm_256(seq_b, seq_a, len_b, len_a);
-        }
-
-*/
-
-
+}*/
 
 int init_ref(struct ref** r, struct tl_seq_buffer* sb, struct rng_state* rng)
 {
@@ -148,6 +143,10 @@ int init_ref(struct ref** r, struct tl_seq_buffer* sb, struct rng_state* rng)
         char* org_seq = NULL;
         int i,j;
         ASSERT(sb != NULL, "No seqbuffer");
+
+#if HAVE_AVX2
+        set_broadcast_mask();
+#endif
 
         MMALLOC(ref, sizeof(struct ref));
         ref->a = NULL;

@@ -8,5 +8,5 @@
 
 #include "interface.h"
 
-extern int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameters* param);
+extern int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameters* param,struct rng_state* rng);
 #endif

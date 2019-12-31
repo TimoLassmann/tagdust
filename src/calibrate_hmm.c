@@ -48,8 +48,10 @@ int calibrate_architectures(struct arch_library* al, struct seq_stats* si,struct
         }
 
 
+#ifdef HAVE_OPENMP
 #pragma omp parallel default(shared)
 #pragma omp for private(i)
+#endif
         for(i = 0; i < al->num_file;i++){
                 j = al->arch_to_read_assignment[i];
                 //LOG_MSG("File %d HMM: %d",i,j);

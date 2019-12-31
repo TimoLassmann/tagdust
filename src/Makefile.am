@@ -13,7 +13,8 @@ bin_PROGRAMS = tagdust pst
 
 pst_SOURCES = \
 pst.h \
-pst.c 
+pst.c \
+pst_test.c
 
 tagdust_SOURCES = \
 main.c \
@@ -42,8 +43,9 @@ assign_data.c \
 filter.h \
 filter.c \
 bpm.h \
-bpm.c
-
+bpm.c \
+pst.h \
+pst.c
 
 tagdust_LDADD =  -lpthread -lm
 

@@ -44,11 +44,13 @@ int test_architectures(struct arch_library* al, struct seq_stats* si, struct par
                 for(j = 0; j < param->num_infiles;j++){
                         al->arch_posteriors[i][j] = prob2scaledprob(1.0);
                 }
+
+
         }
 
         MMALLOC(al->arch_to_read_assignment, sizeof(int) * param->num_infiles);
 
-        omp_set_num_threads(param->num_threads);
+        //omp_set_num_threads(param->num_threads);
 
         /* here I combine: architectures with sequence parameters of individual input files  */
         /* to: check which architecture belongs to which read */
@@ -74,9 +76,10 @@ int test_architectures(struct arch_library* al, struct seq_stats* si, struct par
         }
 
 
-
+#ifdef HAVE_OPENMP
 #pragma omp parallel default(shared)
 #pragma omp for collapse(2) private(i, j)
+#endif
         for(i = 0; i < param->num_infiles;i++){
                 for(j = 0; j < al->num_arch;j++){
                         test_arch(rb,al,si,i,j);

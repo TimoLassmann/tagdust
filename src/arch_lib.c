@@ -173,7 +173,6 @@ int assign_segment_sequences(struct read_structure* read_structure, char* tmp, i
                 break;
         }
 
-
         len = strlen(tmp);
         count = 0;
         for(i = 0; i < len;i++){

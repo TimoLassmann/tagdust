@@ -1,23 +1,36 @@
 
 #include "tldevel.h"
+
 #include "tlseqio.h"
 #include "tllogsum.h"
-#include "tlmisc.h"
-#include "tlrng.h"
 #include <string.h>
-#include "zlib.h"
+
 
 #include "pst.h"
 #define MAX_PST_LEN 12
 
-int read_10x_white_list(struct tl_seq_buffer** b,char* filename);
 
-int run_build_pst(struct pst** pst, struct tl_seq_buffer* sb);
+struct pst_node{
+        struct pst_node* next[4];
+        float nuc_probability[4];
+        char* label;
+};
+
+struct pst {
+        struct pst_node* pst_root;
+        struct pst_node* ppt_root;
+        uint32_t** counts;
+
+        float p_min;
+        float gamma_min;
+        float r;
+        int L;
+};
+
+
+
 
 static int init_pst(struct pst** pst, struct tl_seq_buffer* sb);
-
-int  scan_read_with_pst(struct pst* pst, char* seq, int len);
-
 
 static float get_pst_prob(struct pst_node* n, char* string,int target, int pos);
 static float get_ppt_prob(struct pst_node* n, char* string,int target, int pos);
@@ -25,89 +38,17 @@ static float get_ppt_prob(struct pst_node* n, char* string,int target, int pos);
 
 static struct pst_node* build_pst(struct pst* pst,struct pst_node* n );
 static struct pst_node* build_ppt(struct pst* pst,struct pst_node* n );
-//void print_pst(struct pst* pst,struct pst_node* n, struct read_info** ri );
-//static void print_pst(struct pst* pst,struct pst_node* n);
 static void print_pst(struct pst* pst,struct pst_node* n,int* num);
-static void free_pst(struct pst* p);
 static void free_pst_node(struct pst_node* n);
 
 static struct pst_node* alloc_node(struct pst_node* n,char* string,int len);
-
-static void free_node(struct pst_node*n);
-
-
+//static void free_node(struct pst_node*n);
 
 static inline int nuc_to_internal(const char c);
 
-int main(int argc, char *argv[])
-{
-        char alphabet[] = "ACGT";
-        LOG_MSG("Hello World");
-        char* filename = NULL;
-        char* test_seq = NULL;
-        struct tl_seq_buffer* sb = NULL;
-        struct pst* p = NULL;
-        struct rng_state* rng = NULL;
-        int i,j;
-
-        LOG_MSG("%d",argc);
-        if(argc == 2){
-                filename = argv[1];
-                LOG_MSG("%s",filename);
-                if(!my_file_exists(filename)){
-                        ERROR_MSG("File %s not found");
-                }
-                RUN(read_10x_white_list(&sb, filename));
-
-                RUN(run_build_pst(&p, sb));
-
-                int num = 0;
-                print_pst(p, p->pst_root, &num);
-                LOG_MSG("Found %d leaves ",num);
-
-                num = 0;
-                print_pst(p, p->ppt_root, &num);
-                LOG_MSG("Found %d leaves ",num);
-
-                //exit(0);
-                for(i = 0; i < 10;i++){
-                        fprintf(stdout,">%s\n%s\n",sb->sequences[i]->name,sb->sequences[i]->seq);
-                }
-                rng = init_rng(0);
-                MMALLOC(test_seq, sizeof(char) * (sb->sequences[0]->len+1));
-                for(i = 0; i < 10;i++){
-                        //fprintf(stdout,">%s\n%s\n",sb->sequences[i]->name,sb->sequences[i]->seq);
-
-                        scan_read_with_pst(p, sb->sequences[i]->seq, sb->sequences[i]->len);
-
-                        sb->sequences[i]->seq[6] = 'T';
-                        scan_read_with_pst(p, sb->sequences[i]->seq, sb->sequences[i]->len);
 
 
-
-                        for(j = 0; j < sb->sequences[i]->len;j++){
-                                test_seq[j] = alphabet[ tl_random_int(rng,4)];
-                        }
-                        test_seq[sb->sequences[i]->len]= 0;
-                        scan_read_with_pst(p, test_seq, sb->sequences[i]->len);
-                }
-                //free_error_correct_seq(&e);
-
-                MFREE(test_seq);
-
-                //if()
-                free_pst(p);
-                free_tl_seq_buffer(sb);
-                free_rng(rng);
-        }
-
-        return EXIT_SUCCESS;
-ERROR:
-        return EXIT_FAILURE;
-}
-
-
-int scan_read_with_pst(struct pst* pst, char* seq, int len)
+int scan_read_with_pst(struct pst* pst, char* seq, int len, float*r)
 {
         int i;
         int  c;
@@ -124,7 +65,7 @@ int scan_read_with_pst(struct pst* pst, char* seq, int len)
         P_S = prob2scaledprob(1.0);
         P_P = prob2scaledprob(1.0);
         P_R = prob2scaledprob(1.0);
-        fprintf(stdout,"%s - query sequence\n", seq);
+        //fprintf(stdout,"%s - query sequence\n", seq);
         for(i = 0; i < len; i++ ){
                 c = nuc_to_internal(seq[i]);
                 //fprintf(stdout,"%f %f %d\n", P,P_R,c);
@@ -140,11 +81,13 @@ int scan_read_with_pst(struct pst* pst, char* seq, int len)
                 P_P = P_P + prob2scaledprob(B);
                 //LOG_MSG("%c %f %f %f %f ",seq[i],A,B, P_S,P_P);
         }
-        A = exp2f(P_S-P_R) / (1.0 + exp2f(P_S-P_R));
+        /*A = exp2f(P_S-P_R) / (1.0 + exp2f(P_S-P_R));
         fprintf(stdout,"%f\t%f,%s\n", P_S - P_R,A, seq);
         A = exp2f(P_P-P_R) / (1.0 + exp2f(P_P-P_R));
-        fprintf(stdout,"%f\t%f,%s\n", P_P - P_R,A, seq);
-
+        fprintf(stdout,"%f\t%f,%s\n", P_P - P_R,A, seq);*/
+        A = MACRO_MAX(P_S-P_R, P_P-P_R);
+        A = exp2f(A) / (1.0 + exp2f(A));
+        *r = A;
 
         return OK;
 ERROR:
@@ -219,7 +162,7 @@ float get_ppt_prob(struct pst_node* n, char* string,int target, int pos)
         for(i = 0;i < 4;i++){
                 p->pst_root->nuc_probability[i] = p->pst_root->nuc_probability[i]/ sum;
                 p->ppt_root->nuc_probability[i] = p->pst_root->nuc_probability[i];
-                fprintf(stdout,"%c %f\n", alphabet[i],p->pst_root->nuc_probability[i]);
+                //fprintf(stdout,"%c %f\n", alphabet[i],p->pst_root->nuc_probability[i]);
         }
 
 
@@ -459,10 +402,9 @@ int init_pst(struct pst** pst, struct tl_seq_buffer* sb)
         p->p_min = 0.0001;
         //p->lamba = 0.001;
         p->r = 1.02f;
-        p->total_len = 0;
+
         p->pst_root = NULL;
         p->ppt_root = NULL;
-        p->mean_length = 0.0;
         p->counts = NULL;
         RUNP(p->pst_root = alloc_node(p->pst_root,"",0));
         RUNP(p->ppt_root = alloc_node(p->ppt_root,"",0));
@@ -557,6 +499,7 @@ void free_pst(struct pst* p)
                 MFREE(p->counts);
 
                 free_pst_node(p->pst_root);
+                free_pst_node(p->ppt_root);
                 //MFREE(p->suffix_array);
                 MFREE(p);
         }
@@ -565,12 +508,15 @@ void free_pst(struct pst* p)
 void free_pst_node(struct pst_node* n)
 {
         int i;
-        for(i = 0;i < 4;i++){
-                if(n->next[i]){
-                        free_pst_node(n->next[i]);
+        if(n){
+                for(i = 0;i < 4;i++){
+                        if(n->next[i]){
+                                free_pst_node(n->next[i]);
+                        }
                 }
+                MFREE(n->label);
+                MFREE(n);
         }
-        free_node(n);
 }
 
 
@@ -595,72 +541,7 @@ ERROR:
         return NULL;
 }
 
-void free_node(struct pst_node*n)
-{
 
-        if(n){
-                MFREE(n->label);
-                MFREE(n);
-        }
-}
-
-
-
-int read_10x_white_list(struct tl_seq_buffer** b,char* filename)
-{
-        struct tl_seq_buffer* sb = NULL;
-        struct tl_seq* s = NULL;
-        gzFile f_ptr;
-        char* buffer = NULL;
-        char* tmp = NULL;
-        int buffer_len = 256;
-
-        MMALLOC(buffer, sizeof(char) * buffer_len);
-
-        RUN(alloc_tl_seq_buffer(&sb, 1000000));
-
-
-        RUNP(f_ptr = gzopen(filename, "r"));
-        while((tmp =  gzgets(f_ptr, buffer, buffer_len)) != NULL){
-                //fprintf(stdout,"%s",buffer);
-                s = sb->sequences[sb->num_seq];
-                s->len = strnlen(buffer, buffer_len) -1;
-
-                snprintf(s->name, TL_SEQ_MAX_NAME_LEN, "Bar%d", sb->num_seq+1);
-
-                while(s->malloc_len < s->len){
-                        RUN(resize_tl_seq(s));
-                }
-                strncpy(s->seq, buffer, s->len);
-                s->seq[s->len] = 0;
-                //snprintf(s->seq, s->malloc_len, "%s",buffer);
-                sb->num_seq++;
-                //if(sb->num_seq == 100000){
-                //break;
-                //}
-                if(sb->num_seq == sb->malloc_num){
-                        RUN(resize_tl_seq_buffer(sb));
-                }
-        }
-
-        *b = sb;
-
-        gzclose(f_ptr);
-
-
-        MFREE(buffer);
-        return OK;
-
-ERROR:
-        if(buffer){
-                MFREE(buffer);
-        }
-        if(f_ptr){
-                gzclose(f_ptr);
-        }
-        return FAIL;
-
-}
 
 
 
