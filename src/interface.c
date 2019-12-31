@@ -74,7 +74,7 @@
 #define  OPT_SHOWW 39
 
 static int print_tagdust_warranty(void);
-static int print_AVX_warning(void);
+
 static int print_tagdust_header(void);
 
 int print_tagdust_header(void)
@@ -129,6 +129,8 @@ int print_tagdust_warranty(void)
 }
 
 #ifndef HAVE_AVX2
+static int print_AVX_warning(void);
+
 int print_AVX_warning(void)
 {
         fprintf(stdout,"\n");
@@ -661,24 +663,23 @@ void usage()
 
 int free_param(struct parameters* param)
 {
-        char logfile[200];
-        FILE* outfile = 0;
+        //char logfile[200];
+        //FILE* outfile = 0;
         if(param){
                 //int i;
                 //if(param->log){
-                if(param->outfile){
-                        sprintf (logfile, "%s_logfile.txt",param->outfile);
-                        RUNP(outfile = fopen(logfile, "w"));
+                //if(param->outfile){
+                        //sprintf (logfile, "%s_logfile.txt",param->outfile);
+                        //RUNP(outfile = fopen(logfile, "w"));
                         //if((outfile = fopen(logfile, "w")) == NULL) KSLIB_XEXCEPTION_SYS(kslEWRT,"Failed to open file:%s",logfile);
                         //if ((outfile = fopen( logfile, "w")) == NULL){
                         //	fprintf(stderr,"can't open logfile\n");
                         //	exit(-1);
                         //}
-                        fprintf(outfile,"%s\n",param->messages);
+                        //fprintf(outfile,"%s\n",param->messages);
 
-                        fclose(outfile);
-
-                }
+                        //fclose(outfile);
+                //}
                 /*if(param->read_structures){
                   for(i = 0; i < param->infiles;i++){
                   if(param->read_structures[i]){
@@ -714,8 +715,8 @@ int free_param(struct parameters* param)
 
 
         return OK;
-ERROR:
-        return FAIL;
+//ERROR:
+        //return FAIL;
 }
 
 

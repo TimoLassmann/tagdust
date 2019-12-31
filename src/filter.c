@@ -16,6 +16,8 @@
 
 #define CHUNKS 10
 
+static inline int nuc_to_internal(const char c);
+
 int run_filter_exact(struct assign_struct* as, struct ref* ref, int index, int thres)
 {
         struct seq_bit_vec* bv;
@@ -28,14 +30,11 @@ int run_filter_exact(struct assign_struct* as, struct ref* ref, int index, int t
         int len_b;
         char* tmp_seq;
         int i,j;
-        float out;
-        int d;
+
+
         bv = as->bit_vec[index];
 
         for(i = 0; i < as->out_reads;i++){
-
-
-                d = 256;
                 sb = bv->bits[i];
 
 //ASSERT(sb->type == READ_TYPE, "NO READ TYPE!!! ");
@@ -54,9 +53,6 @@ int run_filter_exact(struct assign_struct* as, struct ref* ref, int index, int t
                                 dist = bpm_256(seq_b, seq_a, len_b, len_a);
                         }
                         //fprintf(stdout,"%d ", dist);
-                        if(dist < d){
-                                d = dist;
-                        }
                         if(dist < thres){
                                 sb->fail |= READ_FAILR;
                                 //goto EARLY;
@@ -70,10 +66,10 @@ int run_filter_exact(struct assign_struct* as, struct ref* ref, int index, int t
         }
 
         return OK;
-ERROR:
-        return FAIL;
-
 }
+
+
+
 
 int run_filter_pst(struct assign_struct* as, struct pst* pst, int index, float thres)
 
@@ -81,15 +77,10 @@ int run_filter_pst(struct assign_struct* as, struct pst* pst, int index, float t
         struct seq_bit_vec* bv;
         struct seq_bit* sb;
 
-        uint8_t seq_a[256];
-        uint8_t* seq_b = NULL;
-        uint8_t dist;
-        int len_a;
-        int len_b;
-        char* tmp_seq;
-        int i,j;
+
+        int i;
         float out;
-        int d;
+
         bv = as->bit_vec[index];
 
         for(i = 0; i < as->out_reads;i++){
@@ -103,7 +94,6 @@ int run_filter_pst(struct assign_struct* as, struct pst* pst, int index, float t
 ERROR:
         return FAIL;
 }
-
 
 /*int read_reference_sequences(struct ref** r, struct tl_seq_buffer** ref,char* filename)
 {
@@ -129,7 +119,7 @@ ERROR:
                 ERROR_MSG("No reference sequences to map against!");
         }
 
-        //*r = ref;
+        *r = ref;
         return OK;
 ERROR:
         return FAIL;
@@ -202,4 +192,34 @@ int free_ref(struct ref** r)
         }
         *r = ref;
         return OK;
+}
+
+
+static inline int nuc_to_internal(const char c)
+{
+        switch (c) {
+        case 'A':
+        case 'a':
+                return 0;
+                break;
+        case 'C':
+        case 'c':
+                return 1;
+                break;
+        case 'G':
+        case 'g':
+                return 2;
+                break;
+        case 'T':
+        case 't':
+                return 3;
+                break;
+        case 'N':
+        case 'n':
+                return 0;
+                break;
+        default:
+                break;
+        }
+        return -1;
 }

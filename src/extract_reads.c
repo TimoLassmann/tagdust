@@ -393,6 +393,9 @@ int process_read(struct collect_read* ri, struct read_structure* rs , struct seq
                                 sb->p = rs->sequence_matrix[segment][hmm_in_segment];
                                 sb->len = rs->segment_length[segment];
                                 sb->fail = ri->f;
+                                if(hmm_in_segment == 0){
+                                        sb->fail |= READ_NBAR;
+                                }
                                 local_bit_index++;
                         }
                         break;

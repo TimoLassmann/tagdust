@@ -1,3 +1,5 @@
+#include <omp.h>
+
 #include "interface.h"
 #include "arch_lib.h"
 #include "seq_stats.h"

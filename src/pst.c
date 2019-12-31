@@ -38,7 +38,7 @@ static float get_ppt_prob(struct pst_node* n, char* string,int target, int pos);
 
 static struct pst_node* build_pst(struct pst* pst,struct pst_node* n );
 static struct pst_node* build_ppt(struct pst* pst,struct pst_node* n );
-static void print_pst(struct pst* pst,struct pst_node* n,int* num);
+//static void print_pst(struct pst* pst,struct pst_node* n,int* num);
 static void free_pst_node(struct pst_node* n);
 
 static struct pst_node* alloc_node(struct pst_node* n,char* string,int len);
@@ -90,8 +90,6 @@ int scan_read_with_pst(struct pst* pst, char* seq, int len, float*r)
         *r = A;
 
         return OK;
-ERROR:
-        return FAIL;
 }
 
 
@@ -134,7 +132,7 @@ float get_ppt_prob(struct pst_node* n, char* string,int target, int pos)
  int run_build_pst(struct pst** pst, struct tl_seq_buffer* sb)
 {
         struct pst* p = NULL;
-        char alphabet[] = "ACGT";
+        //char alphabet[] = "ACGT";
         //char tmp[MAX_PST_LEN+4];
         float sum;
         int i;
@@ -268,8 +266,7 @@ struct pst_node* build_pst(struct pst* pst,struct pst_node* n )
                 }
         }
         return n;
-ERROR:
-        return NULL;
+
 }
 
 struct pst_node* build_ppt(struct pst* pst,struct pst_node* n )
@@ -377,8 +374,6 @@ struct pst_node* build_ppt(struct pst* pst,struct pst_node* n )
                 }
         }
         return n;
-ERROR:
-        return NULL;
 }
 
 
@@ -546,7 +541,7 @@ ERROR:
 
 
 
-void print_pst(struct pst* pst,struct pst_node* n,int* num)
+/*void print_pst(struct pst* pst,struct pst_node* n,int* num)
 {
         int i;
         int internal;
@@ -576,7 +571,7 @@ void print_pst(struct pst* pst,struct pst_node* n,int* num)
                                 //}
                 }
         }
-}
+        }*/
 
 
 

@@ -536,7 +536,7 @@ int setup_barcode_files(struct arch_library* al, struct assign_struct* as)
         for(f = 0;f < root->num_entries;f++){
                 tmp_ptr = root->data_nodes[f];
                 tmp_ptr->id = f;
-                fprintf(stdout,"%s %d\n",tmp_ptr->name,tmp_ptr->count);
+                ///fprintf(stdout,"%s %d\n",tmp_ptr->name,tmp_ptr->count);
         }
         //root->free_tree(root);
         as->demux_names = root;

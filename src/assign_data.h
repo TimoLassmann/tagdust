@@ -14,6 +14,7 @@
 #define READ_FAILQ 1
 #define READ_FAILR 2
 #define READ_FAILP 4
+#define READ_NBAR 8
 
 struct seq_bit{
         char* p;

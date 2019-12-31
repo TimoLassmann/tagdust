@@ -207,6 +207,35 @@ int assign_segment_sequences(struct read_structure* read_structure, char* tmp, i
                 read_structure->sequence_matrix[segment][0][0] = 'N';
                 read_structure->sequence_matrix[segment][0][1] = 0;
                 read_structure->segment_length[segment] = 1;
+        }else if(tmp[0] == 'B'){
+                f = 1;
+                g = 0;
+                len = (int)strlen(tmp) ;
+//fprintf(stderr,"%d\n",len);
+                for(i = 2;i <  len;i++){
+                        //fprintf(stdout,"%d %d %c\n",f,g,tmp[i]);
+                        if(tmp[i] != ','){
+                                read_structure->sequence_matrix[segment][f][g] = tmp[i];
+                                g++;
+                        }else{
+                                read_structure->sequence_matrix[segment][f][g] = 0;
+                                f++;
+                                g = 0;
+                        }
+                }
+                read_structure->segment_length[segment] = g;
+                read_structure->sequence_matrix[segment][f][g] = 0;
+                f = 0;
+                g = 0;
+
+                for(i = 0; i <  read_structure->segment_length[segment];i++){
+                        read_structure->sequence_matrix[segment][f][g] = 'N';
+                        g++;
+                }
+                read_structure->segment_length[segment] = g;
+                read_structure->sequence_matrix[segment][f][g] = 0;
+                //f++;
+
         }else{
                 f = 0;
                 g = 0;
@@ -227,15 +256,15 @@ int assign_segment_sequences(struct read_structure* read_structure, char* tmp, i
                 read_structure->sequence_matrix[segment][f][g] = 0;
         }
         //fprintf(stdout,"%s LEn:%d\n", tmp, read_structure->segment_length[segment]);
-        if(tmp[0] == 'B'){
-                f = f + 1;
-                g = 0;
-                for(i = 0; i <  read_structure->segment_length[segment];i++){
-                        read_structure->sequence_matrix[segment][f][g] = 'N';
-                        g++;
-                }
-                read_structure->sequence_matrix[segment][f][g] = 0;
-        }
+        /* if(tmp[0] == 'B'){ */
+        /*         f = f + 1; */
+        /*         g = 0; */
+        /*         for(i = 0; i <  read_structure->segment_length[segment];i++){ */
+        /*                 read_structure->sequence_matrix[segment][f][g] = 'N'; */
+        /*                 g++; */
+        /*         } */
+        /*         read_structure->sequence_matrix[segment][f][g] = 0; */
+        /* } */
 
         if(tmp[0] == 'S'){
                 f = f + 1;

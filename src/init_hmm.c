@@ -25,7 +25,7 @@ struct model* init_model_according_to_read_structure(struct model* model,struct 
         for(i = 0; i < model->num_hmms;i++){
                 len = model->hmms[i]->num_columns;
                 tmp = rs->sequence_matrix[key][i];
-
+                //LOG_MSG("%s",tmp);
                 //sets emission probabilities...
                 for(j = 0; j < len;j++){
                         col = model->hmms[i]->hmm_column[j];
@@ -40,7 +40,7 @@ struct model* init_model_according_to_read_structure(struct model* model,struct 
 
                         col->transition_e[DD] =  prob2scaledprob(0.0);
                         col->transition_e[DM] =  prob2scaledprob(0.0);
-                        //fprintf(stdout,"%d %d code:%d\n", j, tmp[j],nuc_code[(int) tmp[j]]);
+                        //fprintf(stdout,"%d %d\n", j, tmp[j]);//nuc_code[(int) tmp[j]]);
 
                         current_nuc = tlalphabet_get_code(a, tmp[j]);
                         col->identifier = -1;
