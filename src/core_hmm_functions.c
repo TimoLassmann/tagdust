@@ -224,7 +224,6 @@ int backward(struct model_bag* mb,const uint8_t* a,const int len)
 
 struct model_bag* forward(struct model_bag* mb, const uint8_t* a, int len)
 {
-
         int i,j,c;
         int f,g;
 

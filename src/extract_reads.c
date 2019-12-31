@@ -169,7 +169,6 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
 
                 STOP_TIMER(t1);
                 LOG_MSG("extract Took %f ",GET_TIMING(t1));
-
                 RUN(sort_as_by_file_type(as));
 
                 if(ref){

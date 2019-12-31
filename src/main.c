@@ -69,7 +69,7 @@ int main (int argc,char * argv[]) {
         RUN(calibrate_architectures(al,si, main_rng));
         //int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameters* param)
         RUN(extract_reads(al,si,param,main_rng));
-//sprintf(param->buffer,"Start Run\n--------------------------------------------------\n");
+        //sprintf(param->buffer,"Start Run\n--------------------------------------------------\n");
         //param->messages = append_message(param->messages, param->buffer);
         //hmm_controller_multiple(param);
         free_arch_lib(al);

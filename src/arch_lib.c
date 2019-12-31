@@ -73,18 +73,13 @@ int read_architecture_files(struct arch_library* al, char* filename)
 
                                         }
                                 }
-
-
-
                                 token = strtok(NULL, " ");
                         }
                         tmp[index-1] = 0;
                         al->spec_line[target] = tmp;
                         al->num_arch++;
                 }
-
         }
-
         fclose(f_ptr);
         MFREE(line_buffer);
         RUN(sanity_check_arch_lib(al));
@@ -393,6 +388,9 @@ int malloc_read_structure(struct read_structure** rs)
         MMALLOC(read_structure->numseq_in_segment, sizeof(int) * 10);
         MMALLOC(read_structure->segment_length, sizeof(int) * 10);
         MMALLOC(read_structure->type ,sizeof(char) * 10 );
+        MMALLOC(read_structure->extract, sizeof(uint8_t) * 10);
+        MMALLOC(read_structure->max_len, sizeof(int) * 10);
+        MMALLOC(read_structure->min_len, sizeof(int) * 10);
 
 
         for(i = 0;i < 10;i++){
@@ -400,6 +398,9 @@ int malloc_read_structure(struct read_structure** rs)
                 read_structure->numseq_in_segment[i] = 0;
                 read_structure->segment_length[i] = 0;
                 read_structure->type[i] = 0;
+                read_structure->extract[i] = 0;
+                read_structure->max_len[i] = 0;
+                read_structure->min_len[i] = 0;
 
         }
 
@@ -428,6 +429,9 @@ void free_read_structure(struct read_structure* read_structure)
                 MFREE(read_structure->segment_length);
                 MFREE(read_structure->numseq_in_segment );
                 MFREE(read_structure->type);
+                MFREE(read_structure->extract);
+                MFREE(read_structure->max_len);
+                MFREE(read_structure->min_len);
                 MFREE(read_structure);
         }
 }

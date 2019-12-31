@@ -9,6 +9,9 @@ struct read_structure{
         int* segment_length;
         int* numseq_in_segment;
         char* type;
+        uint8_t* extract;
+        int* min_len;
+        int* max_len;
         int num_segments;
         //uint8_t assignment_to_read;
 };
