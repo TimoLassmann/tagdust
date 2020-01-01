@@ -45,6 +45,7 @@ struct model_bag* init_model_bag(struct read_structure* rs,const struct sequence
         read_length = ssi->average_length;
         //fprintf(stderr,"READlength: %d\n",read_length);
         for(i = 0; i < mb->num_models;i++){
+
                 //mb->model[i] = malloc_model_according_to_read_structure(param->read_structure,i);
                 //fprintf(stderr," %d\n",read_length );
                 if(rs->type[i] == 'G'){

@@ -301,7 +301,7 @@ f = 0;
         if(spec->num_seq > 1){
                 ASSERT(spec->min_len == spec->max_len, "sequences have different lengths");
         }
-//#ifdef DEBUG
+/*#ifdef DEBUG
         fprintf(stdout,"%s input\n", token);
 
         fprintf(stdout,"   %s name\n", spec->name);
@@ -311,10 +311,11 @@ f = 0;
                 fprintf(stdout,"   %s\n", spec->seq[i]);
 
         }
-
+#endif
+*/
         *s_spec = spec;
 
-//#endif
+
         return OK;
 ERROR:
         free_segment_spec(spec);

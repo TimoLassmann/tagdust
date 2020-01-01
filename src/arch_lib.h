@@ -19,6 +19,7 @@ struct segment_specs{
 };
 
 struct read_structure{
+        struct segment_specs** seg_spec;
         char*** sequence_matrix;
         int* segment_length;
         int* numseq_in_segment;

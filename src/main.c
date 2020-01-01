@@ -42,6 +42,7 @@ int main (int argc,char * argv[]) {
                 RUN(read_architecture_files(al, param->arch_file));
         }
 
+
         /* QC on architecture ?? */
 #ifdef HAVE_OPENMP
         omp_set_num_threads(param->num_threads);
@@ -65,7 +66,7 @@ int main (int argc,char * argv[]) {
         }
 
         RUN(test_architectures(al,si,param));
-
+        exit(0);
         RUN(calibrate_architectures(al,si, main_rng));
         //int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameters* param)
         RUN(extract_reads(al,si,param,main_rng));

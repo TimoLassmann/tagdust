@@ -15,19 +15,11 @@ static int malloc_read_structure(struct read_structure** read_structure);
 static int resize_read_structure(struct read_structure* rs);
 static void free_read_structure(struct read_structure* read_structure);
 
-
-
 static int assign_segment_sequences(struct read_structure* read_structure, char* tmp, int segment);
 static int resize_arch_lib(struct arch_library* al);
 
 static int QC_read_structure(struct read_structure* read_structure );
 static int sanity_check_arch_lib(struct arch_library* al);
-
-
-
-
-
-
 
 int read_architecture_files(struct arch_library* al, char* filename)
 {
@@ -139,6 +131,7 @@ int read_arch_into_lib(struct arch_library* al, char** list, int len)
                 if(list[i]){
                         snprintf(buffer, BUFFER_LEN, "%s", list[i]);
                         RUN(assign_segment_sequences(al->read_structure[target], buffer, i));
+
                 }
         }
         RUN(QC_read_structure(al->read_structure[target]));
@@ -159,6 +152,12 @@ int assign_segment_sequences(struct read_structure* read_structure, char* tmp, i
         int i,f,g;
         int count;
         int len;
+
+        //struct segment_specs* s = NULL;
+
+        RUN(parse_rs_token_message(tmp,&read_structure->seg_spec[segment]));
+
+        //read_structure->seg_spec[segment] =
 
         count = 0;
 
@@ -302,7 +301,7 @@ int alloc_arch_lib(struct arch_library** arch)
 {
         struct arch_library* al = NULL;
         char* in[] = {
-                "R:N"
+                "READ1:E:N+"
         };
 
         int i;
@@ -315,9 +314,11 @@ int alloc_arch_lib(struct arch_library** arch)
         al->confidence_thresholds = NULL;
         al->read_structure = NULL;
         al->spec_line = NULL;
+
         MMALLOC(al->confidence_thresholds, sizeof(float) * al->alloc_num_arch);
         MMALLOC(al->spec_line, sizeof(char*) * al->alloc_num_arch);
         MMALLOC(al->read_structure, sizeof(struct read_structure*) * al->alloc_num_arch);
+
         for(i = 0; i < al->alloc_num_arch;i++){
                 al->spec_line[i] = NULL;
                 al->read_structure[i] = NULL;
@@ -400,9 +401,11 @@ int malloc_read_structure(struct read_structure** read_structure)
         rs->extract = NULL;
         rs->max_len = NULL;
         rs->min_len = NULL;
+        rs->seg_spec = NULL;
         //rs->assignment_to_read = 0;
         MMALLOC(rs->sequence_matrix ,sizeof(char**) * rs->alloc_num_seqments );
         MMALLOC(rs->segment_name ,sizeof(char*) * rs->alloc_num_seqments );
+        MMALLOC(rs->seg_spec ,sizeof(char*) * rs->alloc_num_seqments );
         MMALLOC(rs->numseq_in_segment, sizeof(int) * rs->alloc_num_seqments);
         MMALLOC(rs->segment_length, sizeof(int) * rs->alloc_num_seqments);
         MMALLOC(rs->type ,sizeof(char) * rs->alloc_num_seqments );
@@ -412,6 +415,7 @@ int malloc_read_structure(struct read_structure** read_structure)
 
 
         for(i = 0;i < rs->alloc_num_seqments;i++){
+                rs->seg_spec[i] = NULL;
                 rs->sequence_matrix[i] = NULL;
                 rs->segment_name[i] = NULL;
                 rs->numseq_in_segment[i] = 0;
@@ -439,6 +443,7 @@ int resize_read_structure(struct read_structure* rs)
         rs->alloc_num_seqments = rs->alloc_num_seqments + rs->alloc_num_seqments /2;
         MREALLOC(rs->sequence_matrix ,sizeof(char**) * rs->alloc_num_seqments );
         MREALLOC(rs->segment_name ,sizeof(char*) * rs->alloc_num_seqments );
+        MREALLOC(rs->seg_spec ,sizeof(char*) * rs->alloc_num_seqments );
         MREALLOC(rs->numseq_in_segment, sizeof(int) * rs->alloc_num_seqments);
         MREALLOC(rs->segment_length, sizeof(int) * rs->alloc_num_seqments);
         MREALLOC(rs->type ,sizeof(char) * rs->alloc_num_seqments );
@@ -446,6 +451,7 @@ int resize_read_structure(struct read_structure* rs)
         MREALLOC(rs->max_len, sizeof(int) * rs->alloc_num_seqments);
         MREALLOC(rs->min_len, sizeof(int) * rs->alloc_num_seqments);
         for(i = old;i < rs->alloc_num_seqments;i++){
+                rs->seg_spec[i] = NULL;
                 rs->sequence_matrix[i] = NULL;
                 rs->segment_name[i] = NULL;
                 rs->numseq_in_segment[i] = 0;
@@ -476,8 +482,11 @@ void free_read_structure(struct read_structure* read_structure)
                         if(read_structure->segment_name[i]){
                                 MFREE(read_structure->segment_name[i]);
                         }
+                        if(read_structure->seg_spec[i]){
+                                free_segment_spec(read_structure->seg_spec[i]);
+                        }
                 }
-
+                MFREE(read_structure->seg_spec);
                 MFREE(read_structure->sequence_matrix);
                 MFREE(read_structure->segment_name);
                 MFREE(read_structure->segment_length);
