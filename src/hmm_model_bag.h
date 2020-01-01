@@ -7,20 +7,22 @@
 
 struct model_bag{
         struct model** model;
+        float** dyn_prog_matrix;/**<@brief Dyn. Prog. Matrix - used to find consistent max posterior path. */
+        float** transition_matrix;/**<@brief Transition scores - used to find consistent max posterior path. */
+        int** path;/**< @brief Matrix to hold viterbi path. */
+        float* previous_silent;
+        float* next_silent;
+        int* label; /**<@brief Hold information about HMMs.*/
+
         int num_models; /**<@brief Number of segments.*/
         float f_score;/**<@brief Probability of sequence by forward algorithm. */
         float b_score;/**< @brief Probability of sequence by backward algorithm. */
         float r_score;/**<@brief Probability of random model. */
         float bar_score;/**< @brief Max probability of paths going through one barcode HMM. */
-        int** path;/**< @brief Matrix to hold viterbi path. */
-        float** dyn_prog_matrix;/**<@brief Dyn. Prog. Matrix - used to find consistent max posterior path. */
-        float** transition_matrix;/**<@brief Transition scores - used to find consistent max posterior path. */
-        int* label; /**<@brief Hold information about HMMs.*/
-        //double* random_scores;/**<@brief Holds probabilities of random / shuffled sequences. */
-        //int num_random_scores;/**<@brief Number of random probabilities.*/
 
-        float* previous_silent;
-        float* next_silent;
+
+
+
 
         int average_raw_length;
         int current_dyn_length;

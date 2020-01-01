@@ -1,5 +1,5 @@
 #include <string.h>
-
+#include <math.h>
 #include "tllogsum.h"
 
 #include "hmm_model_bag.h"
@@ -10,7 +10,85 @@
 #include "core_hmm_functions.h"
 #include "tlalphabet.h"
 
+static int alloc_model_bag(struct model_bag** model_bag,struct read_structure* r,int max_seq_len, double average_len);
+
 struct model* copy_model_parameters(struct model* org, struct model* copy );
+
+/*int init_model_bag(struct model_bag** model_bag, struct read_structure* rs,const struct sequence_stats_info* ssi, struct alphabet* a, int model_index)
+{
+        struct model_bag* mb = NULL;
+
+        RUN(alloc_model_bag(&mb, rs, ssi->max_seq_len, ssi->average_length));
+
+
+        *model_bag = mb;
+        return OK;
+ERROR:
+        return NULL;
+        }*/
+
+
+
+int alloc_model_bag(struct model_bag** model_bag,struct read_structure* r,int max_seq_len, double average_len)
+{
+        struct model_bag* mb = NULL;
+        int i;
+        ASSERT(r != NULL, "No read structure");
+        MMALLOC(mb,sizeof(struct model_bag));
+        mb->model = NULL;
+        mb->dyn_prog_matrix = NULL;
+        mb->transition_matrix = NULL;
+        mb->path = NULL;
+        mb->previous_silent = NULL;
+        mb->next_silent = NULL;
+        mb->label = NULL;
+
+
+        mb->average_raw_length = (int) round(average_len);
+        mb->current_dyn_length = max_seq_len + 10;
+
+        mb->num_models = r->num_segments;
+        mb->total_hmm_num = 0;
+
+        mb->f_score = prob2scaledprob(0.0f);
+        mb->b_score = prob2scaledprob(0.0f);
+        mb->r_score = prob2scaledprob(0.0f);
+
+
+        MMALLOC(mb->model,sizeof(struct model* ) * mb->num_models);
+
+        /* allocate models  */
+        for(i = 0; i < mb->num_models;i++){
+                mb->model[i] = NULL;
+                RUNP(mb->model[i] = malloc_model_according_to_read_structure(r->numseq_in_segment[i], r->segment_length[i],mb->current_dyn_length));
+                //print_model(mb->model[i] );
+                mb->total_hmm_num += mb->model[i]->num_hmms;
+        }
+
+        //LOG_MSG("%d %d ALLOC",ssi->average_length,ssi->max_seq_len + 10);
+
+
+
+        MMALLOC(mb->path,sizeof(int*) * mb->current_dyn_length);
+        MMALLOC(mb->dyn_prog_matrix,sizeof(float*) * mb->current_dyn_length );
+
+        for (i = 0; i < mb->current_dyn_length;i++){
+                mb->path[i] = 0;
+                mb->dyn_prog_matrix[i] = 0;
+                MMALLOC(mb->path[i],sizeof(int)* (mb->total_hmm_num +1) );
+                MMALLOC(mb->dyn_prog_matrix[i],sizeof(float) * (mb->total_hmm_num +1) );
+        }
+
+        MMALLOC(mb->transition_matrix,sizeof(float*) * (mb->total_hmm_num +1));
+        MMALLOC(mb->label,sizeof(int) *  (mb->total_hmm_num +1));
+
+        *model_bag = mb;
+
+        return OK;
+ERROR:
+        return FAIL;
+}
+
 
 struct model_bag* init_model_bag(struct read_structure* rs,const struct sequence_stats_info* ssi, struct alphabet* a, int model_index)
 {
@@ -45,7 +123,6 @@ struct model_bag* init_model_bag(struct read_structure* rs,const struct sequence
         read_length = ssi->average_length;
         //fprintf(stderr,"READlength: %d\n",read_length);
         for(i = 0; i < mb->num_models;i++){
-
                 //mb->model[i] = malloc_model_according_to_read_structure(param->read_structure,i);
                 //fprintf(stderr," %d\n",read_length );
                 if(rs->type[i] == 'G'){
