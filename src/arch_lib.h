@@ -7,6 +7,16 @@
 #define ARCH_ETYPE_APPEND 2
 #define ARCH_ETYPE_SPLIT 3
 #define ARCH_ETYPE_IGNORE 4
+#define ARCH_ETYPE_PARTIAL 5
+
+struct segment_specs{
+        char* name;
+        char** seq;
+        int num_seq;
+        int max_len;
+        int min_len;
+        uint8_t extract;
+};
 
 struct read_structure{
         char*** sequence_matrix;
