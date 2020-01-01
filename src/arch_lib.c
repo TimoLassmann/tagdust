@@ -10,14 +10,261 @@
 
 #define BUFFER_LEN 256
 
-
-static int malloc_read_structure(struct read_structure** rs);
+static int malloc_read_structure(struct read_structure** read_structure);
+static int resize_read_structure(struct read_structure* rs);
 static void free_read_structure(struct read_structure* read_structure);
+
 static int assign_segment_sequences(struct read_structure* read_structure, char* tmp, int segment);
 static int resize_arch_lib(struct arch_library* al);
 
 static int QC_read_structure(struct read_structure* read_structure );
 static int sanity_check_arch_lib(struct arch_library* al);
+
+static int parse_rs_token(char* token);
+
+int parse_rs_token(char* token)
+{
+        int i;
+        int j;
+        int len;
+        int f,g;
+        char name[128];
+        int min_len = 0;
+        int max_len = 0;
+        uint8_t extract;
+        int state;
+        int pos;
+
+        int o_bracket;
+        int c_bracket;
+        int comma;
+        int plus;
+        char** sequences = NULL;
+        int num_sequences;
+        int max_seq_len;
+        ASSERT(token != NULL, "No token");
+
+        len = strlen(token);
+        ASSERT(len > 4,"token %s is too short to contain anything meaningful", token);
+
+        state = 0;
+        pos= 0;
+        for(i = 0; i < len;i++){
+                if(token[i] == ':'){
+                        if(state == 0){ /* name of segment */
+                                for(j = pos; j < i;j++){
+                                        name[j-pos] = token[j];
+                                        if(j - pos == 127){
+                                                name[127] = 0;
+                                                WARNING_MSG("Name %s is long; will only use first %d letters",name,128);
+                                                break;
+                                        }
+                                }
+                                name[j] = 0;
+                                if(j == 0){
+                                        ERROR_MSG("token starts with ':' -> no name can be detected");
+                                }
+                                pos = i+1;
+                                state++;
+                        }else if(state == 1){ /* extract type  */
+                                switch (token[pos]) {
+                                case 'E': {
+                                        extract =  ARCH_ETYPE_EXTRACT;
+                                        break;
+                                }
+                                case 'A': {
+                                        extract =  ARCH_ETYPE_APPEND;
+                                        break;
+                                }
+                                case 'S': {
+                                        extract =  ARCH_ETYPE_SPLIT;
+                                        break;
+                                }
+                                case 'I': {
+                                        extract =  ARCH_ETYPE_IGNORE;
+                                        break;
+                                }
+                                default:
+                                        ERROR_MSG("Extract type %c not recognised", token[pos]);
+                                        break;
+                                }
+                                pos = i+1;
+                                i = len+1; /* quit loop */
+                                state++;
+                        }
+                }
+        }
+
+        ASSERT(state == 2, "Could not reach sequence part = state is not 2");
+        ASSERT(pos != 0, "Could not reach sequence part - pos is 0");
+        o_bracket = 0;
+        c_bracket = 0;
+        comma = 0;
+        plus = 0;
+        max_seq_len = 0;
+        j = 0;
+        for(i = pos; i < len;i++){
+                if(token[i] == '{'){
+                        o_bracket++;
+                }
+                if(token[i] == '}'){
+                        c_bracket++;
+                }
+                if(token[i] == ','){
+                        if(j+1 > max_seq_len){
+                                max_seq_len = j+1;
+                        }
+                        comma++;
+                        j = 0;
+                }
+                if(token[i] == '+'){
+                        plus++;
+                }
+                j++;
+
+        }
+        ASSERT(o_bracket == c_bracket, "Brackets don't match");
+
+        ASSERT(o_bracket <= 1, "To many brackets");
+
+
+        if(o_bracket == 1){
+                ASSERT(comma <= 1, "Only zero or one comma is allowed when specifying length of segment");
+                ASSERT(plus == 0, "+ and brackets not allowed");
+        }
+        if(comma){
+                ASSERT(plus == 0, "+ and commas not allowed");
+                ASSERT(max_seq_len != 0,"sequence length is too short");
+        }else{
+                max_seq_len = len -pos+1 ;
+        }
+
+        /* start reading in sequences;  */
+        if(o_bracket == 1){     /* a single variable length sequence */
+                num_sequences = 1;
+        }else if(o_bracket == 0 && comma != 0){
+                num_sequences = comma +2;
+        }else{
+                num_sequences = 1;
+        }
+        MMALLOC(sequences, sizeof(char*) * num_sequences);
+
+        for(i = 0; i < num_sequences;i++){
+                sequences[i] = NULL;
+                MMALLOC(sequences[i], sizeof(char) * max_seq_len);
+        }
+
+        if(o_bracket == 0 && comma ){
+                f = 1;
+                g = 0;
+                min_len = INT32_MAX;
+                max_len = INT32_MIN;
+//fprintf(stderr,"%d\n",len);
+                for(i = pos;i <  len;i++){
+                        //fprintf(stdout,"%d %d %c\n",f,g,token[i]);
+                        if(token[i] != ','){
+                                sequences[f][g] = token[i];
+
+                                g++;
+                        }else{
+                                sequences[f][g] = 0;
+                                f++;
+                                if(g < min_len){
+                                        min_len =g;
+                                }
+                                if(g > max_len){
+                                        max_len = g;
+                                }
+                                g = 0;
+                        }
+                }
+                sequences[f][g] = 0;
+                if(g < min_len){
+                        min_len =g;
+                }
+                if(g > max_len){
+                        max_len = g;
+                }
+
+                f = 0;
+                g = 0;
+
+                for(i = 0; i <  max_len;i++){
+                        sequences[f][g] = 'N';
+                        g++;
+                }
+                sequences[f][g] = 0;
+        }else if(o_bracket == 1){
+                f = 0;
+                g = 0;
+                for(i = pos;i <  len;i++){
+                        //fprintf(stdout,"%d %d %c\n",f,g,tmp[i]);
+                        if(token[i] != '{'){
+                                sequences[f][g] = token[i];
+
+                                g++;
+                        }else{
+                                sequences[f][g] = 0;
+                                g = sscanf(token + i, "{%d,%d}",&min_len,&max_len);
+                                if(g == 0){
+                                        ERROR_MSG("Could not read min/max len");
+                                        LOG_MSG("unable to read %d %d", min_len,max_len);
+                                }else if(g == 1){
+                                        if(comma){
+                                                ERROR_MSG("could not read maxlen");
+                                        }
+                                        max_len = min_len;
+                                        //LOG_MSG("read1 %d %d", min_len,max_len);
+                                }
+                                break;
+                        }
+                }
+                sequences[f][g] = 0;
+
+        }else{
+                f = 0;
+                g = 0;
+                for(i = pos;i <  len;i++){
+                        sequences[f][g] = token[i];
+                        g++;
+                }
+                sequences[f][g] = 0;
+                max_len = g;
+                min_len = g;
+
+        }
+        ASSERT(max_len >= min_len,"max len is greater than min_len");
+
+        if(num_sequences > 1){
+                ASSERT(min_len == max_len, "sequences have different lengths");
+        }
+//#ifdef DEBUG
+        fprintf(stdout,"%s input\n", token);
+
+        fprintf(stdout,"   %s name\n", name);
+        fprintf(stdout,"   %d type\n", extract);
+        fprintf(stdout,"   %d %d  min,max len\n", min_len,max_len);
+        for(i = 0; i < num_sequences;i++){
+                fprintf(stdout,"   %s\n", sequences[i]);
+                MFREE(sequences[i]);
+        }
+        MFREE(sequences);
+
+//#endif
+        return OK;
+ERROR:
+        if(sequences){
+                for(i = 0;i < num_sequences;i++){
+                        if(sequences[i]){
+                                MFREE(sequences[i]);
+                        }
+                }
+                MFREE(sequences);
+        }
+        WARNING_MSG("Parsing error occurred in this token: %s",token);
+        return FAIL;
+}
+
 
 int read_architecture_files(struct arch_library* al, char* filename)
 {
@@ -46,7 +293,7 @@ int read_architecture_files(struct arch_library* al, char* filename)
                         MMALLOC(tmp,sizeof(char) * line_len);
                         index= 0;
                         //LOG_MSG("%s", line_buffer);
-                        if(al->num_arch == al->num_alloc_arch){
+                        if(al->num_arch == al->alloc_num_arch){
                                 resize_arch_lib(al);
                         }
                         target = al->num_arch;
@@ -102,7 +349,7 @@ int read_arch_into_lib(struct arch_library* al, char** list, int len)
 
         ASSERT(al != NULL, "No architecture_library");
 
-        if(al->num_arch == al->num_alloc_arch){
+        if(al->num_arch == al->alloc_num_arch){
                 resize_arch_lib(al);
         }
         target = al->num_arch;
@@ -301,14 +548,14 @@ int alloc_arch_lib(struct arch_library** arch)
         al->arch_to_read_assignment = NULL;
         al->arch_posteriors = NULL;
         al->num_arch = 0;
-        al->num_alloc_arch = 8;
+        al->alloc_num_arch = 8;
         al->confidence_thresholds = NULL;
         al->read_structure = NULL;
         al->spec_line = NULL;
-        MMALLOC(al->confidence_thresholds, sizeof(float) * al->num_alloc_arch);
-        MMALLOC(al->spec_line, sizeof(char*) * al->num_alloc_arch);
-        MMALLOC(al->read_structure, sizeof(struct read_structure*) * al->num_alloc_arch);
-        for(i = 0; i < al->num_alloc_arch;i++){
+        MMALLOC(al->confidence_thresholds, sizeof(float) * al->alloc_num_arch);
+        MMALLOC(al->spec_line, sizeof(char*) * al->alloc_num_arch);
+        MMALLOC(al->read_structure, sizeof(struct read_structure*) * al->alloc_num_arch);
+        for(i = 0; i < al->alloc_num_arch;i++){
                 al->spec_line[i] = NULL;
                 al->read_structure[i] = NULL;
                 RUN(malloc_read_structure(&al->read_structure[i]));
@@ -329,13 +576,13 @@ int resize_arch_lib(struct arch_library* al)
 
         ASSERT(al != NULL, "No al lib");
 
-        old = al->num_alloc_arch;
+        old = al->alloc_num_arch;
 
-        al->num_alloc_arch = al->num_alloc_arch << 1;
-        MREALLOC(al->spec_line, sizeof(char*) * al->num_alloc_arch);
-        MREALLOC(al->read_structure, sizeof(struct read_structure*) * al->num_alloc_arch);
-        MREALLOC(al->confidence_thresholds, sizeof(float) * al->num_alloc_arch);
-        for(i = old;i < al->num_alloc_arch;i++){
+        al->alloc_num_arch = al->alloc_num_arch  << 1;
+        MREALLOC(al->spec_line, sizeof(char*) * al->alloc_num_arch);
+        MREALLOC(al->read_structure, sizeof(struct read_structure*) * al->alloc_num_arch);
+        MREALLOC(al->confidence_thresholds, sizeof(float) * al->alloc_num_arch);
+        for(i = old;i < al->alloc_num_arch;i++){
                 al->spec_line[i] = NULL;
                 al->read_structure[i] = NULL;
                 RUN(malloc_read_structure(&al->read_structure[i]));
@@ -349,7 +596,7 @@ void free_arch_lib(struct arch_library* al)
 {
         int i;
         if(al){
-                for(i = 0; i < al->num_alloc_arch;i++){
+                for(i = 0; i < al->alloc_num_arch;i++){
                         if(al->spec_line[i]){
                                 MFREE(al->spec_line[i]);
                         }
@@ -374,41 +621,80 @@ void free_arch_lib(struct arch_library* al)
 }
 
 
-int malloc_read_structure(struct read_structure** rs)
+int malloc_read_structure(struct read_structure** read_structure)
 {
-        struct read_structure* read_structure = 0;
+        struct read_structure* rs = 0;
         int i;
-        MMALLOC(read_structure, sizeof(struct read_structure));
-        read_structure->sequence_matrix = NULL;
-        read_structure->numseq_in_segment = NULL;
-        read_structure->type = NULL;
-        read_structure->segment_length = NULL;
-        //read_structure->assignment_to_read = 0;
-        MMALLOC(read_structure->sequence_matrix ,sizeof(char**) * 10 );
-        MMALLOC(read_structure->numseq_in_segment, sizeof(int) * 10);
-        MMALLOC(read_structure->segment_length, sizeof(int) * 10);
-        MMALLOC(read_structure->type ,sizeof(char) * 10 );
-        MMALLOC(read_structure->extract, sizeof(uint8_t) * 10);
-        MMALLOC(read_structure->max_len, sizeof(int) * 10);
-        MMALLOC(read_structure->min_len, sizeof(int) * 10);
+        MMALLOC(rs, sizeof(struct read_structure));
+        rs->num_segments = 0;
+        rs->alloc_num_seqments = 8;
+        rs->segment_name = NULL;
+        rs->sequence_matrix = NULL;
+        rs->numseq_in_segment = NULL;
+        rs->type = NULL;
+        rs->segment_length = NULL;
+        rs->segment_name = NULL;
+        rs->extract = NULL;
+        rs->max_len = NULL;
+        rs->min_len = NULL;
+        //rs->assignment_to_read = 0;
+        MMALLOC(rs->sequence_matrix ,sizeof(char**) * rs->alloc_num_seqments );
+        MMALLOC(rs->segment_name ,sizeof(char*) * rs->alloc_num_seqments );
+        MMALLOC(rs->numseq_in_segment, sizeof(int) * rs->alloc_num_seqments);
+        MMALLOC(rs->segment_length, sizeof(int) * rs->alloc_num_seqments);
+        MMALLOC(rs->type ,sizeof(char) * rs->alloc_num_seqments );
+        MMALLOC(rs->extract, sizeof(uint8_t) * rs->alloc_num_seqments);
+        MMALLOC(rs->max_len, sizeof(int) * rs->alloc_num_seqments);
+        MMALLOC(rs->min_len, sizeof(int) * rs->alloc_num_seqments);
 
 
-        for(i = 0;i < 10;i++){
-                read_structure->sequence_matrix[i] = NULL;
-                read_structure->numseq_in_segment[i] = 0;
-                read_structure->segment_length[i] = 0;
-                read_structure->type[i] = 0;
-                read_structure->extract[i] = 0;
-                read_structure->max_len[i] = 0;
-                read_structure->min_len[i] = 0;
-
+        for(i = 0;i < rs->alloc_num_seqments;i++){
+                rs->sequence_matrix[i] = NULL;
+                rs->segment_name[i] = NULL;
+                rs->numseq_in_segment[i] = 0;
+                rs->segment_length[i] = 0;
+                rs->type[i] = 0;
+                rs->extract[i] = 0;
+                rs->max_len[i] = 0;
+                rs->min_len[i] = 0;
         }
 
-        read_structure->num_segments = 0;
-        *rs = read_structure;
+
+        *read_structure = rs;
         return OK;
 ERROR:
-        free_read_structure(read_structure);
+        free_read_structure(rs);
+        return FAIL;
+}
+
+int resize_read_structure(struct read_structure* rs)
+{
+        int i;
+        int old;
+        ASSERT(rs!= NULL, "No read structure");
+        old = rs->alloc_num_seqments;
+        rs->alloc_num_seqments = rs->alloc_num_seqments + rs->alloc_num_seqments /2;
+        MREALLOC(rs->sequence_matrix ,sizeof(char**) * rs->alloc_num_seqments );
+        MREALLOC(rs->segment_name ,sizeof(char*) * rs->alloc_num_seqments );
+        MREALLOC(rs->numseq_in_segment, sizeof(int) * rs->alloc_num_seqments);
+        MREALLOC(rs->segment_length, sizeof(int) * rs->alloc_num_seqments);
+        MREALLOC(rs->type ,sizeof(char) * rs->alloc_num_seqments );
+        MREALLOC(rs->extract, sizeof(uint8_t) * rs->alloc_num_seqments);
+        MREALLOC(rs->max_len, sizeof(int) * rs->alloc_num_seqments);
+        MREALLOC(rs->min_len, sizeof(int) * rs->alloc_num_seqments);
+        for(i = old;i < rs->alloc_num_seqments;i++){
+                rs->sequence_matrix[i] = NULL;
+                rs->segment_name[i] = NULL;
+                rs->numseq_in_segment[i] = 0;
+                rs->segment_length[i] = 0;
+                rs->type[i] = 0;
+                rs->extract[i] = 0;
+                rs->max_len[i] = 0;
+                rs->min_len[i] = 0;
+        }
+        return OK;
+ERROR:
+        free_read_structure(rs);
         return FAIL;
 }
 
@@ -416,7 +702,7 @@ void free_read_structure(struct read_structure* read_structure)
 {
         int i,j;
         if(read_structure){
-                for(i = 0; i < 10;i++){
+                for(i = 0; i < read_structure->alloc_num_seqments;i++){
                         if(read_structure->sequence_matrix[i]){
                                 for(j = 0; j < read_structure->numseq_in_segment[i];j++){
                                         MFREE(read_structure->sequence_matrix[i][j]);
@@ -424,8 +710,13 @@ void free_read_structure(struct read_structure* read_structure)
 
                                 MFREE(read_structure->sequence_matrix[i]);
                         }
+                        if(read_structure->segment_name[i]){
+                                MFREE(read_structure->segment_name[i]);
+                        }
                 }
+
                 MFREE(read_structure->sequence_matrix);
+                MFREE(read_structure->segment_name);
                 MFREE(read_structure->segment_length);
                 MFREE(read_structure->numseq_in_segment );
                 MFREE(read_structure->type);
@@ -521,6 +812,7 @@ int sanity_check_arch_lib(struct arch_library* al)
                 }
         }
         al->num_arch = c;
+
         //LOG_MSG("Check sanity DONE");
         return OK;
 ERROR:
@@ -528,6 +820,8 @@ ERROR:
 }
 
 #ifdef ARCH_TEST
+
+int test_token_parsing(void);
 int main(int argc, char *argv[])
 {
         struct arch_library* al = NULL;
@@ -561,15 +855,106 @@ int main(int argc, char *argv[])
                 fprintf(stdout,"%d %s\n",i, al->spec_line[i]);
         }
         free_arch_lib(al);
+        al = NULL;
 
         MFREE(buffer);
+
+        RUN(test_token_parsing());
         return EXIT_SUCCESS;
 ERROR:
-        free_arch_lib(al);
+        if(al){
+                free_arch_lib(al);
+        }
         if(buffer){
                 MFREE(buffer);
         }
         return EXIT_FAILURE;
+}
+
+int test_token_parsing(void)
+{
+        char buffer[256];
+        int status;
+        int i;
+        char types[4] = "EASI";
+
+        for(i = 0; i < 4;i++){
+                snprintf(buffer, 256, "OTTO:%c:AA",types[i]);
+
+                status = parse_rs_token(buffer);
+                if(status != OK){
+                        ERROR_MSG("Parsing of %s failed", buffer);
+                }
+        }
+        snprintf(buffer, 256, "OTTO:A:AA,CC");
+        status = parse_rs_token(buffer);
+        if(status != OK){
+                ERROR_MSG("Parsing of %s failed", buffer);
+        }
+
+        snprintf(buffer, 256, "OTTO:A:AA,CC,CG");
+        status = parse_rs_token(buffer);
+        if(status != OK){
+                ERROR_MSG("Parsing of %s failed", buffer);
+        }
+        snprintf(buffer, 256, "OTTO:A:AA,CC,CG,TT");
+        status = parse_rs_token(buffer);
+        if(status != OK){
+                ERROR_MSG("Parsing of %s failed", buffer);
+        }
+
+
+        snprintf(buffer, 256, "OTTO:A:N{4}");
+        status = parse_rs_token(buffer);
+        if(status != OK){
+                ERROR_MSG("Parsing of %s failed", buffer);
+        }
+        snprintf(buffer, 256, "O:A:N{4,8}");
+        status = parse_rs_token(buffer);
+        if(status != OK){
+                ERROR_MSG("Parsing of %s failed", buffer);
+        }
+
+
+        /* negative */
+
+        snprintf(buffer, 256, "O:AN{4,8}");
+        status = parse_rs_token(buffer);
+        if(status != FAIL){
+                ERROR_MSG("Parsing of %s succeeded (but it should not have)", buffer);
+        }
+
+        snprintf(buffer, 256, "O:A:N{4,8},AAA");
+        status = parse_rs_token(buffer);
+        if(status != FAIL){
+                ERROR_MSG("Parsing of %s succeeded (but it should not have)", buffer);
+        }
+        snprintf(buffer, 256, "O:A:");
+        status = parse_rs_token(buffer);
+        if(status != FAIL){
+                ERROR_MSG("Parsing of %s succeeded (but it should not have)", buffer);
+        }
+        snprintf(buffer, 256, "O:A:A,AA,AAA");
+        status = parse_rs_token(buffer);
+        if(status != FAIL){
+                ERROR_MSG("Parsing of %s succeeded (but it should not have)", buffer);
+        }
+
+        snprintf(buffer, 256, ":A:A,AA,AAA");
+        status = parse_rs_token(buffer);
+        if(status != FAIL){
+                ERROR_MSG("Parsing of %s succeeded (but it should not have)", buffer);
+        }
+
+        snprintf(buffer, 256, "GGGG:AA,AA,AAA");
+        status = parse_rs_token(buffer);
+        if(status != FAIL){
+                ERROR_MSG("Parsing of %s succeeded (but it should not have)", buffer);
+        }
+
+        return OK;
+ERROR:
+        return FAIL;
 }
 
 #endif
