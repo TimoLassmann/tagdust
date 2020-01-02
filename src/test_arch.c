@@ -153,7 +153,7 @@ int test_arch(struct tl_seq_buffer** rb, struct arch_library* al, struct seq_sta
         int num_seq;
         int i,j;
         float score = prob2scaledprob(1.0);
-        mb = init_model_bag(al->read_structure[i_hmm], si->ssi[i_file], si->a, i_hmm);
+        RUN(init_model_bag(&mb,al->read_structure[i_hmm], si->ssi[i_file], si->a, i_hmm));
         num_seq = rb[i_file]->num_seq;
         ri = rb[i_file]->sequences;
 

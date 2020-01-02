@@ -160,6 +160,8 @@ misc.h \
 misc.c \
 arch_lib.h \
 arch_lib.c \
+arch_lib_parse_token.h \
+arch_lib_parse_token.c \
 seq_stats.h \
 seq_stats.c \
 hmm.h \
@@ -168,7 +170,7 @@ init_hmm.c \
 hmm_model_bag.h \
 hmm_model_bag.c \
 core_hmm_functions.h \
-core_hmm_functions.c 
+core_hmm_functions.c
 
 
 core_hmm_test_CPPFLAGS = $(AM_CPPFLAGS) -DCORE_HMM_TEST

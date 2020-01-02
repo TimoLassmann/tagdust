@@ -52,4 +52,5 @@ extern int read_arch_into_lib(struct arch_library* al, char** list, int len);
 extern int alloc_arch_lib(struct arch_library** arch);
 extern void free_arch_lib(struct arch_library* arch);
 
+extern int print_segment_spec(const struct segment_specs* spec);
 #endif

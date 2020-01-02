@@ -10,29 +10,145 @@
 #include "core_hmm_functions.h"
 #include "tlalphabet.h"
 
-static int alloc_model_bag(struct model_bag** model_bag,struct read_structure* r,int max_seq_len, double average_len);
+static int alloc_model_bag(struct model_bag** model_bag,const struct read_structure* r,int max_seq_len, double average_len);
+
 
 struct model* copy_model_parameters(struct model* org, struct model* copy );
 
-/*int init_model_bag(struct model_bag** model_bag, struct read_structure* rs,const struct sequence_stats_info* ssi, struct alphabet* a, int model_index)
-{
-        struct model_bag* mb = NULL;
+static int set_label_and_path(struct model_bag* mb);
+static int set_len_of_unknown(const struct read_structure*rs, int* out_l, int read_len);
 
-        RUN(alloc_model_bag(&mb, rs, ssi->max_seq_len, ssi->average_length));
-
-
-        *model_bag = mb;
-        return OK;
-ERROR:
-        return NULL;
-        }*/
-
-
-
-int alloc_model_bag(struct model_bag** model_bag,struct read_structure* r,int max_seq_len, double average_len)
+int init_model_bag(struct model_bag** model_bag,const  struct read_structure* rs,const struct sequence_stats_info* ssi, const struct alphabet* a, int model_index)
 {
         struct model_bag* mb = NULL;
         int i;
+        int expected_len;
+
+        ASSERT(ssi->max_seq_len > 0,"Max len can't be 0");
+        ASSERT(ssi->average_length > 0,"Average len can't be 0");
+/* HACK */
+        /* rs->numseq_in_segment is set in assign - get from spec  */
+        /* rs->segment_length is set  in assign - get from spec  */
+
+        /* first we allocate the model based on the read structure information */
+        //LOG_MSG("Allocating %d %d",ssi->max_seq_len,ssi->average_length);
+        RUN(alloc_model_bag(&mb, rs, ssi->max_seq_len, ssi->average_length));
+        //exit(0);
+/* initialize the model with 'default'  parameters - refinement happens later.  */
+        for(i = 0; i < mb->num_models;i++){
+                RUN(set_emission_p(mb->model[i], rs->seg_spec[i], a, ssi->background, 0.05f, 0.1f));
+                RUN(set_transition_p(mb->model[i],0.05f, 0.1f));
+        }
+
+        /* Adjust parameters based on spec */
+        //- partial sequences -> transitions to/ from silent
+        //- N+ segments -> set II to appropriate length
+        //- R - > move emissions from M to I etc.. etc..
+
+        /* check - are segments of unknown length? */
+        /* check - are the reads long enough for the architectures? */
+        RUN(set_len_of_unknown(rs, &expected_len, ssi->average_length));
+
+        /* if a + segment  */
+
+        for(i = 0; i<  mb->num_models;i++){
+                if(rs->seg_spec[i]->max_len == INT32_MAX){
+                        RUN(init_plus_model(mb->model[i], expected_len));
+                }
+        }
+
+        RUN(set_label_and_path(mb));
+
+        //fprintf(stdout,"%p\n",(void*) mb);
+        //fprintf(stdout,"%p\n", (void*) *model_bag);
+        *model_bag = mb;
+        return OK;
+ERROR:
+        return FAIL;
+}
+
+int set_label_and_path(struct model_bag* mb)
+{
+        int i,j,c;
+
+        c = 0;
+        for(i = 0; i < mb->num_models ;i++){
+                //mb->model_multiplier  *= mb->model[i]->num_hmms;
+                for(j = 0; j < mb->model[i]->num_hmms;j++){
+                        mb->label[c] = (j << 16) | i ;
+                        if(mb->model[i]->skip != prob2scaledprob(0.0)){
+                                mb->label[c]  |= 0x80000000;
+                        }
+                        c++;
+
+                }
+        }
+
+
+        //LOG_MSG("New model");
+
+
+        for(i = 0; i < mb->total_hmm_num ;i++){
+                c = 1;
+                for(j = i+1; j <  mb->total_hmm_num ;j++){
+                        mb->transition_matrix[i][j] = 0;
+                        if(i == j){
+                                mb->transition_matrix[i][j] = 1;
+                        }
+
+                        if((mb->label[i] & 0xFFFF)+1 == ((mb->label[j] & 0xFFFF) ) ){
+                                mb->transition_matrix[i][j] = 1;
+                        }
+
+
+                        if(((mb->label[i] & 0xFFFF) < ((mb->label[j] & 0xFFFF) ) )&& c ){
+                                mb->transition_matrix[i][j] = 1;
+                        }
+
+                        if(!(mb->label[j] & 0x80000000)){
+                                c =0;
+                        }
+                        //fprintf(stderr,"%d, %d, %d %d -> %f\n ", j,   mb->label[j],mb->label[j] & 0xFFFF, (mb->label[j] >> 16) & 0x7FFF,    mb->transition_matrix[i][j]);
+                }
+
+                // remain in the same state....
+                mb->transition_matrix[i][i] = 1;
+        }
+        return OK;
+}
+
+int set_len_of_unknown(const struct read_structure*rs, int* out_l, int read_len)
+{
+        int i;
+        int len_of_plus;
+        int known_len;
+        int num_unknown;
+        len_of_plus = 0;
+        known_len = 0;
+        num_unknown =0;
+        for(i = 0; i < rs->num_segments  ;i++){
+                if(rs->seg_spec[i]->max_len == INT32_MAX){
+                        num_unknown++;
+                }else{
+                        known_len += rs->seg_spec[i]->max_len;
+                }
+        }
+        *out_l = 0;
+        if(num_unknown){
+                ASSERT(read_len >  known_len, "There is not enough space for a N+ segment %d %d",read_len, known_len);
+                len_of_plus = (read_len - known_len) / num_unknown;
+                ASSERT(len_of_plus >= 1, "expected length is smaller than 1");
+                *out_l = len_of_plus;
+        }
+        return OK;
+ERROR:
+        return FAIL;
+}
+
+int alloc_model_bag(struct model_bag** model_bag,const struct read_structure* r,int max_seq_len, double average_len)
+{
+        struct model_bag* mb = NULL;
+        int i,j;
         ASSERT(r != NULL, "No read structure");
         MMALLOC(mb,sizeof(struct model_bag));
         mb->model = NULL;
@@ -54,16 +170,23 @@ int alloc_model_bag(struct model_bag** model_bag,struct read_structure* r,int ma
         mb->b_score = prob2scaledprob(0.0f);
         mb->r_score = prob2scaledprob(0.0f);
 
+        MMALLOC(mb->previous_silent,sizeof(float) * mb->current_dyn_length );
+        MMALLOC(mb->next_silent,sizeof(float) * mb->current_dyn_length );
 
         MMALLOC(mb->model,sizeof(struct model* ) * mb->num_models);
 
         /* allocate models  */
         for(i = 0; i < mb->num_models;i++){
                 mb->model[i] = NULL;
+                //LOG_MSG("Allocating model %d: %d %d", i, r->numseq_in_segment[i],r->segment_length[i]);
+
+
                 RUNP(mb->model[i] = malloc_model_according_to_read_structure(r->numseq_in_segment[i], r->segment_length[i],mb->current_dyn_length));
                 //print_model(mb->model[i] );
                 mb->total_hmm_num += mb->model[i]->num_hmms;
         }
+
+
 
         //LOG_MSG("%d %d ALLOC",ssi->average_length,ssi->max_seq_len + 10);
 
@@ -82,6 +205,17 @@ int alloc_model_bag(struct model_bag** model_bag,struct read_structure* r,int ma
         MMALLOC(mb->transition_matrix,sizeof(float*) * (mb->total_hmm_num +1));
         MMALLOC(mb->label,sizeof(int) *  (mb->total_hmm_num +1));
 
+        for(i = 0; i < mb->total_hmm_num+1 ;i++){
+                mb->transition_matrix[i]  = 0;
+                MMALLOC(mb->transition_matrix[i] ,sizeof(float) * (mb->total_hmm_num +1));
+                for(j = 0; j <  mb->total_hmm_num+1 ;j++){
+                        mb->transition_matrix[i][j] = 0;
+                }
+        }
+
+
+
+
         *model_bag = mb;
 
         return OK;
@@ -90,7 +224,7 @@ ERROR:
 }
 
 
-struct model_bag* init_model_bag(struct read_structure* rs,const struct sequence_stats_info* ssi, struct alphabet* a, int model_index)
+/*struct model_bag* init_model_bag(struct read_structure* rs,const struct sequence_stats_info* ssi, struct alphabet* a, int model_index)
 {
         int i,j,c;
         //int average_length = 12;
@@ -176,18 +310,18 @@ struct model_bag* init_model_bag(struct read_structure* rs,const struct sequence
         double temp1;
         // 1) setting 5' parameters...
         if(ssi->expected_5_len[model_index]){
-                /*sum_prob = 0;
+                //sum_prob = 0;
 
-                  for(i = 1; i <=  ssi->expected_5_len;i++){
-                  sum_prob +=gaussian_pdf(i , ssi->mean_5_len, ssi->stdev_5_len);
-                  }*/
+                  //for(i = 1; i <=  ssi->expected_5_len;i++){
+                  //sum_prob +=gaussian_pdf(i , ssi->mean_5_len, ssi->stdev_5_len);
+                  //}
                 model_p = mb->model[0];
                 //model_p->skip = prob2scaledprob(  gaussian_pdf(0 ,ssi->mean_5_len, ssi->stdev_5_len));
 
                 //sum_prob +=gaussian_pdf(0 ,ssi->mean_5_len, ssi->stdev_5_len);
 
                 //temp1 = prob2scaledprob(0.0);
-                //temp1 = logsum(temp1, model_p->skip);*/
+                //temp1 = logsum(temp1, model_p->skip);
 
                 sum_prob = prob2scaledprob(0.0);
 
@@ -232,12 +366,12 @@ struct model_bag* init_model_bag(struct read_structure* rs,const struct sequence
 
                 //fprintf(stderr,"Sanity: %f	%f\n",temp1, scaledprob2prob(temp1));
 
-                /*model_p->skip = model_p->skip - temp1;
-                  for(i = 0 ; i < model_p->num_hmms;i++){
-                  for(j = 0; j < ssi->expected_5_len;j++){
-                  model_p->silent_to_M[i][j]  = model_p->silent_to_M[i][j]  - temp1;
-                  }
-                  }*/
+                //model_p->skip = model_p->skip - temp1;
+                //for(i = 0 ; i < model_p->num_hmms;i++){
+                //for(j = 0; j < ssi->expected_5_len;j++){
+                //model_p->silent_to_M[i][j]  = model_p->silent_to_M[i][j]  - temp1;
+                //}
+                //}
         }
 
         // 2) setting 3' parameters...
@@ -326,7 +460,7 @@ struct model_bag* init_model_bag(struct read_structure* rs,const struct sequence
 
 
                         if(((mb->label[i] & 0xFFFF) < ((mb->label[j] & 0xFFFF) ) )&& c ){
-                                mb->transition_matrix[i][j] = 1;
+                        mb->transition_matrix[i][j] = 1;
                         }
 
                         if(!(mb->label[j] & 0x80000000)){
@@ -344,7 +478,7 @@ ERROR:
         return NULL;
 }
 
-
+*/
 
 /** \fn void free_model_bag(struct model_bag* mb)
 

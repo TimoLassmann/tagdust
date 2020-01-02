@@ -17,6 +17,7 @@
 #define READ_NBAR 8
 
 struct seq_bit{
+        char* name;
         char* p;
         char* q;
         uint16_t len;

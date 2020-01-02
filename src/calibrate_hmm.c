@@ -81,7 +81,7 @@ int calibrate(struct arch_library* al, struct seq_stats* si,int* seeds,int i_fil
         TN = 0.0;
         FN = 0.0;
 
-        RUNP(mb = init_model_bag(al->read_structure[i_hmm], si->ssi[i_file], si->a, i_hmm));
+        RUN(init_model_bag(&mb,al->read_structure[i_hmm], si->ssi[i_file], si->a, i_hmm));
 
         for(i = 0; i < mb->num_models;i++){
                 if(al->read_structure[i_hmm]->type[i] == 'B'){
@@ -103,7 +103,7 @@ int calibrate(struct arch_library* al, struct seq_stats* si,int* seeds,int i_fil
         free_model_bag(mb);
 
 
-        RUNP(mb = init_model_bag(al->read_structure[i_hmm], si->ssi[i_file],si->a, i_hmm));
+        RUN(init_model_bag(&mb,al->read_structure[i_hmm], si->ssi[i_file],si->a, i_hmm));
 
         RUN(run_scoring(mb, cb));
 

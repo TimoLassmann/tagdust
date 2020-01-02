@@ -1853,10 +1853,10 @@ int main(int argc, char *argv[])
         struct alphabet* a = NULL;
         char* in[] = {
                 //"O:N",
-                "B:GTA,AAC",
-                "R:N",
-                "L:CCTTAA",
-                "B:ACAGTG,ACTTGA,TTAGGC"
+                "S:GTA,AAC",
+                "MEREAD:E:N+",
+                "I:CCTTAA",
+                "S:ACAGTG,ACTTGA,TTAGGC"
         };
         uint8_t* seq = NULL;
         int seq_len = 30;
@@ -1884,7 +1884,9 @@ int main(int argc, char *argv[])
 
         fflush(stdout);
 
-        RUNP( mb = init_model_bag(al->read_structure[1], ssi,a, 0));
+        RUN(init_model_bag(&mb,al->read_structure[1], ssi,a, 0));
+
+
 
 
         backward(mb, seq, seq_len);

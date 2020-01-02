@@ -205,7 +205,7 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
                 //LOG_MSG("Write buff: %p",wb);
                 RUN(write_all(as,&wb, param->outfile));
                 RUN(reset_assign_structute(as));
-
+                exit(0);
         }
         /* FIXME */
         if(wb){
@@ -259,7 +259,7 @@ int run_extract( struct assign_struct* as,  struct tl_seq_buffer** rb, struct ar
         c = i_file * CHUNKS + i_chunk;
 
         i_hmm = al->arch_to_read_assignment[i_file];
-        mb = init_model_bag(al->read_structure[i_hmm], si->ssi[i_file], si->a, i_hmm);
+        RUN(init_model_bag(&mb,al->read_structure[i_hmm], si->ssi[i_file], si->a, i_hmm));
         num_seq = rb[c]->num_seq;
         ri = rb[c]->sequences;
 
@@ -335,13 +335,13 @@ int process_read(struct collect_read* ri, struct read_structure* rs , struct seq
         char* type;
         char* read_label;
         int* label;
-        char c;
+        uint8_t c;
         int j;
         int segment;
         int hmm_in_segment;
         int c1;
         int len = ri->len;
-        char old = '?';
+        uint8_t old_c = 255;
         int local_bit_index;
 
         read_label = ri->label+1;
@@ -363,10 +363,12 @@ int process_read(struct collect_read* ri, struct read_structure* rs , struct seq
                 c1 = label[(int)read_label[j]];
                 segment = c1 & 0xFFFF; //which segment
                 hmm_in_segment = (c1 >> 16) & 0x7FFF; // which HMM in a particular segment....
-                c = type[segment];
+                //c = type[segment];
+                c = rs->seg_spec[segment]->extract;
+                //LOG_MSG("Decoding: %d read:%d hmmcode:%d  segment:%d seq:%d type: %d",j,read_label[j],label[read_label[j]], segment,hmm_in_segment, c);
                 switch (c) {
-                case 'F':
-                        if(c != old){
+                case ARCH_ETYPE_APPEND: //case 'F':
+                        if(c != old_c){
                                 sb = b->bits[local_bit_index];
                                 sb->len = 0;
                                 ASSERT(i_file == sb->file, "Oh dear: want %d got %d",i_file,sb->file);
@@ -382,15 +384,16 @@ int process_read(struct collect_read* ri, struct read_structure* rs , struct seq
                         //ri->seq[s_pos] = 65; // 65 is the spacer! nucleotides are 0 -5....
                         //ri->qual[s_pos] = 65;
                         break;
-                case 'B':
-                        if(c != old){
+                case ARCH_ETYPE_SPLIT:// case 'B':
+                        if(c != old_c){
                                 sb = b->bits[local_bit_index];
                                 sb->len = 0;
                                 ASSERT(i_file == sb->file, "Oh dear: want %d got %d",i_file,sb->file);
                                 //sb->file = i_file;
                                 sb->type = BAR_TYPE;
-                                sb->p = rs->sequence_matrix[segment][hmm_in_segment];
-                                sb->len = rs->segment_length[segment];
+                                sb->p = rs->seg_spec[segment]->seq[hmm_in_segment];
+                                //rs->sequence_matrix[segment][hmm_in_segment];
+                                sb->len = rs->seg_spec[segment]->max_len;// should be identical to min_lena rs->segment_length[segment];
                                 sb->fail = ri->f;
                                 if(hmm_in_segment == 0){
                                         sb->fail |= READ_NBAR;
@@ -398,8 +401,9 @@ int process_read(struct collect_read* ri, struct read_structure* rs , struct seq
                                 local_bit_index++;
                         }
                         break;
-                case 'R':
-                        if(c != old){
+                case ARCH_ETYPE_EXTRACT:// case 'R':
+                        if(c != old_c){
+
                                 sb = b->bits[local_bit_index];
                                 sb->len = 0;
                                 ASSERT(i_file == sb->file, "Oh dear: want %d got %d",i_file,sb->file);
@@ -415,8 +419,10 @@ int process_read(struct collect_read* ri, struct read_structure* rs , struct seq
                 default:
                         break;
                 }
-                old = c;
+                old_c = c;
         }
+        //fprintf(stdout,"%s\n%s\n",sb->p,sb->q);
+        //exit(0);
         //ri->len = s_pos;
         return OK;
 ERROR:
@@ -448,7 +454,7 @@ int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb,  char* 
                 write_buf->max_len = 0;
                 write_buf->num_seq = 0;
                 write_buf->L = 0;
-                write_buf->is_fastq = 0;
+                write_buf->is_fastq = 1;
                 write_buf->offset = 0;
                 write_buf->sequences = NULL;
 
@@ -459,7 +465,6 @@ int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb,  char* 
                         write_buf->sequences[i]->name = NULL;
                         MMALLOC(write_buf->sequences[i]->name, sizeof(char) * MAX_OUTREADNAME);
                 }
-
                 //RUN(alloc_tl_seq_buffer(&write_buf, 100000));
 
         }

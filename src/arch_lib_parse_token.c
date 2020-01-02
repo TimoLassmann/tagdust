@@ -242,13 +242,9 @@ int parse_rs_token(char* token, struct segment_specs** s_spec)
                         //fprintf(stdout,"%d %d %c\n",f,g,tmp[i]);
                         if(token[i] != '{'){
                                 spec->seq[f][g] = token[i];
-
                                 g++;
                         }else{
                                 spec->seq[f][g] = 0;
-                                if(g != 1){
-                                        ERROR_MSG("Tagdust only accepts a single character (not %d) with options + {n} {n,m}",g);
-                                }
 
                                 g = sscanf(token + i, "{%d,%d}",&spec->min_len,&spec->max_len);
                                 if(g == 0){
@@ -264,9 +260,22 @@ int parse_rs_token(char* token, struct segment_specs** s_spec)
                                 break;
                         }
                 }
-                spec->seq[f][g] = 0;
+                g = strnlen(spec->seq[f], max_seq_len);
+                //spec->seq[f][g] = 0;
+                LOG_MSG("%s",spec->seq[f]);
+                if(g != 1){
+                        ERROR_MSG("Tagdust only accepts a single character (not %d) with options + {n} {n,m}",g);
+                }
+
+                MREALLOC(spec->seq[f], sizeof(char) *(spec->max_len+1));
+                for(g = 1;g < spec->max_len;g++){
+                        spec->seq[f][g] = spec->seq[f][0];
+                }
+                spec->seq[f][spec->max_len] = 0;
+                LOG_MSG("%s",spec->seq[f]);
+
         }else if(plus){
-f = 0;
+                f = 0;
                 g = 0;
                 for(i = pos;i <  len;i++){
                         //fprintf(stdout,"%d %d %c\n",f,g,tmp[i]);
@@ -301,18 +310,12 @@ f = 0;
         if(spec->num_seq > 1){
                 ASSERT(spec->min_len == spec->max_len, "sequences have different lengths");
         }
-/*#ifdef DEBUG
+#ifdef DEBUG
         fprintf(stdout,"%s input\n", token);
 
-        fprintf(stdout,"   %s name\n", spec->name);
-        fprintf(stdout,"   %d type\n", spec->extract);
-        fprintf(stdout,"   %d %d  min,max len\n", spec->min_len,spec->max_len);
-        for(i = 0; i < spec->num_seq;i++){
-                fprintf(stdout,"   %s\n", spec->seq[i]);
-
-        }
+        RUN(print_segment_spec(spec));
 #endif
-*/
+
         *s_spec = spec;
 
 
@@ -321,6 +324,23 @@ ERROR:
         free_segment_spec(spec);
         *s_spec = NULL;
         WARNING_MSG("Parsing error occurred in this token: %s",token);
+        return FAIL;
+}
+
+int print_segment_spec(const struct segment_specs* spec)
+{
+        int i;
+        ASSERT(spec != NULL, "No spec");
+        fprintf(stdout,"   %s name\n", spec->name);
+        fprintf(stdout,"   %d type\n", spec->extract);
+        fprintf(stdout,"   %d %d  min,max len\n", spec->min_len,spec->max_len);
+        ASSERT(spec->num_seq != 0, "no sequence!");
+        for(i = 0; i < spec->num_seq;i++){
+                fprintf(stdout,"   %s\n", spec->seq[i]);
+
+        }
+        return OK;
+ERROR:
         return FAIL;
 }
 

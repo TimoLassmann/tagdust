@@ -156,7 +156,21 @@ int assign_segment_sequences(struct read_structure* read_structure, char* tmp, i
         //struct segment_specs* s = NULL;
 
         RUN(parse_rs_token_message(tmp,&read_structure->seg_spec[segment]));
+        read_structure->numseq_in_segment[segment] = read_structure->seg_spec[segment]->num_seq;
 
+        read_structure->segment_length[segment] = read_structure->seg_spec[segment]->max_len;
+        if(read_structure->seg_spec[segment]->max_len == INT32_MAX){
+                read_structure->segment_length[segment] = 1;
+        }
+
+
+
+
+        if(segment+1 >read_structure->num_segments  ){
+                read_structure->num_segments = segment+1;
+        }
+
+        return OK;
         //read_structure->seg_spec[segment] =
 
         count = 0;
@@ -292,6 +306,11 @@ ERROR:
                         MFREE(read_structure->sequence_matrix[segment][i]);//,sizeof(char)* strlen(tmp));
                 }
                 MFREE(read_structure->sequence_matrix[segment]);//,sizeof(char*) * (count+1));
+                if(read_structure->seg_spec[segment]){
+                        free_segment_spec(read_structure->seg_spec[segment]);
+                        read_structure->seg_spec[segment] = NULL;
+                }
+                //RUN(parse_rs_token_message(tmp,&read_structure->seg_spec[segment]));
         }
 
         return FAIL;
@@ -405,7 +424,7 @@ int malloc_read_structure(struct read_structure** read_structure)
         //rs->assignment_to_read = 0;
         MMALLOC(rs->sequence_matrix ,sizeof(char**) * rs->alloc_num_seqments );
         MMALLOC(rs->segment_name ,sizeof(char*) * rs->alloc_num_seqments );
-        MMALLOC(rs->seg_spec ,sizeof(char*) * rs->alloc_num_seqments );
+        MMALLOC(rs->seg_spec ,sizeof(struct segment_specs**) * rs->alloc_num_seqments );
         MMALLOC(rs->numseq_in_segment, sizeof(int) * rs->alloc_num_seqments);
         MMALLOC(rs->segment_length, sizeof(int) * rs->alloc_num_seqments);
         MMALLOC(rs->type ,sizeof(char) * rs->alloc_num_seqments );
@@ -443,7 +462,7 @@ int resize_read_structure(struct read_structure* rs)
         rs->alloc_num_seqments = rs->alloc_num_seqments + rs->alloc_num_seqments /2;
         MREALLOC(rs->sequence_matrix ,sizeof(char**) * rs->alloc_num_seqments );
         MREALLOC(rs->segment_name ,sizeof(char*) * rs->alloc_num_seqments );
-        MREALLOC(rs->seg_spec ,sizeof(char*) * rs->alloc_num_seqments );
+        MREALLOC(rs->seg_spec ,sizeof(struct segment_specs**) * rs->alloc_num_seqments );
         MREALLOC(rs->numseq_in_segment, sizeof(int) * rs->alloc_num_seqments);
         MREALLOC(rs->segment_length, sizeof(int) * rs->alloc_num_seqments);
         MREALLOC(rs->type ,sizeof(char) * rs->alloc_num_seqments );
@@ -483,6 +502,7 @@ void free_read_structure(struct read_structure* read_structure)
                                 MFREE(read_structure->segment_name[i]);
                         }
                         if(read_structure->seg_spec[i]){
+
                                 free_segment_spec(read_structure->seg_spec[i]);
                         }
                 }
@@ -601,30 +621,28 @@ int main(int argc, char *argv[])
 {
         struct arch_library* al = NULL;
         char* in[] = {
-                "O:N",
-                "B:GTA,AAC",
-                "R:N",
-                "L:CCTTAA",
-                "B:ACAGTG,ACTTGA,TTAGGC"
+                "I:N{0,3}",
+                "S:GTA,AAC",
+                "MYREAD:E:N+",
+                "I:CCTTAA",
+                "S:ACAGTG,ACTTGA,TTAGGC"
         };
         char* buffer = NULL;
         int size;
         int i;
-
-
 
         MMALLOC(buffer, sizeof(char) * BUFFER_LEN);
         RUN(alloc_arch_lib(&al));
 
         size= sizeof(in) / sizeof(char*);
         //LOG_MSG("%d",size);
-        RUN(read_architecture_files(al, "../dev/casava_arch.txt"));
-        read_arch_into_lib(al, in, size);
-        read_arch_into_lib(al, in, size);
-        read_arch_into_lib(al, in, size);
-        read_arch_into_lib(al, in, size);
+        RUN(read_architecture_files(al, "../dev/casava_new_arch.txt"));
+        RUN(read_arch_into_lib(al, in, size));
+        RUN(read_arch_into_lib(al, in, size));
+        RUN(read_arch_into_lib(al, in, size));
+        RUN(read_arch_into_lib(al, in, size));
 
-        RUN(read_architecture_files(al, "../dev/casava_arch.txt"));
+        RUN(read_architecture_files(al, "../dev/casava_new_arch.txt"));
         LOG_MSG("Read in %d architectures.",al->num_arch);
         for(i = 0; i < al->num_arch;i++){
                 fprintf(stdout,"%d %s\n",i, al->spec_line[i]);

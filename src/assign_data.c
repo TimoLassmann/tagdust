@@ -157,6 +157,7 @@ int init_assign_structure(struct assign_struct** assign,struct arch_library* al,
         as->max_bar_len = 0;
         as->max_seq_len = 0;
         as->out_reads = 0;
+
         RUN(setup_assign_structure(al,as,&plan));
         RUN(setup_barcode_files(al,as));
         RUN(setup_output_files(as));
@@ -233,7 +234,7 @@ int setup_assign_structure(struct arch_library* al,struct assign_struct* as,int*
         struct read_structure* read_structure = NULL;
         int* p = NULL;
         int i,j;
-        char c;
+        uint8_t c;
         int p_size;
         int p_index;
         ASSERT(al != NULL,"No archlib");
@@ -247,21 +248,15 @@ int setup_assign_structure(struct arch_library* al,struct assign_struct* as,int*
         MMALLOC(p, sizeof(int) * p_size);
         for(i = 0; i < al->num_file;i++){
                 read_structure = al->read_structure[al->arch_to_read_assignment[i]];
-                //fprintf(stdout,"Read %d: ",i);
+                //fprintf(stdout,"Read %d:\n",i);
                 for(j = 0; j < read_structure->num_segments;j++){
-                        c = read_structure->type[j];
+                        //c = read_structure->type[j];
+
+                        c = read_structure->seg_spec[j]->extract;
+                        //print_segment_spec(read_structure->seg_spec[j]);
+
                         switch (c) {
-                        case 'B':
-                        case 'F':
-                                p[p_index] = i;
-                                p_index++;
-                                if(p_index == p_size){
-                                        p_size = p_size + p_size /2;
-                                        MREALLOC(p, sizeof(int)* p_size);
-                                }
-                                as->num_bits++;
-                                break;
-                        case 'R':
+                        case ARCH_ETYPE_EXTRACT:
                                 p[p_index] = i;
                                 p_index++;
                                 if(p_index == p_size){
@@ -273,12 +268,22 @@ int setup_assign_structure(struct arch_library* al,struct assign_struct* as,int*
                                 break;
 
                         default:
+                                p[p_index] = i;
+                                p_index++;
+                                if(p_index == p_size){
+                                        p_size = p_size + p_size /2;
+                                        MREALLOC(p, sizeof(int)* p_size);
+                                }
+                                as->num_bits++;
                                 break;
+
                         }
                 }
+
+
                 //fprintf(stdout,"\n");
         }
-        /* create offsets  */
+        //exit(0);
         *plan = p;
         return OK;
 ERROR:
@@ -402,7 +407,7 @@ int setup_barcode_files(struct arch_library* al, struct assign_struct* as)
 {
         struct read_structure* read_structure = NULL;
         int i,j,g,f,len;
-        char c;
+        //uint8_t c;
         int num_barcodes = 0;
         ASSERT(al != NULL,"No archlib");
         struct rbtree_root* root = NULL;
@@ -432,13 +437,13 @@ int setup_barcode_files(struct arch_library* al, struct assign_struct* as)
                 read_structure = al->read_structure[al->arch_to_read_assignment[i]];
                 //fprintf(stdout,"Read %d: ",i);
                 for(j = 0; j < read_structure->num_segments;j++){
-                        c = read_structure->type[j];
-                        switch (c) {
-                        case 'B':
+
+                        //c = read_structure->type[j];
+                        if(read_structure->seg_spec[j]->extract == ARCH_ETYPE_SPLIT){
                                 if(!num_barcodes){
-                                        for(g = 0;g < read_structure->numseq_in_segment[j];g++){
+                                        for(g = 0;g <  read_structure->seg_spec[j]->num_seq;g++){
                                                 //len = strnlen(read_structure->sequence_matrix[j][g], 256);
-                                                len = read_structure->segment_length[j];
+                                                len = read_structure->seg_spec[j]->max_len;
                                                 if(len > as->max_bar_len){
                                                         as->max_bar_len = len;
                                                 }
@@ -448,7 +453,7 @@ int setup_barcode_files(struct arch_library* al, struct assign_struct* as)
                                                 //for(f = 0;f < len;f++){
                                                 //tmp_ptr->name =
                                                 //}
-                                                strncpy(tmp_ptr->name, (char*)read_structure->sequence_matrix[j][g], len+1);
+                                                strncpy(tmp_ptr->name, (char*) read_structure->seg_spec[j]->seq[g], len+1);
 
                                                 tmp_ptr->name[len] = 0;
                                                 //tmp_ptr->name[len+1] = 0;
@@ -468,10 +473,10 @@ int setup_barcode_files(struct arch_library* al, struct assign_struct* as)
                                         RUNP(root_new = init_tree(fp_get,fp_cmp,fp_cmp_same,fp_print,fp_free));
                                         for(f = 0;f < root->num_entries;f++){
                                                 tmp_ptr = root->data_nodes[f];
-                                                for(g = 0;g < read_structure->numseq_in_segment[j];g++){
+                                                for(g = 0;g < read_structure->seg_spec[j]->num_seq;g++){
                                                         len = strnlen(tmp_ptr->name, 256);
                                                         len++;
-                                                        len += read_structure->segment_length[j];
+                                                        len += read_structure->seg_spec[j]->max_len;//  segment_length[j];
                                                         //len += strnlen(read_structure->sequence_matrix[j][g], 256);
                                                         len++;
                                                         if(len > as->max_bar_len){
@@ -483,7 +488,7 @@ int setup_barcode_files(struct arch_library* al, struct assign_struct* as)
 
                                                         MMALLOC(new_ptr->name,sizeof(char) * (len+2));
 
-                                                        snprintf(new_ptr->name, len, "%s_%s",tmp_ptr->name,read_structure->sequence_matrix[j][g]);
+                                                        snprintf(new_ptr->name, len, "%s_%s",tmp_ptr->name, read_structure->seg_spec[j]->seq[g]);
                                                         tmp_ptr->name[len] = 0;
                                                         //tmp_ptr->name[len+1] = 0;
                                                         tmp_ptr->f_hand = NULL;
@@ -502,10 +507,6 @@ int setup_barcode_files(struct arch_library* al, struct assign_struct* as)
 
                                 }
                                 num_barcodes++;
-                                //as->num_bits++;
-                                break;
-                        default:
-                                break;
                         }
                 }
                 //fprintf(stdout,"\n");

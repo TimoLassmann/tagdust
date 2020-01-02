@@ -1,16 +1,52 @@
 
 #include "tllogsum.h"
-
 #include "init_hmm.h"
 #include "core_hmm_functions.h"
 
 
-int set_emission_p(struct model* m,struct segment_specs* spec, struct alphabet* a, double* background)
+int init_plus_model(struct model* m, const int expected_len)
 {
+        int i;
         struct hmm_column* col = NULL;
 
-        float base_error = 0.05;
-        float indel_freq = 0.1;
+        ASSERT(m != NULL, "No model");
+        for(i = 0 ; i < m->num_hmms;i++){
+                m->silent_to_I[i][0] = prob2scaledprob(1.0 / (float) m->num_hmms);
+        }
+        col = m->hmms[0]->hmm_column[0];
+
+        col->transition[MM] = prob2scaledprob(0.0);
+        col->transition[MI] = prob2scaledprob(0.0);
+        col->transition[MD] = prob2scaledprob(0.0);
+        col->transition[MSKIP] = prob2scaledprob(0.0);
+
+        //col->transition[MQUIT] = prob2scaledprob(1.0 / (float) assumed_length);
+        col->transition[II] = prob2scaledprob(1.0 - 1.0 / (float) expected_len);
+        col->transition[IM] = prob2scaledprob(0.0);
+        col->transition[ISKIP] = prob2scaledprob(1.0 / (float)  expected_len);
+
+        col->transition[DD] = prob2scaledprob(0.0);
+        col->transition[DM] = prob2scaledprob(0.0);
+
+        col->transition_e[MM] =  prob2scaledprob(0.0);
+        col->transition_e[MI] =  prob2scaledprob(0.0);
+        col->transition_e[MD] =  prob2scaledprob(0.0);
+
+        col->transition_e[II] =  prob2scaledprob(0.0);
+        col->transition_e[IM] =  prob2scaledprob(0.0);
+
+        col->transition_e[DD] =  prob2scaledprob(0.0);
+        col->transition_e[DM] =  prob2scaledprob(0.0);
+
+        m->skip = prob2scaledprob(0.0);
+        return OK;
+ERROR:
+        return FAIL;
+}
+
+int set_emission_p(struct model* m,const struct segment_specs* spec, const struct alphabet* a, const double* background, const double base_error, const double indel_freq)
+{
+        struct hmm_column* col = NULL;
 
         int i,j,c,len;
         int current_nuc;
@@ -58,8 +94,165 @@ int set_emission_p(struct model* m,struct segment_specs* spec, struct alphabet* 
         }
         return OK;
 ERROR:
-        return NULL;
+        return FAIL;
+}
 
+int set_transition_p(struct model* m,const double base_error,const  double indel_freq)
+{
+        struct hmm* hmm = NULL;
+        struct hmm_column* col = NULL;
+
+        int i,j;
+        int len;
+
+        for(j = 0; j < m->num_hmms;j++){
+                hmm = m->hmms[j];
+                len = m->hmms[j]->num_columns;
+
+                if(len == 1){
+                        //single state - only silent to / from M everything else set to zero....
+                        col = hmm->hmm_column[0];
+                        col->transition[MM] = prob2scaledprob(0.0f);
+                        col->transition[MI] = prob2scaledprob(0.0f);
+                        col->transition[MD] = prob2scaledprob(0.0f);
+                        col->transition[MSKIP] = prob2scaledprob(1.0f);
+
+                        col->transition[II] = prob2scaledprob(0.0f);
+                        col->transition[IM] = prob2scaledprob(0.0f);
+                        col->transition[ISKIP] = prob2scaledprob(0.0f);
+
+                        col->transition[DD] = prob2scaledprob(0.0);
+                        col->transition[DM] = prob2scaledprob(0.0);
+                }else if(len == 2){
+
+                        //first column
+                        col = hmm->hmm_column[0];
+                        col->transition[MSKIP] = prob2scaledprob(0.0);
+
+                        col->transition[MM] = prob2scaledprob( 1.0 - base_error * indel_freq ) + prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
+                        col->transition[MI] = prob2scaledprob(base_error * indel_freq)+ prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
+                        col->transition[MD] = prob2scaledprob(base_error * indel_freq*0.0)+ prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
+
+
+                        col->transition[II] = prob2scaledprob(1.0 - 0.999);
+                        col->transition[IM] = prob2scaledprob(0.999);
+                        col->transition[ISKIP] = prob2scaledprob(0.0f);
+
+                        col->transition[DD] = prob2scaledprob(0.0);
+                        col->transition[DM] = prob2scaledprob(0.0);
+
+                        //second column
+                        col = hmm->hmm_column[1];
+                        col->transition[MM] = prob2scaledprob(0.0f );// 1.0 - base_error * indel_freq);
+                        col->transition[MI] = prob2scaledprob(0.0f );//(base_error * indel_freq) +  prob2scaledprob(0.5);
+                        col->transition[MD] = prob2scaledprob(0.0f );//(base_error * indel_freq) +  prob2scaledprob(0.5);
+                        col->transition[MSKIP] = prob2scaledprob(1.0);
+
+                        col->transition[II] = prob2scaledprob(0.00);
+                        col->transition[IM] = prob2scaledprob(0.0);
+                        col->transition[ISKIP] = prob2scaledprob(0.0f);
+
+                        col->transition[DD] = prob2scaledprob(0.0f );//(1.0 - 0.999);
+                        col->transition[DM] = prob2scaledprob(0.0f );//0.999);
+
+                }else{
+                        //first column....
+                        col = hmm->hmm_column[0];
+
+                        //if(mean == -1.0 && stdev == -1.0){
+                        col->transition[MSKIP] = prob2scaledprob(0.0);
+
+                        col->transition[MM] = prob2scaledprob( 1.0 - base_error * indel_freq)+ prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
+                        col->transition[MI] = prob2scaledprob(base_error * indel_freq*0.5)+ prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
+
+                        col->transition[MD] = prob2scaledprob(base_error * indel_freq*0.5)+ prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
+
+                        col->transition[II] = prob2scaledprob(1.0 - 0.999);
+                        col->transition[IM] = prob2scaledprob(0.999);
+                        col->transition[ISKIP] = prob2scaledprob(0.0f);
+
+                        col->transition[DD] = prob2scaledprob(0.0);
+                        col->transition[DM] = prob2scaledprob(0.0);
+
+                        //middle columns...
+                        for(i = 1; i < len-2;i++){
+                                col = hmm->hmm_column[i];
+
+                                col->transition[MSKIP] = prob2scaledprob(0.0);
+
+                                col->transition[MM] = prob2scaledprob( 1.0 - base_error * indel_freq)+ prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
+                                col->transition[MI] = prob2scaledprob(base_error * indel_freq*0.5)+ prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
+
+                                col->transition[MD] = prob2scaledprob(base_error * indel_freq*0.5)+ prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
+
+
+
+                                col->transition[II] = prob2scaledprob(1.0 - 0.999);
+                                col->transition[IM] = prob2scaledprob(0.999);
+                                col->transition[ISKIP] = prob2scaledprob(0.0f);
+
+
+                                col->transition[DD] = prob2scaledprob(1.0 - 0.999);
+                                col->transition[DM] = prob2scaledprob(0.999);
+                        }
+
+                        //second last...
+                        col = hmm->hmm_column[len -2];
+                        col->transition[MSKIP] = prob2scaledprob(0.0);
+
+                        col->transition[MM] = prob2scaledprob( 1.0 - base_error * indel_freq)+ prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
+                        col->transition[MI] = prob2scaledprob(base_error * indel_freq*1.0)+ prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
+
+                        col->transition[MD] = prob2scaledprob(base_error * indel_freq*0.0)+ prob2scaledprob (1.0 - scaledprob2prob(col->transition[MSKIP]  ));
+
+
+                        col->transition[II] = prob2scaledprob(1.0 - 0.999);
+                        col->transition[IM] = prob2scaledprob(0.999);
+                        col->transition[ISKIP] = prob2scaledprob(0.0f);
+
+                        col->transition[DD] = prob2scaledprob(0.0);
+                        col->transition[DM] = prob2scaledprob(1.0);
+                        //col->transition[DD] = prob2scaledprob(0.0);
+                        //col->transition[DM] = prob2scaledprob(0.0);
+
+                        col = hmm->hmm_column[len -1];
+
+                        col->transition[MM] = prob2scaledprob(0.0f );// 1.0 - base_error * indel_freq);
+                        col->transition[MI] = prob2scaledprob(0.0f );//(base_error * indel_freq) +  prob2scaledprob(0.5);
+                        col->transition[MD] = prob2scaledprob(0.0f );//(base_error * indel_freq) +  prob2scaledprob(0.5);
+                        col->transition[MSKIP] = prob2scaledprob(1.0);
+
+                        col->transition[II] = prob2scaledprob(0.00);
+                        col->transition[IM] = prob2scaledprob(0.0);
+                        col->transition[ISKIP] = prob2scaledprob(0.0f);
+
+                        col->transition[DD] = prob2scaledprob(0.0f );//(1.0 - 0.999);
+                        col->transition[DM] = prob2scaledprob(0.0f );//0.999);
+                }
+        }
+        /* transitions connecting hmms  */
+        for(i = 0 ; i < m->num_hmms;i++){
+                len = m->hmms[i]->num_columns;
+                for(j = 0; j < len;j++){
+
+                        m->silent_to_M[i][j] = prob2scaledprob(0.0f);
+                        m->silent_to_I[i][j] = prob2scaledprob(0.0f);
+                        m->silent_to_M_e[i][j] = prob2scaledprob(0.0f);
+                        m->silent_to_I_e[i][j] = prob2scaledprob(0.0f);
+                }
+        }
+        m->skip = prob2scaledprob(0.0f);
+        m->skip_e = prob2scaledprob(0.0f);
+        for(i = 0 ; i < m->num_hmms;i++){
+                m->silent_to_M[i][0] = prob2scaledprob(1.0 / (float) m->num_hmms);// + prob2scaledprob(0.9);
+                m->silent_to_I[i][0] = prob2scaledprob(0.0f);
+        }
+        m->skip = prob2scaledprob(0.0);
+
+
+
+
+        return OK;
 }
 
 
@@ -357,6 +550,10 @@ struct model* malloc_model_according_to_read_structure(int num_hmm, int length,i
         int c = 0;
         int len = 0;
 
+        ASSERT(num_hmm < 65536,"Too many alternative sequences: %d",num_hmm);
+        ASSERT(length < 65536,"Segment too long: %d", length);
+        ASSERT(dyn_length < 65536,"Segment too long: %d", dyn_length);
+        //return NULL;
         MMALLOC(model,sizeof(struct model));
 
         model->average_length =0;
