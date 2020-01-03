@@ -149,6 +149,8 @@ int alloc_model_bag(struct model_bag** model_bag,const struct read_structure* r,
 {
         struct model_bag* mb = NULL;
         int i,j;
+        int num_hmm;
+        int len;
         ASSERT(r != NULL, "No read structure");
         MMALLOC(mb,sizeof(struct model_bag));
         mb->model = NULL;
@@ -179,18 +181,11 @@ int alloc_model_bag(struct model_bag** model_bag,const struct read_structure* r,
         for(i = 0; i < mb->num_models;i++){
                 mb->model[i] = NULL;
                 //LOG_MSG("Allocating model %d: %d %d", i, r->numseq_in_segment[i],r->segment_length[i]);
-
-
-                RUNP(mb->model[i] = malloc_model_according_to_read_structure(r->numseq_in_segment[i], r->segment_length[i],mb->current_dyn_length));
-                //print_model(mb->model[i] );
+                len = r->seg_spec[i]->alloc_len;
+                num_hmm = r->seg_spec[i]->num_seq;
+                RUNP(mb->model[i] = malloc_model_according_to_read_structure(num_hmm,len,mb->current_dyn_length));
                 mb->total_hmm_num += mb->model[i]->num_hmms;
         }
-
-
-
-        //LOG_MSG("%d %d ALLOC",ssi->average_length,ssi->max_seq_len + 10);
-
-
 
         MMALLOC(mb->path,sizeof(int*) * mb->current_dyn_length);
         MMALLOC(mb->dyn_prog_matrix,sizeof(float*) * mb->current_dyn_length );
@@ -212,9 +207,6 @@ int alloc_model_bag(struct model_bag** model_bag,const struct read_structure* r,
                         mb->transition_matrix[i][j] = 0;
                 }
         }
-
-
-
 
         *model_bag = mb;
 

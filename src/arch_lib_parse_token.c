@@ -129,7 +129,11 @@ int parse_rs_token(char* token, struct segment_specs** s_spec)
                 ASSERT(j == 1,"Expecting length %d",j);
 
                 RUN(detect_extract_type(spec->name[0], &spec->extract));
-                snprintf(spec->name, BUFFER_LEN, "NA");
+                if(spec->extract == ARCH_ETYPE_EXTRACT){
+                        snprintf(spec->name, BUFFER_LEN, "R");
+                }else{
+                        snprintf(spec->name, BUFFER_LEN, "NA");
+                }
                 //exit(0);
         }else if(state == 2){
                 ASSERT(pos < len, "No sequence?");
@@ -310,6 +314,14 @@ int parse_rs_token(char* token, struct segment_specs** s_spec)
         if(spec->num_seq > 1){
                 ASSERT(spec->min_len == spec->max_len, "sequences have different lengths");
         }
+        /* set alloc_len */
+        /* {n,m} -> longer one  */
+        /* + - set to one  */
+        spec->alloc_len = spec->max_len;
+        if(spec->alloc_len == INT32_MAX){
+                spec->alloc_len = 1;
+        }
+        ASSERT(spec->alloc_len != 0, "Alloc len can't be 0");
 #ifdef DEBUG
         fprintf(stdout,"%s input\n", token);
 
@@ -333,7 +345,7 @@ int print_segment_spec(const struct segment_specs* spec)
         ASSERT(spec != NULL, "No spec");
         fprintf(stdout,"   %s name\n", spec->name);
         fprintf(stdout,"   %d type\n", spec->extract);
-        fprintf(stdout,"   %d %d  min,max len\n", spec->min_len,spec->max_len);
+        fprintf(stdout,"   %d %d (%d)  min,max len\n", spec->min_len,spec->max_len, spec->alloc_len);
         ASSERT(spec->num_seq != 0, "no sequence!");
         for(i = 0; i < spec->num_seq;i++){
                 fprintf(stdout,"   %s\n", spec->seq[i]);
@@ -390,6 +402,7 @@ int alloc_segment_spec(struct segment_specs** s)
         spec->min_len = 0;
         spec->extract = 0;
         spec->num_seq = 0;
+        spec->alloc_len = 0;
         spec->seq = NULL;
         spec->name = NULL;
 

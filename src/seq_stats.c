@@ -72,26 +72,27 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
         for(i = 0;i < al->num_arch;i++){
                 five_test_sequence[i] = NULL;
                 three_test_sequence[i] = NULL;
-                if(al->read_structure[i]->type[0] == 'P'){
-                        len =   al->read_structure[i]->segment_length[0];//  strlen(al->read_structure[i]->sequence_matrix[0][0]);
+                if(al->read_structure[i]->seg_spec[0]->extract == ARCH_ETYPE_PARTIAL){
+                        len = al->read_structure[i]->seg_spec[0]->max_len;//  segment_length[0];//  strlen(al->read_structure[i]->sequence_matrix[0][0]);
                         MMALLOC(five_test_sequence[i], sizeof(char) * (len+1));
                         for(c = 0; c < numfiles;c++){
                                 si->ssi[c]->expected_5_len[i] = (double)len;
                         }
                         for(j = 0; j < len;j++){
-                                five_test_sequence[i][j] =  tlalphabet_get_code(a,al->read_structure[i]->sequence_matrix[0][0][j]);
+                                five_test_sequence[i][j] =  tlalphabet_get_code(a,al->read_structure[i]->seg_spec[0]->seq[0][j]);
                         }
                         five_test_sequence[i][len] = 0;
                 }
                 last = al->read_structure[i]->num_segments -1;
-                if(al->read_structure[i]->type[last] == 'P'){
-                        len =  al->read_structure[i]->segment_length[last];// strlen(al->read_structure[i]->sequence_matrix[last][0]);
+                if(al->read_structure[i]->seg_spec[last]->extract == ARCH_ETYPE_PARTIAL){
+                        len = al->read_structure[i]->seg_spec[last]->max_len;//  segment_length[0];//  strlen(al->read_structure[i]->sequence_matrix[0][0]);
+                        //len =  al->read_structure[i]->segment_length[last];// strlen(al->read_structure[i]->sequence_matrix[last][0]);
                         MMALLOC(three_test_sequence[i], sizeof(char) * (len+1));
                         for(c = 0; c < numfiles;c++){
                                 si->ssi[c]->expected_3_len[i] = (double)len;
                         }
                         for(j = 0; j < len;j++){
-                                three_test_sequence[i][j] =  tlalphabet_get_code(a,al->read_structure[i]->sequence_matrix[0][0][j]);
+                                three_test_sequence[i][j] =  tlalphabet_get_code(a,al->read_structure[i]->seg_spec[last]->seq[0][j]);
                         }
                         three_test_sequence[i][len] = 0;
                 }

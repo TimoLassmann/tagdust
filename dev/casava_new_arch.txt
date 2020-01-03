@@ -4,4 +4,4 @@ tagdust   -1     S:AAAGTG,AATTGA,AAAGGC
 tagdust   -1     S:CCAGTG,CCTTGA,CCAGGC 
 tagdust   -1     S:GGAGTG,GGTTGA,GGAGGC 
 
-tagdust -1 READ1:E:N
+tagdust -1 E:N

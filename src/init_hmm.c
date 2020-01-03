@@ -274,7 +274,7 @@ struct model* init_model_according_to_read_structure(struct model* model,struct 
 
         for(i = 0; i < model->num_hmms;i++){
                 len = model->hmms[i]->num_columns;
-                tmp = rs->sequence_matrix[key][i];
+                tmp = rs->seg_spec[key]->seq[i];//  sequence_matrix[key][i];
                 //LOG_MSG("%s",tmp);
                 //sets emission probabilities...
                 for(j = 0; j < len;j++){
@@ -351,191 +351,191 @@ struct model* init_model_according_to_read_structure(struct model* model,struct 
         model->skip = prob2scaledprob(0.0f);
         model->skip_e = prob2scaledprob(0.0f);
 
-        if(rs->type[key] == 'B'){// barcodes all have same length & equal prior probability...
-                for(i = 0 ; i < model->num_hmms;i++){
-                        model->silent_to_M[i][0] = prob2scaledprob(1.0 / (float) model->num_hmms);// + prob2scaledprob(0.9);
-                        model->silent_to_I[i][0] = prob2scaledprob(0.0f);
-                }
-                model->skip = prob2scaledprob(0.0);
-        }
+        /* if(rs->type[key] == 'B'){// barcodes all have same length & equal prior probability... */
+        /*         for(i = 0 ; i < model->num_hmms;i++){ */
+        /*                 model->silent_to_M[i][0] = prob2scaledprob(1.0 / (float) model->num_hmms);// + prob2scaledprob(0.9); */
+        /*                 model->silent_to_I[i][0] = prob2scaledprob(0.0f); */
+        /*         } */
+        /*         model->skip = prob2scaledprob(0.0); */
+        /* } */
 
-        if(rs->type[key] == 'F'){// fingerprint all have same length & equal prior probability... (of course we specify 1 with NNNNNNNN
-                for(i = 0 ; i < model->num_hmms;i++){
-                        model->silent_to_M[i][0] = prob2scaledprob(1.0 / (float) model->num_hmms);
-                        //model->M_to_silent[i] = prob2scaledprob(1.0);
-                }
-                model->skip = prob2scaledprob(0.0);
-        }
-
-
-        if(rs->type[key] == 'S'){// fingerprint all have same length & equal prior probability... (of course we specify 1 with NNNNNNNN
-                for(i = 0 ; i < model->num_hmms;i++){
-                        model->silent_to_M[i][0] = prob2scaledprob(1.0 / (float) model->num_hmms);
-                        model->silent_to_I[i][0] = prob2scaledprob(0.0f);
-                        //model->M_to_silent[i] = prob2scaledprob(1.0);
-                }
-                model->skip = prob2scaledprob(0.0);
-        }
-
-        if(rs->type[key] == 'P'){// Partial - can skip and exit at every M / I state....
-                len = model->hmms[0]->num_columns;
-                for(i = 0 ; i < model->num_hmms;i++){
-                        model->silent_to_M[i][0] = prob2scaledprob(1.0 / (float) model->num_hmms) + prob2scaledprob(1.0 - 0.01);
-                        //model->M_to_silent[i] = prob2scaledprob(1.0);
-
-                        for(j = 0; j < len;j++){
-                                col = model->hmms[i]->hmm_column[j];
-                                col->transition[MM] = prob2scaledprob( 1.0 - base_error * indel_freq ) + prob2scaledprob(0.99f);
-                                col->transition[MI] = prob2scaledprob(base_error * indel_freq) +  prob2scaledprob(0.5)+ prob2scaledprob(0.99f);
-                                col->transition[MD] = prob2scaledprob(base_error * indel_freq) +  prob2scaledprob(0.5)+ prob2scaledprob(0.99f);
-                                col->transition[MSKIP] = prob2scaledprob(0.01f);
-
-                                col->transition[II] = prob2scaledprob(1.0 - 0.999) + prob2scaledprob(0.99f);
-                                col->transition[IM] = prob2scaledprob(0.999) + prob2scaledprob(0.99f);
-                                col->transition[ISKIP] = prob2scaledprob(0.01f);
-                        }
-                }
-                model->skip = prob2scaledprob(0.01);
-        }
+        /* if(rs->type[key] == 'F'){// fingerprint all have same length & equal prior probability... (of course we specify 1 with NNNNNNNN */
+        /*         for(i = 0 ; i < model->num_hmms;i++){ */
+        /*                 model->silent_to_M[i][0] = prob2scaledprob(1.0 / (float) model->num_hmms); */
+        /*                 //model->M_to_silent[i] = prob2scaledprob(1.0); */
+        /*         } */
+        /*         model->skip = prob2scaledprob(0.0); */
+        /* } */
 
 
+        /* if(rs->type[key] == 'S'){// fingerprint all have same length & equal prior probability... (of course we specify 1 with NNNNNNNN */
+        /*         for(i = 0 ; i < model->num_hmms;i++){ */
+        /*                 model->silent_to_M[i][0] = prob2scaledprob(1.0 / (float) model->num_hmms); */
+        /*                 model->silent_to_I[i][0] = prob2scaledprob(0.0f); */
+        /*                 //model->M_to_silent[i] = prob2scaledprob(1.0); */
+        /*         } */
+        /*         model->skip = prob2scaledprob(0.0); */
+        /* } */
 
-        if(rs->type[key] == 'O'){ // optional - like a G, GG or GGG priot probability set to 0.5  - assume length 2 for now,
-                len = model->hmms[0]->num_columns;
-                for(i = 0 ; i < model->num_hmms;i++){
-                        //model->silent_to_M[i] = prob2scaledprob(1.0 / (float) model->num_hmms) + prob2scaledprob(0.5);
-                        //model->M_to_silent[i] = prob2scaledprob(1.0);
+        /* if(rs->type[key] == 'P'){// Partial - can skip and exit at every M / I state.... */
+        /*         len = model->hmms[0]->num_columns; */
+        /*         for(i = 0 ; i < model->num_hmms;i++){ */
+        /*                 model->silent_to_M[i][0] = prob2scaledprob(1.0 / (float) model->num_hmms) + prob2scaledprob(1.0 - 0.01); */
+        /*                 //model->M_to_silent[i] = prob2scaledprob(1.0); */
 
-                        model->silent_to_I[i][0] = prob2scaledprob(1.0 / (float) model->num_hmms) + prob2scaledprob(0.5);
-                        //model->I_to_silent[i] = prob2scaledprob(1.0 / (float) (len+1));
+        /*                 for(j = 0; j < len;j++){ */
+        /*                         col = model->hmms[i]->hmm_column[j]; */
+        /*                         col->transition[MM] = prob2scaledprob( 1.0 - base_error * indel_freq ) + prob2scaledprob(0.99f); */
+        /*                         col->transition[MI] = prob2scaledprob(base_error * indel_freq) +  prob2scaledprob(0.5)+ prob2scaledprob(0.99f); */
+        /*                         col->transition[MD] = prob2scaledprob(base_error * indel_freq) +  prob2scaledprob(0.5)+ prob2scaledprob(0.99f); */
+        /*                         col->transition[MSKIP] = prob2scaledprob(0.01f); */
 
-                        //len = model->hmms[i]->num_columns;
-                        //tmp = rs->sequence_matrix[key][i];
-                        for(j = 0; j < len;j++){
-                                col = model->hmms[i]->hmm_column[j];
-                                for(c = 0; c < 5;c++){
-                                        col->i_emit[c] = col->m_emit[c];
-                                        col->m_emit[c] = prob2scaledprob(0.0);
-                                }
-                        }
-                }
-                model->skip = prob2scaledprob(0.5);
-                col = model->hmms[0]->hmm_column[0];
-                col->transition[MM] = prob2scaledprob( 0.0 );
-                col->transition[MI] = prob2scaledprob(0.0);
-                col->transition[MD] = prob2scaledprob(0.0);
-                col->transition[MSKIP] = prob2scaledprob(0.0);
-
-                //col->transition[MQUIT] = prob2scaledprob(1.0 / (float) 2);
-
-                col->transition[II] = prob2scaledprob(1.0 - 1.0 / (float)(len+1) );
-                col->transition[IM] = prob2scaledprob(0.0);
-                col->transition[ISKIP] =  prob2scaledprob(1.0 / (float) (len+1));
-
-
-                col->transition[DD] = prob2scaledprob(0.0);
-                col->transition[DM] = prob2scaledprob(0.0);
-
-
-                col->transition_e[MM] =  prob2scaledprob(0.0);
-                col->transition_e[MI] =  prob2scaledprob(0.0);
-                col->transition_e[MD] =  prob2scaledprob(0.0);
-
-                col->transition_e[II] =  prob2scaledprob(0.0);
-                col->transition_e[IM] =  prob2scaledprob(0.0);
-
-                col->transition_e[DD] =  prob2scaledprob(0.0);
-                col->transition_e[DM] =  prob2scaledprob(0.0);
+        /*                         col->transition[II] = prob2scaledprob(1.0 - 0.999) + prob2scaledprob(0.99f); */
+        /*                         col->transition[IM] = prob2scaledprob(0.999) + prob2scaledprob(0.99f); */
+        /*                         col->transition[ISKIP] = prob2scaledprob(0.01f); */
+        /*                 } */
+        /*         } */
+        /*         model->skip = prob2scaledprob(0.01); */
+        /* } */
 
 
 
-        }
+        /* if(rs->type[key] == 'O'){ // optional - like a G, GG or GGG priot probability set to 0.5  - assume length 2 for now, */
+        /*         len = model->hmms[0]->num_columns; */
+        /*         for(i = 0 ; i < model->num_hmms;i++){ */
+        /*                 //model->silent_to_M[i] = prob2scaledprob(1.0 / (float) model->num_hmms) + prob2scaledprob(0.5); */
+        /*                 //model->M_to_silent[i] = prob2scaledprob(1.0); */
 
-        if(rs->type[key] == 'G'){ // optional - like a G, GG or GGG priot probability set to 0.5  - assume length 2 for now,
-                len = model->hmms[0]->num_columns;
-                for(i = 0 ; i < model->num_hmms;i++){
-                        //model->silent_to_M[i] = prob2scaledprob(1.0 / (float) model->num_hmms) + prob2scaledprob(0.5);
-                        //model->M_to_silent[i] = prob2scaledprob(1.0);
+        /*                 model->silent_to_I[i][0] = prob2scaledprob(1.0 / (float) model->num_hmms) + prob2scaledprob(0.5); */
+        /*                 //model->I_to_silent[i] = prob2scaledprob(1.0 / (float) (len+1)); */
 
-                        model->silent_to_I[i][0] = prob2scaledprob(0.8935878);
-                        //model->I_to_silent[i] = prob2scaledprob(1.0 - 0.195);
+        /*                 //len = model->hmms[i]->num_columns; */
+        /*                 //tmp = rs->sequence_matrix[key][i]; */
+        /*                 for(j = 0; j < len;j++){ */
+        /*                         col = model->hmms[i]->hmm_column[j]; */
+        /*                         for(c = 0; c < 5;c++){ */
+        /*                                 col->i_emit[c] = col->m_emit[c]; */
+        /*                                 col->m_emit[c] = prob2scaledprob(0.0); */
+        /*                         } */
+        /*                 } */
+        /*         } */
+        /*         model->skip = prob2scaledprob(0.5); */
+        /*         col = model->hmms[0]->hmm_column[0]; */
+        /*         col->transition[MM] = prob2scaledprob( 0.0 ); */
+        /*         col->transition[MI] = prob2scaledprob(0.0); */
+        /*         col->transition[MD] = prob2scaledprob(0.0); */
+        /*         col->transition[MSKIP] = prob2scaledprob(0.0); */
 
-                        //len = model->hmms[i]->num_columns;
-                        //tmp = rs->sequence_matrix[key][i];
-                        for(j = 0; j < len;j++){
-                                col = model->hmms[i]->hmm_column[j];
-                                for(c = 0; c < 5;c++){
-                                        col->i_emit[c] = col->m_emit[c];
-                                        col->m_emit[c] = prob2scaledprob(0.0);
-                                }
-                        }
-                }
-                model->skip = prob2scaledprob(1.0 - 0.8935878);
-                col = model->hmms[0]->hmm_column[0];
-                col->transition[MM] = prob2scaledprob( 0.0 );
-                col->transition[MI] = prob2scaledprob(0.0);
-                col->transition[MD] = prob2scaledprob(0.0);
+        /*         //col->transition[MQUIT] = prob2scaledprob(1.0 / (float) 2); */
 
-                //col->transition[MQUIT] = prob2scaledprob(1.0 / (float) 2);
-
-                col->transition[II] = prob2scaledprob(0.195);
-                col->transition[IM] = prob2scaledprob(0.0);
-
-                col->transition[DD] = prob2scaledprob(0.0);
-                col->transition[DM] = prob2scaledprob(0.0);
+        /*         col->transition[II] = prob2scaledprob(1.0 - 1.0 / (float)(len+1) ); */
+        /*         col->transition[IM] = prob2scaledprob(0.0); */
+        /*         col->transition[ISKIP] =  prob2scaledprob(1.0 / (float) (len+1)); */
 
 
-                col->transition_e[MM] =  prob2scaledprob(0.0);
-                col->transition_e[MI] =  prob2scaledprob(0.0);
-                col->transition_e[MD] =  prob2scaledprob(0.0);
+        /*         col->transition[DD] = prob2scaledprob(0.0); */
+        /*         col->transition[DM] = prob2scaledprob(0.0); */
 
-                col->transition_e[II] =  prob2scaledprob(0.0);
-                col->transition_e[IM] =  prob2scaledprob(0.0);
 
-                col->transition_e[DD] =  prob2scaledprob(0.0);
-                col->transition_e[DM] =  prob2scaledprob(0.0);
-        }
+        /*         col->transition_e[MM] =  prob2scaledprob(0.0); */
+        /*         col->transition_e[MI] =  prob2scaledprob(0.0); */
+        /*         col->transition_e[MD] =  prob2scaledprob(0.0); */
 
-        if(rs->type[key] == 'R'){// read - skip impossible;
-                for(i = 0 ; i < model->num_hmms;i++){
-                        model->silent_to_I[i][0] = prob2scaledprob(1.0 / (float) model->num_hmms);
-                        //		model->I_to_silent[i] = prob2scaledprob(1.0 / (float) assumed_length);
-                }
-                col = model->hmms[0]->hmm_column[0];
-                for(c = 0; c < 5;c++){
+        /*         col->transition_e[II] =  prob2scaledprob(0.0); */
+        /*         col->transition_e[IM] =  prob2scaledprob(0.0); */
 
-                        col->m_emit[c] =background[c];
+        /*         col->transition_e[DD] =  prob2scaledprob(0.0); */
+        /*         col->transition_e[DM] =  prob2scaledprob(0.0); */
 
-                        col->i_emit[c] = background[c];
-                        col->i_emit_e[c] =  prob2scaledprob(0.0f);
-                        col->m_emit_e[c] =  prob2scaledprob(0.0f);
-                }
-                col->transition[MM] = prob2scaledprob( 0.0);
-                col->transition[MI] = prob2scaledprob(0.0);
-                col->transition[MD] = prob2scaledprob(0.0);
-                col->transition[MSKIP] = prob2scaledprob(0.0);
 
-                //col->transition[MQUIT] = prob2scaledprob(1.0 / (float) assumed_length);
-                col->transition[II] = prob2scaledprob(1.0 - 1.0 / (float) assumed_length );
-                col->transition[IM] = prob2scaledprob(0.0);
-                col->transition[ISKIP] = prob2scaledprob(1.0 / (float) assumed_length);
 
-                col->transition[DD] = prob2scaledprob(0.0);
-                col->transition[DM] = prob2scaledprob(0.0);
+        /* } */
 
-                col->transition_e[MM] =  prob2scaledprob(0.0);
-                col->transition_e[MI] =  prob2scaledprob(0.0);
-                col->transition_e[MD] =  prob2scaledprob(0.0);
+        /* if(rs->type[key] == 'G'){ // optional - like a G, GG or GGG priot probability set to 0.5  - assume length 2 for now, */
+        /*         len = model->hmms[0]->num_columns; */
+        /*         for(i = 0 ; i < model->num_hmms;i++){ */
+        /*                 //model->silent_to_M[i] = prob2scaledprob(1.0 / (float) model->num_hmms) + prob2scaledprob(0.5); */
+        /*                 //model->M_to_silent[i] = prob2scaledprob(1.0); */
 
-                col->transition_e[II] =  prob2scaledprob(0.0);
-                col->transition_e[IM] =  prob2scaledprob(0.0);
+        /*                 model->silent_to_I[i][0] = prob2scaledprob(0.8935878); */
+        /*                 //model->I_to_silent[i] = prob2scaledprob(1.0 - 0.195); */
 
-                col->transition_e[DD] =  prob2scaledprob(0.0);
-                col->transition_e[DM] =  prob2scaledprob(0.0);
+        /*                 //len = model->hmms[i]->num_columns; */
+        /*                 //tmp = rs->sequence_matrix[key][i]; */
+        /*                 for(j = 0; j < len;j++){ */
+        /*                         col = model->hmms[i]->hmm_column[j]; */
+        /*                         for(c = 0; c < 5;c++){ */
+        /*                                 col->i_emit[c] = col->m_emit[c]; */
+        /*                                 col->m_emit[c] = prob2scaledprob(0.0); */
+        /*                         } */
+        /*                 } */
+        /*         } */
+        /*         model->skip = prob2scaledprob(1.0 - 0.8935878); */
+        /*         col = model->hmms[0]->hmm_column[0]; */
+        /*         col->transition[MM] = prob2scaledprob( 0.0 ); */
+        /*         col->transition[MI] = prob2scaledprob(0.0); */
+        /*         col->transition[MD] = prob2scaledprob(0.0); */
 
-                model->skip = prob2scaledprob(0.0);
+        /*         //col->transition[MQUIT] = prob2scaledprob(1.0 / (float) 2); */
 
-        }
+        /*         col->transition[II] = prob2scaledprob(0.195); */
+        /*         col->transition[IM] = prob2scaledprob(0.0); */
+
+        /*         col->transition[DD] = prob2scaledprob(0.0); */
+        /*         col->transition[DM] = prob2scaledprob(0.0); */
+
+
+        /*         col->transition_e[MM] =  prob2scaledprob(0.0); */
+        /*         col->transition_e[MI] =  prob2scaledprob(0.0); */
+        /*         col->transition_e[MD] =  prob2scaledprob(0.0); */
+
+        /*         col->transition_e[II] =  prob2scaledprob(0.0); */
+        /*         col->transition_e[IM] =  prob2scaledprob(0.0); */
+
+        /*         col->transition_e[DD] =  prob2scaledprob(0.0); */
+        /*         col->transition_e[DM] =  prob2scaledprob(0.0); */
+        /* } */
+
+        /* if(rs->type[key] == 'R'){// read - skip impossible; */
+        /*         for(i = 0 ; i < model->num_hmms;i++){ */
+        /*                 model->silent_to_I[i][0] = prob2scaledprob(1.0 / (float) model->num_hmms); */
+        /*                 //		model->I_to_silent[i] = prob2scaledprob(1.0 / (float) assumed_length); */
+        /*         } */
+        /*         col = model->hmms[0]->hmm_column[0]; */
+        /*         for(c = 0; c < 5;c++){ */
+
+        /*                 col->m_emit[c] =background[c]; */
+
+        /*                 col->i_emit[c] = background[c]; */
+        /*                 col->i_emit_e[c] =  prob2scaledprob(0.0f); */
+        /*                 col->m_emit_e[c] =  prob2scaledprob(0.0f); */
+        /*         } */
+        /*         col->transition[MM] = prob2scaledprob( 0.0); */
+        /*         col->transition[MI] = prob2scaledprob(0.0); */
+        /*         col->transition[MD] = prob2scaledprob(0.0); */
+        /*         col->transition[MSKIP] = prob2scaledprob(0.0); */
+
+        /*         //col->transition[MQUIT] = prob2scaledprob(1.0 / (float) assumed_length); */
+        /*         col->transition[II] = prob2scaledprob(1.0 - 1.0 / (float) assumed_length ); */
+        /*         col->transition[IM] = prob2scaledprob(0.0); */
+        /*         col->transition[ISKIP] = prob2scaledprob(1.0 / (float) assumed_length); */
+
+        /*         col->transition[DD] = prob2scaledprob(0.0); */
+        /*         col->transition[DM] = prob2scaledprob(0.0); */
+
+        /*         col->transition_e[MM] =  prob2scaledprob(0.0); */
+        /*         col->transition_e[MI] =  prob2scaledprob(0.0); */
+        /*         col->transition_e[MD] =  prob2scaledprob(0.0); */
+
+        /*         col->transition_e[II] =  prob2scaledprob(0.0); */
+        /*         col->transition_e[IM] =  prob2scaledprob(0.0); */
+
+        /*         col->transition_e[DD] =  prob2scaledprob(0.0); */
+        /*         col->transition_e[DM] =  prob2scaledprob(0.0); */
+
+        /*         model->skip = prob2scaledprob(0.0); */
+
+        /* } */
         return model;
 }
 
@@ -544,8 +544,9 @@ struct model* malloc_model_according_to_read_structure(int num_hmm, int length,i
 {
         struct model* model = NULL;
         struct hmm_column* col = NULL;
-        //int status;
+
         int i = 0;
+
         int j = 0;
         int c = 0;
         int len = 0;

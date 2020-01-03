@@ -156,12 +156,12 @@ int assign_segment_sequences(struct read_structure* read_structure, char* tmp, i
         //struct segment_specs* s = NULL;
 
         RUN(parse_rs_token_message(tmp,&read_structure->seg_spec[segment]));
-        read_structure->numseq_in_segment[segment] = read_structure->seg_spec[segment]->num_seq;
+        //read_structure->numseq_in_segment[segment] = read_structure->seg_spec[segment]->num_seq;
 
-        read_structure->segment_length[segment] = read_structure->seg_spec[segment]->max_len;
-        if(read_structure->seg_spec[segment]->max_len == INT32_MAX){
-                read_structure->segment_length[segment] = 1;
-        }
+        //read_structure->segment_length[segment] = read_structure->seg_spec[segment]->max_len;
+        //if(read_structure->seg_spec[segment]->max_len == INT32_MAX){
+        //read_structure->segment_length[segment] = 1;
+        //}
 
 
 
@@ -173,7 +173,7 @@ int assign_segment_sequences(struct read_structure* read_structure, char* tmp, i
         return OK;
         //read_structure->seg_spec[segment] =
 
-        count = 0;
+        /*count = 0;
 
         switch (tmp[0]) {
         case 'R':
@@ -183,7 +183,7 @@ int assign_segment_sequences(struct read_structure* read_structure, char* tmp, i
         case 'S':
         case 'F':
         case 'B':
-        case 'L':               /* DO I NEED THIS???  */
+        case 'L':
                 break;
 
         default:
@@ -273,16 +273,6 @@ int assign_segment_sequences(struct read_structure* read_structure, char* tmp, i
                 read_structure->segment_length[segment] = g;
                 read_structure->sequence_matrix[segment][f][g] = 0;
         }
-        //fprintf(stdout,"%s LEn:%d\n", tmp, read_structure->segment_length[segment]);
-        /* if(tmp[0] == 'B'){ */
-        /*         f = f + 1; */
-        /*         g = 0; */
-        /*         for(i = 0; i <  read_structure->segment_length[segment];i++){ */
-        /*                 read_structure->sequence_matrix[segment][f][g] = 'N'; */
-        /*                 g++; */
-        /*         } */
-        /*         read_structure->sequence_matrix[segment][f][g] = 0; */
-        /* } */
 
         if(tmp[0] == 'S'){
                 f = f + 1;
@@ -298,11 +288,11 @@ int assign_segment_sequences(struct read_structure* read_structure, char* tmp, i
         if(segment+1 >read_structure->num_segments  ){
                 read_structure->num_segments = segment+1;
         }
-        return OK;
+        return OK;*/
 ERROR:
-        if(read_structure->sequence_matrix[segment]){
+        /*if(read_structure->sequence_matrix[segment]){
 
-                for(i = 0; i < count+1;i++){
+                //for(i = 0; i < count+1;i++){
                         MFREE(read_structure->sequence_matrix[segment][i]);//,sizeof(char)* strlen(tmp));
                 }
                 MFREE(read_structure->sequence_matrix[segment]);//,sizeof(char*) * (count+1));
@@ -311,7 +301,7 @@ ERROR:
                         read_structure->seg_spec[segment] = NULL;
                 }
                 //RUN(parse_rs_token_message(tmp,&read_structure->seg_spec[segment]));
-        }
+                }*/
 
         return FAIL;
 }
@@ -320,7 +310,7 @@ int alloc_arch_lib(struct arch_library** arch)
 {
         struct arch_library* al = NULL;
         char* in[] = {
-                "READ1:E:N+"
+                "E:N+"
         };
 
         int i;
@@ -411,38 +401,38 @@ int malloc_read_structure(struct read_structure** read_structure)
         MMALLOC(rs, sizeof(struct read_structure));
         rs->num_segments = 0;
         rs->alloc_num_seqments = 8;
-        rs->segment_name = NULL;
-        rs->sequence_matrix = NULL;
-        rs->numseq_in_segment = NULL;
-        rs->type = NULL;
-        rs->segment_length = NULL;
-        rs->segment_name = NULL;
-        rs->extract = NULL;
-        rs->max_len = NULL;
-        rs->min_len = NULL;
+        //rs->segment_name = NULL;
+        //rs->sequence_matrix = NULL;
+        //rs->numseq_in_segment = NULL;
+        //rs->type = NULL;
+        //rs->segment_length = NULL;
+        //rs->segment_name = NULL;
+        //rs->extract = NULL;
+        //rs->max_len = NULL;
+        //rs->min_len = NULL;
         rs->seg_spec = NULL;
         //rs->assignment_to_read = 0;
-        MMALLOC(rs->sequence_matrix ,sizeof(char**) * rs->alloc_num_seqments );
-        MMALLOC(rs->segment_name ,sizeof(char*) * rs->alloc_num_seqments );
+        //MMALLOC(rs->sequence_matrix ,sizeof(char**) * rs->alloc_num_seqments );
+        //MMALLOC(rs->segment_name ,sizeof(char*) * rs->alloc_num_seqments );
         MMALLOC(rs->seg_spec ,sizeof(struct segment_specs**) * rs->alloc_num_seqments );
-        MMALLOC(rs->numseq_in_segment, sizeof(int) * rs->alloc_num_seqments);
-        MMALLOC(rs->segment_length, sizeof(int) * rs->alloc_num_seqments);
-        MMALLOC(rs->type ,sizeof(char) * rs->alloc_num_seqments );
-        MMALLOC(rs->extract, sizeof(uint8_t) * rs->alloc_num_seqments);
-        MMALLOC(rs->max_len, sizeof(int) * rs->alloc_num_seqments);
-        MMALLOC(rs->min_len, sizeof(int) * rs->alloc_num_seqments);
+        //MMALLOC(rs->numseq_in_segment, sizeof(int) * rs->alloc_num_seqments);
+        //MMALLOC(rs->segment_length, sizeof(int) * rs->alloc_num_seqments);
+        //MMALLOC(rs->type ,sizeof(char) * rs->alloc_num_seqments );
+        //MMALLOC(rs->extract, sizeof(uint8_t) * rs->alloc_num_seqments);
+        //MMALLOC(rs->max_len, sizeof(int) * rs->alloc_num_seqments);
+        //MMALLOC(rs->min_len, sizeof(int) * rs->alloc_num_seqments);
 
 
         for(i = 0;i < rs->alloc_num_seqments;i++){
                 rs->seg_spec[i] = NULL;
-                rs->sequence_matrix[i] = NULL;
-                rs->segment_name[i] = NULL;
-                rs->numseq_in_segment[i] = 0;
-                rs->segment_length[i] = 0;
-                rs->type[i] = 0;
-                rs->extract[i] = 0;
-                rs->max_len[i] = 0;
-                rs->min_len[i] = 0;
+                //rs->sequence_matrix[i] = NULL;
+                //rs->segment_name[i] = NULL;
+                //rs->numseq_in_segment[i] = 0;
+                //rs->segment_length[i] = 0;
+                //rs->type[i] = 0;
+                //rs->extract[i] = 0;
+                //rs->max_len[i] = 0;
+                //rs->min_len[i] = 0;
         }
 
 
@@ -460,25 +450,25 @@ int resize_read_structure(struct read_structure* rs)
         ASSERT(rs!= NULL, "No read structure");
         old = rs->alloc_num_seqments;
         rs->alloc_num_seqments = rs->alloc_num_seqments + rs->alloc_num_seqments /2;
-        MREALLOC(rs->sequence_matrix ,sizeof(char**) * rs->alloc_num_seqments );
-        MREALLOC(rs->segment_name ,sizeof(char*) * rs->alloc_num_seqments );
+        //MREALLOC(rs->sequence_matrix ,sizeof(char**) * rs->alloc_num_seqments );
+        //MREALLOC(rs->segment_name ,sizeof(char*) * rs->alloc_num_seqments );
         MREALLOC(rs->seg_spec ,sizeof(struct segment_specs**) * rs->alloc_num_seqments );
-        MREALLOC(rs->numseq_in_segment, sizeof(int) * rs->alloc_num_seqments);
-        MREALLOC(rs->segment_length, sizeof(int) * rs->alloc_num_seqments);
-        MREALLOC(rs->type ,sizeof(char) * rs->alloc_num_seqments );
-        MREALLOC(rs->extract, sizeof(uint8_t) * rs->alloc_num_seqments);
-        MREALLOC(rs->max_len, sizeof(int) * rs->alloc_num_seqments);
-        MREALLOC(rs->min_len, sizeof(int) * rs->alloc_num_seqments);
+        //MREALLOC(rs->numseq_in_segment, sizeof(int) * rs->alloc_num_seqments);
+        //MREALLOC(rs->segment_length, sizeof(int) * rs->alloc_num_seqments);
+        //MREALLOC(rs->type ,sizeof(char) * rs->alloc_num_seqments );
+        //MREALLOC(rs->extract, sizeof(uint8_t) * rs->alloc_num_seqments);
+        //MREALLOC(rs->max_len, sizeof(int) * rs->alloc_num_seqments);
+        //MREALLOC(rs->min_len, sizeof(int) * rs->alloc_num_seqments);
         for(i = old;i < rs->alloc_num_seqments;i++){
                 rs->seg_spec[i] = NULL;
-                rs->sequence_matrix[i] = NULL;
-                rs->segment_name[i] = NULL;
-                rs->numseq_in_segment[i] = 0;
-                rs->segment_length[i] = 0;
-                rs->type[i] = 0;
-                rs->extract[i] = 0;
-                rs->max_len[i] = 0;
-                rs->min_len[i] = 0;
+                //rs->sequence_matrix[i] = NULL;
+                //rs->segment_name[i] = NULL;
+                //rs->numseq_in_segment[i] = 0;
+                //rs->segment_length[i] = 0;
+                //rs->type[i] = 0;
+                //rs->extract[i] = 0;
+                //rs->max_len[i] = 0;
+                //rs->min_len[i] = 0;
         }
         return OK;
 ERROR:
@@ -491,7 +481,7 @@ void free_read_structure(struct read_structure* read_structure)
         int i,j;
         if(read_structure){
                 for(i = 0; i < read_structure->alloc_num_seqments;i++){
-                        if(read_structure->sequence_matrix[i]){
+                        /*if(read_structure->sequence_matrix[i]){
                                 for(j = 0; j < read_structure->numseq_in_segment[i];j++){
                                         MFREE(read_structure->sequence_matrix[i][j]);
                                 }
@@ -500,21 +490,21 @@ void free_read_structure(struct read_structure* read_structure)
                         }
                         if(read_structure->segment_name[i]){
                                 MFREE(read_structure->segment_name[i]);
-                        }
+                                }*/
                         if(read_structure->seg_spec[i]){
 
                                 free_segment_spec(read_structure->seg_spec[i]);
                         }
                 }
                 MFREE(read_structure->seg_spec);
-                MFREE(read_structure->sequence_matrix);
-                MFREE(read_structure->segment_name);
-                MFREE(read_structure->segment_length);
-                MFREE(read_structure->numseq_in_segment );
-                MFREE(read_structure->type);
-                MFREE(read_structure->extract);
-                MFREE(read_structure->max_len);
-                MFREE(read_structure->min_len);
+                //MFREE(read_structure->sequence_matrix);
+                //MFREE(read_structure->segment_name);
+                //MFREE(read_structure->segment_length);
+                //MFREE(read_structure->numseq_in_segment );
+                //MFREE(read_structure->type);
+                //MFREE(read_structure->extract);
+                //MFREE(read_structure->max_len);
+                //MFREE(read_structure->min_len);
                 MFREE(read_structure);
         }
 }
@@ -524,49 +514,9 @@ int QC_read_structure(struct read_structure* read_structure )
 {
         int i,g,f;//min_error;//errors;
         int last = -1;
-        //int num_pairs = 0;
-        for(i = 0; i < read_structure->num_segments;i++){
-
-
-                if(read_structure->sequence_matrix[i]){
-                        if(last +1 != i){
-                                ERROR_MSG("ERROR: a hmm building lock was skipped??\n");
-                                //sprintf(param->buffer,"ERROR: a hmm building lock was skipped??\n");
-                                //param->messages = append_message(param->messages, param->buffer);
-
-                                //return FAIL;
-                        }
-
-
-                        //serious checking...
-                        for(g = 0;g < read_structure->numseq_in_segment[i];g++){
-                                for(f = g+1;f < read_structure->numseq_in_segment[i];f++){
-                                        //if(read_structure->segment_length[i] != read_structure->segment_length[i]){
-                                        //      ERROR_MSG("ERROR: the sequences in the same segment have to have the same length.\n");
-                                        //}
-                                }
-                        }
-                        last = i;
-                }
 
 
 
-                /*if(read_structure->type[i] == 'B'){
-                        min_error = 1000;
-                        for(g = 0;g <  read_structure->numseq_in_segment[i];g++){
-p                                for(f = g+1;f < read_structure->numseq_in_segment[i];f++){
-                                        errors = bpm(read_structure->sequence_matrix[i][g], read_structure->sequence_matrix[i][f], (int)strlen(read_structure->sequence_matrix[i][0]),(int)strlen(read_structure->sequence_matrix[i][0]));
-
-                                        if(errors < min_error){
-                                                min_error = errors;
-                                                num_pairs = 1;
-                                        }else if(errors == min_error ){
-                                                num_pairs++;
-                                        }
-                                }
-                        }
-                        }*/
-        }
         return OK;
 ERROR:
         return FAIL;

@@ -84,18 +84,19 @@ int calibrate(struct arch_library* al, struct seq_stats* si,int* seeds,int i_fil
         RUN(init_model_bag(&mb,al->read_structure[i_hmm], si->ssi[i_file], si->a, i_hmm));
 
         for(i = 0; i < mb->num_models;i++){
-                if(al->read_structure[i_hmm]->type[i] == 'B'){
+                /* turn of transition to first HMM- which is NNNNN  */
+                if(al->read_structure[i_hmm]->seg_spec[i]->extract == ARCH_ETYPE_SPLIT){
+                        for(j = 1 ; j < mb->model[i]->num_hmms;j++){
+                                mb->model[i]->silent_to_M[j][0] = prob2scaledprob(1.0 / (float)( mb->model[i]->num_hmms-1));
+                        }
+                        mb->model[i]->silent_to_M[0][0] = prob2scaledprob(0.0);
+                }
+                /*if(al->read_structure[i_hmm]->type[i] == 'S'){
                         for(j = 0 ; j < mb->model[i]->num_hmms-1;j++){
                                 mb->model[i]->silent_to_M[j][0] = prob2scaledprob(1.0 / (float)( mb->model[i]->num_hmms-1));
                         }
                         mb->model[i]->silent_to_M[mb->model[i]->num_hmms-1][0] = prob2scaledprob(0.0);
-                }
-                if(al->read_structure[i_hmm]->type[i] == 'S'){
-                        for(j = 0 ; j < mb->model[i]->num_hmms-1;j++){
-                                mb->model[i]->silent_to_M[j][0] = prob2scaledprob(1.0 / (float)( mb->model[i]->num_hmms-1));
-                        }
-                        mb->model[i]->silent_to_M[mb->model[i]->num_hmms-1][0] = prob2scaledprob(0.0);
-                }
+                        }*/
         }
 
         RUNP(local_rng = init_rng(seeds[i_file]));

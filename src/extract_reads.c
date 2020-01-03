@@ -73,7 +73,7 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
         }
 
         /* figure out how many barcodes etc */
-        RUN(init_assign_structure(&as, al,   CHUNKS* READ_CHUNK_SIZE));
+        RUN(init_assign_structure(&as, al, param->outfile, CHUNKS* READ_CHUNK_SIZE));
 
         as->block_size = READ_CHUNK_SIZE;
         //RUN(galloc(&as->assignment, as->total, as->num_barcodes));
@@ -169,12 +169,13 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
 
                 STOP_TIMER(t1);
                 LOG_MSG("extract Took %f ",GET_TIMING(t1));
-                RUN(sort_as_by_file_type(as));
+                //RUN(sort_as_by_file_type(as));
 
                 if(ref){
                         START_TIMER(t1);
 #ifdef HAVE_OPENMP
 #pragma omp parallel default(shared)
+
 #pragma omp for private(i)
 #endif
                         for(i = 0; i < as->num_reads;i++){
@@ -203,7 +204,7 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
                 STOP_TIMER(t1);
                 LOG_MSG("Took %f ",GET_TIMING(t1));
                 //LOG_MSG("Write buff: %p",wb);
-                RUN(write_all(as,&wb, param->outfile));
+                //RUN(write_all(as,&wb, param->outfile));
                 RUN(reset_assign_structute(as));
                 exit(0);
         }
@@ -319,7 +320,7 @@ int run_extract( struct assign_struct* as,  struct tl_seq_buffer** rb, struct ar
                         cs.f = READ_FAILQ;
                 }
 
-                RUN(process_read(&cs,al->read_structure[i_hmm], as->bit_vec[seq_offset+i],i_file));
+                RUN(process_read(&cs,al->read_structure[i_hmm], as->bit_vec[seq_offset+i], as->file_index[i_file]));
         }
         free_model_bag(mb);
         MFREE(label);
@@ -329,10 +330,10 @@ ERROR:
         return FAIL;
 }
 
-int process_read(struct collect_read* ri, struct read_structure* rs , struct seq_bit_vec* b , int i_file)
+int process_read(struct collect_read* ri, struct read_structure* rs , struct seq_bit_vec* b , int local_bit_index)
 {
         struct seq_bit* sb = NULL;
-        char* type;
+        //char* type;
         char* read_label;
         int* label;
         uint8_t c;
@@ -342,21 +343,11 @@ int process_read(struct collect_read* ri, struct read_structure* rs , struct seq
         int c1;
         int len = ri->len;
         uint8_t old_c = 255;
-        int local_bit_index;
+        //      int local_bit_index;
 
         read_label = ri->label+1;
         label = ri->hmm_label;
-        type = rs->type;
-
-        local_bit_index = 0;
-        for(j = 0; j < b->num_bit;j++){
-                sb = b->bits[j];
-                if(sb->file == i_file){
-                        local_bit_index = j;
-                        break;
-                }
-
-        }
+        //type = rs->type;
 
         //assign_offset = as->num_per_file[i_file];
         for(j = 0; j < len;j++){
@@ -371,8 +362,9 @@ int process_read(struct collect_read* ri, struct read_structure* rs , struct seq
                         if(c != old_c){
                                 sb = b->bits[local_bit_index];
                                 sb->len = 0;
-                                ASSERT(i_file == sb->file, "Oh dear: want %d got %d",i_file,sb->file);
+                                //ASSERT(i_file == sb->file, "Oh dear: want %d got %d",i_file,sb->file);
                                 //sb->file = i_file;
+                                sb->code = (char) ( hmm_in_segment + 33);
                                 sb->type = UMI_TYPE;
                                 sb->p = ri->seq+j;
                                 sb->fail = ri->f;
@@ -388,9 +380,10 @@ int process_read(struct collect_read* ri, struct read_structure* rs , struct seq
                         if(c != old_c){
                                 sb = b->bits[local_bit_index];
                                 sb->len = 0;
-                                ASSERT(i_file == sb->file, "Oh dear: want %d got %d",i_file,sb->file);
+                                //ASSERT(i_file == sb->file, "Oh dear: want %d got %d",i_file,sb->file);
                                 //sb->file = i_file;
                                 sb->type = BAR_TYPE;
+                                sb->code = (char) ( hmm_in_segment + 33);
                                 sb->p = rs->seg_spec[segment]->seq[hmm_in_segment];
                                 //rs->sequence_matrix[segment][hmm_in_segment];
                                 sb->len = rs->seg_spec[segment]->max_len;// should be identical to min_lena rs->segment_length[segment];
@@ -406,8 +399,9 @@ int process_read(struct collect_read* ri, struct read_structure* rs , struct seq
 
                                 sb = b->bits[local_bit_index];
                                 sb->len = 0;
-                                ASSERT(i_file == sb->file, "Oh dear: want %d got %d",i_file,sb->file);
+                                //ASSERT(i_file == sb->file, "Oh dear: want %d got %d",i_file,sb->file);
                                 //sb->file = i_file;
+                                sb->code = (char)(sb->file + 33);
                                 sb->type = READ_TYPE;
                                 sb->p = ri->seq + j;
                                 sb->q = ri->qual + j;
@@ -425,8 +419,6 @@ int process_read(struct collect_read* ri, struct read_structure* rs , struct seq
         //exit(0);
         //ri->len = s_pos;
         return OK;
-ERROR:
-        return FAIL;
 }
 
 int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb,  char* prefix)
@@ -480,14 +472,15 @@ int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb,  char* 
                 file = -1;
                 for(i = 0; i < as->num_reads ;i++){
                         bv = as->bit_vec[i];
+
                         if(bv->fail){
                                 RUN(write_fasta_fastq(write_buf, f_hand));
                                 write_buf->num_seq = 0;
                                 //RUN(close_seq_file(&f_hand));
                                 break;
                         }
-
-                        sb = bv->bits[out_read];
+                        sb = bv->bits[as->loc_out_reads[out_read]];
+                        //sb = bv->bits[out_read];
                         /* check if we should write to new file */
                         if(dm[bv->sample_group]->id != file){
                                 //LOG_MSG("New group: %s at %d", dm[bv->sample_group]->name,i);

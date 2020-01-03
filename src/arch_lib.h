@@ -15,19 +15,20 @@ struct segment_specs{
         int num_seq;
         int max_len;
         int min_len;
+        int alloc_len;
         uint8_t extract;
 };
 
 struct read_structure{
         struct segment_specs** seg_spec;
-        char*** sequence_matrix;
-        int* segment_length;
-        int* numseq_in_segment;
-        char* type;
-        char** segment_name;
-        uint8_t* extract;
-        int* min_len;
-        int* max_len;
+        //char*** sequence_matrix;
+        //int* segment_length;
+        //int* numseq_in_segment;
+        //char* type;
+        //char** segment_name;
+        //uint8_t* extract;
+        //int* min_len;
+        //int* max_len;
         int num_segments;
         int alloc_num_seqments;
         //uint8_t assignment_to_read;

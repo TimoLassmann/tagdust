@@ -17,9 +17,10 @@
 #define READ_NBAR 8
 
 struct seq_bit{
-        char* name;
+        //char* name;
         char* p;
         char* q;
+        char code;
         uint16_t len;
         uint8_t type;
         uint8_t file;
@@ -28,6 +29,8 @@ struct seq_bit{
 
 struct seq_bit_vec{
         struct seq_bit** bits;
+        int* out_file_id;
+
         char* name;
         //char* bc;
         char* umi;
@@ -40,6 +43,8 @@ struct seq_bit_vec{
 struct demux_struct{
         struct file_handler* f_hand;
         char* name;
+        char* key;
+        char* out_filename;
         int id;
         int count;
 };
@@ -48,7 +53,8 @@ struct assign_struct{
         struct seq_bit_vec** bit_vec;
         struct rbtree_root* demux_names;
         struct rbtree_root* file_names;
-
+        int* loc_out_reads;
+        int* file_index;
         int block_size;
         int max_seq_len;
         int max_bar_len;
@@ -61,7 +67,8 @@ struct assign_struct{
 
 
 
-extern int init_assign_structure(struct assign_struct** assign,struct arch_library* al, int total);
+
+extern int init_assign_structure(struct assign_struct** assign,struct arch_library* al,char* prefix, int total);
 
 extern int sort_as_by_file_type(struct assign_struct* as);
 //extern int alloc_assign_structure(struct assign_struct** assign,int num_files);

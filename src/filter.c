@@ -35,7 +35,8 @@ int run_filter_exact(struct assign_struct* as, struct ref* ref, int index, int t
         bv = as->bit_vec[index];
 
         for(i = 0; i < as->out_reads;i++){
-                sb = bv->bits[i];
+
+                sb = bv->bits[as->loc_out_reads[i]];
 
 //ASSERT(sb->type == READ_TYPE, "NO READ TYPE!!! ");
                 tmp_seq = sb->p;
@@ -84,7 +85,8 @@ int run_filter_pst(struct assign_struct* as, struct pst* pst, int index, float t
         bv = as->bit_vec[index];
 
         for(i = 0; i < as->out_reads;i++){
-                sb = bv->bits[i];
+                sb = bv->bits[as->loc_out_reads[i]];
+                //sb = bv->bits[i];
                 RUN(scan_read_with_pst(pst,  sb->p , sb->len,&out));
                 if(out >= thres){
                         sb->fail |= READ_FAILP;
