@@ -42,10 +42,8 @@ int test_architectures(struct arch_library* al, struct seq_stats* si, struct par
                 al->arch_posteriors[i] = NULL;
                 MMALLOC(al->arch_posteriors[i], sizeof(float) * param->num_infiles);
                 for(j = 0; j < param->num_infiles;j++){
-                        al->arch_posteriors[i][j] = prob2scaledprob(1.0);
+                        al->arch_posteriors[i][j] = prob2scaledprob(0.0);
                 }
-
-
         }
 
         MMALLOC(al->arch_to_read_assignment, sizeof(int) * param->num_infiles);
@@ -86,14 +84,17 @@ int test_architectures(struct arch_library* al, struct seq_stats* si, struct par
                 }
         }
 
+        //LOG_MSG("Testing %d models,", al->num_arch);
 
-        /* convert posteriors into Phred scaled quality values */
+/* convert posteriors into Phred scaled quality values */
 
         for(i = 0; i < param->num_infiles;i++){
                 sum = prob2scaledprob(0.0f);
                 for(j = 0; j < al->num_arch;j++){
+                        //fprintf(stdout,"%f ",al->arch_posteriors[j][i]);
                         sum = logsum(sum,al->arch_posteriors[j][i]);
                 }
+                //fprintf(stdout,"\n");
                 //fprintf(stdout,"FILE: %s\t",param->infile[i]);
                 for(j = 0; j < al->num_arch;j++){
 
@@ -104,9 +105,9 @@ int test_architectures(struct arch_library* al, struct seq_stats* si, struct par
                         al->arch_posteriors[j][i] = -10.0f * log10f(al->arch_posteriors[j][i]);
                         //fprintf(stdout,"%f ",al->arch_posteriors[j][i]);
                 }
-
-
+                //fprintf(stdout,"\n");
         }
+
 
         for(i = 0; i < param->num_infiles;i++){
                 al->arch_to_read_assignment[i] = -1;
@@ -154,6 +155,12 @@ int test_arch(struct tl_seq_buffer** rb, struct arch_library* al, struct seq_sta
         int i,j;
         float score = prob2scaledprob(1.0);
         RUN(init_model_bag(&mb,al->read_structure[i_hmm], si->ssi[i_file], si->a, i_hmm));
+        if(!mb){                /* no model returned - probably because it is to long for reads on this file */
+
+                //fprintf(stdout,"Thread %d working on file %d; hmm %d\n",omp_get_thread_num(),i_file,i_hmm);
+                al->arch_posteriors[i_hmm][i_file] = prob2scaledprob(0.0f);
+                return OK;
+        }
         num_seq = rb[i_file]->num_seq;
         ri = rb[i_file]->sequences;
 

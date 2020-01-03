@@ -696,6 +696,8 @@ int forward_max_posterior_decoding(struct model_bag* mb, const uint8_t* a,char**
         float* previous_silent = mb->previous_silent;//[MAX_HMM_SEQ_LEN];
         float* next_silent = mb->previous_silent;// [MAX_HMM_SEQ_LEN];
 
+
+        ASSERT(mb->b_score != prob2scaledprob(0.0f),"back score is -inf!");
         // M state of first set of HMMS.....
         for(j = 0; j < mb->num_models;j++){
                 for(f = 0;f < mb->model[j]->num_hmms;f++){
@@ -768,9 +770,7 @@ int forward_max_posterior_decoding(struct model_bag* mb, const uint8_t* a,char**
 
                                 //***************post
                                 //mb->model[j]->silent_to_M_e[f] = logsum(mb->model[j]->silent_to_M_e[f] ,psilent[i-1] + mb->model[j]->silent_to_M[f] + c_hmm_column->m_emit[c] + c_hmm_column->M_backward[i]  -mb->b_score);
-
-
-
+                                //LOG_MSG("%f + %f + %f - %f",total_prob[hmm_counter], c_hmm_column->M_foward[i],c_hmm_column->M_backward[i] ,mb->b_score );
                                 total_prob[hmm_counter] = logsum(total_prob[hmm_counter], c_hmm_column->M_foward[i]  +  c_hmm_column->M_backward[i] -mb->b_score );
                                 mb->dyn_prog_matrix[i][hmm_counter] = logsum(mb->dyn_prog_matrix[i][hmm_counter],  c_hmm_column->M_foward[i]  + c_hmm_column->M_backward[i] -mb->b_score );
 
@@ -1045,6 +1045,8 @@ int forward_max_posterior_decoding(struct model_bag* mb, const uint8_t* a,char**
                 }
         }
         return OK;
+ERROR:
+        return FAIL;
 }
 
 
@@ -1450,66 +1452,39 @@ struct hmm* set_hmm_transition_parameters(struct hmm* hmm, int len,double base_e
 
 
 
-int emit_random_sequence(struct model_bag* mb, uint8_t** r_seq, int* r_len, int average_length, struct rng_state* rng)
+int emit_random_sequence(struct model_bag* mb, uint8_t** r_seq, int* r_len, int t_len, struct rng_state* rng)
 {
         uint8_t* s = NULL;
-        int s_len = 0;
-        int s_malloc_len = 128;
+        int s_len;
+        //int s_malloc_len = 128;
 
-
+        int i;
         double r;// = (float)rand()/(float)my_rand_max;
         double sum = prob2scaledprob(0.0f);
         //char alpha[] = "ACGTN";
         int nuc;
         //ri->read_type = 0;
 
-        MMALLOC(s, sizeof(uint8_t) * s_malloc_len);
+        MMALLOC(s, sizeof(uint8_t) * (t_len+1));
         s_len = 0;
 
-        while(s_len < average_length){
-
-                while(1){
-                        //emission
-                        r = tl_random_double(rng);
-                        sum = prob2scaledprob(0.0f);
-                        for(nuc = 0;nuc < 5;nuc++){
-                                sum = logsum(sum, mb->model[0]->background_nuc_frequency[nuc] );
-                                if(r <  scaledprob2prob(sum)){
-                                        s[s_len] = nuc;
-                                        s_len++;
-                                        break;
-                                }
-                        }
-                        if(s_len == s_malloc_len){
-                                s_malloc_len = s_malloc_len + s_malloc_len /2;
-                                MREALLOC(s, sizeof(uint8_t) * s_malloc_len);
-                        }
-
-                        //transition
-                        r = tl_random_double(rng);
-                        //r = (float)rand()/(float)my_rand_max;
-                        // prob2scaledprob(1.0 - (1.0 / (float)len));
-                        if(r > 1.0 - (1.0 / (float)average_length)){
+        for(s_len = 0; s_len < t_len;s_len++){
+                r = tl_random_double(rng);
+                sum = prob2scaledprob(0.0f);
+                for(nuc = 0;nuc < 5;nuc++){
+                        sum = logsum(sum, mb->model[0]->background_nuc_frequency[nuc] );
+                        if(r <  scaledprob2prob(sum)){
+                                s[s_len] = nuc;
                                 break;
                         }
                 }
-                //fprintf(stderr,"	%d\n",current_length);
-                if(s_len >= average_length){
-                        s_len = 0;
-                }else{
-                        break;
-                }
-
-                //if(current_length+2 >= MAX_HMM_SEQ_LEN){
-                //	current_length = 0;
-                //}
         }
 
-        s[s_len] = 0;
+        s[t_len] = 0;
         //s_len++;
 
         *r_seq = s;
-        *r_len = s_len;
+        *r_len = t_len;
 
         return OK;
 ERROR:
@@ -1547,7 +1522,7 @@ int emit_read_sequence(struct model_bag* mb, uint8_t** r_seq, int* r_len, int av
         MMALLOC(s, sizeof(uint8_t) * s_malloc_len);
         s_len = 0;
 
-        while(s_len < average_length){
+        while(s_len <= average_length){
                 //KSL_DPRINTF2(("%d %d\n", current_length , average_length ));
                 state = 0; //0 silent ; 1 M , 2 I , 3 D
                 column = 0;
@@ -1785,7 +1760,7 @@ int emit_read_sequence(struct model_bag* mb, uint8_t** r_seq, int* r_len, int av
                         }
                 }
                 //fprintf(stderr,"%d len %d \n",current_length,average_length);
-                if(s_len >=  average_length){
+                if(s_len >  average_length){
                         //fprintf(stdout,"try again");
                         s_len = 0;
                 }else{

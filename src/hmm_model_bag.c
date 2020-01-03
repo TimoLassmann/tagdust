@@ -22,20 +22,29 @@ int init_model_bag(struct model_bag** model_bag,const  struct read_structure* rs
 {
         struct model_bag* mb = NULL;
         int i;
-        int expected_len;
+        int expected_len = 0;
 
         ASSERT(ssi->max_seq_len > 0,"Max len can't be 0");
         ASSERT(ssi->average_length > 0,"Average len can't be 0");
-/* HACK */
-        /* rs->numseq_in_segment is set in assign - get from spec  */
-        /* rs->segment_length is set  in assign - get from spec  */
 
+        RUN(set_len_of_unknown(rs, &expected_len, ssi->average_length));
+
+        if(expected_len == -1){
+                //LOG_MSG("Skipping!!!!");
+                *model_bag = NULL;
+                return OK;
+        }
+        //LOG_MSG("Expected: %d",expected_len);
         /* first we allocate the model based on the read structure information */
         //LOG_MSG("Allocating %d %d",ssi->max_seq_len,ssi->average_length);
         RUN(alloc_model_bag(&mb, rs, ssi->max_seq_len, ssi->average_length));
         //exit(0);
 /* initialize the model with 'default'  parameters - refinement happens later.  */
         for(i = 0; i < mb->num_models;i++){
+                //LOG_MSG("p:%p",rs->seg_spec[i]);
+                //LOG_MSG("Allocating %d : %s  %d", i, rs->seg_spec[i]->name,  rs->seg_spec[i]->extract);
+                //LOG_MSG("%s",rs->seg_spec[i]->seq[0]);
+
                 RUN(set_emission_p(mb->model[i], rs->seg_spec[i], a, ssi->background, 0.05f, 0.1f));
                 RUN(set_transition_p(mb->model[i],0.05f, 0.1f));
         }
@@ -47,12 +56,13 @@ int init_model_bag(struct model_bag** model_bag,const  struct read_structure* rs
 
         /* check - are segments of unknown length? */
         /* check - are the reads long enough for the architectures? */
-        RUN(set_len_of_unknown(rs, &expected_len, ssi->average_length));
+
 
         /* if a + segment  */
 
         for(i = 0; i<  mb->num_models;i++){
                 if(rs->seg_spec[i]->max_len == INT32_MAX){
+                        //LOG_MSG("Set Plis ");
                         RUN(init_plus_model(mb->model[i], expected_len));
                 }
         }
@@ -87,7 +97,7 @@ int set_label_and_path(struct model_bag* mb)
 
         //LOG_MSG("New model");
 
-
+        //LOG_MSG("Total: %d",mb->total_hmm_num);
         for(i = 0; i < mb->total_hmm_num ;i++){
                 c = 1;
                 for(j = i+1; j <  mb->total_hmm_num ;j++){
@@ -134,11 +144,31 @@ int set_len_of_unknown(const struct read_structure*rs, int* out_l, int read_len)
                 }
         }
         *out_l = 0;
+        if(read_len < known_len){
+                WARNING_MSG("Model: ");
+                for(i = 0; i < rs->num_segments  ;i++){
+                        WARNING_MSG("%d: %s:%c:%s" , i, rs->seg_spec[i]->name,"EASIP"[rs->seg_spec[i]->extract],rs->seg_spec[i]->seq[0]);
+
+                }
+                WARNING_MSG(" is too long for read (len:%d",read_len);
+                *out_l = -1;
+                return OK;
+        }
+
         if(num_unknown){
-                ASSERT(read_len >  known_len, "There is not enough space for a N+ segment %d %d",read_len, known_len);
                 len_of_plus = (read_len - known_len) / num_unknown;
+
                 ASSERT(len_of_plus >= 1, "expected length is smaller than 1");
                 *out_l = len_of_plus;
+        }else{
+                if(read_len != known_len){
+                        WARNING_MSG("Model: ");
+                        for(i = 0; i < rs->num_segments  ;i++){
+                                WARNING_MSG("%d: %s:%c:%s" , i, rs->seg_spec[i]->name,"EASIP"[rs->seg_spec[i]->extract],rs->seg_spec[i]->seq[0]);
+
+                        }
+                        WARNING_MSG(" is too short for read (len:%d",read_len);
+                }
         }
         return OK;
 ERROR:
@@ -469,6 +499,7 @@ ERROR:
         //KSLIB_MESSAGE(status,"Something wrong in init_model_bag.\n");
         return NULL;
 }
+
 
 */
 

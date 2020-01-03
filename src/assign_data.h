@@ -32,8 +32,10 @@ struct seq_bit_vec{
         int* out_file_id;
 
         char* name;
+        char* append;
+        int a_len;
         //char* bc;
-        char* umi;
+        //char* umi;
         //float* Q;
         int sample_group;
         uint8_t fail;
@@ -58,6 +60,7 @@ struct assign_struct{
         int block_size;
         int max_seq_len;
         int max_bar_len;
+        int append_len;
         int num_files;
         int out_reads;
         int num_bits;

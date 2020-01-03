@@ -134,6 +134,7 @@ int read_arch_into_lib(struct arch_library* al, char** list, int len)
 
                 }
         }
+
         RUN(QC_read_structure(al->read_structure[target]));
         al->num_arch++;
         MFREE(buffer);
@@ -310,7 +311,8 @@ int alloc_arch_lib(struct arch_library** arch)
 {
         struct arch_library* al = NULL;
         char* in[] = {
-                "E:N+"
+                "E:N+",
+                "FP:A:N{4}"
         };
 
         int i;
@@ -335,7 +337,7 @@ int alloc_arch_lib(struct arch_library** arch)
         }
 
         /* load default model */
-        RUN(read_arch_into_lib(al, in, 1));
+        RUN(read_arch_into_lib(al, in, 2));
         *arch = al;
         return OK;
 ERROR:
@@ -515,7 +517,15 @@ int QC_read_structure(struct read_structure* read_structure )
         int i,g,f;//min_error;//errors;
         int last = -1;
 
+        /*LOG_MSG("QC:%d", read_structure->num_segments);
+        for(i = 0; i< read_structure->num_segments;i++){
 
+                fprintf(stdout,"%s %d %s -- ", read_structure->seg_spec[i]->name, read_structure->seg_spec[i]->extract, read_structure->seg_spec[i]->seq[0]);
+
+        }
+
+        fprintf(stdout,"\n");
+        */
 
         return OK;
 ERROR:

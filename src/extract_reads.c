@@ -204,7 +204,7 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
                 STOP_TIMER(t1);
                 LOG_MSG("Took %f ",GET_TIMING(t1));
                 //LOG_MSG("Write buff: %p",wb);
-                //RUN(write_all(as,&wb, param->outfile));
+                RUN(write_all(as,&wb, param->outfile));
                 RUN(reset_assign_structute(as));
                 exit(0);
         }
@@ -338,6 +338,9 @@ int process_read(struct collect_read* ri, struct read_structure* rs , struct seq
         int* label;
         uint8_t c;
         int j;
+        int s_index;
+        int s_len;
+        char* s_name;
         int segment;
         int hmm_in_segment;
         int c1;
@@ -360,17 +363,40 @@ int process_read(struct collect_read* ri, struct read_structure* rs , struct seq
                 switch (c) {
                 case ARCH_ETYPE_APPEND: //case 'F':
                         if(c != old_c){
+                                s_name = rs->seg_spec[segment]->name;
+                                s_len = strlen(s_name);
+
+                                for(s_index = 0; s_index < s_len;s_index++){
+                                        b->append[b->a_len] = s_name[s_index];
+                                        b->a_len++;
+
+                                }
+                                b->append[b->a_len] = ':';
+                                b->a_len++;
+                                b->append[b->a_len] = 'Z';
+                                b->a_len++;
+                                b->append[b->a_len] = ':';
+                                b->a_len++;
+
                                 sb = b->bits[local_bit_index];
                                 sb->len = 0;
                                 //ASSERT(i_file == sb->file, "Oh dear: want %d got %d",i_file,sb->file);
                                 //sb->file = i_file;
                                 sb->code = (char) ( hmm_in_segment + 33);
-                                sb->type = UMI_TYPE;
+                                sb->type = ARCH_ETYPE_APPEND;
                                 sb->p = ri->seq+j;
                                 sb->fail = ri->f;
                                 local_bit_index++;
                         }
+                        if(rs->seg_spec[segment]->num_seq > 1){
+                                b->append[b->a_len] = rs->seg_spec[segment]->seq[hmm_in_segment][sb->len];
+                        }else{
+                                b->append[b->a_len] = ri->seq[j];
+                                b->a_len++;
+                        }
 
+
+                        sb->len++;
                         //umi_len++;
                         //umi = (umi << 2 )|  (ri->seq[j] & 0x3);
                         //ri->seq[s_pos] = 65; // 65 is the spacer! nucleotides are 0 -5....
@@ -382,7 +408,7 @@ int process_read(struct collect_read* ri, struct read_structure* rs , struct seq
                                 sb->len = 0;
                                 //ASSERT(i_file == sb->file, "Oh dear: want %d got %d",i_file,sb->file);
                                 //sb->file = i_file;
-                                sb->type = BAR_TYPE;
+                                sb->type = ARCH_ETYPE_SPLIT;
                                 sb->code = (char) ( hmm_in_segment + 33);
                                 sb->p = rs->seg_spec[segment]->seq[hmm_in_segment];
                                 //rs->sequence_matrix[segment][hmm_in_segment];
@@ -396,13 +422,12 @@ int process_read(struct collect_read* ri, struct read_structure* rs , struct seq
                         break;
                 case ARCH_ETYPE_EXTRACT:// case 'R':
                         if(c != old_c){
-
                                 sb = b->bits[local_bit_index];
                                 sb->len = 0;
                                 //ASSERT(i_file == sb->file, "Oh dear: want %d got %d",i_file,sb->file);
                                 //sb->file = i_file;
                                 sb->code = (char)(sb->file + 33);
-                                sb->type = READ_TYPE;
+                                sb->type = ARCH_ETYPE_EXTRACT;
                                 sb->p = ri->seq + j;
                                 sb->q = ri->qual + j;
                                 sb->fail = ri->f;
@@ -419,6 +444,8 @@ int process_read(struct collect_read* ri, struct read_structure* rs , struct seq
         //exit(0);
         //ri->len = s_pos;
         return OK;
+ERROR:
+        return NULL;
 }
 
 int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb,  char* prefix)
@@ -472,78 +499,42 @@ int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb,  char* 
                 file = -1;
                 for(i = 0; i < as->num_reads ;i++){
                         bv = as->bit_vec[i];
-
+                        //bv = as->bit_vec[as->loc_out_reads[i]];
                         if(bv->fail){
                                 RUN(write_fasta_fastq(write_buf, f_hand));
                                 write_buf->num_seq = 0;
                                 //RUN(close_seq_file(&f_hand));
                                 break;
                         }
-                        sb = bv->bits[as->loc_out_reads[out_read]];
+
+
                         //sb = bv->bits[out_read];
                         /* check if we should write to new file */
-                        if(dm[bv->sample_group]->id != file){
-                                //LOG_MSG("New group: %s at %d", dm[bv->sample_group]->name,i);
+                        if(dm[bv->out_file_id[out_read]]->id != file){
+                                LOG_MSG("New group: %d at %d", dm[bv->out_file_id[out_read]]->id,out_read);
+                                LOG_MSG("New group: %s", dm[bv->out_file_id[out_read]]->out_filename,out_read);
+                                LOG_MSG("New group: %p", dm[bv->out_file_id[out_read]]->f_hand,out_read);
+
                                 if(file != -1){
                                         RUN(write_fasta_fastq(write_buf, f_hand));
                                         write_buf->num_seq = 0;
                                         //RUN(close_seq_file(&f_hand));
                                 }
-                                if(dm[bv->sample_group]->name[0]){
-                                        snprintf(filename, 256, "%s_%s_R%d.fastq.gz", prefix, dm[bv->sample_group]->name,out_read+1);
-                                }else{
-                                        snprintf(filename, 256, "%s_R%d.fastq.gz", prefix,out_read+1);
+
+                                if(!dm[bv->out_file_id[out_read]]->f_hand){
+                                        open_fasta_fastq_file(&dm[bv->out_file_id[out_read]]->f_hand, dm[bv->out_file_id[out_read]]->out_filename, TLSEQIO_WRITE);
                                 }
-
-                                tmp_ptr = as->file_names->tree_get_data(as->file_names,filename);
-                                if(!tmp_ptr){
-                                        LOG_MSG("Opening output file: %s", filename);
-                                        //LOG_MSG("Never seen this %s before; will write",filename);
-                                        MMALLOC(tmp_ptr, sizeof(struct demux_struct));
-                                        len = strnlen(filename, 256);
-                                        len++;
-                                        tmp_ptr->name = NULL;
-                                        MMALLOC(tmp_ptr->name,sizeof(char) * len);
-                                        strncpy(tmp_ptr->name, filename, len);
-
-                                        tmp_ptr->f_hand = NULL;
-                                        open_fasta_fastq_file(&tmp_ptr->f_hand, filename, TLSEQIO_WRITE);
-                                        f_hand= tmp_ptr->f_hand;
-
-                                        RUN(as->file_names->tree_insert(as->file_names, tmp_ptr));
-
-                                        //LOG_MSG("Num entries: %d",as->file_names->num_entries);
-
-
-                                        //LOG_MSG("%p",f_hand);
-                                }else{
-                                        LOG_MSG("writing to file: %s", filename);
-                                        f_hand = tmp_ptr->f_hand;
-                                        //open_fasta_fastq_file(&f_hand, filename, TLSEQIO_APPEND_GZIPPED);
-                                }
-                                //as->file_names->tree_get_data
-
-
-                                /*if(dm[bv->sample_group]->open <= out_read+1){
-                                        LOG_MSG("Open %s for write", filename);
-                                        open_fasta_fastq_file(&f_hand, filename, TLSEQIO_WRITE_GZIPPED);
-                                        dm[bv->sample_group]->open++;
-                                }else{
-                                        LOG_MSG("Open %s for append", filename);
-                                        open_fasta_fastq_file(&f_hand, filename, TLSEQIO_APPEND_GZIPPED);
-                                        }*/
-                                //snprintf(filename, 256, "%s_%s_R%d.fastg.gz", prefix, dm[bv->sample_group]->name,out_read+1);
-                                //RUNP(fp = gzopen(filename, file_mode));
-                                file = dm[bv->sample_group]->id;
+                                f_hand= dm[bv->out_file_id[out_read]]->f_hand;
+                                file = dm[bv->out_file_id[out_read]]->id;
                         }
 
-
+                        sb = bv->bits[as->loc_out_reads[out_read]];
                         write_buf->sequences[write_buf->num_seq]->seq = sb->p;
                         write_buf->sequences[write_buf->num_seq]->qual = sb->q;
                         write_buf->sequences[write_buf->num_seq]->len = sb->len;
 
-                        if(bv->umi){
-                                snprintf(write_buf->sequences[write_buf->num_seq]->name,MAX_OUTREADNAME,"%s %s", bv->name, bv->umi);
+                        if(bv->a_len){
+                                snprintf(write_buf->sequences[write_buf->num_seq]->name,MAX_OUTREADNAME,"%s %s", bv->name, bv->append);
                         }else{
                                 snprintf(write_buf->sequences[write_buf->num_seq]->name,MAX_OUTREADNAME,"%s", bv->name);
                         }

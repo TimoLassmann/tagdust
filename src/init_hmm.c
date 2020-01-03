@@ -12,6 +12,7 @@ int init_plus_model(struct model* m, const int expected_len)
         ASSERT(m != NULL, "No model");
         for(i = 0 ; i < m->num_hmms;i++){
                 m->silent_to_I[i][0] = prob2scaledprob(1.0 / (float) m->num_hmms);
+                m->silent_to_M[i][0] = prob2scaledprob(0.0f);
         }
         col = m->hmms[0]->hmm_column[0];
 
@@ -21,6 +22,7 @@ int init_plus_model(struct model* m, const int expected_len)
         col->transition[MSKIP] = prob2scaledprob(0.0);
 
         //col->transition[MQUIT] = prob2scaledprob(1.0 / (float) assumed_length);
+        //fprintf(stdout,"II: %f, IM:%f\n",1.0 - 1.0 / (float) expected_len,1.0 / (float) expected_len);
         col->transition[II] = prob2scaledprob(1.0 - 1.0 / (float) expected_len);
         col->transition[IM] = prob2scaledprob(0.0);
         col->transition[ISKIP] = prob2scaledprob(1.0 / (float)  expected_len);
@@ -50,13 +52,15 @@ int set_emission_p(struct model* m,const struct segment_specs* spec, const struc
 
         int i,j,c,len;
         int current_nuc;
-        char* tmp = 0;
+        char* tmp = NULL;
         for(i= 0;i < 5;i++){
                 m->background_nuc_frequency[i] = background[i];
         }
         for(i = 0; i < m->num_hmms;i++){
                 len = m->hmms[i]->num_columns;
+                //LOG_MSG("HMM:%d %d alloc_len spec %d, %d , %d",i , len, spec->min_len,spec->max_len,spec->alloc_len);
                 tmp = spec->seq[i];
+
                 //LOG_MSG("%s",tmp);
                 //sets emission probabilities...
                 for(j = 0; j < len;j++){
@@ -243,6 +247,9 @@ int set_transition_p(struct model* m,const double base_error,const  double indel
         }
         m->skip = prob2scaledprob(0.0f);
         m->skip_e = prob2scaledprob(0.0f);
+
+
+
         for(i = 0 ; i < m->num_hmms;i++){
                 m->silent_to_M[i][0] = prob2scaledprob(1.0 / (float) m->num_hmms);// + prob2scaledprob(0.9);
                 m->silent_to_I[i][0] = prob2scaledprob(0.0f);

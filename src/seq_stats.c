@@ -42,6 +42,11 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
         double res;
         double sum;
 
+        double s0_seq_len;
+        double s1_seq_len;
+        double s2_seq_len;
+
+
         MMALLOC(five_s0, sizeof(double) * al->num_arch);
         MMALLOC(five_s1, sizeof(double) * al->num_arch);
         MMALLOC(five_s2, sizeof(double) * al->num_arch);
@@ -112,7 +117,9 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
                         three_s1[c] = 0.0;
                         three_s2[c] = 0.0;
                 }
-
+                s0_seq_len = 0.0;
+                s1_seq_len = 0.0;
+                s2_seq_len = 0.0;
                 total_read = 0;
                 //LOG_MSG("FILE:%s", infiles[i]);
                 while(1){
@@ -130,7 +137,9 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
                                 if(ri[j]->len > si->ssi[i]->max_seq_len){
                                         si->ssi[i]->max_seq_len = ri[j]->len;
                                 }
-
+                                s0_seq_len++;
+                                s1_seq_len += ri[j]->len;
+                                s2_seq_len += ri[j]->len * ri[j]->len;
                                 //print_sequence(rb->ri[j], stdout);
                                 si->ssi[i]->average_length += ri[j]->len;
                                 for(c = 0;c < ri[i]->len;c++){
@@ -168,6 +177,13 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
                 si->ssi[i]->total_num_seq = total_read;
                 si->ssi[i]->average_length = (int) floor((double) si->ssi[i]->average_length / (double) total_read   + 0.5);
 
+                si->ssi[i]->mean_seq_len  = s1_seq_len / s0_seq_len;
+
+                si->ssi[i]->stdev_seq_len = sqrt ( (s0_seq_len * s2_seq_len -  pow(s1_seq_len, 2.0)) /  (s0_seq_len * ( s0_seq_len - 1.0)));
+                //ssi->mean_5_len = five_s1 / five_s0;
+
+
+                
                 sum = 0.0;
                 for(j = 0; j < 5;j++){
                         sum += si->ssi[i]->background[j];
@@ -354,9 +370,10 @@ int alloc_sequence_stats_info(struct sequence_stats_info** si, int n)
         ssi->stdev_5_len = NULL;
         ssi->mean_3_len = NULL;
         ssi->stdev_3_len = NULL;
-        ssi->average_length = 0.0f;
+        ssi->average_length = 0.0;
         ssi->max_seq_len = 0;
-
+        ssi->mean_seq_len = 0.0;
+        ssi->stdev_seq_len = 0.0;
         MMALLOC(ssi->expected_5_len, sizeof(double) * n);
         MMALLOC(ssi->expected_3_len, sizeof(double) * n);
         MMALLOC(ssi->mean_5_len, sizeof(double) * n);

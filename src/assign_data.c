@@ -42,7 +42,7 @@ int post_process_assign(struct assign_struct* as)
         struct seq_bit_vec* bv = NULL;
         struct demux_struct* tmp_ptr = NULL;
 
-        char* tmp =  NULL;
+        char* code =  NULL;
         //char* barcode;
         //char* umi;
         int i,j,c;//g;
@@ -50,13 +50,7 @@ int post_process_assign(struct assign_struct* as)
         //int umi_len;
         int tmp_len = 256;
 
-        int e_fail;
-        int d_fail;
-        //char f_code;
-
-        e_fail = 0;
-        d_fail = 0;
-        MMALLOC(tmp, sizeof(char) * tmp_len);
+        MMALLOC(code, sizeof(char) * tmp_len);
 
         for(i = 0; i < as->num_reads ;i++){
                 bv = as->bit_vec[i];
@@ -66,8 +60,8 @@ int post_process_assign(struct assign_struct* as)
                 //umi_len = 0;
                 for(j = 0; j < bv->num_bit;j++){
 
-                        if(bv->bits[j]->type == BAR_TYPE){
-                                tmp[len] = bv->bits[j]->code;
+                        if(bv->bits[j]->type == ARCH_ETYPE_SPLIT){
+                                code[len] = bv->bits[j]->code;
                                 //len += bv->bits[j]->len;// strnlen(bv->bits[j]->p,256);
                                 len++;
 
@@ -77,22 +71,16 @@ int post_process_assign(struct assign_struct* as)
                         //}
                         bv->fail |= bv->bits[j]->fail;
                 }
-                tmp[len] =0;
+                code[len] =0;
                 c = 0;
                 for(j = 0; j < bv->num_bit;j++){
-                        if(bv->bits[j]->type == READ_TYPE){
-                                tmp[len] = bv->bits[j]->code;
+                        if(bv->bits[j]->type == ARCH_ETYPE_EXTRACT){
+                                code[len] = bv->bits[j]->code;
                                 //len += bv->bits[j]->len;// strnlen(bv->bits[j]->p,256);
                                 len++;
-                                tmp[len] =0;
-                                tmp_ptr = as->demux_names->tree_get_data(as->demux_names,tmp);
-                                if(!tmp_ptr){
-                                        WARNING_MSG("%s not found!", tmp);
-                                        exit(0);
-                                }else{
-                                LOG_MSG("bit:%d in out file id: %d belongs to %s",j, bv->bits[j]->file, tmp_ptr->out_filename);
+                                code[len] =0;
+                                RUNP(tmp_ptr = as->demux_names->tree_get_data(as->demux_names,code));
                                 bv->out_file_id[c] = tmp_ptr->id;
-                                }
                                 len--;
                                 c++;
                         }
@@ -172,9 +160,9 @@ int post_process_assign(struct assign_struct* as)
                 }
                 */
         }
-        LOG_MSG("%d %d", e_fail,d_fail);
-        MFREE(tmp);
-        exit(0);
+        //LOG_MSG("%d %d", e_fail,d_fail);
+        MFREE(code);
+
         qsort(as->bit_vec,as->num_reads ,sizeof(struct seq_bit_vec*) , qsort_seq_bit_vec);
         return OK;
 ERROR:
@@ -184,6 +172,7 @@ ERROR:
 int init_assign_structure(struct assign_struct** assign,struct arch_library* al,char* prefix, int total)
 {
         struct assign_struct* as = NULL;
+        struct seq_bit_vec* bv = NULL;
         //ASSERT(num_files >= 1,"no infiles");
 
         int* plan;
@@ -198,6 +187,7 @@ int init_assign_structure(struct assign_struct** assign,struct arch_library* al,
         as->out_reads = 0;
         as->loc_out_reads = NULL;
         as->file_index = NULL;
+        as->append_len = 1;
         RUN(setup_assign_structure(al,as,&plan));
         RUN(setup_barcode_files(al,as,prefix));
         //exit(0);
@@ -207,6 +197,7 @@ int init_assign_structure(struct assign_struct** assign,struct arch_library* al,
         as->alloc_total = total;
         as->num_reads = 0;
 
+
         as->bit_vec = NULL;
         MMALLOC(as->bit_vec, sizeof(struct seq_bit_vec*)* as->alloc_total );
         //MMALLOC(as->active_bits,sizeof(uint8_t) * as->total));
@@ -214,26 +205,33 @@ int init_assign_structure(struct assign_struct** assign,struct arch_library* al,
 
                 as->bit_vec[i] = NULL;
                 MMALLOC(as->bit_vec[i], sizeof(struct seq_bit_vec));
-                as->bit_vec[i]->out_file_id = NULL;
-                MMALLOC(as->bit_vec[i]->out_file_id, sizeof(int) * as->out_reads);
+                bv = as->bit_vec[i];
+                bv->out_file_id = NULL;
+                MMALLOC(bv->out_file_id, sizeof(int) * as->out_reads);
                 for(j = 0; j < as->out_reads;j++){
-                        as->bit_vec[i]->out_file_id[j] = -1;
+                        bv->out_file_id[j] = -1;
                 }
-                as->bit_vec[i]->sample_group = -1;
-                as->bit_vec[i]->num_bit = as->num_bits;
-                as->bit_vec[i]->bits = NULL;
-                //as->bit_vec[i]->Q = NULL;
-                //as->bit_vec[i]->bc = NULL;
-                as->bit_vec[i]->umi = NULL;
-                //MMALLOC(as->bit_vec[i]->Q,sizeof(float) * as->num_files);
-                as->bit_vec[i]->fail = 0;
-                MMALLOC(as->bit_vec[i]->bits , sizeof(struct seq_bit) * as->num_bits);
-                for(j = 0; j < as->num_bits;j++){
-                        as->bit_vec[i]->bits[j] = NULL;
+                bv->sample_group = -1;
+                bv->num_bit = as->num_bits;
+                bv->bits = NULL;
+                //bv->Q = NULL;
+                //bv->bc = NULL;
+                bv->append = NULL;
+                bv->a_len = 0;
 
-                        RUN(alloc_seq_bit(&as->bit_vec[i]->bits[j]));
-                        //MMALLOC(as->bit_vec[i]->bits[j], sizeof(struct seq_bit));
-                        as->bit_vec[i]->bits[j]->file = plan[j];
+                MMALLOC(bv->append, sizeof(char) * as->append_len);
+
+
+
+                //MMALLOC(bv->Q,sizeof(float) * as->num_files);
+                bv->fail = 0;
+                MMALLOC(bv->bits , sizeof(struct seq_bit) * as->num_bits);
+                for(j = 0; j < as->num_bits;j++){
+                        bv->bits[j] = NULL;
+
+                        RUN(alloc_seq_bit(&bv->bits[j]));
+                        //MMALLOC(bv->bits[j], sizeof(struct seq_bit));
+                        bv->bits[j]->file = plan[j];
                 }
         }
         MFREE(plan);
@@ -267,11 +265,13 @@ int reset_assign_structute(struct assign_struct* as)
         int j;
         for(i = 0; i < as->alloc_total;i++){
                 //qsort(  as->bit_vec[i]->bits,  as->bit_vec[i]->num_bit,sizeof(struct seq_bit*), qsort_seq_bits_by_file);
+                as->bit_vec[i]->a_len = 0;
                 as->bit_vec[i]->fail = 0;
                 as->bit_vec[i]->sample_group = -1;
-                if(as->bit_vec[i]->umi){
-                        MFREE(as->bit_vec[i]->umi);
-                }
+                //if(as->bit_vec[i]->append){
+                //MFREE(as->bit_vec[i]->append);
+                //a}
+
                 for(j = 0; j < as->out_reads;j++){
                         as->bit_vec[i]->out_file_id[j] = -1;
                 }
@@ -311,31 +311,25 @@ int setup_assign_structure(struct arch_library* al,struct assign_struct* as,int*
                         c = read_structure->seg_spec[j]->extract;
                         //print_segment_spec(read_structure->seg_spec[j]);
 
-                        switch (c) {
-                        case ARCH_ETYPE_EXTRACT:
+                        p[p_index] = i;
+                        if(c == ARCH_ETYPE_EXTRACT){
                                 as->loc_out_reads[as->out_reads] = as->num_bits;
-                                p[p_index] = as->out_reads; /* might be wrong if 2 reads come from the same file; set to out_reads(?)  */
-                                p_index++;
-                                if(p_index == p_size){
-                                        p_size = p_size + p_size /2;
-                                        MREALLOC(p, sizeof(int)* p_size);
-                                        MREALLOC(as->loc_out_reads , sizeof(int) * p_size);
-                                }
+                                p[p_index] = as->out_reads;
                                 as->out_reads++;
-
-                                break;
-
-                        default:
-                                p[p_index] = i;
-                                p_index++;
-                                if(p_index == p_size){
-                                        p_size = p_size + p_size /2;
-                                        MREALLOC(p, sizeof(int)* p_size);
-                                        MREALLOC(as->loc_out_reads , sizeof(int) * p_size);
-                                }
-                                break;
-
+                        }else if(c == ARCH_ETYPE_APPEND){
+                                as->append_len += strlen(read_structure->seg_spec[j]->name);
+                                as->append_len += 3;
                         }
+
+
+
+                        p_index++;
+                        if(p_index == p_size){
+                                p_size = p_size + p_size /2;
+                                MREALLOC(p, sizeof(int)* p_size);
+                                MREALLOC(as->loc_out_reads , sizeof(int) * p_size);
+                        }
+
                         as->num_bits++;
                 }
 
@@ -422,9 +416,12 @@ int qsort_seq_bit_vec(const void *a, const void *b)
         }else if ((*elem1)->fail > (*elem2)->fail){
                 return 1;
         }else{
-                if ( (*elem1)->sample_group > (*elem2)->sample_group){
+
+                if((*elem1)->out_file_id[0] > (*elem2)->out_file_id[0]){
+                //if ( (*elem1)->sample_group > (*elem2)->sample_group){
                         return 1;
-                }else if ((*elem1)->sample_group < (*elem2)->sample_group){
+                }else if((*elem1)->out_file_id[0] < (*elem2)->out_file_id[0]){
+                        //}else if ((*elem1)->sample_group < (*elem2)->sample_group){
                         return -1;
                 }else{
                         return 0;

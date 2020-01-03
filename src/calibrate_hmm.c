@@ -28,7 +28,7 @@ struct calibrate_buffer{
 
 
 
-static int generate_test_sequences(struct  calibrate_buffer** ri_b, struct model_bag* mb,int average_length,struct rng_state* rng);
+static int generate_test_sequences(struct  calibrate_buffer** ri_b, struct model_bag* mb,double mean,double stdev,struct rng_state* rng);
 
 
 static int run_scoring(struct model_bag* mb, struct calibrate_buffer* cb);
@@ -47,7 +47,7 @@ int calibrate_architectures(struct arch_library* al, struct seq_stats* si,struct
                 seeds[i] = tl_random_int(main_rng, INT32_MAX);
         }
 
-
+        //LOG_MSG("Testmg:%d files", al->num_file);
 #ifdef HAVE_OPENMP
 #pragma omp parallel default(shared)
 #pragma omp for private(i)
@@ -82,9 +82,9 @@ int calibrate(struct arch_library* al, struct seq_stats* si,int* seeds,int i_fil
         FN = 0.0;
 
         RUN(init_model_bag(&mb,al->read_structure[i_hmm], si->ssi[i_file], si->a, i_hmm));
-
+        ASSERT(mb!= NULL, "Could not init model...");
         for(i = 0; i < mb->num_models;i++){
-                /* turn of transition to first HMM- which is NNNNN  */
+
                 if(al->read_structure[i_hmm]->seg_spec[i]->extract == ARCH_ETYPE_SPLIT){
                         for(j = 1 ; j < mb->model[i]->num_hmms;j++){
                                 mb->model[i]->silent_to_M[j][0] = prob2scaledprob(1.0 / (float)( mb->model[i]->num_hmms-1));
@@ -100,8 +100,9 @@ int calibrate(struct arch_library* al, struct seq_stats* si,int* seeds,int i_fil
         }
 
         RUNP(local_rng = init_rng(seeds[i_file]));
-        RUN(generate_test_sequences(&cb, mb, si->ssi[i_file]->average_length,local_rng));
+        RUN(generate_test_sequences(&cb, mb, si->ssi[i_file]->mean_seq_len,si->ssi[i_file]->stdev_seq_len,local_rng));
         free_model_bag(mb);
+        mb = NULL;
 
 
         RUN(init_model_bag(&mb,al->read_structure[i_hmm], si->ssi[i_file],si->a, i_hmm));
@@ -204,12 +205,13 @@ ERROR:
         return FAIL;
 }
 
-int generate_test_sequences(struct  calibrate_buffer** ri_b, struct model_bag* mb,int average_length,struct rng_state* rng)
+static int generate_test_sequences(struct  calibrate_buffer** ri_b, struct model_bag* mb,double mean,double stdev,struct rng_state* rng)
 {
 
         struct calibrate_buffer* cb = NULL;
 
         int i,j;
+        int t_len;
 
         MMALLOC(cb, sizeof(struct calibrate_buffer));
         cb->num_seq = NUM_TEST_SEQ;
@@ -224,14 +226,18 @@ int generate_test_sequences(struct  calibrate_buffer** ri_b, struct model_bag* m
                 cb->seq[i]->type = 0;
         }
 
-         //LOG_MSG("target: %d", average_length);
+        //fprintf(stdout,"Generating: %f %f", mean,stdev);
+
+        //LOG_MSG("target: %d", average_length);
         j = NUM_TEST_SEQ /2;
         for(i = 0; i < j;i++){
-                RUN(emit_read_sequence(mb, &cb->seq[i]->seq, &cb->seq[i]->len, average_length, rng));
+                t_len = (int) round(tl_random_gaussian(rng, mean, stdev));
+                RUN(emit_read_sequence(mb, &cb->seq[i]->seq, &cb->seq[i]->len, t_len, rng));
                 cb->seq[i]->type = 0;
         }
         for(i = j; i < NUM_TEST_SEQ ;i++){
-                RUN(emit_random_sequence(mb, &cb->seq[i]->seq, &cb->seq[i]->len, average_length, rng));
+                t_len = (int) round(tl_random_gaussian(rng, mean, stdev));
+                RUN(emit_random_sequence(mb, &cb->seq[i]->seq, &cb->seq[i]->len, t_len, rng));
                 cb->seq[i]->type = 1;
 
                 //fprintf(stdout,"%d ", ri[i]->len);
@@ -256,6 +262,9 @@ int run_scoring(struct model_bag* mb, struct calibrate_buffer* cb)
                 seq = cb->seq[i]->seq;
                 len = cb->seq[i]->len;
                 RUN(backward(mb, seq,len));
+                //LOG_MSG("%d %f %d", len, mb->b_score,cb->seq[i]->type);
+
+
                 RUN(forward_max_posterior_decoding(mb,seq,NULL,len));
                 RUN(random_score(mb, seq, len));
                 pbest = prob2scaledprob(0.0f);

@@ -1,4 +1,6 @@
+#ifdef HAVE_OPENMP
 #include <omp.h>
+#endif
 
 #include "interface.h"
 #include "arch_lib.h"
@@ -65,9 +67,12 @@ int main (int argc,char * argv[]) {
                 }
         }
 
+
         RUN(test_architectures(al,si,param));
         //exit(0);
+
         RUN(calibrate_architectures(al,si, main_rng));
+        exit(0);
         //int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameters* param)
         RUN(extract_reads(al,si,param,main_rng));
         //sprintf(param->buffer,"Start Run\n--------------------------------------------------\n");

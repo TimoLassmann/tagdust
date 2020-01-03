@@ -266,7 +266,7 @@ int parse_rs_token(char* token, struct segment_specs** s_spec)
                 }
                 g = strnlen(spec->seq[f], max_seq_len);
                 //spec->seq[f][g] = 0;
-                LOG_MSG("%s",spec->seq[f]);
+                //LOG_MSG("%s",spec->seq[f]);
                 if(g != 1){
                         ERROR_MSG("Tagdust only accepts a single character (not %d) with options + {n} {n,m}",g);
                 }
@@ -276,8 +276,7 @@ int parse_rs_token(char* token, struct segment_specs** s_spec)
                         spec->seq[f][g] = spec->seq[f][0];
                 }
                 spec->seq[f][spec->max_len] = 0;
-                LOG_MSG("%s",spec->seq[f]);
-
+                //LOG_MSG("%s",spec->seq[f]);
         }else if(plus){
                 f = 0;
                 g = 0;

@@ -15,7 +15,8 @@ extern struct model_bag* forward_extract_posteriors(struct model_bag* mb,const u
 
 
 
-extern int emit_random_sequence(struct model_bag* mb, uint8_t** r_seq, int* r_len, int average_length, struct rng_state* rng);
+extern int emit_random_sequence(struct model_bag* mb, uint8_t** r_seq, int* r_len, int t_len, struct rng_state* rng);
+
 extern int emit_read_sequence(struct model_bag* mb, uint8_t** r_seq, int* r_len, int average_length, struct rng_state* rng);
 
 extern struct model* reestimate(struct model* m, int mode);

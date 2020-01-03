@@ -15,6 +15,8 @@ struct sequence_stats_info{
         double* mean_3_len;
         double* stdev_3_len;
         double average_length;
+        double mean_seq_len;
+        double stdev_seq_len;
         int max_seq_len;
         int total_num_seq;
 };
