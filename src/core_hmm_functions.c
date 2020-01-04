@@ -20,7 +20,7 @@ int random_score(struct model_bag* mb,const uint8_t* a,const int len)
                 c = seqa[i];
                 mb->r_score  = mb->r_score  + mb->model[0]->background_nuc_frequency[c] + add;
         }
-        mb->r_score  += prob2scaledprob(1.0 / (float)mb->average_raw_length);
+        mb->r_score  += prob2scaledprob(1.0 / (float)mb->average_raw_length) + mb->r_prior;
         return OK;
 }
 
@@ -189,7 +189,7 @@ int backward(struct model_bag* mb,const uint8_t* a,const int len)
                 }
         }
 
-        mb->b_score = mb->model[0]->silent_backward[1];
+        mb->b_score = mb->model[0]->silent_backward[1] + mb->m_prior;
         //fprintf(stderr,"SCore:%f	%f\n", mb->b_score , scaledprob2prob(mb->b_score) );
 
         //fprintf(stderr," BACKWARD:::::::::::\n");
@@ -360,7 +360,7 @@ struct model_bag* forward(struct model_bag* mb, const uint8_t* a, int len)
         }
 
 
-        mb->f_score = mb->model[mb->num_models-1]->silent_forward[len];
+        mb->f_score = mb->model[mb->num_models-1]->silent_forward[len] + mb->m_prior;
 
         //fprintf(stderr,"SCORE:%f	%f\n", mb->f_score, scaledprob2prob(mb->f_score));
 
@@ -661,7 +661,7 @@ struct model_bag* forward_extract_posteriors(struct model_bag* mb, const uint8_t
         }
 
 
-        mb->f_score = mb->model[mb->num_models-1]->silent_forward[len];
+        mb->f_score = mb->model[mb->num_models-1]->silent_forward[len] + mb->m_prior;
 
         //fprintf(stderr,"SCORE:%f	%f\n", mb->f_score, scaledprob2prob(mb->f_score));
         return mb;
@@ -891,7 +891,7 @@ int forward_max_posterior_decoding(struct model_bag* mb, const uint8_t* a,char**
                 //hmm_counter++;
         }
 
-        mb->f_score = mb->model[mb->num_models-1]->silent_forward[len];
+        mb->f_score = mb->model[mb->num_models-1]->silent_forward[len] + mb->m_prior;
 
         // get barcode score....
 

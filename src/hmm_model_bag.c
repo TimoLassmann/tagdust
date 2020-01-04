@@ -16,19 +16,23 @@ static int alloc_model_bag(struct model_bag** model_bag,const struct read_struct
 struct model* copy_model_parameters(struct model* org, struct model* copy );
 
 static int set_label_and_path(struct model_bag* mb);
-static int set_len_of_unknown(const struct read_structure*rs, int* out_l, int read_len);
+
+static int set_len_of_unknown(const struct read_structure*rs, int* out_l,int* min_len, int read_len);
 
 int init_model_bag(struct model_bag** model_bag,const  struct read_structure* rs,const struct sequence_stats_info* ssi, const struct alphabet* a, int model_index)
 {
         struct model_bag* mb = NULL;
         int i;
         int expected_len = 0;
-
+        int min_len = 0;
         ASSERT(ssi->max_seq_len > 0,"Max len can't be 0");
         ASSERT(ssi->average_length > 0,"Average len can't be 0");
 
-        RUN(set_len_of_unknown(rs, &expected_len, ssi->average_length));
+        RUN(set_len_of_unknown(rs, &expected_len,&min_len, ssi->average_length));
 
+
+
+        
         if(expected_len == -1){
                 //LOG_MSG("Skipping!!!!");
                 *model_bag = NULL;
@@ -38,6 +42,9 @@ int init_model_bag(struct model_bag** model_bag,const  struct read_structure* rs
         /* first we allocate the model based on the read structure information */
         //LOG_MSG("Allocating %d %d",ssi->max_seq_len,ssi->average_length);
         RUN(alloc_model_bag(&mb, rs, ssi->max_seq_len, ssi->average_length));
+
+        mb->min_len = min_len;
+
         //exit(0);
 /* initialize the model with 'default'  parameters - refinement happens later.  */
         for(i = 0; i < mb->num_models;i++){
@@ -127,30 +134,35 @@ int set_label_and_path(struct model_bag* mb)
         return OK;
 }
 
-int set_len_of_unknown(const struct read_structure*rs, int* out_l, int read_len)
+int set_len_of_unknown(const struct read_structure*rs, int* out_l,int* min_len, int read_len)
 {
         int i;
         int len_of_plus;
         int known_len;
         int num_unknown;
+        int min;
         len_of_plus = 0;
         known_len = 0;
-        num_unknown =0;
+        num_unknown = 0;
+        min = 0;
         for(i = 0; i < rs->num_segments  ;i++){
                 if(rs->seg_spec[i]->max_len == INT32_MAX){
                         num_unknown++;
                 }else{
                         known_len += rs->seg_spec[i]->max_len;
                 }
+                //LOG_MSG("Seg %d len %d",i, rs->seg_spec[i]->min_len);
+                min += rs->seg_spec[i]->min_len;
         }
+        *min_len = min;
         *out_l = 0;
         if(read_len < known_len){
-                WARNING_MSG("Model: ");
+                /*WARNING_MSG("Model: ");
                 for(i = 0; i < rs->num_segments  ;i++){
                         WARNING_MSG("%d: %s:%c:%s" , i, rs->seg_spec[i]->name,"EASIP"[rs->seg_spec[i]->extract],rs->seg_spec[i]->seq[0]);
 
                 }
-                WARNING_MSG(" is too long for read (len:%d",read_len);
+                WARNING_MSG(" is too long for read (len:%d",read_len);*/
                 *out_l = -1;
                 return OK;
         }
@@ -162,12 +174,12 @@ int set_len_of_unknown(const struct read_structure*rs, int* out_l, int read_len)
                 *out_l = len_of_plus;
         }else{
                 if(read_len != known_len){
-                        WARNING_MSG("Model: ");
+                        /*WARNING_MSG("Model: ");
                         for(i = 0; i < rs->num_segments  ;i++){
                                 WARNING_MSG("%d: %s:%c:%s" , i, rs->seg_spec[i]->name,"EASIP"[rs->seg_spec[i]->extract],rs->seg_spec[i]->seq[0]);
 
                         }
-                        WARNING_MSG(" is too short for read (len:%d",read_len);
+                        WARNING_MSG(" is too short for read (len:%d",read_len);*/
                 }
         }
         return OK;
@@ -197,11 +209,14 @@ int alloc_model_bag(struct model_bag** model_bag,const struct read_structure* r,
 
         mb->num_models = r->num_segments;
         mb->total_hmm_num = 0;
-
+        mb->min_len = 0;
         mb->f_score = prob2scaledprob(0.0f);
         mb->b_score = prob2scaledprob(0.0f);
         mb->r_score = prob2scaledprob(0.0f);
 
+
+        mb->m_prior = prob2scaledprob(0.5);
+        mb->r_prior = prob2scaledprob(0.5);
         MMALLOC(mb->previous_silent,sizeof(float) * mb->current_dyn_length );
         MMALLOC(mb->next_silent,sizeof(float) * mb->current_dyn_length );
 

@@ -17,8 +17,8 @@
 #include "pst.h"
 
 
-#define READ_CHUNK_SIZE 2048
-#define CHUNKS 1
+#define READ_CHUNK_SIZE 10000
+#define CHUNKS 10
 
 #define MAX_OUTREADNAME 128
 
@@ -37,7 +37,7 @@ static int sanity_check_inputs(struct tl_seq_buffer** rb, int num_files);
 
 static int run_extract( struct assign_struct* as,  struct tl_seq_buffer** rb, struct arch_library* al, struct seq_stats* si,int i_file,int i_chunk);
 
-static int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb,  char* prefix);
+static int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb, int bam);
 
 int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameters* param,struct rng_state* rng)
 {
@@ -73,7 +73,7 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
         }
 
         /* figure out how many barcodes etc */
-        RUN(init_assign_structure(&as, al, param->outfile, CHUNKS* READ_CHUNK_SIZE));
+        RUN(init_assign_structure(&as, al, param->outfile, CHUNKS* READ_CHUNK_SIZE, param->bam));
 
         as->block_size = READ_CHUNK_SIZE;
         //RUN(galloc(&as->assignment, as->total, as->num_barcodes));
@@ -204,9 +204,9 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
                 STOP_TIMER(t1);
                 LOG_MSG("Took %f ",GET_TIMING(t1));
                 //LOG_MSG("Write buff: %p",wb);
-                RUN(write_all(as,&wb, param->outfile));
+                RUN(write_all(as,&wb,param->bam));
                 RUN(reset_assign_structute(as));
-                exit(0);
+                //exit(0);
         }
         /* FIXME */
         if(wb){
@@ -281,9 +281,9 @@ int run_extract( struct assign_struct* as,  struct tl_seq_buffer** rb, struct ar
 
 
                 //pbest = ri[i]->mapq;
-                pbest = prob2scaledprob(0.0f);
-                pbest = logsum(pbest, mb->f_score);
-                pbest = logsum(pbest, mb->r_score);
+                //pbest = prob2scaledprob(0.0f);
+                //pbest = logsum(pbest, mb->f_score);
+                pbest = logsum(mb->bar_score + mb->f_score, mb->r_score);
 
                 pbest = 1.0 - scaledprob2prob(  (mb->bar_score + mb->f_score ) - pbest);
 
@@ -317,6 +317,7 @@ int run_extract( struct assign_struct* as,  struct tl_seq_buffer** rb, struct ar
                 cs.hmm_label = mb->label;
                 cs.f = 0;
                 if(Q < al->confidence_thresholds[i_file]){
+                        LOG_MSG("Q: %f thres %f %d", Q, al->confidence_thresholds[i_file], i_file);
                         cs.f = READ_FAILQ;
                 }
 
@@ -339,19 +340,20 @@ int process_read(struct collect_read* ri, struct read_structure* rs , struct seq
         uint8_t c;
         int j;
         int s_index;
-        int s_len;
+        //int s_len;
         char* s_name;
         int segment;
         int hmm_in_segment;
         int c1;
         int len = ri->len;
         uint8_t old_c = 255;
+        int read = 0;
         //      int local_bit_index;
 
         read_label = ri->label+1;
         label = ri->hmm_label;
         //type = rs->type;
-
+        s_index = 0;
         //assign_offset = as->num_per_file[i_file];
         for(j = 0; j < len;j++){
                 c1 = label[(int)read_label[j]];
@@ -363,58 +365,60 @@ int process_read(struct collect_read* ri, struct read_structure* rs , struct seq
                 switch (c) {
                 case ARCH_ETYPE_APPEND: //case 'F':
                         if(c != old_c){
-                                s_name = rs->seg_spec[segment]->name;
-                                s_len = strlen(s_name);
-
-                                for(s_index = 0; s_index < s_len;s_index++){
-                                        b->append[b->a_len] = s_name[s_index];
-                                        b->a_len++;
-
-                                }
-                                b->append[b->a_len] = ':';
-                                b->a_len++;
-                                b->append[b->a_len] = 'Z';
-                                b->a_len++;
-                                b->append[b->a_len] = ':';
-                                b->a_len++;
-
+                                s_index =0;
                                 sb = b->bits[local_bit_index];
-                                sb->len = 0;
+
+                                s_name = rs->seg_spec[segment]->name;
+                                if(b->append.l){
+                                        kputc(' ', &b->append);
+                                }
+
+                                kputs(s_name, &b->append);
+
+                                kputs(":Z:", &b->append);
+
+
+                                //sb->len = 0;
                                 //ASSERT(i_file == sb->file, "Oh dear: want %d got %d",i_file,sb->file);
                                 //sb->file = i_file;
                                 sb->code = (char) ( hmm_in_segment + 33);
                                 sb->type = ARCH_ETYPE_APPEND;
-                                sb->p = ri->seq+j;
+                                //sb->p = ri->seq+j;
                                 sb->fail = ri->f;
+                                if(hmm_in_segment == 0 && rs->seg_spec[segment]->num_seq > 1){
+                                        //LOG_MSG("Read %s failrd", b->name);
+                                        sb->fail |= READ_NBAR;
+                                }
+
                                 local_bit_index++;
                         }
+                        //kputc(ri->seq[j], &sb->p);
+
                         if(rs->seg_spec[segment]->num_seq > 1){
-                                b->append[b->a_len] = rs->seg_spec[segment]->seq[hmm_in_segment][sb->len];
+                                kputc(rs->seg_spec[segment]->seq[hmm_in_segment][s_index], &b->append);
                         }else{
-                                b->append[b->a_len] = ri->seq[j];
-                                b->a_len++;
+                                kputc(ri->seq[j], &b->append);
                         }
 
-
-                        sb->len++;
-                        //umi_len++;
-                        //umi = (umi << 2 )|  (ri->seq[j] & 0x3);
-                        //ri->seq[s_pos] = 65; // 65 is the spacer! nucleotides are 0 -5....
-                        //ri->qual[s_pos] = 65;
+                        s_index++;
                         break;
                 case ARCH_ETYPE_SPLIT:// case 'B':
                         if(c != old_c){
                                 sb = b->bits[local_bit_index];
-                                sb->len = 0;
+
                                 //ASSERT(i_file == sb->file, "Oh dear: want %d got %d",i_file,sb->file);
                                 //sb->file = i_file;
                                 sb->type = ARCH_ETYPE_SPLIT;
                                 sb->code = (char) ( hmm_in_segment + 33);
-                                sb->p = rs->seg_spec[segment]->seq[hmm_in_segment];
+
+
+                                //kputs(rs->seg_spec[segment]->seq[hmm_in_segment], &sb->p);
+                                //sb->p = rs->seg_spec[segment]->seq[hmm_in_segment];
                                 //rs->sequence_matrix[segment][hmm_in_segment];
-                                sb->len = rs->seg_spec[segment]->max_len;// should be identical to min_lena rs->segment_length[segment];
+                                //sb->len = rs->seg_spec[segment]->max_len;// should be identical to min_lena rs->segment_length[segment];
                                 sb->fail = ri->f;
                                 if(hmm_in_segment == 0){
+                                        //LOG_MSG("Read %s failrd", b->name);
                                         sb->fail |= READ_NBAR;
                                 }
                                 local_bit_index++;
@@ -422,33 +426,34 @@ int process_read(struct collect_read* ri, struct read_structure* rs , struct seq
                         break;
                 case ARCH_ETYPE_EXTRACT:// case 'R':
                         if(c != old_c){
+                                s_index = 0;
                                 sb = b->bits[local_bit_index];
-                                sb->len = 0;
                                 //ASSERT(i_file == sb->file, "Oh dear: want %d got %d",i_file,sb->file);
                                 //sb->file = i_file;
-                                sb->code = (char)(sb->file + 33);
+                                //sb->code = (char)(read + 33);
                                 sb->type = ARCH_ETYPE_EXTRACT;
-                                sb->p = ri->seq + j;
-                                sb->q = ri->qual + j;
                                 sb->fail = ri->f;
                                 local_bit_index++;
+                                read++;
                         }
-                        sb->len++;
+                        kputc(ri->seq[j],&sb->p);
+                        kputc(ri->qual[j],&sb->q);
                         break;
                 default:
                         break;
                 }
                 old_c = c;
         }
+        //b->append[b->a_len] = 0;
         //fprintf(stdout,"%s\n%s\n",sb->p,sb->q);
         //exit(0);
         //ri->len = s_pos;
         return OK;
 ERROR:
-        return NULL;
+        return FAIL;
 }
 
-int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb,  char* prefix)
+int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb, int bam)
 {
         struct demux_struct** dm;
         struct demux_struct* tmp_ptr = NULL;
@@ -457,11 +462,9 @@ int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb,  char* 
         struct tl_seq_buffer* write_buf;
         struct file_handler* f_hand;
 
-        char filename[256];
-
         int out_read,i;
         int file = -1;
-        int len;
+
         f_hand = NULL;
 
         if(*wb){
@@ -482,7 +485,10 @@ int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb,  char* 
                         write_buf->sequences[i] = NULL;
                         MMALLOC(write_buf->sequences[i], sizeof(struct tl_seq));
                         write_buf->sequences[i]->name = NULL;
-                        MMALLOC(write_buf->sequences[i]->name, sizeof(char) * MAX_OUTREADNAME);
+                        write_buf->sequences[i]->seq = NULL;
+                        write_buf->sequences[i]->qual = NULL;
+                        write_buf->sequences[i]->aux = NULL;
+                        //MMALLOC(write_buf->sequences[i]->name, sizeof(char) * MAX_OUTREADNAME);
                 }
                 //RUN(alloc_tl_seq_buffer(&write_buf, 100000));
 
@@ -495,20 +501,24 @@ int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb,  char* 
         START_TIMER(t1);
 
         for(out_read = 0; out_read < as->out_reads;out_read++){
-                //LOG_MSG("OUT:%d: mode: %s",out_read, file_mode);
+                //LOG_MSG("OUT:%d",out_read);
                 file = -1;
                 for(i = 0; i < as->num_reads ;i++){
+
+
                         bv = as->bit_vec[i];
+                        //fprintf(stdout,"outread: %d id: %d\n",out_read, dm[bv->out_file_id[out_read]]->id);
+                        //LOG_MSG("Writing %d fail: %d",i, bv->fail);
                         //bv = as->bit_vec[as->loc_out_reads[i]];
                         if(bv->fail){
-                                RUN(write_fasta_fastq(write_buf, f_hand));
+                                LOG_MSG("Writing %d", write_buf->num_seq);
+                                RUN(write_seq_buf(write_buf, f_hand));
                                 write_buf->num_seq = 0;
+
                                 //RUN(close_seq_file(&f_hand));
                                 break;
                         }
 
-
-                        //sb = bv->bits[out_read];
                         /* check if we should write to new file */
                         if(dm[bv->out_file_id[out_read]]->id != file){
                                 LOG_MSG("New group: %d at %d", dm[bv->out_file_id[out_read]]->id,out_read);
@@ -516,43 +526,52 @@ int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb,  char* 
                                 LOG_MSG("New group: %p", dm[bv->out_file_id[out_read]]->f_hand,out_read);
 
                                 if(file != -1){
-                                        RUN(write_fasta_fastq(write_buf, f_hand));
+                                        LOG_MSG("Writing %d", write_buf->num_seq);
+                                        RUN(write_seq_buf(write_buf, f_hand));
                                         write_buf->num_seq = 0;
                                         //RUN(close_seq_file(&f_hand));
                                 }
 
                                 if(!dm[bv->out_file_id[out_read]]->f_hand){
-                                        open_fasta_fastq_file(&dm[bv->out_file_id[out_read]]->f_hand, dm[bv->out_file_id[out_read]]->out_filename, TLSEQIO_WRITE);
+                                        if(bam){
+                                                LOG_MSG("Opening BAM : %s" , dm[bv->out_file_id[out_read]]->out_filename);
+                                                RUN(open_sam_bam(&dm[bv->out_file_id[out_read]]->f_hand, dm[bv->out_file_id[out_read]]->out_filename, TLSEQIO_WRITE));
+                                        }else{
+                                                RUN(open_fasta_fastq_file(&dm[bv->out_file_id[out_read]]->f_hand, dm[bv->out_file_id[out_read]]->out_filename, TLSEQIO_WRITE));
+                                        }
                                 }
                                 f_hand= dm[bv->out_file_id[out_read]]->f_hand;
                                 file = dm[bv->out_file_id[out_read]]->id;
+                                LOG_MSG("New group: %p", dm[bv->out_file_id[out_read]]->f_hand,out_read);
                         }
 
                         sb = bv->bits[as->loc_out_reads[out_read]];
-                        write_buf->sequences[write_buf->num_seq]->seq = sb->p;
-                        write_buf->sequences[write_buf->num_seq]->qual = sb->q;
-                        write_buf->sequences[write_buf->num_seq]->len = sb->len;
-
-                        if(bv->a_len){
-                                snprintf(write_buf->sequences[write_buf->num_seq]->name,MAX_OUTREADNAME,"%s %s", bv->name, bv->append);
-                        }else{
-                                snprintf(write_buf->sequences[write_buf->num_seq]->name,MAX_OUTREADNAME,"%s", bv->name);
-                        }
+                        write_buf->sequences[write_buf->num_seq]->seq = sb->p.s;//  sb->p;
+                        write_buf->sequences[write_buf->num_seq]->qual = sb->q.s;
+                        write_buf->sequences[write_buf->num_seq]->len = sb->p.l;
+                        write_buf->sequences[write_buf->num_seq]->name = bv->name;
+                        //fprintf(stdout,"%s\n", bv->append.s);
+                        write_buf->sequences[write_buf->num_seq]->aux = bv->append.s;
+                        /*if(out_read == 1){
+                        LOG_MSG("");
+                        LOG_MSG("%s ", sb->p.s);
+                        LOG_MSG("%s ", sb->q.s);
+                        LOG_MSG("%s ", bv->name);
+                        LOG_MSG("%s ", bv->append.s);
+                        }*/
                         write_buf->num_seq++;
 
                         if(write_buf->num_seq == write_buf->malloc_num){
-                                RUN(write_fasta_fastq(write_buf, f_hand));
+                                LOG_MSG("Writing %d", write_buf->num_seq);
+                                RUN(write_seq_buf(write_buf, f_hand));
                                 write_buf->num_seq = 0;
                         }
                 }
                 if(write_buf->num_seq){
-                        RUN(write_fasta_fastq(write_buf, f_hand));
+                        LOG_MSG("Writing %d  %p", write_buf->num_seq,f_hand);
+                        RUN(write_seq_buf(write_buf, f_hand));
                         write_buf->num_seq = 0;
-                        //RUN(close_seq_file(&f_hand));
-
                 }
-
-
         }
 
         STOP_TIMER(t1);
@@ -562,6 +581,8 @@ int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb,  char* 
         for(i = 0; i < write_buf->malloc_num;i++){
                 write_buf->sequences[i]->seq = NULL;
                 write_buf->sequences[i]->qual = NULL;
+                write_buf->sequences[i]->aux = NULL;
+                write_buf->sequences[i]->name = NULL;
 
         }
 

@@ -40,6 +40,7 @@ struct parameters {
         int bzipped;
         int dust;
         int sam;
+        int bam;
         int fasta;
         float sequencer_error_rate;
         float indel_frequency;

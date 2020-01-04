@@ -39,8 +39,8 @@ int run_filter_exact(struct assign_struct* as, struct ref* ref, int index, int t
                 sb = bv->bits[as->loc_out_reads[i]];
 
 //ASSERT(sb->type == READ_TYPE, "NO READ TYPE!!! ");
-                tmp_seq = sb->p;
-                len_a = MACRO_MIN(256, sb->len);
+                tmp_seq = sb->p.s;
+                len_a = MACRO_MIN(256, sb->p.l);
                 //fprintf(stdout,"%s\n", tmp_seq);
                 for(j = 0; j < len_a;j++){
                         seq_a[j] = tlalphabet_get_code(ref->a, tmp_seq[j]);
@@ -87,7 +87,7 @@ int run_filter_pst(struct assign_struct* as, struct pst* pst, int index, float t
         for(i = 0; i < as->out_reads;i++){
                 sb = bv->bits[as->loc_out_reads[i]];
                 //sb = bv->bits[i];
-                RUN(scan_read_with_pst(pst,  sb->p , sb->len,&out));
+                RUN(scan_read_with_pst(pst,  sb->p.s , sb->p.l,&out));
                 if(out >= thres){
                         sb->fail |= READ_FAILP;
                 }

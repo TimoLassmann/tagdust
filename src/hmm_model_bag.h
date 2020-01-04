@@ -20,7 +20,8 @@ struct model_bag{
         float r_score;/**<@brief Probability of random model. */
         float bar_score;/**< @brief Max probability of paths going through one barcode HMM. */
 
-
+        float m_prior;
+        float r_prior;
 
 
 
@@ -28,10 +29,10 @@ struct model_bag{
         int current_dyn_length;
         //float lambda;
         //float mu;
-
+        int min_len;
 
         int total_hmm_num; /**<@brief Total number of profile HMMs in complete HMM.*/
-        float model_multiplier; /**< @brief Number of different profile HMM combinations. */
+        //float model_multiplier; /**< @brief Number of different profile HMM combinations. */
 }_MM_ALIGN16;
 
 

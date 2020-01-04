@@ -176,7 +176,7 @@ int interface(struct parameters** p,int argc, char *argv[])
         param->infile = NULL;
         param->outfile = NULL;
         param->num_threads = 8;
-
+        param->bam = 1;
         param->quiet_flag = 0;
         param->num_query = 1000000;
         param->format = 0;

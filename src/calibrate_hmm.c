@@ -12,7 +12,7 @@
 #include "core_hmm_functions.h"
 
 
-#define NUM_TEST_SEQ 100
+#define NUM_TEST_SEQ 1000
 
 struct calibrate_seq{
         uint8_t* seq;
@@ -56,7 +56,6 @@ int calibrate_architectures(struct arch_library* al, struct seq_stats* si,struct
                 j = al->arch_to_read_assignment[i];
                 //LOG_MSG("File %d HMM: %d",i,j);
                 calibrate(al, si,seeds, i, j);
-
         }
 
         //for(i = 0; i < al->num_file;i++){
@@ -75,7 +74,20 @@ int calibrate(struct arch_library* al, struct seq_stats* si,int* seeds,int i_fil
         struct calibrate_buffer* cb = NULL;
         struct rng_state* local_rng = NULL;
         int i,j;
+
         double TP,FP,TN,FN;
+        double kappa = 0.0;
+        double tmp = 0.0;
+
+        double P_e = 0.0;
+
+        double P_o = 0.0;
+
+
+
+        float thres[6];
+
+
         TP = 0.0;
         FP = 0.0;
         TN = 0.0;
@@ -108,21 +120,25 @@ int calibrate(struct arch_library* al, struct seq_stats* si,int* seeds,int i_fil
         RUN(init_model_bag(&mb,al->read_structure[i_hmm], si->ssi[i_file],si->a, i_hmm));
 
         RUN(run_scoring(mb, cb));
-
-
         free_model_bag(mb);
+
+        /* Do I set thresholds at all???  */
+        tmp=0.0;
+        for(i = 0; i < NUM_TEST_SEQ / 2;i++){
+
+                tmp += cb->seq[i]->Q;
+        }
+        tmp = tmp / (double)(NUM_TEST_SEQ /2);
+        //LOG_MSG("Average Q: %f", tmp);
+
+        if(tmp < 10){
+                al->confidence_thresholds[i_file] = 0.0f;
+                goto SKIP;
+        }
+
         qsort(cb->seq,NUM_TEST_SEQ, sizeof(struct calibrate_seq*), qsort_cb_q_compare);
 
-        double kappa = 0.0;
-        double tmp = 0.0;
 
-        double P_e = 0.0;
-
-        double P_o = 0.0;
-
-
-
-        float thres[6];
         thres[0] = 1000.0;
         thres[1] = 1000.0;
         thres[2] = 1000.0;
@@ -143,7 +159,7 @@ int calibrate(struct arch_library* al, struct seq_stats* si,int* seeds,int i_fil
                         FN -= 1.0;
                 }
                 //if(i < 100){
-                //fprintf(stderr,"%d	%f	%d\n",i,ri[i]->mapq, ri[i]->read_type);
+                //fprintf(stdout,"%d %f %d %f\n",i, cb->seq[i]->Q, cb->seq[i]->type, powf(10.0f,-1.0f * cb->seq[i]->Q / 10));
                 //}
                 sensitivity = TP/( TP + FN );
                 specificity =  TN / ( TN + FP);
@@ -181,18 +197,19 @@ int calibrate(struct arch_library* al, struct seq_stats* si,int* seeds,int i_fil
                 al->confidence_thresholds[i_file] =  20;
         }
 
-        /*fprintf(stderr,"FDR:0.01: %f\n", thres[0]);
+        fprintf(stderr,"FDR:0.01: %f\n", thres[0]);
         fprintf(stderr,"FDR:0.05: %f\n", thres[1]);
         fprintf(stderr,"FDR:0.1: %f\n", thres[2]);
         fprintf(stderr,"Sen+spe: %f\n", thres[4]);
 
         fprintf(stderr,"Kappa: %f at %f\n",  kappa,thres[5]   );
 
-        fprintf(stderr,"Selected Threshold: %f\n", al->confidence_thresholds[i_file]);*/
+        fprintf(stderr,"Selected Threshold: %f\n", al->confidence_thresholds[i_file]);
         //sprintf(param->buffer,"Selected Threshold:: %f\n", param->confidence_threshold );
 
         //param->messages = append_message(param->messages, param->buffer);
         //free_read_info(ri,NUM_TEST_SEQ);
+SKIP:
         for(i = 0; i < cb->num_seq;i++){
                 MFREE(cb->seq[i]->seq);
                 MFREE(cb->seq[i]);
@@ -200,6 +217,8 @@ int calibrate(struct arch_library* al, struct seq_stats* si,int* seeds,int i_fil
         MFREE(cb->seq);
         MFREE(cb);
         free_rng(local_rng);
+
+
         return OK;
 ERROR:
         return FAIL;
@@ -237,6 +256,9 @@ static int generate_test_sequences(struct  calibrate_buffer** ri_b, struct model
         }
         for(i = j; i < NUM_TEST_SEQ ;i++){
                 t_len = (int) round(tl_random_gaussian(rng, mean, stdev));
+                /* makesure t_len is >= the minimum length the model can handle. */
+                t_len = MACRO_MAX(mb->min_len, t_len);
+                //LOG_MSG("Generating %d min: %d",t_len,mb->min_len);
                 RUN(emit_random_sequence(mb, &cb->seq[i]->seq, &cb->seq[i]->len, t_len, rng));
                 cb->seq[i]->type = 1;
 
@@ -261,19 +283,27 @@ int run_scoring(struct model_bag* mb, struct calibrate_buffer* cb)
 
                 seq = cb->seq[i]->seq;
                 len = cb->seq[i]->len;
+
+
                 RUN(backward(mb, seq,len));
-                //LOG_MSG("%d %f %d", len, mb->b_score,cb->seq[i]->type);
+
 
 
                 RUN(forward_max_posterior_decoding(mb,seq,NULL,len));
                 RUN(random_score(mb, seq, len));
-                pbest = prob2scaledprob(0.0f);
+
+
+                //pbest = prob2scaledprob(0.0f);
                 //fprintf(stdout,"%d %f\n",i, pbest);
-                pbest = logsum(pbest, mb->f_score);
-                pbest = logsum(pbest, mb->r_score);
+                pbest = logsum(mb->f_score + mb->bar_score,mb->r_score);
+                        //pbest = logsum(pbest, mb->r_score);
+                //LOG_MSG("%d %f %f %f %f sum:%f %d", len,mb->f_score, mb->b_score, mb->r_score,mb->bar_score, pbest, cb->seq[i]->type);
+                //                pbest = 1.0 - scaledprob2prob(  (mb->bar_score + mb->f_score ) - pbest);
+                //LOG_MSG("M:%f R:%f",1.0 - scaledprob2prob(  (mb->bar_score + mb->f_score ) - pbest),1.0 - scaledprob2prob(  (mb->r_score ) - pbest));
 
-                pbest = 1.0 - scaledprob2prob(  (mb->bar_score + mb->f_score ) - pbest);
+                //LOG_MSG("M:%f R:%f   best:%f",scaledprob2prob(mb->f_score+mb->bar_score  - pbest),scaledprob2prob(mb->r_score  - pbest),pbest);
 
+                pbest = 1.0 - scaledprob2prob(mb->f_score+mb->bar_score  - pbest);
                 if(!pbest){
                         Q = 40.0;
                 }else if(pbest == 1.0){

@@ -84,7 +84,14 @@ int test_architectures(struct arch_library* al, struct seq_stats* si, struct par
                 }
         }
 
-        //LOG_MSG("Testing %d models,", al->num_arch);
+
+        for(i = 0; i < param->num_infiles;i++){
+                free_tl_seq_buffer(rb[i]);
+                //free_read_info_buffer(rb[i]);
+        }
+        MFREE(rb);
+
+//LOG_MSG("Testing %d models,", al->num_arch);
 
 /* convert posteriors into Phred scaled quality values */
 
@@ -95,7 +102,7 @@ int test_architectures(struct arch_library* al, struct seq_stats* si, struct par
                         sum = logsum(sum,al->arch_posteriors[j][i]);
                 }
                 //fprintf(stdout,"\n");
-                //fprintf(stdout,"FILE: %s\t",param->infile[i]);
+                fprintf(stdout,"FILE: %s\t",param->infile[i]);
                 for(j = 0; j < al->num_arch;j++){
 
                         al->arch_posteriors[j][i] = 1.0 - scaledprob2prob(al->arch_posteriors[j][i] - sum);
@@ -103,9 +110,9 @@ int test_architectures(struct arch_library* al, struct seq_stats* si, struct par
                                 al->arch_posteriors[j][i] = 0.00001f;
                         }
                         al->arch_posteriors[j][i] = -10.0f * log10f(al->arch_posteriors[j][i]);
-                        //fprintf(stdout,"%f ",al->arch_posteriors[j][i]);
+                        fprintf(stdout,"%f ",al->arch_posteriors[j][i]);
                 }
-                //fprintf(stdout,"\n");
+                fprintf(stdout,"\n");
         }
 
 
@@ -122,16 +129,15 @@ int test_architectures(struct arch_library* al, struct seq_stats* si, struct par
                 ASSERT(best != -1,"No best arch found");
                 LOG_MSG("Best architecture for %s is (Q = %f):", param->infile[i], al->arch_posteriors[best][i]);
                 LOG_MSG("%s" , al->spec_line[best]);
+                if(al->arch_posteriors[best][i] < 10.0f){
+                        WARNING_MSG("Two or more architectures have a high probability of matching %s", param->infile[i]);
+                }
+
                 al->arch_to_read_assignment[i] = best;
                 al->arch_posteriors[0][i] = al->arch_posteriors[best][i];
         }
 
         al->num_file = param->num_infiles;
-        for(i = 0; i < param->num_infiles;i++){
-                free_tl_seq_buffer(rb[i]);
-                //free_read_info_buffer(rb[i]);
-        }
-        MFREE(rb);
 
         MFREE(ab->arch_posterior);
         MFREE(ab->archs);

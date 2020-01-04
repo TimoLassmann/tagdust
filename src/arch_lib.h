@@ -21,17 +21,8 @@ struct segment_specs{
 
 struct read_structure{
         struct segment_specs** seg_spec;
-        //char*** sequence_matrix;
-        //int* segment_length;
-        //int* numseq_in_segment;
-        //char* type;
-        //char** segment_name;
-        //uint8_t* extract;
-        //int* min_len;
-        //int* max_len;
         int num_segments;
         int alloc_num_seqments;
-        //uint8_t assignment_to_read;
 };
 
 struct arch_library{

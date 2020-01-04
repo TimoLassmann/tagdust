@@ -288,12 +288,13 @@ int parse_rs_token(char* token, struct segment_specs** s_spec)
                                 g++;
                         }else{
                                 spec->seq[f][g] = 0;
+                                spec->min_len = g;
                                 if(g != 1){
                                         ERROR_MSG("Tagdust only accepts a single character (not %d) with options + {n} {n,m}",g);
                                 }
                         }
                 }
-                spec->min_len = 0;
+
                 spec->max_len = INT32_MAX;
 
         }else{
