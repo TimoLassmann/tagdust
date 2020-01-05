@@ -84,6 +84,9 @@ int backward(struct model_bag* mb,const uint8_t* a,const int len)
                         psilent = mb->model[j+1]->silent_backward;
                 }
 
+                //m_pos-=  mb->model[j]->hmms[0]->num_columns;
+                //LOG_MSG("Seg:%d Model%d: POS: %d",j,0,m_pos);
+
 
                 csilent= mb->model[j]->silent_backward;
                 for(f = 0;f < mb->model[j]->num_hmms;f++){
@@ -91,13 +94,16 @@ int backward(struct model_bag* mb,const uint8_t* a,const int len)
                         model_len = mb->model[j]->hmms[f]->num_columns-1;
                         //previous_silent[len+1] = logsum(previous_silent[len+1],  current_silent[len+1]+ mb->model[j] ->skip );
                         //csilent[len+1] =psilent[len+1] + mb->model[j]->skip;
-                        for(i = len ; i > 0;i-- ){
+                        //LOG_MSG("Seg:%d Model%d: POS: %d\n",j,f,m_pos);
 
+                        for(i = len ; i > 0;i-- ){
+                                //LOG_MSG("Dyn only on: %d %d",s,e);
                                 //for(i = len-1 ; i >= 0;i--){ /// DONT MESS WITH THIS - the code takes the first letter to calculate the silent states - EVERYHTHIN is ok..
                                 // in the last column an I state will emit a letter not present in the seuqence BUT this will not make it when joined to the forward... messy but works.
                                 //	c = (int) seqa[i+1];
                                 c = (int)seqa[i+1];
                                 c_hmm_column = hmm->hmm_column[model_len];
+
 
                                 //c_hmm_column->M_backward[i] = psilent[i+1] + mb->model[j]->M_to_silent[f] ;
 
@@ -125,6 +131,8 @@ int backward(struct model_bag* mb,const uint8_t* a,const int len)
                                 c_hmm_column->D_backward[i] = prob2scaledprob(0.0f);
                                 for(g = model_len-1;g >= 0;g--){
                                         c_hmm_column = hmm->hmm_column[g];
+                                        //m_pos--;
+                                        //LOG_MSG("Seg:%d Model%d: POS: %d",j,f,m_pos);
                                         p_hmm_column = hmm->hmm_column[g+1];
 
                                         c_hmm_column->M_backward[i]  = p_hmm_column->M_backward[i+1] + p_hmm_column->m_emit[c] + c_hmm_column->transition[MM];
@@ -181,12 +189,14 @@ int backward(struct model_bag* mb,const uint8_t* a,const int len)
                                 //this should come from previous state .....
                                 csilent[i] = logsum(csilent[i], psilent[i] + mb->model[j]->skip);
 
-
-
+                                //m_pos+=model_len;
+                                //LOG_MSG("Seg:%d Model%d: POS: %d\n",j,f,m_pos);
                                 //exit(0);
 
                         }
+
                 }
+
         }
 
         mb->b_score = mb->model[0]->silent_backward[1] + mb->m_prior;
@@ -944,7 +954,7 @@ int forward_max_posterior_decoding(struct model_bag* mb, const uint8_t* a,char**
 
 
                         for(f = 0;f < mb->model[j]->num_hmms;f++){
-                                if(total_prob[hmm_counter] > next_silent[0] && f != mb->model[j]->num_hmms-1 ){
+                                if(total_prob[hmm_counter] > next_silent[0] && f ){
                                         next_silent[0] = total_prob[hmm_counter];
                                 }
                                 next_silent[1] = logsum(next_silent[1] , total_prob[hmm_counter]);
@@ -1828,13 +1838,13 @@ int main(int argc, char *argv[])
         struct alphabet* a = NULL;
         char* in[] = {
                 //"O:N",
-                "S:GTA,AAC",
+                //"S:GTA,AAC",
                 "MEREAD:E:N+",
-                "I:CCTTAA",
-                "S:ACAGTG,ACTTGA,TTAGGC"
+                "I:CCTTAA"
+                //"S:ACAGTG,ACTTGA,TTAGGC"
         };
         uint8_t* seq = NULL;
-        int seq_len = 30;
+        int seq_len = 8;
         int size;
         int i;
 
@@ -1865,8 +1875,10 @@ int main(int argc, char *argv[])
 
 
         backward(mb, seq, seq_len);
+        forward(mb, seq, seq_len);
 
-        fprintf(stdout,"Score: %f\n", mb->b_score);
+        fprintf(stdout,"BScore: %f\n", mb->b_score);
+        fprintf(stdout,"FScore: %f\n", mb->b_score);
 
         free_model_bag(mb);
         MFREE(seq);
