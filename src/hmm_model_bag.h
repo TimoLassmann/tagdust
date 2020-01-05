@@ -30,7 +30,7 @@ struct model_bag{
         //float lambda;
         //float mu;
         int min_len;
-
+        int total_model_len;
         int total_hmm_num; /**<@brief Total number of profile HMMs in complete HMM.*/
         //float model_multiplier; /**< @brief Number of different profile HMM combinations. */
 }_MM_ALIGN16;

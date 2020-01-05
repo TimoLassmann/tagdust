@@ -152,8 +152,9 @@ TESTS_ENVIRONMENT = \
          export devdir; \
 	$(VALGRIND)
 
-check_PROGRAMS = arch_lib_test interface_test io_hdf5_test zwrite core_hmm_test
+check_PROGRAMS = arch_lib_test interface_test io_hdf5_test zwrite core_hmm_test band_test
 
+band_test_SOURCES = banded_test.c
 
 core_hmm_test_SOURCES = \
 misc.h \

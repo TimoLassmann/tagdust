@@ -29,9 +29,6 @@ int init_model_bag(struct model_bag** model_bag,const  struct read_structure* rs
         ASSERT(ssi->average_length > 0,"Average len can't be 0");
 
         RUN(set_len_of_unknown(rs, &expected_len,&min_len, ssi->average_length));
-
-
-
         
         if(expected_len == -1){
                 //LOG_MSG("Skipping!!!!");
@@ -209,7 +206,9 @@ int alloc_model_bag(struct model_bag** model_bag,const struct read_structure* r,
 
         mb->num_models = r->num_segments;
         mb->total_hmm_num = 0;
+        mb->total_model_len = 0;
         mb->min_len = 0;
+
         mb->f_score = prob2scaledprob(0.0f);
         mb->b_score = prob2scaledprob(0.0f);
         mb->r_score = prob2scaledprob(0.0f);
@@ -228,6 +227,7 @@ int alloc_model_bag(struct model_bag** model_bag,const struct read_structure* r,
                 //LOG_MSG("Allocating model %d: %d %d", i, r->numseq_in_segment[i],r->segment_length[i]);
                 len = r->seg_spec[i]->alloc_len;
                 num_hmm = r->seg_spec[i]->num_seq;
+                mb->total_model_len += len;
                 RUNP(mb->model[i] = malloc_model_according_to_read_structure(num_hmm,len,mb->current_dyn_length));
                 mb->total_hmm_num += mb->model[i]->num_hmms;
         }

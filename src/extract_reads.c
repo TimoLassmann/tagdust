@@ -16,7 +16,6 @@
 //#include "filter_pst.h"
 #include "pst.h"
 
-
 #define READ_CHUNK_SIZE 10000
 #define CHUNKS 10
 
@@ -98,8 +97,8 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
         for(i = 0; i < param->num_infiles * CHUNKS;i++){
                 rb[i] = NULL;
                 //RUN(alloc_read_info_buffer(&rb[i], READ_CHUNK_SIZE));
-
         }
+
 
         while(1){
                 /* read everything in  */
