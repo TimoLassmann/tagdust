@@ -29,7 +29,7 @@ int init_model_bag(struct model_bag** model_bag,const  struct read_structure* rs
         ASSERT(ssi->average_length > 0,"Average len can't be 0");
 
         RUN(set_len_of_unknown(rs, &expected_len,&min_len, ssi->average_length));
-        
+
         if(expected_len == -1){
                 //LOG_MSG("Skipping!!!!");
                 *model_bag = NULL;

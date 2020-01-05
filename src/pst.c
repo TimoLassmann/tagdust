@@ -5,7 +5,6 @@
 #include "tllogsum.h"
 #include <string.h>
 
-
 #include "pst.h"
 #define MAX_PST_LEN 12
 
@@ -20,15 +19,11 @@ struct pst {
         struct pst_node* pst_root;
         struct pst_node* ppt_root;
         uint32_t** counts;
-
         float p_min;
         float gamma_min;
         float r;
         int L;
 };
-
-
-
 
 static int init_pst(struct pst** pst, struct tl_seq_buffer* sb);
 
@@ -38,6 +33,8 @@ static float get_ppt_prob(struct pst_node* n, char* string,int target, int pos);
 
 static struct pst_node* build_pst(struct pst* pst,struct pst_node* n );
 static struct pst_node* build_ppt(struct pst* pst,struct pst_node* n );
+static void print_pst(struct pst* pst,struct pst_node* n);
+
 //static void print_pst(struct pst* pst,struct pst_node* n,int* num);
 static void free_pst_node(struct pst_node* n);
 
@@ -45,8 +42,6 @@ static struct pst_node* alloc_node(struct pst_node* n,char* string,int len);
 //static void free_node(struct pst_node*n);
 
 static inline int nuc_to_internal(const char c);
-
-
 
 int scan_read_with_pst(struct pst* pst, char* seq, int len, float*r)
 {
@@ -85,10 +80,12 @@ int scan_read_with_pst(struct pst* pst, char* seq, int len, float*r)
         fprintf(stdout,"%f\t%f,%s\n", P_S - P_R,A, seq);
         A = exp2f(P_P-P_R) / (1.0 + exp2f(P_P-P_R));
         fprintf(stdout,"%f\t%f,%s\n", P_P - P_R,A, seq);*/
+        LOG_MSG("%f %f %f", P_S,P_P,P_R);
         A = MACRO_MAX(P_S-P_R, P_P-P_R);
         A = exp2f(A) / (1.0 + exp2f(A));
         *r = A;
-
+        *r = MACRO_MAX(P_S, P_R);
+        exit(0);
         return OK;
 }
 
@@ -129,7 +126,7 @@ float get_ppt_prob(struct pst_node* n, char* string,int target, int pos)
 }
 
 
- int run_build_pst(struct pst** pst, struct tl_seq_buffer* sb)
+int run_build_pst(struct pst** pst, struct tl_seq_buffer* sb)
 {
         struct pst* p = NULL;
         //char alphabet[] = "ACGT";
@@ -146,7 +143,7 @@ float get_ppt_prob(struct pst_node* n, char* string,int target, int pos)
         for(i = 0;i < 4;i++){
                 x = i;
 
-                c = p->counts[0][x];
+                c = p->counts[0][x]+1;
                 //fprintf(stdout," %c: %d\n", alphabet[i],c);
                 //tmp[0] = alphabet[i];
                 //tmp[1] = 0;//alphabet[i];
@@ -162,12 +159,11 @@ float get_ppt_prob(struct pst_node* n, char* string,int target, int pos)
                 p->ppt_root->nuc_probability[i] = p->pst_root->nuc_probability[i];
                 //fprintf(stdout,"%c %f\n", alphabet[i],p->pst_root->nuc_probability[i]);
         }
-
-
         p->pst_root = build_pst(p,p->pst_root );
         p->ppt_root = build_ppt(p,p->ppt_root );
 
-
+        //print_pst(p, p->pst_root);
+        //LOG_MSG("%d %d",p->r)
         *pst = p;
         return OK;
 ERROR:
@@ -234,18 +230,10 @@ struct pst_node* build_pst(struct pst* pst,struct pst_node* n )
                                 for(j = 0; j < 4;j++){
                                         if(tmp_counts_s[j] / n->nuc_probability[j] >= pst->r){
                                                 add = 1;
-                                                //fprintf(stdout,"Adding because of %d %d\n", i ,add);
-                                                //fprintf(stdout, "%f %f\n",tmp_counts_s[j] / n->nuc_probability[j],pst->r);
-
                                         }
-
                                         if(tmp_counts_s[j] / n->nuc_probability[j] <= (1.0f/ pst->r)){
                                                 add = 1;
-                                                //fprintf(stdout,"Adding because of %d %d\n", i ,add);
                                         }
-
-
-
                                 }
                                 if(add){
                                         n->next[i] = alloc_node(n->next[i] ,tmp,len+1);
@@ -256,12 +244,8 @@ struct pst_node* build_pst(struct pst* pst,struct pst_node* n )
                                                 //fprintf(stdout,"%f ", n->next[i]->nuc_probability[j]);
                                                 sum += n->next[i]->nuc_probability[j];
                                         }
-                                        //fprintf(stdout," sum: %f\n",sum);
-
                                         n->next[i] = build_pst(pst,n->next[i]  );
-                                        //n->next[i]->in_T = 1;
                                 }
-
                         }
                 }
         }
@@ -392,7 +376,7 @@ int init_pst(struct pst** pst, struct tl_seq_buffer* sb)
         char* seq;
         MMALLOC(p, sizeof(struct pst));
         p->L = MAX_PST_LEN;
-        p->gamma_min = 0.02f;
+        p->gamma_min = 0.01f;
 
         p->p_min = 0.0001;
         //p->lamba = 0.001;
@@ -537,41 +521,20 @@ ERROR:
 }
 
 
-
-
-
-
-/*void print_pst(struct pst* pst,struct pst_node* n,int* num)
+void print_pst(struct pst* pst,struct pst_node* n)
 {
         int i;
-        int internal;
-        //char alphabet[] = "ACGTN";
-        internal = 0;
-        for(i = 0;i < 4;i++){
-                if(n->next[i]){
-                        internal++;
-                }
-        }
-        if(!internal){
-                *num = *num +1;
-                //fprintf(stderr,"%s\n",n->label);
-                //for(i = 0;i < 5;i++){
-                //fprintf(stderr,"%c+%s\t%f\n",alphabet[i], n->label, n->nuc_probability[i]);
-                //}
-
-        }
-        //}
-
+        fprintf(stdout,"%s\n",n->label);
 
         for(i = 0;i < 4;i++){
                 if(n->next[i]){
                         //if(n->next[i]->in_T){
                                 //fprintf(stderr,"Going:%d\n",i);
-                        print_pst(pst,n->next[i],num);
+                        print_pst(pst,n->next[i]);
                                 //}
                 }
         }
-        }*/
+}
 
 
 
