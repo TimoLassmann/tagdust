@@ -26,6 +26,7 @@ int main(int argc, char *argv[])
         struct tl_seq_buffer* sb = NULL;
         struct pst* p = NULL;
         struct rng_state* rng = NULL;
+        struct kmer_counts* k;
         int i,j,c;
         float out;
         LOG_MSG("%d",argc);
@@ -36,8 +37,16 @@ int main(int argc, char *argv[])
                         ERROR_MSG("File %s not found");
                 }
                 RUN(read_10x_white_list(&sb, filename));
+                RUN(alloc_kmer_counts(&k, 12));
 
-                RUN(run_build_pst(&p, sb));
+                RUN(add_counts(k, sb));
+
+
+
+
+                RUN(run_build_pst(&p, k));
+                RUN(rm_counts(k,sb));
+                RUN(test_kmer_counts(k));
 
                 int num = 0;
                 //print_pst(p, p->pst_root, &num);
@@ -74,6 +83,7 @@ int main(int argc, char *argv[])
 
                 MFREE(test_seq);
 
+                free_kmer_counts(k);
                 //if()
                 free_pst(p);
                 free_tl_seq_buffer(sb);
@@ -89,7 +99,7 @@ ERROR:
 
 int bar_test(void)
 {
-
+        struct kmer_counts* k = NULL;
         struct tl_seq_buffer* sb = NULL;
         struct pst* p = NULL;
         struct rng_state* rng = NULL;
@@ -118,16 +128,23 @@ int bar_test(void)
         sb->sequences[sb->num_seq]->len = 8;
         sb->num_seq++;
 
+        RUN(alloc_kmer_counts(&k, 12));
 
+        RUN(add_counts(k, sb));
+        LOG_MSG("%s", sb->sequences[0]->seq);
+        RUN(run_build_pst(&p, k));
+        RUN(rm_counts(k, sb));
 
+        free_pst(p);
+        p = NULL;
+        //scan_read_with_pst(p,sb->sequences[0]->seq,sb->sequences[0]->len,&out);
 
-        RUN(run_build_pst(&p, sb));
-
+        //exit(0);
 
         rng = init_rng(0);
 
-        for(i = 0; i < 100;i++){
-                error_rate = (double) i / 100.0f;
+        for(i = 0; i < 20;i++){
+                error_rate = (double) i / 20.0f;
                 //RUN(score_bar(p, rng, sb->sequences[0]->seq, sb->sequences[0]->len,error_rate));
         }
 
@@ -139,16 +156,21 @@ int bar_test(void)
                 snprintf(sb->sequences[sb->num_seq]->seq,sb->sequences[sb->num_seq]->malloc_len,"%s",ref_seq[i]);
                 sb->sequences[sb->num_seq]->len = 16;
                 sb->num_seq++;
-                RUN(run_build_pst(&p_array[i], sb));
+                RUN(add_counts(k,sb));
+                RUN(run_build_pst(&p_array[i], k));
+                RUN(rm_counts(k,sb));
         }
         DECLARE_TIMER(t);
         for(i = 0; i < 10;i++){
-                sum = prob2scaledprob(0.0f);
+
                 START_TIMER(t);
                 //for(c = 0; c < 679488;c++){
+                        sum = prob2scaledprob(0.0f);
                         for(j = 0; j < 10;j++){
                                 scan_read_with_pst(p_array[j],ref_seq[i] , 16,&out);
-                                //fprintf(stdout,"%f ",out);
+                                fprintf(stdout,"%f ",out);
+                                score_pst(p_array[j], ref_seq[i], 16, &out);
+                                fprintf(stdout,"(%f)",out);
                                 scores[j] = out;
                                 sum = logsum(sum, out);
                         }
@@ -158,17 +180,18 @@ int bar_test(void)
                         fprintf(stdout,"\n");
                         //}
                 STOP_TIMER(t);
-                LOG_MSG("Took: %f", GET_TIMING(t));
+                //LOG_MSG("Took: %f", GET_TIMING(t));
         }
 
 
         for(i = 0; i < 10;i++){
-                free(p_array[i]);
+                free_pst(p_array[i]);
         }
 
+        free_rng(rng);
 
-        free_pst(p);
         free_tl_seq_buffer(sb);
+        free_kmer_counts(k);
         return OK;
 ERROR:
         return FAIL;
