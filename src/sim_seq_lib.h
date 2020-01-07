@@ -4,6 +4,8 @@
 
 #include "stdint.h"
 
+#include "tlrng.h"
+
 #ifdef TAGDUST_SIM_SEQ_LIB_IMPORT
 #define EXTERN
 #else

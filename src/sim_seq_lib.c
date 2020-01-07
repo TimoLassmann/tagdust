@@ -2,7 +2,6 @@
 #include "sim_seq_lib.h"
 
 #include "tldevel.h"
-#include "tlrng.h"
 
 
 static inline int nuc_to_internal(const char c);
@@ -82,6 +81,8 @@ int seq_to_internal(char* seq, int len, uint8_t** internal, int* i_len)
 
         *i_len= len;
         return OK;
+ERROR:
+        return FAIL;
 }
 
 

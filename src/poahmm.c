@@ -5,13 +5,12 @@
 #include "poahmm.h"
 
 
-int forward_poahmm(struct poahmm* poahmm, uint8_t* seq, int len);
-int backward_poahmm(struct poahmm* poahmm, uint8_t* seq, int len);
-int viterbi_poahmm(struct poahmm* poahmm, uint8_t* seq, int len, int* path);
+
+
 
 static int reestimate_param_poahmm(struct poahmm* poahmm);
 
-static struct poahmm*  init_poahmm(int max_len, int* nuc_counts,float weight);
+
 
 static int reset_to_from_index(struct poahmm* poahmm);
 static int reset_poa_graph_transitions_based_on_counts(struct poahmm* poahmm);
@@ -19,7 +18,7 @@ static int reset_poa_graph_transitions_based_on_counts(struct poahmm* poahmm);
 static int set_pseudocount(struct poahmm* poahmm);
 
 static int check_and_extend_poahmm(struct poahmm* poahmm,int num_states, int new_maxlen,int new_num_samples);
-static void free_poahmm (struct poahmm* poahmm);
+
 //static struct poahmm_node* malloc_a_node(int maxseq_len,int num_samples );
 static struct poahmm_node* malloc_a_node(int maxseq_len);
 static void free_a_node(struct poahmm_node* node);
@@ -30,40 +29,6 @@ static int cmp_node_rank_low_to_high(const void * a, const void * b);
 static int cmp_node_rank_high_to_low(const void * a, const void * b);
 static struct poahmm* set_rank(struct poahmm* poahmm,int index,int rank);
 static double gamma_fraction(unsigned int* seed , double a);
-
-int single_seq_test(void);
-
-int main(int argc, char *argv[])
-{
-        single_seq_test();
-        return EXIT_SUCCESS;
-ERROR:
-        return EXIT_FAILURE;
-}
-
-int single_seq_test(void)
-{
-        struct poahmm* poahmm = NULL;
-        uint8_t* seq = NULL;
-        int len = 16;
-        int nuc_count[4];
-
-        int i;
-
-        for(i = 0; i < 4;i++){
-                nuc_count[i] = 1000;
-        }
-        RUNP(poahmm = init_poahmm(128,nuc_count,500.0));
-
-
-        //RUN(init_nodes_from_single_sequence(poahmm, uint8_t* seq, int len)
-
-        free_poahmm(poahmm);
-        return OK;
-ERROR:
-        return FAIL;
-
-}
 
 
 

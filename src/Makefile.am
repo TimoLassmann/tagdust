@@ -12,13 +12,19 @@ LIBS = @TLDEVEL_LIB@ $(HDF5_LDFLAGS)  $(HDF5_LIBS) -lm
 bin_PROGRAMS = tagdust pst poahmm
 
 poahmm_SOURCES = \
+poahmm_test.c \
 poahmm.h \
-poahmm.c
+poahmm.c \
+sim_seq_lib.h \
+sim_seq_lib.c
+
 
 pst_SOURCES = \
 pst.h \
 pst.c \
-pst_test.c
+pst_test.c \
+sim_seq_lib.h \
+sim_seq_lib.c
 
 tagdust_SOURCES = \
 main.c \

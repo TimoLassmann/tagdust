@@ -113,4 +113,11 @@ struct poahmm{
         float e_YX;
 };
 
+
+extern int forward_poahmm(struct poahmm* poahmm, uint8_t* seq, int len);
+extern int backward_poahmm(struct poahmm* poahmm, uint8_t* seq, int len);
+extern int viterbi_poahmm(struct poahmm* poahmm, uint8_t* seq, int len, int* path);
+
+extern struct poahmm*  init_poahmm(int max_len, int* nuc_counts,float weight);
+extern void free_poahmm (struct poahmm* poahmm);
 #endif
