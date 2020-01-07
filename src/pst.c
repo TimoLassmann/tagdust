@@ -72,33 +72,33 @@ static int resize_fpst(struct fpst* f);
 static int prob2scaledprob_fpst(struct fpst* f);
 static void free_fpst(struct fpst* f);
 
-int score_pst(struct pst* pst, char* seq, int len, float*r)
+int score_pst(const struct pst* pst, const char* seq,const int len, float*r)
 {
         float** s_prob;
-        float** p_prob;
+        //float** p_prob;
         int** s;
-        int** p;
+        //int** p;
 
         float P_S;
-        float P_P;
-        float P_R;
-        float A,B;
+        //float P_P;
+        //float P_R;
+        //float A,B;
         register int i,c,l,pos,n;
 
         float* base_p = pst->fppt_root->prob[0];
-
+        //float sum;
         s = pst->fpst_root->links;
-        p = pst->fppt_root->links;
+        //p = pst->fppt_root->links;
         s_prob = pst->fpst_root->prob;
-        p_prob = pst->fppt_root->prob;
+        //p_prob = pst->fppt_root->prob;
 
         P_S = prob2scaledprob(1.0);
-        P_P = prob2scaledprob(1.0);
-        P_R = prob2scaledprob(1.0);
+        //P_P = prob2scaledprob(1.0);
+        //      P_R = prob2scaledprob(1.0);
 
         for(i = 0; i < len; i++){
                 l = nuc_to_internal(seq[i]);
-                P_R = P_R + base_p[l];
+//                P_R = P_R +  prob2scaledprob(0.25f);//  base_p[l];
                 pos = i;
                 n = 0;
                 while(pos){
@@ -109,8 +109,8 @@ int score_pst(struct pst* pst, char* seq, int len, float*r)
                         }
                         n = s[n][c];
                 }
-                A = s_prob[n][l];
-
+                P_S += s_prob[n][l];
+                /*P_S += A;
                 pos= i;
                 n = 0;
                 while(pos != len-1){
@@ -122,12 +122,20 @@ int score_pst(struct pst* pst, char* seq, int len, float*r)
                         n = p[n][c];
                 }
                 B =  p_prob[n][l];
-                //LOG_MSG("%d %c %f %f %f %f %f",i, seq[i], scaledprob2prob(A+B), scaledprob2prob(A),scaledprob2prob(B),A,B);
-                P_S +=A+B;
+                //LOG_MSG("%d %c %f %f %f %f %f",i, seq[i], scaledprob2prob(MACRO_MAX(A, B)), scaledprob2prob(A),scaledprob2prob(B),A,B);
+
+                P_S += MACRO_MAX(A,B);*/
+                //sum = logsum(A+B, base_p[l]);
+                //LOG_MSG("%d: %f ",i, MACRO_MAX(A,B) - base_p[l]);
 
         }
+
+        //A = P_S-P_R;
+        //A = exp2f(A) / (1.0 + exp2f(A));
+
+        //LOG_MSG("%f %f  A:%f", P_S,P_R,A);
         //if(P_S - P_R > 10){
-        *r = P_S;// MACRO_MAX(P_P,P_S);
+        *r = P_S;// P_S;// MACRO_MAX(P_P,P_S);
         //}else{
                 //*r = prob2scaledprob(0.0f);
         //}
@@ -339,7 +347,10 @@ int run_build_pst(struct pst** pst, struct kmer_counts* k)//  struct tl_seq_buff
         RUN(prob2scaledprob_fpst(p->fpst_root));
         RUN(prob2scaledprob_fpst(p->fppt_root));
 
+
+        fprintf(stdout,"Size: %d\n", p->fppt_root->l + p->fpst_root->l * 8 *4);
 //LOG_MSG("PPT:");
+        //exit(0);
         //print_pst(p,p->ppt_root);
         *pst = p;
         return OK;

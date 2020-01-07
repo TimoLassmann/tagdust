@@ -306,7 +306,7 @@ struct model_bag* forward(struct model_bag* mb, const uint8_t* a, int len)
                                 // first column  comes from previous state cheekily transferring its pd to M[0[
                                 c_hmm_column->M_foward[i] = psilent[i-1] + mb->model[j]->silent_to_M[f][0] + c_hmm_column->m_emit[c];
 
-                                c_hmm_column->I_foward[i]    =psilent[i-1] + mb->model[j]->silent_to_I[f][0] ;
+                                c_hmm_column->I_foward[i] = psilent[i-1] + mb->model[j]->silent_to_I[f][0] ;
 
                                 //add transitions to first columns////
                                 c_hmm_column->I_foward[i] = logsum(c_hmm_column->I_foward[i], c_hmm_column->I_foward[i-1] + c_hmm_column->transition[II]);

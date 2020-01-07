@@ -11,12 +11,15 @@
 #define PST_IMPORT
 #include "pst.h"
 
+static int test_match_insert(char* infile);
 
 static int read_10x_white_list(struct tl_seq_buffer** b,char* filename);
 
 static int bar_test(void);
 static int score_bar(struct pst* p, struct rng_state*rng, char* ref_seq, int len, double error_rate);
 static int mutate_seq(char* ref,char* target,int len, float error_rate, struct rng_state* rng);
+static int generate_random_seq(char** seq, int* l, struct rng_state* rng);
+static int insert_seq(char* r, int r_len,char* insert, int i_len, struct rng_state* rng);
 
 int main(int argc, char *argv[])
 {
@@ -33,70 +36,109 @@ int main(int argc, char *argv[])
         LOG_MSG("%d",argc);
         if(argc == 2){
                 filename = argv[1];
-                LOG_MSG("%s",filename);
-                if(!my_file_exists(filename)){
-                        ERROR_MSG("File %s not found");
-                }
-                RUN(read_10x_white_list(&sb, filename));
-                RUN(alloc_kmer_counts(&k, 12));
-
-                RUN(add_counts(k, sb));
-
-
-
-
-                RUN(run_build_pst(&p, k));
-                RUN(rm_counts(k,sb));
-                RUN(test_kmer_counts(k));
-
-                int num = 0;
-                //print_pst(p, p->pst_root, &num);
-                LOG_MSG("Found %d leaves ",num);
-
-                num = 0;
-                //print_pst(p, p->ppt_root, &num);
-                LOG_MSG("Found %d leaves ",num);
-
-                //exit(0);
-                for(i = 0; i < 10;i++){
-                        fprintf(stdout,">%s\n%s\n",sb->sequences[i]->name,sb->sequences[i]->seq);
-                }
-                rng = init_rng(0);
-                MMALLOC(test_seq, sizeof(char) * (sb->sequences[0]->len+1));
-                for(i = 0; i < 10;i++){
-
-
-                        scan_read_with_pst(p, sb->sequences[i]->seq, sb->sequences[i]->len,&out);
-                        LOG_MSG("%f\t%s (overfit)",sb->sequences[i]->seq,out);
-                        sb->sequences[i]->seq[6] = 'T';
-                        scan_read_with_pst(p, sb->sequences[i]->seq, sb->sequences[i]->len,&out);
-                        LOG_MSG("%f\t%s (Added T)",sb->sequences[i]->seq,out);
-
-
-                        for(j = 0; j < sb->sequences[i]->len;j++){
-                                test_seq[j] = alphabet[ tl_random_int(rng,4)];
-                        }
-                        test_seq[sb->sequences[i]->len]= 0;
-                        scan_read_with_pst(p, test_seq, sb->sequences[i]->len,&out);
-                        LOG_MSG("%f\t%s (random)",sb->sequences[i]->seq,out);
-                }
-                //free_error_correct_seq(&e);
-
-                MFREE(test_seq);
-
-                free_kmer_counts(k);
-                //if()
-                free_pst(p);
-                free_tl_seq_buffer(sb);
-                free_rng(rng);
+                RUN(test_match_insert(filename));
+        }else{
+                RUN(bar_test());
         }
-        RUN(bar_test());
         //GGTTTACT
         return EXIT_SUCCESS;
 ERROR:
         return EXIT_FAILURE;
 }
 
+int test_match_insert(char* infile)
+{
+        struct tl_seq_buffer* sb = NULL;
+        struct pst* p = NULL;
+        struct rng_state* rng = NULL;
+        struct kmer_counts* k = NULL;
+
+        double s[5];
+        char* test_seq = NULL;
+
+        float out;
+        int test_len = 0;
+        int i,j;
+        LOG_MSG("%s",infile);
+        if(!my_file_exists(infile)){
+                ERROR_MSG("File %s not found");
+        }
+        RUN(read_10x_white_list(&sb, infile));
+        RUN(alloc_kmer_counts(&k, 16));
+        RUN(add_counts(k, sb));
+
+
+
+
+        RUN(run_build_pst(&p, k));
+        RUN(rm_counts(k,sb));
+        RUN(test_kmer_counts(k));
+        rng = init_rng(0);
+
+        DECLARE_TIMER(timer);
+
+        for(i = 0; i < 1;i++){
+
+                test_len = 50;
+
+                START_TIMER(timer);
+                for(j = 0;j <  5;j++){
+                        s[j] = 0.0;
+                }
+                for (j = 0; j < 1000000;j++){
+                        RUN(generate_random_seq(&test_seq, &test_len, rng));
+                        RUN(insert_seq(test_seq, test_len, sb->sequences[0]->seq, sb->sequences[0]->len, rng));
+                        score_pst(p, test_seq, test_len, &out);
+
+                        s[0]++;
+                        s[1] += out;
+                        s[2] += out * out;
+                }
+                s[3] = s[1] / s[0];
+
+                s[4] = sqrt ( (s[0] * s[2] -  pow(s[1], 2.0)) /  (s[0] * ( s[0] - 1.0)));
+                STOP_TIMER(timer);
+                LOG_MSG("Insert: %f %f (in %f sec.)", s[3],s[4], GET_TIMING(timer));
+
+                for(j = 0;j <  5;j++){
+                        s[j] = 0.0;
+                }
+                //START_TIMER(timer);
+                for (j = 0; j < 1000000;j++){
+                        RUN(generate_random_seq(&test_seq, &test_len, rng));
+                        //RUN(insert_seq(test_seq, test_len, sb->sequences[0]->seq, sb->sequences[0]->len, rng));
+                        score_pst(p, test_seq, test_len, &out);
+
+                        s[0]++;
+                        s[1] += out;
+                        s[2] += out * out;
+                }
+                s[3] = s[1] / s[0];
+
+                s[4] = sqrt ( (s[0] * s[2] -  pow(s[1], 2.0)) /  (s[0] * ( s[0] - 1.0)));
+                START_TIMER(timer);
+                for (j = 0; j < 1000000;j++){
+                        score_pst(p, test_seq, test_len, &out);
+                }
+                STOP_TIMER(timer);
+//LOG_MSG("RANDOM: %f %f", s[3],s[4]);
+                LOG_MSG("RANDOM: %f %f (in %f sec.)", s[3],s[4], GET_TIMING(timer));
+
+
+        }
+
+        if(test_seq){
+                MFREE(test_seq);
+        }
+        free_kmer_counts(k);
+        //if()
+        free_pst(p);
+        free_tl_seq_buffer(sb);
+        free_rng(rng);
+        return OK;
+ERROR:
+        return NULL;
+}
 
 int bar_test(void)
 {
@@ -441,6 +483,45 @@ ERROR:
 
 }
 
+int generate_random_seq(char** seq, int* l, struct rng_state* rng)
+{
+        char alphabet[4] = "ACGT";
+        char* s;
+        int len;
+        int i;
+
+        s = *seq;
+        len = *l;
+        if(!s){
+                MMALLOC(s , sizeof(char) *(len+1));
+        }
+
+        for(i = 0; i < len;i++){
+                s[i] = alphabet[ tl_random_int(rng,4)];
+        }
+        s[len] = 0;
+
+        *seq = s;
+        *l = len;
+        return OK;
+ERROR:
+        return FAIL;
+}
+
+int insert_seq(char* r, int r_len,char* insert, int i_len, struct rng_state* rng)
+{
+        ASSERT(r_len >= i_len,"ref too short: %d -> %d", r_len,i_len);
+        int t;
+        int i;
+        t = tl_random_int(rng, r_len-i_len);
+        for(i = 0; i < i_len;i++){
+                r[t+i] = insert[i];
+                //LOG_MSG("Inserting %c at %d\n", insert[i],t+i);
+        }
+        return OK;
+ERROR:
+        return FAIL;
+}
 
 
 int mutate_seq(char* ref,char* target,int len, float error_rate, struct rng_state* rng)

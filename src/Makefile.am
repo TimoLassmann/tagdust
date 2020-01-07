@@ -9,7 +9,11 @@ AM_LDFLAGS += -Wno-undef
 
 LIBS = @TLDEVEL_LIB@ $(HDF5_LDFLAGS)  $(HDF5_LIBS) -lm
 
-bin_PROGRAMS = tagdust pst 
+bin_PROGRAMS = tagdust pst poahmm
+
+poahmm_SOURCES = \
+poahmm.h \
+poahmm.c
 
 pst_SOURCES = \
 pst.h \
