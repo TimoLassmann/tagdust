@@ -16,8 +16,11 @@ poahmm_test.c \
 poahmm.h \
 poahmm.c \
 sim_seq_lib.h \
-sim_seq_lib.c
-
+sim_seq_lib.c \
+arch_lib.h \
+arch_lib.c \
+arch_lib_parse_token.h \
+arch_lib_parse_token.c 
 
 pst_SOURCES = \
 pst.h \

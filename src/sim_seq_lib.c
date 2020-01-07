@@ -80,6 +80,7 @@ int seq_to_internal(char* seq, int len, uint8_t** internal, int* i_len)
         }
 
         *i_len= len;
+        *internal = o;
         return OK;
 ERROR:
         return FAIL;

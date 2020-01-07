@@ -120,4 +120,7 @@ extern int viterbi_poahmm(struct poahmm* poahmm, uint8_t* seq, int len, int* pat
 
 extern struct poahmm*  init_poahmm(int max_len, int* nuc_counts,float weight);
 extern void free_poahmm (struct poahmm* poahmm);
+
+extern int init_nodes_from_single_sequence(struct poahmm* poahmm, uint8_t* seq, int len);
+extern int set_rank_transition_poahmm(struct poahmm* poahmm);
 #endif
