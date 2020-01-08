@@ -42,7 +42,6 @@ struct poahmm_node{
         uint32_t* signal;
         uint32_t rank;
         uint8_t nuc;
-
         int total_signal;
         int identifier;
 };
@@ -111,9 +110,11 @@ struct poahmm{
         float e_YY;
         float e_YM;
         float e_YX;
+
 };
 
 
+extern int random_poahmm(struct poahmm* poahmm, uint8_t* seq, int len);
 extern int forward_poahmm(struct poahmm* poahmm, uint8_t* seq, int len);
 extern int backward_poahmm(struct poahmm* poahmm, uint8_t* seq, int len);
 extern int viterbi_poahmm(struct poahmm* poahmm, uint8_t* seq, int len, int* path);

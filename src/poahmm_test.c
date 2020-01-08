@@ -1,5 +1,6 @@
 
 #include <stdint.h>
+#include <string.h>
 #include "tldevel.h"
 
 #include "arch_lib.h"
@@ -19,8 +20,9 @@ int arch_test(void);
 int init_nodes_from_read_structure(struct poahmm* poahmm, struct read_structure* rs, struct alphabet* a);
 
 int print_poa_graph(struct poahmm* poahmm);
-int update_poahmm_arch(struct poahmm* poahmm, int* path,int seq_id);
+
 int print_path(struct poahmm* poahmm, int* path);
+int print_poahmm_param(struct poahmm* poahmm);
 int poahmm_to_dot(struct poahmm* poahmm,char* filename);
 
 
@@ -57,7 +59,7 @@ int single_seq_test(void)
         }
         RUNP(poahmm = init_poahmm(128,nuc_count,500.0));
 
-        RUNP(rng= init_rng(0));
+        RUNP(rng = init_rng(0));
 
         RUN(generate_random_seq(&seq, &len, rng));
         RUN(seq_to_internal(seq, len, &i_seq, &i_len));
@@ -107,10 +109,11 @@ int arch_test(void)
 
         char* in[] = {
                 "I:A{0,3}",
-                //      "S:GTA,AAC",
-                "MYREAD:E:TTT",
-                "I:CCTTAA"
-                //"S:ACAGTG,ACTTGA,TTAGGC"
+                "S:GTA,AAC",
+                "MYREAD:E:NNN",
+                "I:CCTTAA",
+                "S:ACAGTG,ACTTGA,TTAGGC" ,
+                "R2:E:NNNNNNNNNNNNNNNNNNNNNN"
         };
         int nuc_count[4];
 
@@ -136,14 +139,28 @@ int arch_test(void)
         RUN(create_alphabet(&a, rng, TLALPHABET_DEFAULT_DNA ));
         RUN(init_nodes_from_read_structure(poahmm, al->read_structure[1],a));
 
+        //print_poahmm_param(poahmm);
+        //exit(0);
         RUN(generate_random_seq(&seq, &len, rng));
 
-        char match_seq[] = "AAAAACAAACCTTAATTAGGC";
-        RUN(seq_to_internal(match_seq, 21, &i_seq, &i_len));
+        char match_seq[] = "TTTTTTCTTTCCTTAATTATGGCACGTACGT";
+        len = strlen(match_seq);
+                
+        RUN(seq_to_internal(match_seq, len, &i_seq, &i_len));
 
-        //forward_poahmm(poahmm, i_seq, i_len);
-        //backward_poahmm(poahmm, i_seq, i_len);
-        //fprintf(stdout,"F:%f\nB:%f\n", poahmm->f_score,poahmm->b_score);
+        forward_poahmm(poahmm, i_seq, i_len);
+        backward_poahmm(poahmm, i_seq, i_len);
+        random_poahmm(poahmm, i_seq, i_len);
+        fprintf(stdout,"F:%f\nB:%f\nR:%f\n", poahmm->f_score,poahmm->b_score, poahmm->r_score);
+        RUN(viterbi_poahmm(poahmm,i_seq,i_len,path));
+        fprintf(stdout,"%s\n",match_seq);
+        RUN(print_path(poahmm,path));
+        fprintf(stdout,"F:%f\n", poahmm->f_score);
+
+
+        poahmm_to_dot(poahmm, "test.dot");
+
+
 
         if(seq){
                 MFREE(seq);
@@ -152,7 +169,6 @@ int arch_test(void)
                 MFREE(i_seq);
 
         }
-        poahmm_to_dot(poahmm, "test.dot");
 
         MFREE(path);
         free_arch_lib(al);
@@ -170,17 +186,41 @@ ERROR:
 int print_path(struct poahmm* poahmm, int* path)
 {
         int i;
+        char alphabet[5] = "ACGTN";
+        char etype[5] = "_EASIP";
         fprintf(stdout, "PATH:\n");
+
+        for(i = 1; i < path[0];i++){
+                fprintf(stdout, " %3c", alphabet[path[i] >> 28]);
+        }
+        fprintf(stdout,"\n");
         for(i = 1; i < path[0];i++){
 
                 if((path[i] & 0xFFFFFFF) == 0xFFFFFFF){
-                        fprintf(stdout, " %d -	\n", path[i] >> 28);
+                        fprintf(stdout, " %3c",'-');
                 }else{
-                        fprintf(stdout, " %d %d (%d)\n", path[i] >> 28, poahmm->nodes[path[i] & 0xFFFFFFF]->nuc,path[i] & 0xFFFFFFF);
+                        fprintf(stdout, " %3c", alphabet[poahmm->nodes[path[i] & 0xFFFFFFF]->nuc]);
                 }
 
         }
-        fprintf(stdout, "Done...\n");
+        fprintf(stdout,"\n");
+        for(i = 1; i < path[0];i++){
+                if((path[i] & 0xFFFFFFF) == 0xFFFFFFF){
+                        fprintf(stdout, " %3c",'-');
+                }else{
+                        fprintf(stdout, " %3d", path[i] & 0xFFFFFFF);
+                }
+        }
+        fprintf(stdout,"\n");
+        for(i = 1; i < path[0];i++){
+                if((path[i] & 0xFFFFFFF) == 0xFFFFFFF){
+                        fprintf(stdout, " %3c",'-');
+                }else{
+                        fprintf(stdout, " %3c",  etype[ poahmm->nodes[path[i] & 0xFFFFFFF]->total_signal]);
+                }
+        }
+        fprintf(stdout,"\n");
+
         return OK;
 }
 
@@ -334,10 +374,6 @@ ERROR:
         return FAIL;
 }
 
-
-
-
-
 int init_nodes_from_read_structure(struct poahmm* poahmm, struct read_structure* rs, struct alphabet* a)
 {
         int i,j,c;
@@ -352,7 +388,17 @@ int init_nodes_from_read_structure(struct poahmm* poahmm, struct read_structure*
         int num_nodes;
         struct poahmm_node* node_ptr = NULL;
         struct segment_specs* s;
+
         num_nodes = 0;
+
+        for(i= 0; i < rs->num_segments;i++){
+                s = rs->seg_spec[i];
+                for(j = 0; j < s->num_seq;j++){
+                        if(s->max_len == INT32_MAX  ){
+                                ERROR_MSG("N+ segments not len assigned");
+                        }
+                }
+        }
 
         for(i= 0; i < rs->num_segments;i++){
                 s = rs->seg_spec[i];
@@ -379,9 +425,7 @@ int init_nodes_from_read_structure(struct poahmm* poahmm, struct read_structure*
 
                 poahmm->exit_probabilities[i] = prob2scaledprob(0.0f);
                 poahmm->e_exit_probabilities[i] = 0.0;
-
         }
-
 
         MMALLOC(e_nodes, sizeof(int) * 1024);
         MMALLOC(b_nodes, sizeof(int) * 1024);
@@ -396,7 +440,6 @@ int init_nodes_from_read_structure(struct poahmm* poahmm, struct read_structure*
         for(i= 0; i < rs->num_segments;i++){
                 s = rs->seg_spec[i];
                 for(j = 0;j < s->num_seq;j++){
-
                         for(c = 0; c < num_e;c++){
                                 if(!i){
                                         poahmm->e_entry_probabilities[n_index] = 1.0;
@@ -406,7 +449,14 @@ int init_nodes_from_read_structure(struct poahmm* poahmm, struct read_structure*
 
                         }
                         for(c = 0; c < s->max_len;c++){
-                                if(c == s->max_len -1){
+                                if(i == rs->num_segments-1){
+                                        if(c > s->max_len -15 ){
+                                                e_nodes_new[num_e_new] = n_index;
+                                                num_e_new++;
+                                        }else{
+                                                poahmm->e_poa_graph[n_index][n_index+1] = 1.0;
+                                        }
+                                }else if(c == s->max_len -1){
                                         e_nodes_new[num_e_new] = n_index;
                                         num_e_new++;
                                 }else{
@@ -415,9 +465,10 @@ int init_nodes_from_read_structure(struct poahmm* poahmm, struct read_structure*
                                 node_ptr = poahmm->nodes[n_index];
                                 node_ptr->nuc = tlalphabet_get_code(a,s->seq[j][c]);
                                 node_ptr->rank = UINT32_MAX;
+                                //node_ptr->part = (s->extract == ARCH_ETYPE_PARTIAL) ? 1: 0;
                                 //node_ptr->signal[poahmm_data->seq_id[index]] = 1;
-                                node_ptr->total_signal = 1;
-                                node_ptr->identifier = i;
+                                node_ptr->total_signal = s->extract;
+                                node_ptr->identifier = n_index;
                                 n_index++;
 
                         }
@@ -448,26 +499,121 @@ int init_nodes_from_read_structure(struct poahmm* poahmm, struct read_structure*
         MFREE(e_nodes_new);
         MFREE(b_nodes);
 
-
         RUN(set_rank_transition_poahmm(poahmm));
 
-        for(i = 0; i< poahmm->num_nodes;i++){
+        /*for(i = 0; i< poahmm->num_nodes;i++){
 
-                fprintf(stdout,"ENTRY: %f EXIT:%f\t", poahmm->e_entry_probabilities[i],poahmm->e_exit_probabilities[i]);
+                fprintf(stdout,"ENTRY: %f EXIT:%f\t", poahmm->entry_probabilities[i],poahmm->exit_probabilities[i]);
                 for(j = 0 ; j < poahmm->num_nodes;j++){
                         fprintf(stdout,"%f ",poahmm->poa_graph[i][j]);
                         //poahmm->e_poa_graph[i][j] = 0.0;
                 }
                 fprintf(stdout,"\n");
-        }
+                }*/
+
 
 //poahmm =  set_rank(poahmm, 0, 0);
 
         //RUN(reset_to_from_index(poahmm));
         //RUN(reset_poa_graph_transitions_based_on_counts(poahmm));
 
-        exit(0);
+        //exit(0);
         return OK;
 ERROR:
         return FAIL;
+}
+
+int print_poahmm_param(struct poahmm* poahmm)
+{
+
+
+        int i,j;
+        float sum;
+
+
+        fprintf(stdout,"emission_M:\n");
+        for(i = 0; i < 4;i++){
+                sum = prob2scaledprob(0.0);
+                for(j = 0; j < 4;j++){
+                        fprintf(stdout,"%0.4f ", scaledprob2prob( poahmm->emission_M[i][j]));
+                        sum = logsum(sum, poahmm->emission_M[i][j]);
+                }
+                fprintf(stdout,"	%f\n",scaledprob2prob(sum));
+        }
+        fprintf(stdout,"\n");
+
+        fprintf(stdout,"emission_X:\n");
+        sum = prob2scaledprob(0.0);
+        for(i = 0; i < 4;i++){
+
+                fprintf(stdout,"%0.4f ", scaledprob2prob( poahmm->emission_X[i]));
+                sum = logsum(sum, poahmm->emission_X[i]);
+
+        }
+        fprintf(stdout,"	%f\n",scaledprob2prob(sum));
+        sum = prob2scaledprob(0.0);
+        fprintf(stdout,"emission_Y:\n");
+        for(i = 0; i < 4;i++){
+
+                fprintf(stdout,"%0.4f ", scaledprob2prob( poahmm->emission_Y[i]));
+                sum = logsum(sum, poahmm->emission_Y[i]);
+
+        }
+        fprintf(stdout,"	%f\n",scaledprob2prob(sum));
+
+
+        fprintf(stdout,"\n\n");
+
+
+        fprintf(stdout,"e_emission_M:\n");
+        for(i = 0; i < 4;i++){
+                sum = prob2scaledprob(0.0);
+                for(j = 0; j < 4;j++){
+                        fprintf(stdout,"%0.4f ", scaledprob2prob( poahmm->e_emission_M[i][j]));
+                        sum = logsum(sum, poahmm->e_emission_M[i][j]);
+                }
+                fprintf(stdout,"	%f\n",scaledprob2prob(sum));
+        }
+        fprintf(stdout,"\n");
+
+        fprintf(stdout,"e_emission_X:\n");
+        sum = prob2scaledprob(0.0);
+        for(i = 0; i < 4;i++){
+
+                fprintf(stdout,"%0.4f ", scaledprob2prob( poahmm->e_emission_X[i]));
+                sum = logsum(sum, poahmm->e_emission_X[i]);
+
+        }
+        fprintf(stdout,"	%f\n",scaledprob2prob(sum));
+        sum = prob2scaledprob(0.0);
+        fprintf(stdout,"e_emission_Y:\n");
+        for(i = 0; i < 4;i++){
+
+                fprintf(stdout,"%0.4f ", scaledprob2prob( poahmm->e_emission_Y[i]));
+                sum = logsum(sum, poahmm->e_emission_Y[i]);
+
+        }
+        fprintf(stdout,"	%f\n",scaledprob2prob(sum));
+
+        sum = prob2scaledprob(0.0);
+
+        fprintf(stdout,"e_random:\n");
+        for(i = 0; i < 4;i++){
+
+                fprintf(stdout,"%0.4f ", scaledprob2prob( poahmm->background[i]));
+                sum = logsum(sum, poahmm->background[i]);
+
+        }
+        fprintf(stdout,"	%f\n",scaledprob2prob(sum));
+
+
+
+
+        fprintf(stdout,"M: %0.4f %0.4f %0.4f\teM:%0.4f %0.4f %0.4f\n",scaledprob2prob(poahmm->MM), scaledprob2prob(poahmm->MX),scaledprob2prob(poahmm->MY),scaledprob2prob(poahmm->e_MM), scaledprob2prob(poahmm->e_MX),scaledprob2prob(poahmm->e_MY));
+
+        fprintf(stdout,"X: %0.4f %0.4f %0.4f\teX:%0.4f %0.4f %0.4f\n",scaledprob2prob(poahmm->XM), scaledprob2prob(poahmm->XX),scaledprob2prob(poahmm->XY),scaledprob2prob(poahmm->e_XM), scaledprob2prob(poahmm->e_XX),scaledprob2prob(poahmm->e_XY));
+
+        fprintf(stdout,"Y: %0.4f %0.4f %0.4f\teY:%0.4f %0.4f %0.4f\n",scaledprob2prob(poahmm->YM), scaledprob2prob(poahmm->YX),scaledprob2prob(poahmm->YY),scaledprob2prob(poahmm->e_YM), scaledprob2prob(poahmm->e_YX),scaledprob2prob(poahmm->e_YY));
+
+        return OK;
 }
