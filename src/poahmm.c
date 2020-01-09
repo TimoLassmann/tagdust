@@ -10,6 +10,7 @@ static int reset_to_from_index(struct poahmm* poahmm);
 static int reset_poa_graph_transitions_based_on_counts(struct poahmm* poahmm);
 
 
+static int set_default_global_param( struct global_poahmm_param** p);
 static int set_pseudocount(struct poahmm* poahmm, double base_error, double indel_freq);
 
 static int check_and_extend_poahmm(struct poahmm* poahmm,int num_states, int new_maxlen);
@@ -23,6 +24,43 @@ static int cmp_node_rank_low_to_high(const void * a, const void * b);
 static int cmp_node_rank_high_to_low(const void * a, const void * b);
 static struct poahmm* set_rank(struct poahmm* poahmm,int index,int rank);
 
+
+int set_default_global_param( struct global_poahmm_param** p)
+{
+        struct global_poahmm_param* param = NULL;
+        float sum;
+        int i;
+
+        init_logsum();
+        param = *p;
+        if(!param){
+                MMALLOC(param, sizeof(struct global_poahmm_param));
+
+        }
+
+        param->base_error = 0.05f;
+        param->indel_freq = 0.1f;
+        sum = 0.0f;
+        for(i = 0; i < 4;i++){
+                param->back[i] = 1000.0f;
+                sum += 1000.0f;
+        }
+        for(i = 0; i < 4;i++){
+                param->back[i] = prob2scaledprob(param->back[i] / sum);
+        }
+        param->back[4] = prob2scaledprob(1.0);
+
+        *p = param;
+        return OK;
+ERROR:
+        if(param){
+                MFREE(param);
+        }
+        return FAIL;
+}
+
+
+
 int random_poahmm(struct poahmm* poahmm, uint8_t* seq, int len)
 {
         int i;
@@ -31,8 +69,12 @@ int random_poahmm(struct poahmm* poahmm, uint8_t* seq, int len)
 
         float *back = poahmm->background;
 
+
+        r_score = r_score + poahmm->YM;
+        //fprintf(stdout,"%f\n", scaledprob2prob(poahmm->MX));
         for(i = 0; i < len;i++){
-                r_score += back[seq[i]];
+                //fprintf(stdout,"%d ->  %f\n", i , scaledprob2prob(back[seq[i]]));
+                r_score += back[seq[i]] +poahmm->MM;
         }
         poahmm->r_score = r_score;
         return OK;
@@ -82,6 +124,9 @@ int forward_poahmm(struct poahmm* poahmm, uint8_t* seq, int len)
 
         float YY_boundary_exit = prob2scaledprob(1.0 -(float)len / ((float)len+2.0) );
 
+        //YY_boundary = prob2scaledprob(0.0f);
+        //YY_boundary_exit = prob2scaledprob(1.0f);
+
         RUN(check_and_extend_poahmm(poahmm,poahmm->num_nodes,len));
 
         qsort(poahmm->rank_sorted_nodes,poahmm->num_nodes,sizeof(struct poahmm_node*), cmp_node_rank_low_to_high);
@@ -93,8 +138,11 @@ int forward_poahmm(struct poahmm* poahmm, uint8_t* seq, int len)
         cells[0].fY = prob2scaledprob(1.0f);
         for(i = 1; i < len;i++){
                 cells[i].fY = cells[i-1].fY + YY_boundary + eR[seq[i]];
+                //LOG_MSG("%d: %d", i, seq[i]);
         }
         cells[len].fY = prob2scaledprob(0.0f);
+        //LOG_MSG("%d: %d  %f", len, seq[len], cells[len-1].fY + YY_boundary + eR[seq[i]]);
+
         cells[len+1].fY = prob2scaledprob(0.0f);
 
         // start proper DP.
@@ -109,8 +157,6 @@ int forward_poahmm(struct poahmm* poahmm, uint8_t* seq, int len)
                 cells[i].fY = prob2scaledprob(0.0);
 
                 cells[i].fX = poahmm->begin->cells[i].fY + MX +YY_boundary_exit+ entry[node_id];
-
-
 
                 for(c = 1; c < poahmm->to_tindex[node_id][0];c++){
                         n =poahmm->to_tindex[node_id][c];
@@ -128,10 +174,10 @@ int forward_poahmm(struct poahmm* poahmm, uint8_t* seq, int len)
                         tmp = YY_boundary_exit+entry[node_id];
 
                         cells[i].fM = prev_cells[i-1].fY + MM + tmp;//YY_boundary_exit+entry[node_id];
-                        cells[i].fX =  prev_cells[i].fY + MX + tmp;//YY_boundary_exit+entry[node_id];
-                        cells[i].fY =  prev_cells[i-1].fY + MY + tmp;//YY_boundary_exit+entry[node_id];
+                        cells[i].fX = prev_cells[i].fY + MX + tmp;//YY_boundary_exit+entry[node_id];
+                        cells[i].fY = prev_cells[i-1].fY + MY + tmp;//YY_boundary_exit+entry[node_id];
 
-                        cells[i].fY = logsum(cells[i].fY,cells[i-1].fY+ YY);
+                        cells[i].fY = logsum(cells[i].fY,cells[i-1].fY + YY);
                         cells[i].fY = logsum(cells[i].fY,cells[i-1].fM + MY);
                         cells[i].fY = logsum(cells[i].fY,cells[i-1].fX + XY);
 
@@ -142,16 +188,15 @@ int forward_poahmm(struct poahmm* poahmm, uint8_t* seq, int len)
                                 tmp = poahmm->poa_graph[n][node_id];
 
                                 cells[i].fM = logsum(cells[i].fM, prev_cells[i-1].fM + MM + tmp);// poahmm->poa_graph[n][node_id]);
-                                cells[i].fM = logsum(cells[i].fM, prev_cells[i-1].fX  + XM + tmp);// poahmm->poa_graph[n][node_id]);
-                                cells[i].fM = logsum(cells[i].fM, prev_cells[i-1].fY  + YM + tmp);// poahmm->poa_graph[n][node_id]);
+                                cells[i].fM = logsum(cells[i].fM, prev_cells[i-1].fX + XM + tmp);// poahmm->poa_graph[n][node_id]);
+                                cells[i].fM = logsum(cells[i].fM, prev_cells[i-1].fY + YM + tmp);// poahmm->poa_graph[n][node_id]);
 
-                                cells[i].fX = logsum(cells[i].fX, prev_cells[i].fM + MX+ tmp);// poahmm->poa_graph[n][node_id]);
-                                cells[i].fX = logsum(cells[i].fX, prev_cells[i].fX  + XX + tmp);//poahmm->poa_graph[n][node_id]  );
-                                cells[i].fX = logsum(cells[i].fX, prev_cells[i].fY  + YX + tmp);//poahmm->poa_graph[n][node_id]  );
+                                cells[i].fX = logsum(cells[i].fX, prev_cells[i].fM + MX + tmp);// poahmm->poa_graph[n][node_id]);
+                                cells[i].fX = logsum(cells[i].fX, prev_cells[i].fX + XX + tmp);//poahmm->poa_graph[n][node_id]  );
+                                cells[i].fX = logsum(cells[i].fX, prev_cells[i].fY + YX + tmp);//poahmm->poa_graph[n][node_id]  );
                         }
-
                         cells[i].fM += eM[node_nuc][seq[i]];
-                        cells[i].fX +=  eX[node_nuc];
+                        cells[i].fX += eX[node_nuc];
                         cells[i].fY += eY[seq[i]];
                 }
 
@@ -159,8 +204,8 @@ int forward_poahmm(struct poahmm* poahmm, uint8_t* seq, int len)
                 prev_cells = poahmm->begin->cells;
                 tmp =YY_boundary_exit+entry[node_id];
                 cells[i].fM = prev_cells[i-1].fY + MM + tmp;//YY_boundary_exit+entry[node_id];
-                cells[i].fX =  prev_cells[i].fY + MX + tmp;//YY_boundary_exit+entry[node_id];
-                cells[i].fY =  prev_cells[i-1].fY + MY + tmp;//YY_boundary_exit+entry[node_id];
+                cells[i].fX = prev_cells[i].fY + MX + tmp;//YY_boundary_exit+entry[node_id];
+                cells[i].fY = prev_cells[i-1].fY + MY + tmp;//YY_boundary_exit+entry[node_id];
 
                 cells[i].fY = logsum(cells[i].fY,cells[i-1].fY+ YY);
                 cells[i].fY = logsum(cells[i].fY,cells[i-1].fM + MY);
@@ -174,13 +219,12 @@ int forward_poahmm(struct poahmm* poahmm, uint8_t* seq, int len)
                         cells[i].fM = logsum(cells[i].fM, prev_cells[i-1].fM + MM + tmp);// poahmm->poa_graph[n][node_id]);
                         cells[i].fM = logsum(cells[i].fM, prev_cells[i-1].fX  + XM + tmp);// poahmm->poa_graph[n][node_id]);
                         cells[i].fM = logsum(cells[i].fM, prev_cells[i-1].fY  + YM + tmp);// poahmm->poa_graph[n][node_id]);
-
                         cells[i].fX = logsum(cells[i].fX, prev_cells[i].fM  + MX + tmp);// poahmm->poa_graph[n][node_id]);
                         cells[i].fX = logsum(cells[i].fX, prev_cells[i].fX + YY_boundary + tmp);// poahmm->poa_graph[n][node_id]  );
                         cells[i].fX = logsum(cells[i].fX, prev_cells[i].fY + YX + tmp);// poahmm->poa_graph[n][node_id]  );
                 }
                 cells[i].fM += eM[node_nuc][seq[i]];
-                cells[i].fX +=  eR[node_nuc];
+                cells[i].fX += eR[node_nuc];
                 cells[i].fY += eY[seq[i]];
         }
 
@@ -195,13 +239,14 @@ int forward_poahmm(struct poahmm* poahmm, uint8_t* seq, int len)
                 for(j = 0;  j < poahmm->num_nodes;j++){
                         node_id = poahmm->rank_sorted_nodes[j]->identifier;
                         prev_cells =poahmm->nodes[node_id]->cells;
-                        tmp =YY_boundary+ exit[node_id];
+                        tmp = YY_boundary+ exit[node_id];
                         cells[i].fY = logsum(cells[i].fY, prev_cells[i-1].fM + MM + tmp);//YY_boundary+ exit[node_id];
                         cells[i].fY = logsum(cells[i].fY, prev_cells[i-1].fX + XM + tmp);//YY_boundary+ exit[node_id]);
-                        cells[i].fY = logsum(cells[i].fY, prev_cells[i-1].fY + YM  + tmp);//YY_boundary+ exit[node_id]);
+                        cells[i].fY = logsum(cells[i].fY, prev_cells[i-1].fY + YM + tmp);//YY_boundary+ exit[node_id]);
                 }
                 cells[i].fY = logsum(cells[i].fY, cells[i-1].fY + YY_boundary);
                 cells[i].fY += eR[ seq[i]];
+                //fprintf(stdout,"%d %f\n",i, cells[i].fY);
         }
         i = len+1;
         cells[i].fY = prob2scaledprob(0.0f);
@@ -217,8 +262,6 @@ int forward_poahmm(struct poahmm* poahmm, uint8_t* seq, int len)
 
         cells[i].fY = logsum(cells[i].fY, cells[i-1].fY + YY_boundary_exit);
         poahmm->f_score = cells[i].fY;
-
-
 
         return OK;
 ERROR:
@@ -267,6 +310,11 @@ int backward_poahmm(struct poahmm* poahmm, uint8_t* seq, int len)
         float YY_boundary = prob2scaledprob((float)len / ((float)len+2.0));
         float YY_boundary_exit = prob2scaledprob(1.0 -(float)len / ((float)len+2.0) );
 
+
+        //YY_boundary = prob2scaledprob(0.0f);
+        //YY_boundary_exit = prob2scaledprob(1.0f);
+
+
         qsort(poahmm->rank_sorted_nodes,poahmm->num_nodes,sizeof(struct poahmm_node*), cmp_node_rank_high_to_low);
 
         cells = poahmm->end->cells;
@@ -300,7 +348,7 @@ int backward_poahmm(struct poahmm* poahmm, uint8_t* seq, int len)
                 tmp = next_cells[i+1].bY  +YY_boundary_exit + exit[node_id];
                 cells[i].bM = tmp + MM;// +  YY_boundary_exit + exit[node_id];
                 cells[i].bX = tmp + XM;// +  YY_boundary_exit + exit[node_id];
-                cells[i].bY = tmp +YM;// +  YY_boundary_exit + exit[node_id];
+                cells[i].bY = tmp + YM;// +  YY_boundary_exit + exit[node_id];
 
                 for(c = 1; c < poahmm->from_tindex[node_id][0];c++){
                         n = poahmm->from_tindex[node_id][c];
@@ -415,7 +463,7 @@ int backward_poahmm(struct poahmm* poahmm, uint8_t* seq, int len)
 #define END_STATE 0x1FFFFFFEu
 
 
-int viterbi_poahmm(struct poahmm* poahmm, uint8_t* seq, int len, int* path)
+int viterbi_poahmm(struct poahmm* poahmm, uint8_t* seq, int len,  uint32_t* path)
 {
         int i,j,c,n;
         int node_id;
@@ -458,10 +506,10 @@ int viterbi_poahmm(struct poahmm* poahmm, uint8_t* seq, int len, int* path)
         float new_max;
 
         float YY_boundary = prob2scaledprob((float)len / ((float)len+2.0));
-
         float YY_boundary_exit = prob2scaledprob(1.0 -(float)len / ((float)len+2.0) );
 
-
+        //YY_boundary = prob2scaledprob(0.0);
+        //YY_boundary_exit = prob2scaledprob(1.0);
         RUN(check_and_extend_poahmm(poahmm,poahmm->num_nodes,len));
 
         qsort(poahmm->rank_sorted_nodes,poahmm->num_nodes,sizeof(struct poahmm_node*), cmp_node_rank_low_to_high);
@@ -793,11 +841,12 @@ int viterbi_poahmm(struct poahmm* poahmm, uint8_t* seq, int len, int* path)
         //Traceback!
 
 
-        unsigned int next_state;
-        unsigned int in_node;
-        unsigned int state;
+        //unsigned int next_state;
+        //unsigned int in_node;
+        //unsigned int state;
+        uint32_t p, next_state, in_node,state;
         //unsigned int mode;
-        i = len+1;
+        p = (uint32_t) len+1;
         c = 1;
         //mode = poahmm->end->cells[i].Y_trans;
         in_node =poahmm->end->cells[i].Y_to_state;
@@ -805,61 +854,65 @@ int viterbi_poahmm(struct poahmm* poahmm, uint8_t* seq, int len, int* path)
         state = poahmm->end->cells[i].Y_trans;
 
 
-        i = len;
+        p = (uint32_t)len;
         while(1){
                 next_state = -1;
                 if(state == TO_M){
-                        path[c] = ((int) seq[i] << 28) | in_node;
+                        path[c] = ((p-1) << 16u) | in_node;
+                        //path[c] = ((int) seq[i] << 28) | in_node;
                         //		DPRINTF3("%d - %d	%d",seq[i], poahmm->nodes[in_node]->nuc, in_node  );
                         c++;
 
-                        next_state = poahmm->nodes[in_node]->cells[i].M_trans;
-                        in_node = poahmm->nodes[in_node]->cells[i].M_to_state;
-                        i--;
+                        next_state = poahmm->nodes[in_node]->cells[p].M_trans;
+                        in_node = poahmm->nodes[in_node]->cells[p].M_to_state;
+                        p--;
                 }
 
                 if(state == TO_B){
-                        if(!i){
+                        if(!p){
                                 break;
                         }
-                        path[c] = ((int) seq[i] << 28) | 0xFFFFFFF;
+                        path[c] = ((p-1) << 16u) | 0xFFFFu;
+                        //path[c] = ((int) seq[i] << 28) | 0xFFFFFFF;
                         //		DPRINTF3("%d - -",seq[i]  );
                         c++;
 
-                        next_state = poahmm->begin->cells[i].Y_trans;
-                        in_node = poahmm->begin->cells[i].Y_to_state;
-                        i--;
+                        next_state = poahmm->begin->cells[p].Y_trans;
+                        in_node = poahmm->begin->cells[p].Y_to_state;
+                        p--;
                 }
                 if(state == TO_Y){
-                        path[c] = ((int) seq[i] << 28) | 0xFFFFFFF;
+                        path[c] = ((p-1) << 16u) | 0xFFFFu;
+                        //path[c] = ((int) seq[i] << 28) | 0xFFFFFFF;
                         //		DPRINTF3("%d - -",seq[i]  );
                         c++;
 
                         //i--;
-                        next_state = poahmm->nodes[in_node]->cells[i].Y_trans;
-                        in_node = poahmm->nodes[in_node]->cells[i].Y_to_state;
-                        i--;
+                        next_state = poahmm->nodes[in_node]->cells[p].Y_trans;
+                        in_node = poahmm->nodes[in_node]->cells[p].Y_to_state;
+                        p--;
                 }
 
                 if(state == TO_X){
-                        path[c] = (4 << 28) | in_node;
+                        path[c] = (0xFFFFu << 16u) | in_node;
+                        //path[c] = (4 << 28) | in_node;
                         //path[c] = ((int) seq[i] << 28) | 0xFFFFFFF;
                         //		DPRINTF3("- - %d",poahmm->nodes[in_node]->nuc );
                         c++;
                         //i--;
-                        next_state = poahmm->nodes[in_node]->cells[i].X_trans;
-                        in_node = poahmm->nodes[in_node]->cells[i].X_to_state;
+                        next_state = poahmm->nodes[in_node]->cells[p].X_trans;
+                        in_node = poahmm->nodes[in_node]->cells[p].X_to_state;
                 }
                 if(state == TO_E){
-                        path[c] = ((int) seq[i] << 28) | 0xFFFFFFF;
-
+                        path[c] = ((p-1) << 16u) | 0xFFFFu;
+                        //path[c] = ((int) seq[i] << 28) | 0xFFFFFFF;
 
 //		DPRINTF3("%d - -",seq[i]  );
                         c++;
                         //i--;
-                        next_state = poahmm->end->cells[i].Y_trans;
-                        in_node = poahmm->end->cells[i].Y_to_state;
-                        i--;
+                        next_state = poahmm->end->cells[p].Y_trans;
+                        in_node = poahmm->end->cells[p].Y_to_state;
+                        p--;
                 }
 
 
@@ -894,21 +947,29 @@ ERROR:
 
 
 
-struct poahmm*  init_poahmm(int max_len, int* nuc_counts,float weight)
+struct poahmm*  init_poahmm(struct global_poahmm_param* param, int max_len)
 {
         struct poahmm* poahmm = NULL;
+        struct global_poahmm_param* p = NULL;
         int i;
-        float sum;
-
 
         int maxmodel_len = max_len;
+
         init_logsum();
+
+
+        if(param == NULL){
+                RUN(set_default_global_param(&p));
+        }else{
+                p = param;
+        }
+
 
         MMALLOC(poahmm, sizeof(struct poahmm));
         poahmm->maxseq_len = 128;
         poahmm->seed =  (unsigned int) (time(NULL) * (42));
 
-        poahmm->pseudo_weight = weight;
+        //poahmm->pseudo_weight = weight;
 
         poahmm->emission_M = NULL;
         poahmm->emission_X = NULL;
@@ -936,19 +997,12 @@ struct poahmm*  init_poahmm(int max_len, int* nuc_counts,float weight)
         poahmm->background = NULL;
         MMALLOC(poahmm->background, sizeof(float) * 5);
 
-        if(nuc_counts){
-                sum = 0.0;
-                for(i = 0; i < 4;i++){
-                        sum += nuc_counts[i];
-                }
 
-                for(i = 0; i < 4;i++){
-                        poahmm->background[i] = prob2scaledprob( (float) nuc_counts[i] / (float) sum);
-                }
-                poahmm->background[4] = prob2scaledprob(1.0);
+        for(i = 0; i < 5;i++){
+                poahmm->background[i] = p->back[i];
         }
 
-        RUN(set_pseudocount(poahmm,0.05,0.1 ));
+        RUN(set_pseudocount(poahmm, p->base_error,p->indel_freq ));
 
         RUN(reestimate_param_poahmm(poahmm));
 
@@ -993,6 +1047,9 @@ struct poahmm*  init_poahmm(int max_len, int* nuc_counts,float weight)
         for(i = 0; i < poahmm->alloced_num_nodes;i++){
                 RUNP(poahmm->nodes[i] = malloc_a_node(poahmm->maxseq_len));
                 poahmm->rank_sorted_nodes[i] =poahmm->nodes[i];
+        }
+        if(param == NULL){
+                MFREE(p);
         }
         return poahmm;
 
@@ -1041,8 +1098,8 @@ int reestimate_param_poahmm(struct poahmm* poahmm)
         for(j = 0;j < 4;j++){
                 sum = logsum(sum,poahmm->e_emission_X[j]);
         }
-        for(j = 0;j < 4;j++){
-                poahmm->emission_X[j] =    poahmm->e_emission_X[j]-sum;
+        for(j = 0;j < 5;j++){
+                poahmm->emission_X[j] =    poahmm->background[j];//poahmm->e_emission_X[j]-sum;
         }
 
         sum = prob2scaledprob(0.0);
@@ -1050,8 +1107,8 @@ int reestimate_param_poahmm(struct poahmm* poahmm)
         for(j = 0;j < 4;j++){
                 sum = logsum(sum,poahmm->e_emission_Y[j]);
         }
-        for(j = 0;j < 4;j++){
-                poahmm->emission_Y[j] =   poahmm->e_emission_Y[j] - sum;
+        for(j = 0;j < 5;j++){
+                poahmm->emission_Y[j] = poahmm->background[j];//  poahmm->e_emission_Y[j] - sum;
         }
 
 
@@ -1297,6 +1354,7 @@ struct poahmm_node* malloc_a_node(int maxseq_len)
         node->nuc = 0;
         node->total_signal = 0;
         node->rank = 0;
+        node->type = 0;
 
         MMALLOC(node->cells, sizeof(struct cell) * maxseq_len);
         return node;
@@ -1427,36 +1485,8 @@ int reset_poa_graph_transitions_based_on_counts(struct poahmm* poahmm)
         }
         sum = 0.0f;
         for(i = 0; i < poahmm->num_nodes;i++){
-                //if(poahmm->e_entry_probabilities[i]){
-                //if(poahmm->to_tindex[i][0] == 1){
-                sum += poahmm->e_entry_probabilities[i];
-                        //}
-
-
-        }
-        for(i = 0; i < poahmm->num_nodes;i++){
-                //poahmm->entry_probabilities[i] = prob2scaledprob(1.0);
-                //if(poahmm->e_entry_probabilities[i]){
-                //if(poahmm->to_tindex[i][0] == 1){
-                poahmm->entry_probabilities[i] = prob2scaledprob(poahmm->e_entry_probabilities[i] / sum);
-                        //sum += poahmm->e_entry_probabilities[i];
-                        //}
-        }
-
-        sum = 0.0f;
-        for(i = 0; i < poahmm->num_nodes;i++){
-                //if(poahmm->e_exit_probabilities[i]){
-                //if(poahmm->from_tindex[i][0] == 1){
-                        sum += poahmm->e_exit_probabilities[i];
-                        //}
-        }
-        for(i = 0; i < poahmm->num_nodes;i++){
-                //poahmm->exit_probabilities[i] = prob2scaledprob(1.0);
-                //if(poahmm->e_exit_probabilities[i]){
-                //if(poahmm->from_tindex[i][0] == 1){
-                poahmm->exit_probabilities[i] = prob2scaledprob(poahmm->e_exit_probabilities[i] / sum);
-                        //sum += poahmm->e_entry_probabilities[i];
-                //}
+                poahmm->entry_probabilities[i] = prob2scaledprob(poahmm->e_entry_probabilities[i]);
+                poahmm->exit_probabilities[i] = prob2scaledprob(poahmm->e_exit_probabilities[i]);
         }
         return OK;
 }

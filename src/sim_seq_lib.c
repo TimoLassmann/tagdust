@@ -31,12 +31,13 @@ ERROR:
         return FAIL;
 }
 
-int insert_seq(char* r, int r_len,char* insert, int i_len, struct rng_state* rng)
+int insert_seq(char* r, int r_len,char* insert, int i_len, struct rng_state* rng,int* i_point)
 {
         ASSERT(r_len >= i_len,"ref too short: %d -> %d", r_len,i_len);
         int t;
         int i;
         t = tl_random_int(rng, r_len-i_len);
+        *i_point = t;
         for(i = 0; i < i_len;i++){
                 r[t+i] = insert[i];
                 //LOG_MSG("Inserting %c at %d\n", insert[i],t+i);
@@ -47,16 +48,25 @@ ERROR:
 }
 
 
-int mutate_seq(char* ref,char* target,int len, float error_rate, struct rng_state* rng)
+int mutate_seq(char* ref,char* target,int len, float error_rate, struct rng_state* rng, int* errors)
 {
         char alphabet[4] = "ACGT";
+        char c;
         int i;
+
         double r;
+        *errors = 0;
         for(i = 0; i < len;i++){
                 r = tl_random_double(rng);
                 if(r < error_rate){
+
                         //LOG_MSG("Has error");
-                        target[i] = alphabet[ tl_random_int(rng,4)];
+                        c = alphabet[ tl_random_int(rng,4)];
+                        while( c == ref[i]){
+                                c = alphabet[ tl_random_int(rng,4)];
+                        }
+                        target[i] = c;
+                        *errors = *errors + 1;
                 }else{
                         target[i] = ref[i];
                 }

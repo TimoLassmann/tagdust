@@ -42,6 +42,7 @@ struct poahmm_node{
         uint32_t* signal;
         uint32_t rank;
         uint8_t nuc;
+        uint8_t type;
         int total_signal;
         int identifier;
 };
@@ -113,13 +114,19 @@ struct poahmm{
 
 };
 
+struct global_poahmm_param{
+        float back[5];
+        float base_error;
+        float indel_freq;
+};
 
 extern int random_poahmm(struct poahmm* poahmm, uint8_t* seq, int len);
 extern int forward_poahmm(struct poahmm* poahmm, uint8_t* seq, int len);
 extern int backward_poahmm(struct poahmm* poahmm, uint8_t* seq, int len);
-extern int viterbi_poahmm(struct poahmm* poahmm, uint8_t* seq, int len, int* path);
 
-extern struct poahmm*  init_poahmm(int max_len, int* nuc_counts,float weight);
+extern int viterbi_poahmm(struct poahmm* poahmm, uint8_t* seq, int len,  uint32_t* path);
+
+extern struct poahmm*  init_poahmm(struct global_poahmm_param* param, int max_len);
 extern void free_poahmm (struct poahmm* poahmm);
 
 extern int init_nodes_from_single_sequence(struct poahmm* poahmm, uint8_t* seq, int len);

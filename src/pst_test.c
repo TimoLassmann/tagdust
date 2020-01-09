@@ -58,6 +58,7 @@ int test_match_insert(char* infile)
 
         float out;
         int test_len = 0;
+        int i_point;
         int i,j;
         LOG_MSG("%s",infile);
         if(!my_file_exists(infile)){
@@ -87,7 +88,7 @@ int test_match_insert(char* infile)
                 }
                 for (j = 0; j < 1000000;j++){
                         RUN(generate_random_seq(&test_seq, &test_len, rng));
-                        RUN(insert_seq(test_seq, test_len, sb->sequences[0]->seq, sb->sequences[0]->len, rng));
+                        RUN(insert_seq(test_seq, test_len, sb->sequences[0]->seq, sb->sequences[0]->len, rng,&i_point));
                         score_pst(p, test_seq, test_len, &out);
 
                         s[0]++;
@@ -287,10 +288,11 @@ int bar_test(void)
         }
 
         char* test_seq = NULL;
+        int new_error;
         MMALLOC(test_seq, sizeof(char) * 17);
         for(i = 0; i < 20;i++){
                 //int mutate_seq(char* ref,char* target,int len, float error_rate, struct rng_state* rng)
-                RUN(mutate_seq(ref_seq[i], test_seq, 16, 0.02, rng));
+                RUN(mutate_seq(ref_seq[i], test_seq, 16, 0.02, rng,&new_error));
                 score_pst_random(test_seq, 16, back, &out);
                 scores[20] = out;
                 sum = prob2scaledprob(0.0f);

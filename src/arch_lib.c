@@ -311,8 +311,7 @@ int alloc_arch_lib(struct arch_library** arch)
 {
         struct arch_library* al = NULL;
         char* in[] = {
-                "E:N+",
-                "FP:A:N{4}"
+                "E:N+"
         };
 
         int i;
@@ -337,7 +336,7 @@ int alloc_arch_lib(struct arch_library** arch)
         }
 
         /* load default model */
-        RUN(read_arch_into_lib(al, in, 2));
+        RUN(read_arch_into_lib(al, in, 1));
         *arch = al;
         return OK;
 ERROR:
