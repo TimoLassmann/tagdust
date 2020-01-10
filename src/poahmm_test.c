@@ -449,7 +449,7 @@ int test_indel(struct shared_sim_data* sd)
         i_seq = NULL;
 
 
-        snprintf(sd->seq->seq, sd->seq->alloc_len,   "%s%s%s","CCCCCCCCCCCCCC","TTTT", "AAAAAAAA");
+        snprintf(sd->seq->seq, sd->seq->alloc_len,   "%s%s%s","ACGCGTGGTACTTG","TTTT", "AAATTGTC");
         snprintf(sd->seq->label, sd->seq->alloc_len, "%s%s%s","IIIIIIIIIIIIII","XXXX", "IIIIIIII");
         sd->seq->len = strnlen(sd->seq->seq, sd->seq->alloc_len);
         LOG_MSG("LEN: %d",sd->seq->len);
