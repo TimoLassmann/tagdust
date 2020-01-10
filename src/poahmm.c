@@ -1289,6 +1289,8 @@ int viterbi_poahmm_banded(struct poahmm* poahmm,const uint8_t* seq,const  int le
 
         if(s){
                 cells[s-1].fY = prob2scaledprob(0.0f);
+        }else{
+                WARNING_MSG("No s");
         }
         //cells[1].fY = prob2scaledprob(0.0f);
 
