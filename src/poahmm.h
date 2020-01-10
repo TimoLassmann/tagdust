@@ -55,6 +55,8 @@ struct poahmm{
         struct poahmm_boundary_node* begin;
         struct poahmm_boundary_node* end;
 
+        float* random_scores;
+
         float* entry_probabilities;
         float* e_entry_probabilities;
 
@@ -76,17 +78,22 @@ struct poahmm{
         float* e_emission_Y;
 
         float* background;
-
-        unsigned int seed;
-        float pseudo_weight;
+        int effort;
+        //unsigned int seed;
+        //float pseudo_weight;
+        int max_rank;
         int num_nodes;
         int num_samples;
         int alloced_num_nodes;
-        int maxseq_len;
+        int alloc_seq_len;
 
         float f_score;
         float b_score;
         float r_score;
+
+        float YY_boundary;
+
+        float YY_boundary_exit;
 
         float MM;
         float MX;
@@ -118,6 +125,8 @@ struct global_poahmm_param{
         float back[5];
         float base_error;
         float indel_freq;
+        int average_seq_length;
+        int max_seq_len;
 };
 
 extern int random_poahmm(struct poahmm* poahmm, uint8_t* seq, int len);
@@ -125,8 +134,11 @@ extern int forward_poahmm(struct poahmm* poahmm, uint8_t* seq, int len);
 extern int backward_poahmm(struct poahmm* poahmm, uint8_t* seq, int len);
 
 extern int viterbi_poahmm(struct poahmm* poahmm, uint8_t* seq, int len,  uint32_t* path);
+extern int viterbi_poahmm_banded(struct poahmm* poahmm,const uint8_t* seq,const  int len,  uint32_t* path,const int band);
 
-extern struct poahmm*  init_poahmm(struct global_poahmm_param* param, int max_len);
+//int viterbi_poahmm_banded(struct poahmm* poahmm, uint8_t* seq, int len,  uint32_t* path,int band);
+extern struct poahmm*  init_poahmm(struct global_poahmm_param* param);
+extern int resize_poahmm(struct poahmm* poahmm,int num_states, int new_maxlen);
 extern void free_poahmm (struct poahmm* poahmm);
 
 extern int init_nodes_from_single_sequence(struct poahmm* poahmm, uint8_t* seq, int len);
