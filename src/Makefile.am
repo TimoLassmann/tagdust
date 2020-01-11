@@ -13,6 +13,8 @@ bin_PROGRAMS = tagdust pst poahmm
 
 poahmm_SOURCES = \
 poahmm_test.c \
+init_poahmm.h \
+init_poahmm.c \
 poahmm.h \
 poahmm.c \
 base_quality.h \

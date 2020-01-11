@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include "base_quality.h"
+
 struct cell{
         float fM;
         float fX;
@@ -50,7 +52,7 @@ struct poahmm_node{
 };
 
 struct poahmm{
-
+        struct qsubscore* qsub;
         struct poahmm_node** nodes;
         struct poahmm_node** rank_sorted_nodes;
 

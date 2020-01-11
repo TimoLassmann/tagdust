@@ -8,6 +8,7 @@ struct global_poahmm_param{
         float base_error;
         float indel_freq;
         int average_seq_length;
+        int min_seq_len;
         int max_seq_len;
 };
 
@@ -16,7 +17,10 @@ extern int forward_poahmm(struct poahmm* poahmm, uint8_t* seq, int len);
 extern int backward_poahmm(struct poahmm* poahmm, uint8_t* seq, int len);
 
 extern int viterbi_poahmm(struct poahmm* poahmm, uint8_t* seq, int len,  uint32_t* path);
-extern int viterbi_poahmm_banded(struct poahmm* poahmm,const uint8_t* seq,const  int len,  uint32_t* path,const int band);
+//extern int viterbi_poahmm_banded(struct poahmm* poahmm,const uint8_t* seq,const  int len,  uint32_t* path,const int band);
+
+extern int viterbi_poahmm_banded(struct poahmm* poahmm,const uint8_t* seq, const uint8_t* qual, const  int len,  uint32_t* path,const int band);
+
 
 //int viterbi_poahmm_banded(struct poahmm* poahmm, uint8_t* seq, int len,  uint32_t* path,int band);
 extern struct poahmm*  init_poahmm(struct global_poahmm_param* param);

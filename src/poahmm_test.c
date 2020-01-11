@@ -12,6 +12,7 @@
 #include "poahmm.h"
 #include "poahmm_structs.h"
 
+#include "init_poahmm.h"
 
 #include "sim_seq_lib.h"
 
@@ -19,6 +20,7 @@ struct sim_seq{
         char* buffer;
         char* seq;
         char* label;
+        uint8_t* qual;
         int len;
         int alloc_len;
 };
@@ -43,11 +45,11 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd);
 int test_banded(struct shared_sim_data* sd);
 int test_indel(struct shared_sim_data* sd);
 /* for use in tagdust */
-int poahmm_from_read_structure(struct poahmm** poahmm,struct global_poahmm_param* p, struct read_structure* rs,struct alphabet* a);
+//int poahmm_from_read_structure(struct poahmm** poahmm,struct global_poahmm_param* p, struct read_structure* rs,struct alphabet* a);
 
 int single_seq_test(void);
 int arch_test(void);
-int init_nodes_from_read_structure(struct poahmm* poahmm, struct read_structure* rs, struct alphabet* a, int random);
+//int init_nodes_from_read_structure(struct poahmm* poahmm, struct read_structure* rs, struct alphabet* a, int random);
 
 int print_poa_graph(struct poahmm* poahmm);
 int print_path(struct poahmm* poahmm, uint32_t* path,char* seq,char* label);
@@ -55,67 +57,6 @@ int print_path(struct poahmm* poahmm, uint32_t* path,char* seq,char* label);
 int print_poahmm_param(struct poahmm* poahmm);
 int poahmm_to_dot(struct poahmm* poahmm,char* filename);
 
-int poahmm_from_read_structure(struct poahmm** poahmm,struct global_poahmm_param* p, struct read_structure* rs,struct alphabet* a)
-{
-        struct poahmm* ph = NULL;
-        uint8_t* nnn = NULL;
-        uint32_t* path = NULL;
-        int random;
-        int i;
-        int j;
-        int c;
-        struct rng_state* rng = NULL;
-        ph = *poahmm;
-        if(!ph){
-                RUNP(ph = init_poahmm(p));
-        }
-
-        random = 1;
-        RUN(init_nodes_from_read_structure(ph, rs,a,random));
-        MMALLOC(path, sizeof(int)* p->max_seq_len *2);
-        MMALLOC(nnn, sizeof(uint8_t) * (p->max_seq_len+1));
-        rng = init_rng(0);
-
-        //ph->max_rank
-        for(i = ph->max_rank; i < p->max_seq_len;i++){
-                //LOG_MSG("%d", i);
-                //for(c = 0; c < 10;c++){
-                        for(j = 0; j < p->max_seq_len+1;j++){
-                                nnn[j] = tl_random_int(rng, 4);
-                        }
-                        if(i < ph->max_rank){
-                                LOG_MSG("Sequence too short to match");
-                        }else if(ph->max_rank < i){
-                                j = i - ph->max_rank;
-                                ph->YY_boundary = (float)j / (float)(j + 2);
-                                ph->YY_boundary_exit = 1.0 - ph->YY_boundary;
-                                ph->YY_boundary = prob2scaledprob(ph->YY_boundary);
-                                ph->YY_boundary_exit = prob2scaledprob(ph->YY_boundary_exit);
-
-                        }
-
-
-                        RUN(viterbi_poahmm(ph, nnn, i, path));
-                        //print_path(poahmm, path,nnn,nnn);
-                        ph->random_scores[i] = ph->f_score;
-                        //      fprintf(stdout,"%f ", ph->f_score);
-                        //}
-        //fprintf(stdout,"\n");
-                //exit(0);
-        }
-
-        //exit(0);
-        free_rng(rng);
-        MFREE(path);
-        MFREE(nnn);
-
-
-        RUN(init_nodes_from_read_structure(ph, rs,a,0));
-        *poahmm = ph;
-        return OK;
-ERROR:
-        return FAIL;
-}
 
 
 int main(int argc, char *argv[])
@@ -149,6 +90,18 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
                 "R2:E:N{10}",
                 "A:AAA,TTT"
         };
+
+        struct stats{
+                double s_0_correct[5];
+                double s_1_correct[5];
+                double s_2_correct[5];
+
+                double s_0_false[5];
+                double s_1_false[5];
+                double s_2_false[5];
+
+        } stats;
+
         int size;
 
         uint8_t* i_seq = NULL;
@@ -164,6 +117,8 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
         int num_error;
 
         int active_read_structure;
+
+
         size = sizeof(in) / sizeof(char*);
 
         MMALLOC(path, sizeof(int)*1024);
@@ -178,7 +133,7 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
 
         LOG_MSG("%d", poahmm->max_rank);
         //RUN(set_random_scores(poahmm, 50));
-        for(i = poahmm->max_rank+1 ;i < 30;i++){
+        for(i = poahmm->max_rank+2;i <  poahmm->max_rank+3;i++){
                 //RUN(sim_seq_from_read_struct(&sd->seq, sd->al->read_structure[active_read_structure ] , i, sd->main_rng));
                 //RUN(generate_random_seq(sd->seq->seq, i, sd->main_rng));
                 //RUN(generate_random_seq(&seq, &i, sd->main_rng ));
@@ -187,9 +142,30 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
                 //}
                 //RUN(seq_to_internal(sd->seq->seq, i, &i_seq, &i_len));
                 //poahmm->r_len = 1.0f;//   MACRO_MAX(1, i - poahmm->max_rank);
+                LOG_MSG("Simulating reads of length %d",i);
+                for(j = 0; j < 5;j ++){
+
+                        stats.s_0_correct[j] = 0.0;
+                        stats.s_1_correct[j] = 0.0;
+                        stats.s_2_correct[j] = 0.0;
+
+                        stats.s_0_false[j] = 0.0;
+                        stats.s_1_false[j] = 0.0;
+                        stats.s_2_false[j] = 0.0;
+                }
+
+
+
+
+
+
+
+
+
                 if(i < poahmm->max_rank){
                         LOG_MSG("Sequence too short to match");
                 }else if(poahmm->max_rank < i){
+                        LOG_MSG("Need to adjust border p");
                         j = i - poahmm->max_rank;
                         poahmm->YY_boundary = (float)j / (float)(j + 2);
                         poahmm->YY_boundary_exit = 1.0 - poahmm->YY_boundary;
@@ -199,19 +175,33 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
                 }
 
 
-                error_rate = 0.0f;
-                for(j = 0; j < 1000; j++){
-                        error_rate += 0.001f;
+                error_rate = 0.01f;
+                for(j = 0; j < 10000; j++){
+                        //error_rate += 0.001f;
                         RUN(sim_seq_from_read_struct(&sd->seq, sd->al->read_structure[active_read_structure ] , i, sd->main_rng));
 
                         mutate_seq(sd->seq->seq,sd->seq->buffer,  sd->seq->len, error_rate , sd->main_rng, &num_error);
                         RUN(seq_to_internal(sd->seq->buffer, i, &i_seq, &i_len));
 
-                        RUN(viterbi_poahmm_banded(poahmm,i_seq,i_len,path,2));
+
+                        RUN(viterbi_poahmm_banded(poahmm,i_seq, sd->seq->qual, i_len,path,2));
 
                         RUN(score_labelling(poahmm, path,sd->seq->label, &accuracy));
-
-
+                        //LOG_MSG("R: %f", poahmm->random_scores[i]);
+                        e = poahmm->f_score - poahmm->random_scores[i];
+                        e = exp2f(e) / (1.0 + exp2f(e));
+                        if(num_error > 4){
+                                num_error = 4 ;
+                        }
+                        if(accuracy == 1.0){
+                                stats.s_0_correct[num_error]++;
+                                stats.s_1_correct[num_error] += e;
+                                stats.s_2_correct[num_error] += e + e;
+                        }else{
+                                stats.s_0_false[num_error]++;
+                                stats.s_1_false[num_error] += e;
+                                stats.s_2_false[num_error] += e + e;
+                        }
 
                         if(accuracy != 1.0 && num_error <= 5){
                                 LOG_MSG("Wrong assignment at error rate: %f (%d)", error_rate, num_error);
@@ -219,27 +209,67 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
                                 //forward_poahmm(poahmm, i_seq, i_len);
                                 //backward_poahmm(poahmm, i_seq, i_len);
                                 //random_poahmm(poahmm, i_seq, i_len);
-                                e = poahmm->f_score - poahmm->random_scores[i];
-                                e = exp2f(e) / (1.0 + exp2f(e));
-                                forward_poahmm(poahmm, i_seq, i_len);
+                                //e = poahmm->f_score - poahmm->random_scores[i];
+                                //e = exp2f(e) / (1.0 + exp2f(e));
+                                //forward_poahmm(poahmm, i_seq, i_len);
                                 //backward_poahmm(poahmm, i_seq, i_len);
                                 //LOG_MSG("%f", poahmm->random_scores[i]);
                                 fprintf(stdout,"%d a:%f e:%f F:%5.3f\tR:%5.3f nume:%d\t",i,accuracy,e, poahmm->f_score, poahmm->random_scores[i], num_error);
                                 fprintf(stdout,"%s\n",sd->seq->buffer);
 
-                                if(accuracy != 1.0 && e >= 0.9){
+                                if((accuracy != 1.0 && e >= 0.9)|| num_error < 3 ){
                                         RUN(print_path(poahmm,path ,sd->seq->buffer, sd->seq->label ));
                                 }
                                 //fprintf(stdout,"%f\n",1.0 - scaledprob2prob(poahmm->f_score - poahmm->r_score));
 
                                 //break;
                         }
+                        //RUN(viterbi_poahmm(poahmm,i_seq, i_len,path));
+                        //fprintf(stdout,"%d a:%f e:%f F:%5.3f\tR:%5.3f nume:%d\t",i,accuracy,e, poahmm->f_score, poahmm->random_scores[i], num_error);
+
+                        //RUN(print_path(poahmm,path ,sd->seq->buffer, sd->seq->label ));
+                        //exit(0);
                 }
+
+                LOG_MSG("------------------------------");
+                double stdev;
+                double mean;
+                for(j = 0;j < 5;j++){
+                        fprintf(stdout,"ERRORS: %d\t",j);
+
+                        if(stats.s_0_correct[j] == 0.0){
+                                mean = -1.0;
+                                stdev = -1.0;
+
+                        }else{
+                                mean = stats.s_1_correct[j] / stats.s_0_correct[j];
+                                stdev = sqrt ( (stats.s_0_correct[j] * stats.s_2_correct[j] -  pow(stats.s_1_correct[j], 2.0)) /  (stats.s_0_correct[j] * ( stats.s_0_correct[j] - 1.0)));
+                        }
+                        fprintf(stdout,"%f (+-%f) N=%d\t", mean,stdev, (int)stats.s_0_correct[j]);
+
+                        if(stats.s_0_false[j] == 0.0){
+                                mean = -1.0;
+                                stdev = -1.0;
+                        }else{
+                                mean = stats.s_1_false[j] / stats.s_0_false[j];
+                                stdev = sqrt ( (stats.s_0_false[j] * stats.s_2_false[j] -  pow(stats.s_1_false[j], 2.0)) /  (stats.s_0_false[j] * ( stats.s_0_false[j] - 1.0)));
+                        }
+                        fprintf(stdout,"%f (+-%f) N=%d\t", mean,stdev,(int) stats.s_0_false[j]);
+                        //fprintf(stdout,"%f (+-%f)\t", mean,stdev);
+                        fprintf(stdout,"\n");
+                }
+
+
+                LOG_MSG("------------------------------");
+
                 MFREE(i_seq);
 
                 i_seq = NULL;
         }
         MFREE(path);
+
+
+/* resport stats  */
         return OK;
 ERROR:
         return FAIL;
@@ -265,8 +295,6 @@ int test_banded(struct shared_sim_data* sd)
         int i;
         int j;
         int c;
-        float e;
-        float accuracy;
         float error_rate;
 
         int num_error;
@@ -333,7 +361,7 @@ int test_banded(struct shared_sim_data* sd)
                         START_TIMER(timer);
                         for(j = 0; j < runs;j++){
 
-                                RUN(viterbi_poahmm_banded(poahmm,i_seq,i_len,path,c));
+                                RUN(viterbi_poahmm_banded(poahmm,i_seq,sd->seq->qual, i_len,path,c));
                         }
                         STOP_TIMER(timer);
                         LOG_MSG("LEN:%d\t%f\tbanded %d\ttook: %f",i, poahmm->f_score,c,GET_TIMING(timer));
@@ -363,16 +391,16 @@ int test_indel(struct shared_sim_data* sd)
 
         uint8_t* i_seq = NULL;
         uint32_t* path = NULL;
-        int runs = 10;
+
         int i_len;
         int i;
         int j;
-        int c;
-        float e;
-        float accuracy;
-        float error_rate;
 
-        int num_error;
+        float e;
+
+
+
+
         int active_read_structure;
 
         size = sizeof(in) / sizeof(char*);
@@ -389,7 +417,8 @@ int test_indel(struct shared_sim_data* sd)
 
         MMALLOC(path, sizeof(int)*poahmm->max_rank + poahmm->alloc_seq_len);
         LOG_MSG("Starting run");
-        DECLARE_TIMER(timer);
+
+
         //RUN(set_random_scores(poahmm, 50));
         snprintf(sd->seq->seq, sd->seq->alloc_len,   "%s%s","CCCCCCCCCCCCCC", "AAAAAAAA");
         snprintf(sd->seq->label, sd->seq->alloc_len, "%s%s","IIIIIIIIIIIIII", "IIIIIIII");
@@ -409,7 +438,7 @@ int test_indel(struct shared_sim_data* sd)
         }
         if(sd->seq->len >= poahmm->alloc_seq_len){
                 LOG_MSG("Resize");
-                resize_poahmm(poahmm, poahmm->num_nodes, i);
+                resize_poahmm(poahmm, poahmm->num_nodes, sd->seq->len);
                 LOG_MSG("%d", poahmm->alloc_seq_len);
         }
 
@@ -866,161 +895,7 @@ ERROR:
         return FAIL;
 }
 
-int init_nodes_from_read_structure(struct poahmm* poahmm, struct read_structure* rs, struct alphabet* a, int random)
-{
-        int i,j,c;
-        int* b_nodes = NULL;
-        int* e_nodes_new = NULL;
-        int* e_nodes = NULL;
-        int* tmp;
-        int n_index;
-        int num_e;
-        int skipN;
-        //int num_b;
-        int num_e_new;
-        int num_nodes;
-        struct poahmm_node* node_ptr = NULL;
-        struct segment_specs* s;
 
-        num_nodes = 0;
-
-        for(i= 0; i < rs->num_segments;i++){
-                s = rs->seg_spec[i];
-                for(j = 0; j < s->num_seq;j++){
-                        if(s->max_len == INT32_MAX  ){
-                                ERROR_MSG("N+ segments not len assigned");
-                        }
-                }
-        }
-
-        for(i= 0; i < rs->num_segments;i++){
-                s = rs->seg_spec[i];
-                for(j = 0; j < s->num_seq;j++){
-                        if(s->max_len == INT32_MAX  ){
-                                num_nodes++;
-                        }else{
-                                num_nodes+= s->max_len;
-                        }
-                        fprintf(stdout,"%s\n",s->seq[j]);
-                }
-                //if(j = )
-        }
-        //num_nodes+10;
-        if(poahmm->alloced_num_nodes <= num_nodes){
-                RUN(resize_poahmm(poahmm, num_nodes, 0));
-                //ERROR_MSG("No enough space in poahmm: want %d have %d", num_nodes,poahmm->alloced_num_nodes);
-        }
-        LOG_MSG("Need  %d nodes", num_nodes);
-        //exit(0);
-        for(i = 0; i< poahmm->alloced_num_nodes;i++){
-                for(j = 0 ; j < poahmm->alloced_num_nodes;j++){
-                        poahmm->poa_graph[i][j] = prob2scaledprob(0.0f);
-                        poahmm->e_poa_graph[i][j] = 0.0;
-                }
-                poahmm->entry_probabilities[i] = prob2scaledprob(0.0f);
-                poahmm->e_entry_probabilities[i] = 0.0;
-
-                poahmm->exit_probabilities[i] = prob2scaledprob(0.0f);
-                poahmm->e_exit_probabilities[i] = 0.0;
-        }
-
-        poahmm->YY_boundary = prob2scaledprob(0.0f);
-        poahmm->YY_boundary_exit = prob2scaledprob(1.0f);
-        MMALLOC(e_nodes, sizeof(int) * num_nodes);
-        MMALLOC(b_nodes, sizeof(int) * num_nodes);
-        MMALLOC(e_nodes_new, sizeof(int) * num_nodes);
-        num_e = 0;
-        //num_b = 0;
-        num_e_new = 0;
-        n_index = 0;
-
-        e_nodes[num_e] = 0;
-        num_e++;
-        for(i= 0; i < rs->num_segments;i++){
-                s = rs->seg_spec[i];
-                skipN = 0;
-                if(s->num_seq> 1){
-                        skipN =1;
-                }
-                for(j = skipN;j < s->num_seq;j++){
-                        for(c = 0; c < num_e;c++){
-                                if(!i){
-                                        poahmm->e_entry_probabilities[n_index] = 1.0;
-                                }else{
-                                        poahmm->e_poa_graph[e_nodes[c]][n_index] = 1.0;
-                                }
-                        }
-                        for(c = 0; c < s->max_len;c++){
-                                if(c >= s->min_len-1){
-                                        e_nodes_new[num_e_new] = n_index;
-                                        num_e_new++;
-                                }
-                                if(c == s->max_len -1){
-                                        e_nodes_new[num_e_new] = n_index;
-                                        num_e_new++;
-                                }else{
-                                        poahmm->e_poa_graph[n_index][n_index+1] = 1.0;
-                                }
-                                node_ptr = poahmm->nodes[n_index];
-                                if(random){
-                                        node_ptr->nuc = 4;
-                                }else{
-                                        node_ptr->nuc = tlalphabet_get_code(a,s->seq[j][c]);
-                                }
-                                node_ptr->rank = UINT32_MAX;
-                                node_ptr->type = s->extract;
-                                node_ptr->identifier = n_index;
-                                n_index++;
-
-                        }
-                }
-                num_e = num_e_new;
-                num_e_new = 0;
-                tmp = e_nodes;
-                e_nodes = e_nodes_new;
-                e_nodes_new = tmp;
-        }
-
-        for(i = 0; i < num_e;i++){
-                poahmm->e_exit_probabilities[e_nodes[i]] = 1.0;
-        }
-        //viterbi_poahmm(struct poahmm *poahmm, uint8_t *seq, int len, uint32_t *path)
-//stop state
-        //node_ptr = poahmm->nodes[POAHMM_ENDSTATE];
-        //node_ptr->nuc = 4;
-        //node_ptr->identifier = POAHMM_ENDSTATE;
-        //exit(0);
-        //poahmm->num_nodes = len;
-        LOG_MSG("assigned %d",n_index);
-        poahmm->num_nodes = n_index;
-        for(i = 0; i < poahmm->alloced_num_nodes;i++){
-                poahmm->nodes[i]->rank = UINT32_MAX;
-        }
-        //poahmm->alloced_num_nodes
-        MFREE(e_nodes);
-        MFREE(e_nodes_new);
-        MFREE(b_nodes);
-
-        RUN(set_rank_transition_poahmm(poahmm));
-        poahmm->max_rank = 0;
-        for(i = 0; i< poahmm->num_nodes;i++){
-                if(poahmm->max_rank < poahmm->nodes[i]->rank){
-                        poahmm->max_rank = poahmm->nodes[i]->rank;
-
-                }
-                /*fprintf(stdout,"RANK: %d %d", i, poahmm->nodes[i]->rank);
-                fprintf(stdout,"ENTRY: %f EXIT:%f\t", poahmm->entry_probabilities[i],poahmm->exit_probabilities[i]);
-                for(j = 0 ; j < poahmm->num_nodes;j++){
-                        fprintf(stdout,"%f ",poahmm->poa_graph[i][j]);
-                        //poahmm->e_poa_graph[i][j] = 0.0;
-                }
-                fprintf(stdout,"\n");*/
-        }
-        //exit(0);
-        return OK;
-ERROR:
-        return FAIL;
-}
 
 int print_poahmm_param(struct poahmm* poahmm)
 {
@@ -1152,7 +1027,8 @@ int init_sim_data(struct shared_sim_data** sim_data, int seed)
         }
         sd->gp->back[4] = prob2scaledprob(1.0);
         sd->gp->average_seq_length = 128;
-        sd->gp->max_seq_len = 512;
+        sd->gp->min_seq_len = 1;
+        sd->gp->max_seq_len = 256;
 
         RUNP(sd->poahmm = init_poahmm( sd->gp));
 
@@ -1200,21 +1076,25 @@ int sim_seq_from_read_struct(struct sim_seq** simseq, struct read_structure* rs,
                 s->label = NULL;
                 s->seq = NULL;
                 s->buffer = NULL;
+                s->qual = NULL;
                 MMALLOC(s->seq, sizeof(char)* s->alloc_len);
                 MMALLOC(s->label, sizeof(char)* s->alloc_len);
                 MMALLOC(s->buffer, sizeof(char)* s->alloc_len);
+                MMALLOC(s->qual, sizeof(uint8_t)* s->alloc_len);
         }
         if(sim_len >= s->alloc_len){
                 s->alloc_len = s->alloc_len + s->alloc_len /2;
                 MREALLOC(s->seq, sizeof(char)* s->alloc_len);
                 MREALLOC(s->label, sizeof(char)* s->alloc_len);
                 MREALLOC(s->buffer, sizeof(char)* s->alloc_len);
+                MREALLOC(s->qual, sizeof(uint8_t)* s->alloc_len);
         }
 
         /* step one: add random residues  */
         RUN(generate_random_seq(&s->seq,&sim_len,rng));
         for(i = 0; i < sim_len;i++){
                 s->label[i] = etype[0];
+                s->qual[i] = 49;
         }
 
         s->label[sim_len] = 0;
@@ -1276,6 +1156,7 @@ void free_sim_seq(struct sim_seq* s)
                 MFREE(s->buffer);
                 MFREE(s->seq);
                 MFREE(s->label);
+                MFREE(s->qual);
                 MFREE(s);
         }
 }

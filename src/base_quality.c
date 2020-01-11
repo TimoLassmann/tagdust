@@ -57,9 +57,13 @@ int calc_score_matrix(struct qsubscore** mat,  float base_error, float indel_fre
                                 b->m[i][key] = fill_qsubscore(subm,j,c,q,n);
                         }
                 }
-
+                /*fprintf(stdout,"%f %f\t", scaledprob2prob(q),scaledprob2prob(n));
+                for(j = 0; j < 16; j++){
+                        fprintf(stdout,"%f ", scaledprob2prob(b->m[i][j]));
+                }
+                fprintf(stdout,"\n");*/
         }
-
+        //exit(0);
         *mat = b;
         return OK;
 ERROR:
@@ -71,7 +75,7 @@ float get_qsubscore(struct qsubscore* subm, uint8_t a, uint8_t b, uint8_t q)
 {
 
         register uint8_t k;
-        if(b == 4){
+        if(a == 4 || b == 4){
                 return subm->d;
         }
         k = a << 2 | b;

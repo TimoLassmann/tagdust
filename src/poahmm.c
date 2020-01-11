@@ -42,6 +42,7 @@ int set_default_global_param( struct global_poahmm_param** p)
         }
         param->base_error = 0.05f;
         param->indel_freq = 0.1f;
+        param->min_seq_len = 1;
         param->max_seq_len = 128;
         param->average_seq_length = 128;
         sum = 0.0f;
@@ -198,6 +199,7 @@ int forward_poahmm(struct poahmm* poahmm, uint8_t* seq, int len)
                                 cells[i].fX = logsum(cells[i].fX, prev_cells[i].fX + XX + tmp);//poahmm->poa_graph[n][node_id]  );
                                 cells[i].fX = logsum(cells[i].fX, prev_cells[i].fY + YX + tmp);//poahmm->poa_graph[n][node_id]  );
                         }
+                        //get_qsubscore(struct qsubscore *subm, nuc, seq[i], qual[i])
                         cells[i].fM += eM[node_nuc][seq[i]];
                         cells[i].fX += eX[node_nuc];
                         cells[i].fY += eY[seq[i]];
@@ -937,7 +939,7 @@ ERROR:
 }
 
 
-int viterbi_poahmm_banded(struct poahmm* poahmm,const uint8_t* seq,const  int len,  uint32_t* path,const int band)
+int viterbi_poahmm_banded(struct poahmm* poahmm,const uint8_t* seq, const uint8_t* qual, const  int len,  uint32_t* path,const int band)
 {
         register int i,j,c,n;
         int node_id;
@@ -949,7 +951,7 @@ int viterbi_poahmm_banded(struct poahmm* poahmm,const uint8_t* seq,const  int le
         uint8_t node_nuc;
 
         seq = seq -1;
-
+        qual = qual-1;
 
         //uint8_t* seq = poahmm_data->seq[index] -1; // so that seq[1]  is the first letter...
         //int len = poahmm_data->len[index];
@@ -968,6 +970,7 @@ int viterbi_poahmm_banded(struct poahmm* poahmm,const uint8_t* seq,const  int le
         const float YY_boundary =   poahmm->YY_boundary;
         const float YY_boundary_exit = poahmm->YY_boundary_exit;
 
+        struct qsubscore* qsub = poahmm->qsub;
 
         float* eY =poahmm->emission_Y;
         float* eX = poahmm->emission_X;
@@ -979,7 +982,7 @@ int viterbi_poahmm_banded(struct poahmm* poahmm,const uint8_t* seq,const  int le
 
 
 
-        float** eM = poahmm->emission_M;
+        //float** eM = poahmm->emission_M;
         float tmp;
         //float max;
         float new_max;
@@ -997,26 +1000,14 @@ int viterbi_poahmm_banded(struct poahmm* poahmm,const uint8_t* seq,const  int le
         //qsort(poahmm->rank_sorted_nodes,poahmm->num_nodes,sizeof(struct poahmm_node*), cmp_node_rank_low_to_high);
 
         cells = poahmm->begin->cells;
-
-
-        s = 0;
-        e = len;
-
-
-        x = 0 - bw; s = s > x ? s : x;
-        x = 1 + bw; e = e < x ? e : x;
-        //LOG_MSG("Start %d %d",s,e);
-
-        //poahmm->begin->fY[0] = prob2scaledprob(1.0f);
-        //FIRST COLUMN
         cells[0].fY = prob2scaledprob(1.0f);
-        for(i = 1; i < e;i++){
+        for(i = 1; i < len;i++){
                 cells[i].fY = cells[i-1].fY + YY_boundary + eR[seq[i]];
                 cells[i].Y_to_state = START_STATE;
                 cells[i].Y_trans = TO_B;
         }
-        cells[e].fY = prob2scaledprob(0.0f);
-        cells[e+1].fY = prob2scaledprob(0.0f);
+        cells[len].fY = prob2scaledprob(0.0f);
+        cells[len+1].fY = prob2scaledprob(0.0f);
 
         //cells[len].fY = prob2scaledprob(0.0f);
         //cells[len+1].fY = prob2scaledprob(0.0f);
@@ -1033,8 +1024,7 @@ int viterbi_poahmm_banded(struct poahmm* poahmm,const uint8_t* seq,const  int le
 
                 x = poahmm->nodes[node_id]->rank - bw; s = s > x ? s : x;
                 x = poahmm->nodes[node_id]->rank+1 + bw; e = e < x ? e : x;
-                //LOG_MSG("%d at rank %d: %d - %d (old: %d -%d)",node_id,  poahmm->nodes[node_id]->rank,s,e, 0, len);
-
+                //LOG_MSG("NODE: %d at rank %d: %d - %d (old: %d -%d)",node_id,  poahmm->nodes[node_id]->rank,s,e, 0, len);
 
                 if(s == 0){
                         i = 0;
@@ -1066,10 +1056,11 @@ int viterbi_poahmm_banded(struct poahmm* poahmm,const uint8_t* seq,const  int le
                         cells[i].fY = prob2scaledprob(0.0);
                         cells[i].fX = prob2scaledprob(0.0);
 
-                        }
-
+                }
+                //LOG_MSG("FX: %f", cells[i].fX);
                 //s++;
                 for(i = s; i < e;i++){
+
                         //for(i = 1; i < len;i++){
                         //index_dp = &cells[i].f;
                         prev_cells = poahmm->begin->cells;
@@ -1111,11 +1102,10 @@ int viterbi_poahmm_banded(struct poahmm* poahmm,const uint8_t* seq,const  int le
 
 
                         for(c = 1; c < poahmm->to_tindex[node_id][0];c++){
-
+                                //LOG_MSG("At node: %d -> %d", )
                                 n = poahmm->to_tindex[node_id][c];
                                 prev_cells = poahmm->nodes[n]->cells;
                                 tmp = poahmm->poa_graph[n][node_id];
-
 
                                 if((new_max = prev_cells[i-1].fM + MM + tmp) > cells[i].fM){
                                         cells[i].fM = new_max;
@@ -1138,7 +1128,6 @@ int viterbi_poahmm_banded(struct poahmm* poahmm,const uint8_t* seq,const  int le
                                         cells[i].M_trans = TO_Y;
                                 }
                                 //cells[i].fM = logsum(cells[i].fM, prev_cells[i-1].fY  + YM + tmp);// poahmm->poa_graph[n][node_id]);
-
 
                                 if((new_max  = prev_cells[i].fM + MX+ tmp)  > cells[i].fX){
                                         cells[i].fX = new_max;
@@ -1165,7 +1154,13 @@ int viterbi_poahmm_banded(struct poahmm* poahmm,const uint8_t* seq,const  int le
                                 //cells[i].fX = logsum(cells[i].fX, prev_cells[i].fY  + YX + tmp);//poahmm->poa_graph[n][node_id]  );
                         }
 
-                        cells[i].fM += eM[node_nuc][seq[i]];
+//get_qsubscore(qsub, node_nuc, seq[i], qual[i])
+
+                        /*if(fabs(eM[node_nuc][seq[i]] - get_qsubscore(qsub, node_nuc, seq[i], qual[i])) > 0.01){
+                        LOG_MSG("%f %f q:%d   %d vs %d %f %f ", eM[node_nuc][seq[i]],get_qsubscore(qsub, node_nuc, seq[i], qual[i]), qual[i], node_nuc,seq[i], scaledprob2prob(eM[node_nuc][seq[i]]),scaledprob2prob(get_qsubscore(qsub, node_nuc, seq[i], qual[i])));
+                        }*/
+
+                        cells[i].fM += get_qsubscore(qsub, node_nuc, seq[i], qual[i]);// eM[node_nuc][seq[i]];
                         cells[i].fX +=  eX[node_nuc];
                         cells[i].fY += eY[seq[i]];
                 }
@@ -1271,7 +1266,8 @@ int viterbi_poahmm_banded(struct poahmm* poahmm,const uint8_t* seq,const  int le
                         }
                         //cells[i].fX = logsum(cells[i].fX, prev_cells[i].fY + YX + tmp);// poahmm->poa_graph[n][node_id]  );
                 }
-                cells[i].fM += eM[node_nuc][seq[i]];
+                cells[i].fM +=get_qsubscore(qsub, node_nuc, seq[i], qual[i]);
+                //cells[i].fM += eM[node_nuc][seq[i]];
                 cells[i].fX += eR[node_nuc];
                 cells[i].fY += eY[seq[i]];
                 }
@@ -1509,6 +1505,7 @@ struct poahmm* init_poahmm(struct global_poahmm_param* param)
         //LOG_MSG("ALLOC:%d", param->max_seq_len);
         poahmm->alloc_seq_len = param->max_seq_len+2;
         poahmm->max_rank = 0;
+        poahmm->qsub = NULL;
         //poahmm->seed =  (unsigned int) (time(NULL) * (42));
 
         //poahmm->pseudo_weight = weight;
@@ -1592,6 +1589,7 @@ struct poahmm* init_poahmm(struct global_poahmm_param* param)
 
         RUN(reestimate_param_poahmm(poahmm));
 
+        RUN(calc_score_matrix(&poahmm->qsub, p->base_error, p->indel_freq));
 
         if(param == NULL){
                 MFREE(p);
@@ -1619,13 +1617,13 @@ int reestimate_param_poahmm(struct poahmm* poahmm)
                 }
         }
         for(i = 0;i < 4;i++){
-                sum = prob2scaledprob(0.0);
+                /*sum = prob2scaledprob(0.0);
                 for(j = 0;j < 4;j++){
                         sum = logsum(sum,poahmm->e_emission_M[i][j] );
-                }
+                        }*/
                 for(j = 0;j < 4;j++){
 
-                        poahmm->emission_M[i][j]  = poahmm->e_emission_M[i][j] - sum;
+                        poahmm->emission_M[i][j]  = poahmm->e_emission_M[i][j];// - sum;
                         //fprintf(stdout,"%f", scaledprob2prob(poahmm->emission_M[i][j]));
                         //sum = logsum(sum,poahmm->e_emission_M[i][j] );
                 }
@@ -1634,7 +1632,7 @@ int reestimate_param_poahmm(struct poahmm* poahmm)
         }
         i = 4;
         for(j = 0;j < 5;j++){
-                poahmm->emission_M[i][j] = poahmm->background[j];
+                poahmm->emission_M[i][j] = poahmm->emission_M[0][0];
         }
 
 
@@ -1807,6 +1805,9 @@ void free_poahmm (struct poahmm* poahmm)
 {
         int i;
         if(poahmm){
+                if(poahmm->qsub){
+                        MFREE(poahmm->qsub);
+                }
                 if(poahmm->random_scores){
                         MFREE(poahmm->random_scores);
                 }
