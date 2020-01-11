@@ -99,7 +99,7 @@ float fill_qsubscore(float subm[4][4], int t, int q , float p,float n)
 }
 
 
-#ifdef BASE_Q_TEST
+#ifdef BASEQTEST
 
 #include "tlseqio.h"
 

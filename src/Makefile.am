@@ -9,15 +9,14 @@ AM_LDFLAGS += -Wno-undef
 
 LIBS = @TLDEVEL_LIB@ $(HDF5_LDFLAGS)  $(HDF5_LIBS) -lm
 
-bin_PROGRAMS = tagdust pst poahmm base_quality
-
-base_quality_SOURCES = \
-base_quality.c 
+bin_PROGRAMS = tagdust pst poahmm 
 
 poahmm_SOURCES = \
 poahmm_test.c \
 poahmm.h \
 poahmm.c \
+base_quality.h \
+base_quality.c \
 sim_seq_lib.h \
 sim_seq_lib.c \
 arch_lib.h \
@@ -161,14 +160,14 @@ io.c
 rename_qiime_CPPFLAGS = -DRENAME
 rename_qiime_LDADD = -lm
 
-TESTS =arch_lib_test interface_test io_hdf5_test zwrite core_hmm_test
+TESTS =arch_lib_test interface_test io_hdf5_test zwrite core_hmm_test bq_test
 
 TESTS_ENVIRONMENT = \
 	devdir='$(top_srcdir)'/dev; \
          export devdir; \
 	$(VALGRIND)
 
-check_PROGRAMS = arch_lib_test interface_test io_hdf5_test zwrite core_hmm_test band_test
+check_PROGRAMS = arch_lib_test interface_test io_hdf5_test zwrite core_hmm_test band_test bq_test
 
 band_test_SOURCES = banded_test.c
 
@@ -209,9 +208,14 @@ arch_lib_test_LDADD =
 interface_test_SOURCES = \
 interface.h \
 interface.c
-
 interface_test_CPPFLAGS = $(AM_CPPFLAGS) -DINTERFACE_TEST
 interface_test_LDADD =
+
+bq_test_SOURCES = \
+base_quality.h \
+base_quality.c
+bq_test_CPPFLAGS = $(AM_CPPFLAGS) -DBASEQTEST
+
 
 zwrite_SOURCES = test_pipe.c
 

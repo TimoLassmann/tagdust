@@ -3,6 +3,9 @@
 #include "tldevel.h"
 #include "tllogsum.h"
 #include "poahmm.h"
+#include "poahmm_structs.h"
+
+
 
 static int reestimate_param_poahmm(struct poahmm* poahmm);
 

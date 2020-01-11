@@ -10,7 +10,7 @@
 #include "tlalphabet.h"
 
 #include "poahmm.h"
-
+#include "poahmm_structs.h"
 
 
 #include "sim_seq_lib.h"
