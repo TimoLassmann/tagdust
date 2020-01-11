@@ -14,7 +14,7 @@ Frith MC, Wan R, Horton P. Incorporating sequence quality data into alignment im
 /* P (y|d) = 1 − 10 −Q y /10 */
 
 struct qsubscore{
-        float m[50][16];
+        float m[105][16];
         float d;
 };
 
@@ -56,6 +56,16 @@ int calc_score_matrix(struct qsubscore** mat,  float base_error, float indel_fre
                                 key = (j << 2) | c;
                                 b->m[i][key] = fill_qsubscore(subm,j,c,q,n);
                         }
+                }
+                /*fprintf(stdout,"%f %f\t", scaledprob2prob(q),scaledprob2prob(n));
+                for(j = 0; j < 16; j++){
+                        fprintf(stdout,"%f ", scaledprob2prob(b->m[i][j]));
+                }
+                fprintf(stdout,"\n");*/
+        }
+        for(i = 50; i < 105;i++){
+                for(j = 0; j < 16;j++){
+                        b->m[i][j] = b->m[49][j];
                 }
                 /*fprintf(stdout,"%f %f\t", scaledprob2prob(q),scaledprob2prob(n));
                 for(j = 0; j < 16; j++){

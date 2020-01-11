@@ -37,7 +37,7 @@ struct shared_sim_data{
 static int init_sim_data(struct shared_sim_data** sim_data, int seed);
 static void free_sim_data(struct shared_sim_data* sd);
 
-static int sim_seq_from_read_struct(struct sim_seq** simseq, struct read_structure* rs,int sim_len,struct rng_state* rng);
+static int sim_seq_from_read_struct(struct sim_seq** simseq, struct read_structure* rs,int sim_len, int base_q, struct rng_state* rng);
 static void free_sim_seq(struct sim_seq* s);
 
 int score_labelling(struct poahmm* poahmm, uint32_t* path,char* label, float* score);
@@ -99,7 +99,7 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
                 double s_0_false[5];
                 double s_1_false[5];
                 double s_2_false[5];
-
+                double pass;
         } stats;
 
         int size;
@@ -110,6 +110,8 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
         int i_len;
         int i;
         int j;
+
+        int base_q;
         float e;
         float accuracy;
         float error_rate;
@@ -118,7 +120,7 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
 
         int active_read_structure;
 
-
+        int num_tests = 10000;
         size = sizeof(in) / sizeof(char*);
 
         MMALLOC(path, sizeof(int)*1024);
@@ -133,7 +135,8 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
 
         LOG_MSG("%d", poahmm->max_rank);
         //RUN(set_random_scores(poahmm, 50));
-        for(i = poahmm->max_rank+2;i <  poahmm->max_rank+3;i++){
+        for(i = poahmm->max_rank+1;i <  poahmm->max_rank+5;i++){
+                for(base_q = 40; base_q >= 0;base_q -= 5){
                 //RUN(sim_seq_from_read_struct(&sd->seq, sd->al->read_structure[active_read_structure ] , i, sd->main_rng));
                 //RUN(generate_random_seq(sd->seq->seq, i, sd->main_rng));
                 //RUN(generate_random_seq(&seq, &i, sd->main_rng ));
@@ -142,7 +145,7 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
                 //}
                 //RUN(seq_to_internal(sd->seq->seq, i, &i_seq, &i_len));
                 //poahmm->r_len = 1.0f;//   MACRO_MAX(1, i - poahmm->max_rank);
-                LOG_MSG("Simulating reads of length %d",i);
+                        LOG_MSG("Simulating reads of length %d, base quality %d",i, base_q);
                 for(j = 0; j < 5;j ++){
 
                         stats.s_0_correct[j] = 0.0;
@@ -152,6 +155,7 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
                         stats.s_0_false[j] = 0.0;
                         stats.s_1_false[j] = 0.0;
                         stats.s_2_false[j] = 0.0;
+                        stats.pass = 0.0;
                 }
 
 
@@ -175,10 +179,10 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
                 }
 
 
-                error_rate = 0.01f;
-                for(j = 0; j < 10000; j++){
+                error_rate = 0.02f;
+                for(j = 0; j < num_tests; j++){
                         //error_rate += 0.001f;
-                        RUN(sim_seq_from_read_struct(&sd->seq, sd->al->read_structure[active_read_structure ] , i, sd->main_rng));
+                        RUN(sim_seq_from_read_struct(&sd->seq, sd->al->read_structure[active_read_structure ] , i,base_q,sd->main_rng));
 
                         mutate_seq(sd->seq->seq,sd->seq->buffer,  sd->seq->len, error_rate , sd->main_rng, &num_error);
                         RUN(seq_to_internal(sd->seq->buffer, i, &i_seq, &i_len));
@@ -187,23 +191,27 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
                         RUN(viterbi_poahmm_banded(poahmm,i_seq, sd->seq->qual, i_len,path,2));
 
                         RUN(score_labelling(poahmm, path,sd->seq->label, &accuracy));
-                        //LOG_MSG("R: %f", poahmm->random_scores[i]);
+                        //LOG_MSG("F:%f R: %f", poahmm->f_score,  poahmm->random_scores[i]);
                         e = poahmm->f_score - poahmm->random_scores[i];
-                        e = exp2f(e) / (1.0 + exp2f(e));
+                        e = scaledprob2prob(e);
+                        if(e >= 0.5f){
+                                stats.pass++;
+                        }
+                        //e = exp2f(e) / (1.0 + exp2f(e));
                         if(num_error > 4){
                                 num_error = 4 ;
                         }
                         if(accuracy == 1.0){
                                 stats.s_0_correct[num_error]++;
                                 stats.s_1_correct[num_error] += e;
-                                stats.s_2_correct[num_error] += e + e;
+                                stats.s_2_correct[num_error] += e * e;
                         }else{
                                 stats.s_0_false[num_error]++;
                                 stats.s_1_false[num_error] += e;
-                                stats.s_2_false[num_error] += e + e;
+                                stats.s_2_false[num_error] += e * e;
                         }
 
-                        if(accuracy != 1.0 && num_error <= 5){
+                        /*if(accuracy != 1.0 && num_error <= 5){
                                 LOG_MSG("Wrong assignment at error rate: %f (%d)", error_rate, num_error);
 //fprintf(stdout,"score: %f\n",e);
                                 //forward_poahmm(poahmm, i_seq, i_len);
@@ -223,7 +231,7 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
                                 //fprintf(stdout,"%f\n",1.0 - scaledprob2prob(poahmm->f_score - poahmm->r_score));
 
                                 //break;
-                        }
+                                }*/
                         //RUN(viterbi_poahmm(poahmm,i_seq, i_len,path));
                         //fprintf(stdout,"%d a:%f e:%f F:%5.3f\tR:%5.3f nume:%d\t",i,accuracy,e, poahmm->f_score, poahmm->random_scores[i], num_error);
 
@@ -238,8 +246,8 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
                         fprintf(stdout,"ERRORS: %d\t",j);
 
                         if(stats.s_0_correct[j] == 0.0){
-                                mean = -1.0;
-                                stdev = -1.0;
+                                mean = 0.0;
+                                stdev = 0.0;
 
                         }else{
                                 mean = stats.s_1_correct[j] / stats.s_0_correct[j];
@@ -248,8 +256,8 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
                         fprintf(stdout,"%f (+-%f) N=%d\t", mean,stdev, (int)stats.s_0_correct[j]);
 
                         if(stats.s_0_false[j] == 0.0){
-                                mean = -1.0;
-                                stdev = -1.0;
+                                mean = 0.0;
+                                stdev = 0.0;
                         }else{
                                 mean = stats.s_1_false[j] / stats.s_0_false[j];
                                 stdev = sqrt ( (stats.s_0_false[j] * stats.s_2_false[j] -  pow(stats.s_1_false[j], 2.0)) /  (stats.s_0_false[j] * ( stats.s_0_false[j] - 1.0)));
@@ -257,14 +265,16 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
                         fprintf(stdout,"%f (+-%f) N=%d\t", mean,stdev,(int) stats.s_0_false[j]);
                         //fprintf(stdout,"%f (+-%f)\t", mean,stdev);
                         fprintf(stdout,"\n");
-                }
 
+                }
+                fprintf(stdout,"Pass: %d (%3.1f)\n", (int) stats.pass, stats.pass / (double) num_tests * 100.0);
 
                 LOG_MSG("------------------------------");
 
                 MFREE(i_seq);
 
                 i_seq = NULL;
+                }
         }
         MFREE(path);
 
@@ -344,7 +354,7 @@ int test_banded(struct shared_sim_data* sd)
                 }
 
                 error_rate = 0.0;
-                RUN(sim_seq_from_read_struct(&sd->seq, sd->al->read_structure[ active_read_structure] , i, sd->main_rng));
+                RUN(sim_seq_from_read_struct(&sd->seq, sd->al->read_structure[ active_read_structure] , i,49, sd->main_rng));
                 mutate_seq(sd->seq->seq,sd->seq->buffer,  sd->seq->len, error_rate , sd->main_rng, &num_error);
                 RUN(seq_to_internal(sd->seq->buffer, i, &i_seq, &i_len));
 
@@ -1032,7 +1042,7 @@ int init_sim_data(struct shared_sim_data** sim_data, int seed)
 
         RUNP(sd->poahmm = init_poahmm( sd->gp));
 
-        RUN(sim_seq_from_read_struct(&sd->seq, NULL,10,sd->main_rng));
+        RUN(sim_seq_from_read_struct(&sd->seq, NULL,10,49,sd->main_rng));
         RUN(alloc_arch_lib(&sd->al));
 
         *sim_data = sd;
@@ -1055,7 +1065,7 @@ void free_sim_data(struct shared_sim_data* sd)
 
 }
 
-int sim_seq_from_read_struct(struct sim_seq** simseq, struct read_structure* rs,int sim_len,struct rng_state* rng)
+int sim_seq_from_read_struct(struct sim_seq** simseq, struct read_structure* rs,int sim_len, int base_q, struct rng_state* rng)
 {
         struct sim_seq* s = NULL;
         struct segment_specs* spec = NULL;
@@ -1094,7 +1104,7 @@ int sim_seq_from_read_struct(struct sim_seq** simseq, struct read_structure* rs,
         RUN(generate_random_seq(&s->seq,&sim_len,rng));
         for(i = 0; i < sim_len;i++){
                 s->label[i] = etype[0];
-                s->qual[i] = 49;
+                s->qual[i] = base_q;
         }
 
         s->label[sim_len] = 0;
