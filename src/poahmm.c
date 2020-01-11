@@ -995,11 +995,13 @@ int viterbi_poahmm_banded(struct poahmm* poahmm,const uint8_t* seq,const  int le
 
         cells = poahmm->begin->cells;
 
+
         s = 0;
         e = len;
 
-        x = poahmm->nodes[node_id]->rank - bw; s = s > x ? s : x;
-        x = poahmm->nodes[node_id]->rank+1 + bw; e = e < x ? e : x;
+
+        x = 0 - bw; s = s > x ? s : x;
+        x = 1 + bw; e = e < x ? e : x;
         //LOG_MSG("Start %d %d",s,e);
 
         //poahmm->begin->fY[0] = prob2scaledprob(1.0f);
@@ -1535,13 +1537,6 @@ struct poahmm* init_poahmm(struct global_poahmm_param* param)
         MMALLOC(poahmm->background, sizeof(float) * 5);
 
 
-        for(i = 0; i < 5;i++){
-                poahmm->background[i] = p->back[i];
-        }
-
-        RUN(set_pseudocount(poahmm, p->base_error,p->indel_freq ));
-
-        RUN(reestimate_param_poahmm(poahmm));
 
         poahmm->begin = NULL;
         poahmm->end = NULL;
@@ -1583,8 +1578,18 @@ struct poahmm* init_poahmm(struct global_poahmm_param* param)
 
         for(i = 0; i < poahmm->alloced_num_nodes;i++){
                 RUNP(poahmm->nodes[i] = malloc_a_node(poahmm->alloc_seq_len));
-                poahmm->rank_sorted_nodes[i] =poahmm->nodes[i];
+                poahmm->rank_sorted_nodes[i] = poahmm->nodes[i];
         }
+
+        for(i = 0; i < 5;i++){
+                poahmm->background[i] = p->back[i];
+        }
+
+        RUN(set_pseudocount(poahmm, p->base_error,p->indel_freq ));
+
+        RUN(reestimate_param_poahmm(poahmm));
+
+
         if(param == NULL){
                 MFREE(p);
         }
@@ -1693,9 +1698,9 @@ int set_pseudocount(struct poahmm* poahmm, double base_error, double indel_freq)
         for(i = 0;i < 4;i++){
                 for(j = 0;j < 4;j++){
                         if(i ==j){
-                                poahmm->e_emission_M[i][j]  = prob2scaledprob(1.0  - base_error* (1.0- indel_freq));
+                                poahmm->e_emission_M[i][j]  = prob2scaledprob((1.0  - base_error* (1.0- indel_freq)) / 4.0);
                         }else{
-                                poahmm->e_emission_M[i][j] = prob2scaledprob( base_error* (1.0- indel_freq)/ 3.0);
+                                poahmm->e_emission_M[i][j] = prob2scaledprob( base_error* (1.0- indel_freq)/ 12.0);
                         }
                 }
                 poahmm->e_emission_M[i][4] =prob2scaledprob(0.0f); // buffer for start and stop

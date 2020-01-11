@@ -78,29 +78,29 @@ int poahmm_from_read_structure(struct poahmm** poahmm,struct global_poahmm_param
 
         //ph->max_rank
         for(i = ph->max_rank; i < p->max_seq_len;i++){
-                LOG_MSG("%d", i);
-                for(c = 0; c < 10;c++){
-                for(j = 0; j < p->max_seq_len+1;j++){
-                        nnn[j] = tl_random_int(rng, 4);
-                }
-                if(i < ph->max_rank){
-                        LOG_MSG("Sequence too short to match");
-                }else if(ph->max_rank < i){
-                        j = i - ph->max_rank;
-                        ph->YY_boundary = (float)j / (float)(j + 2);
-                        ph->YY_boundary_exit = 1.0 - ph->YY_boundary;
-                        ph->YY_boundary = prob2scaledprob(ph->YY_boundary);
-                        ph->YY_boundary_exit = prob2scaledprob(ph->YY_boundary_exit);
+                //LOG_MSG("%d", i);
+                //for(c = 0; c < 10;c++){
+                        for(j = 0; j < p->max_seq_len+1;j++){
+                                nnn[j] = tl_random_int(rng, 4);
+                        }
+                        if(i < ph->max_rank){
+                                LOG_MSG("Sequence too short to match");
+                        }else if(ph->max_rank < i){
+                                j = i - ph->max_rank;
+                                ph->YY_boundary = (float)j / (float)(j + 2);
+                                ph->YY_boundary_exit = 1.0 - ph->YY_boundary;
+                                ph->YY_boundary = prob2scaledprob(ph->YY_boundary);
+                                ph->YY_boundary_exit = prob2scaledprob(ph->YY_boundary_exit);
 
-                }
+                        }
 
 
-                RUN(viterbi_poahmm(ph, nnn, i, path));
-                //print_path(poahmm, path,nnn,nnn);
-                ph->random_scores[i] = ph->f_score;
-                fprintf(stdout,"%f ", ph->f_score);
-                }
-                fprintf(stdout,"\n");
+                        RUN(viterbi_poahmm(ph, nnn, i, path));
+                        //print_path(poahmm, path,nnn,nnn);
+                        ph->random_scores[i] = ph->f_score;
+                        //      fprintf(stdout,"%f ", ph->f_score);
+                        //}
+        //fprintf(stdout,"\n");
                 //exit(0);
         }
 
@@ -223,8 +223,8 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
                                 e = exp2f(e) / (1.0 + exp2f(e));
                                 forward_poahmm(poahmm, i_seq, i_len);
                                 //backward_poahmm(poahmm, i_seq, i_len);
-
-                                fprintf(stdout,"%d a:%f e:%f F:%5.3f\tB:%5.3f\tR:%5.3f nume:%d\t",i,accuracy,e, poahmm->f_score,poahmm->b_score, poahmm->random_scores[i], num_error);
+                                //LOG_MSG("%f", poahmm->random_scores[i]);
+                                fprintf(stdout,"%d a:%f e:%f F:%5.3f\tR:%5.3f nume:%d\t",i,accuracy,e, poahmm->f_score, poahmm->random_scores[i], num_error);
                                 fprintf(stdout,"%s\n",sd->seq->buffer);
 
                                 if(accuracy != 1.0 && e >= 0.9){
@@ -449,7 +449,7 @@ int test_indel(struct shared_sim_data* sd)
         i_seq = NULL;
 
 
-        snprintf(sd->seq->seq, sd->seq->alloc_len,   "%s%s%s","ACGCGTGGTACTTG","TTTT", "AAATTGTC");
+        snprintf(sd->seq->seq, sd->seq->alloc_len,   "%s%s%s","CCCCCCCCCCCCCC","TTTT", "AAAAAAAA");
         snprintf(sd->seq->label, sd->seq->alloc_len, "%s%s%s","IIIIIIIIIIIIII","XXXX", "IIIIIIII");
         sd->seq->len = strnlen(sd->seq->seq, sd->seq->alloc_len);
         LOG_MSG("LEN: %d",sd->seq->len);
