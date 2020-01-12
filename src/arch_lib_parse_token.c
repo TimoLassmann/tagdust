@@ -38,6 +38,8 @@ int parse_rs_token_message(char* token, struct segment_specs** s_spec)
                 fprintf(stdout,"      \"S\" - split output based on matched to these sequences.\n");
                 fprintf(stdout,"      \"I\" - ignore these sequences.\n");
                 fprintf(stdout,"      \"P\" - partial sequence.\n");
+                fprintf(stdout,"      \"L\" - partial sequence - optional residues 5'.\n");
+                fprintf(stdout,"      \"R\" - partial sequence - optional residues 3'.\n");
                 fprintf(stdout,"   SEQ - sequence consisting of A,C,G,T\n");
                 fprintf(stdout,"      or:\n");
                 fprintf(stdout,"      N+ - match as many N's as possible.\n");
@@ -381,9 +383,19 @@ int detect_extract_type(char c, uint8_t* t)
                 break;
         }
 
+        case 'L': {
+                *t =  ARCH_ETYPE_WOBBLE_LEFT;
+                break;
+        }
+
+        case 'R': {
+                *t =  ARCH_ETYPE_WOBBLE_RIGHT;
+                break;
+        }
+
         default:
 
-                ERROR_MSG("Extract type %c not recognised (allowed is: \"EASIP\")", c);
+                ERROR_MSG("Extract type %c not recognised (allowed is: \"EASIPLR\")", c);
                 break;
         }
 

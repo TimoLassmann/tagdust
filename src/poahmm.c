@@ -1504,8 +1504,16 @@ struct poahmm* init_poahmm(struct global_poahmm_param* param)
         MMALLOC(poahmm, sizeof(struct poahmm));
         //LOG_MSG("ALLOC:%d", param->max_seq_len);
         poahmm->alloc_seq_len = param->max_seq_len+2;
-        poahmm->max_rank = 0;
+        //poahmm->max_rank = 0;
         poahmm->qsub = NULL;
+
+        poahmm->max_model_len = 0;    /* length of model : same as max_rank */
+        poahmm->min_model_len = 0;
+
+
+        poahmm->max_seq_len = param->max_seq_len;
+        poahmm->min_seq_len = param->min_seq_len;
+
         //poahmm->seed =  (unsigned int) (time(NULL) * (42));
 
         //poahmm->pseudo_weight = weight;

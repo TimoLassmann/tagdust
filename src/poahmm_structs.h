@@ -88,6 +88,10 @@ struct poahmm{
         int max_rank;
         int num_nodes;
         int num_samples;
+        int max_seq_len;
+        int min_seq_len;
+        int max_model_len;
+        int min_model_len;
         int alloced_num_nodes;
         int alloc_seq_len;
 

@@ -41,9 +41,6 @@ static int sim_seq_from_read_struct(struct sim_seq** simseq, struct read_structu
 static void free_sim_seq(struct sim_seq* s);
 
 int score_labelling(struct poahmm* poahmm, uint32_t* path,char* label, float* score);
-int test_simple_N_plus_arch(struct shared_sim_data* sd);
-int test_banded(struct shared_sim_data* sd);
-int test_indel(struct shared_sim_data* sd);
 /* for use in tagdust */
 //int poahmm_from_read_structure(struct poahmm** poahmm,struct global_poahmm_param* p, struct read_structure* rs,struct alphabet* a);
 
@@ -58,15 +55,21 @@ int print_poahmm_param(struct poahmm* poahmm);
 int poahmm_to_dot(struct poahmm* poahmm,char* filename);
 
 
+int test_model_init(struct shared_sim_data* sd);
+int test_simple_N_plus_arch(struct shared_sim_data* sd);
+int test_banded(struct shared_sim_data* sd);
+int test_indel(struct shared_sim_data* sd);
+
 
 int main(int argc, char *argv[])
 {
         struct shared_sim_data* sim_data=NULL;
         init_logsum();
         RUN(init_sim_data(&sim_data, 0));
-        RUN(test_banded(sim_data));
-        RUN(test_simple_N_plus_arch(sim_data));
-        RUN(test_indel(sim_data));
+        RUN(test_model_init(sim_data));
+        //RUN(test_banded(sim_data));
+        //RUN(test_simple_N_plus_arch(sim_data));
+        //RUN(test_indel(sim_data));
         //RUN(single_seq_test());
         //RUN(arch_test());
 
@@ -77,6 +80,39 @@ ERROR:
 }
 
 
+int test_model_init(struct shared_sim_data* sd)
+{
+        struct poahmm* poahmm = NULL;
+
+        char* in[] = {
+                "L:ACGT",
+                "R2:L:AACCTT",
+                //"R2:E:N+",
+                "A:AAA,TTT",
+                "R:AAACCCGGGTT"
+        };
+
+        int active_read_structure;
+        int size;
+        size = sizeof(in) / sizeof(char*);
+        RUN(read_arch_into_lib(sd->al, in, size));
+
+        active_read_structure = sd->al->num_arch-1;
+
+        sd->gp->min_seq_len = 24;
+        sd->gp->max_seq_len = 24;
+
+        poahmm = sd->poahmm;
+        RUN(poahmm_from_read_structure(&poahmm, sd->gp, sd->al->read_structure[active_read_structure ], sd->a));
+
+        poahmm_to_dot(poahmm, "test.dot");
+        //free_poahmm(poahmm);
+        //poahmm = NULL;
+        return OK;
+ERROR:
+        free_poahmm(poahmm);
+        return FAIL;
+}
 /* run various tests  */
 /* in each test I want to vary the input length and insert errors and test if the sequence is still extracted  */
 /* 1) R+ */
@@ -87,7 +123,7 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
         struct poahmm* poahmm = NULL;
         char* in[] = {
                 "I:ACGT",
-                "R2:E:N{10}",
+                "R2:E:N{8,10}",
                 "A:AAA,TTT"
         };
 
@@ -538,6 +574,7 @@ int single_seq_test(void)
         MMALLOC(path , sizeof( uint32_t) *malloced_path);
 
 
+
         RUNP(poahmm = init_poahmm(NULL));
 
         RUNP(rng = init_rng(0));
@@ -617,7 +654,7 @@ int arch_test(void)
         RUNP(rng= init_rng(0));
         RUNP(poahmm = init_poahmm(NULL));
         RUN(create_alphabet(&a, rng, TLALPHABET_DEFAULT_DNA ));
-        RUN(init_nodes_from_read_structure(poahmm, al->read_structure[1],a,0));
+        RUN(init_nodes_from_read_structure(poahmm, al->read_structure[1],a,0,10,10));
         poahmm_to_dot(poahmm, "test.dot");
         //print_poahmm_param(poahmm);
         //exit(0);
@@ -872,6 +909,15 @@ int poahmm_to_dot(struct poahmm* poahmm,char* filename)
         fprintf(fp_write, "\"]\n");
 
         fprintf(fp_write, "rankdir=\"LR\";\n");
+        node_number = 0;
+        /* start  */
+        fprintf(fp_write, "n%d [label=\"START\"];\n",node_number);
+        node_number++;
+
+        /* end */
+        fprintf(fp_write, "n%d [label=\"END\"];\n",node_number);
+
+        node_number++;
         for(i = 0 ;i < poahmm->num_nodes;i++){
                 nuc =poahmm->nodes[i]->nuc;
                 snprintf(color, 10, "#%02X%02X%02X",	 min_color[nuc][0] + (int)((max_color[nuc][0] - min_color[nuc][0]) *( 1.0 - ((double)poahmm->nodes[i]->total_signal  / max_val))),
@@ -889,6 +935,16 @@ int poahmm_to_dot(struct poahmm* poahmm,char* filename)
 
 
         }
+        for(i = 0 ;i < poahmm->num_nodes;i++){
+                if(poahmm->entry_probabilities[i] != prob2scaledprob(0.0)){
+                        fprintf(fp_write, "n%d -> n%d [ label=\"p = %0.2f\" ];\n",0,i+node_number, scaledprob2prob(poahmm->entry_probabilities[i]));
+                }
+
+                if(poahmm->exit_probabilities[i] != prob2scaledprob(0.0)){
+                        fprintf(fp_write, "n%d -> n%d [ label=\"p = %0.2f\" ];\n",i+node_number,1, scaledprob2prob(poahmm->exit_probabilities[i]));
+                }
+        }
+
 
         for(i = 0 ;i < poahmm->num_nodes;i++){
                 for(j = 0 ;j < poahmm->num_nodes;j++){

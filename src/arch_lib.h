@@ -8,6 +8,9 @@
 #define ARCH_ETYPE_SPLIT 3
 #define ARCH_ETYPE_IGNORE 4
 #define ARCH_ETYPE_PARTIAL 5
+#define ARCH_ETYPE_WOBBLE_LEFT 6
+#define ARCH_ETYPE_WOBBLE_RIGHT 7
+
 
 struct segment_specs{
         char* name;
