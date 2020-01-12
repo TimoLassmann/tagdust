@@ -297,16 +297,16 @@ int init_nodes_from_read_structure(struct poahmm* poahmm, struct read_structure*
                         poahmm->max_rank = poahmm->nodes[i]->rank;
 
                 }
-                fprintf(stdout,"RANK: %d %d", i, poahmm->nodes[i]->rank);
+                /*fprintf(stdout,"RANK: %d %d", i, poahmm->nodes[i]->rank);
                 fprintf(stdout,"ENTRY: %f EXIT:%f\t", poahmm->entry_probabilities[i],poahmm->exit_probabilities[i]);
                 for(j = 0 ; j < poahmm->num_nodes;j++){
                         fprintf(stdout,"%f ",poahmm->poa_graph[i][j]);
                         //poahmm->e_poa_graph[i][j] = 0.0;
                 }
-                fprintf(stdout,"\n");
+                fprintf(stdout,"\n");*/
         }
 
-        LOG_MSG("MAXRANK: %d %d", poahmm->max_rank,poahmm->num_nodes);
+        //LOG_MSG("MAXRANK: %d %d", poahmm->max_rank,poahmm->num_nodes);
 
 
         //exit(0);
