@@ -71,21 +71,9 @@ int poahmm_from_read_structure(struct poahmm** poahmm,struct global_poahmm_param
                         ph->YY_boundary_exit = prob2scaledprob(ph->YY_boundary_exit);
 
                 }
-
-
-                //RUN(viterbi_poahmm(ph, nnn, i, path));
-                //fprintf(stdout,"%f ", ph->f_score);
                 RUN(viterbi_poahmm_banded(ph, nnn,qqq, i, path,1));
-                //fprintf(stdout,"%f ", ph->f_score);
-                //print_path(poahmm, path,nnn,nnn);
                 ph->random_scores[i] = ph->f_score;
-                //fprintf(stdout,"%f ", ph->f_score);
-                //}
-
-                  //fprintf(stdout,"\n");
-                //exit(0);
         }
-        //exit(0);
         MFREE(path);
         MFREE(nnn);
         MFREE(qqq);
@@ -273,29 +261,23 @@ int init_nodes_from_read_structure(struct poahmm* poahmm, struct read_structure*
         //node_ptr->identifier = POAHMM_ENDSTATE;
         //exit(0);
         //poahmm->num_nodes = len;
-        LOG_MSG("assigned %d",n_index);
+        //LOG_MSG("assigned %d",n_index);
         poahmm->num_nodes = n_index;
         for(i = 0; i < poahmm->alloced_num_nodes;i++){
                 poahmm->nodes[i]->rank = UINT32_MAX;
         }
-        //poahmm->alloced_num_nodes
+
         MFREE(e_nodes);
         MFREE(e_nodes_new);
         MFREE(b_nodes);
 
         RUN(set_rank_transition_poahmm(poahmm));
-
-
-
-
-        LOG_MSG("Model len: %d -> %d", poahmm->min_model_len, poahmm->max_model_len);
-        LOG_MSG("Seq len: %d -> %d", poahmm->min_seq_len, poahmm->max_seq_len);
-
+        //LOG_MSG("Model len: %d -> %d", poahmm->min_model_len, poahmm->max_model_len);
+        //LOG_MSG("Seq len: %d -> %d", poahmm->min_seq_len, poahmm->max_seq_len);
         poahmm->max_rank = 0;
         for(i = 0; i< poahmm->num_nodes;i++){
                 if(poahmm->max_rank < poahmm->nodes[i]->rank){
                         poahmm->max_rank = poahmm->nodes[i]->rank;
-
                 }
                 /*fprintf(stdout,"RANK: %d %d", i, poahmm->nodes[i]->rank);
                 fprintf(stdout,"ENTRY: %f EXIT:%f\t", poahmm->entry_probabilities[i],poahmm->exit_probabilities[i]);
@@ -305,11 +287,7 @@ int init_nodes_from_read_structure(struct poahmm* poahmm, struct read_structure*
                 }
                 fprintf(stdout,"\n");*/
         }
-
         //LOG_MSG("MAXRANK: %d %d", poahmm->max_rank,poahmm->num_nodes);
-
-
-        //exit(0);
         return OK;
 ERROR:
         return FAIL;
