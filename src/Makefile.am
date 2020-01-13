@@ -64,7 +64,15 @@ filter.c \
 bpm.h \
 bpm.c \
 pst.h \
-pst.c
+pst.c \
+init_poahmm.h \
+init_poahmm.c \
+poahmm.h \
+poahmm.c \
+base_quality.h \
+base_quality.c
+
+
 
 tagdust_LDADD =  -lpthread -lm
 

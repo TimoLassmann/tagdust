@@ -16,7 +16,6 @@
 
 #include "init_poahmm.h"
 
-static int set_len_of_unknown_poa(const struct read_structure*rs, int* min_plus_len,int* max_plus_len, int min_seq_len, int max_seq_len);
 
 static int set_entry_prob(struct poahmm* poahmm, int* e_nodes, int num, int at_start,int index);
 
@@ -41,39 +40,48 @@ int poahmm_from_read_structure(struct poahmm** poahmm,struct global_poahmm_param
 
         random = 1;
 
+        LOG_MSG("Plus : %d -  %d", p->min_seq_len,p->max_seq_len);
         RUN(set_len_of_unknown_poa(rs,&plus_min_len,&plus_max_len, p->min_seq_len, p->max_seq_len));
+
+        if(plus_max_len == -1 || plus_min_len == -1){
+                WARNING_MSG("Model too long from sequences.");
+                *poahmm = ph;
+                return OK;
+        }
         LOG_MSG("Plus : %d -  %d", plus_min_len,plus_max_len);
         RUN(init_nodes_from_read_structure(ph, rs,a,random, plus_min_len, plus_max_len));
 
-        MMALLOC(path, sizeof(int)* p->max_seq_len *2);
-        MMALLOC(nnn, sizeof(uint8_t) * (p->max_seq_len+1));
-        MMALLOC(qqq, sizeof(uint8_t) * (p->max_seq_len+1));
 
+        /*LOG_MSG("Model Len: %d %d", ph->min_model_len,ph->max_model_len);
+
+        LOG_MSG("Seq Len: %d %d alloc: %d", ph->min_seq_len, ph->max_seq_len, ph->alloc_seq_len);
+
+        LOG_MSG("Current poa size: nodes: %d seq_len:%d", ph->alloced_num_nodes , ph->alloc_seq_len);
+        */
+
+        c = MACRO_MAX(p->max_seq_len, ph->max_model_len) +2;
+        MMALLOC(path, sizeof(int)* c * 2);
+        MMALLOC(nnn, sizeof(uint8_t) * c);
+        MMALLOC(qqq, sizeof(uint8_t) * c);
+
+        for(j = 0; j < c;j++){
+                nnn[j] = j %4 ;//tl_random_int(rng, 4);
+                qqq[j] = 0;
+        }
 
         //ph->max_rank
         for(i = p->min_seq_len; i < p->max_seq_len;i++){
                 ph->random_scores[i] = prob2scaledprob(0.0f);
         }
-        for(i = ph->max_rank+1; i < p->max_seq_len;i++){
-                //LOG_MSG("%d", i);
+        for(i = ph->min_model_len; i <=  ph->max_model_len;i++){
+                //LOG_MSG("tsting length : %d (seq_len: %d)", i, c);
                 //for(c = 0; c < 10;c++){
-                for(j = 0; j < p->max_seq_len+1;j++){
-                        nnn[j] = j %4 ;//tl_random_int(rng, 4);
-                        qqq[j] = 0;
-                }
-                if(i < ph->max_rank){
-                        ERROR_MSG("Sequence too short to match");
-                }else if(ph->max_rank < i){
-                        j = i - ph->max_rank;
-                        ph->YY_boundary = (float)j / (float)(j + 2);
-                        ph->YY_boundary_exit = 1.0 - ph->YY_boundary;
-                        ph->YY_boundary = prob2scaledprob(ph->YY_boundary);
-                        ph->YY_boundary_exit = prob2scaledprob(ph->YY_boundary_exit);
-
-                }
+                set_terminal_gap_prob(ph, i);
                 RUN(viterbi_poahmm_banded(ph, nnn,qqq, i, path,1));
                 ph->random_scores[i] = ph->f_score;
+
         }
+
         MFREE(path);
         MFREE(nnn);
         MFREE(qqq);
@@ -155,9 +163,9 @@ int init_nodes_from_read_structure(struct poahmm* poahmm, struct read_structure*
 
         poahmm->YY_boundary = prob2scaledprob(0.0f);
         poahmm->YY_boundary_exit = prob2scaledprob(1.0f);
-        MMALLOC(e_nodes, sizeof(int) * num_nodes);
-        MMALLOC(b_nodes, sizeof(int) * num_nodes);
-        MMALLOC(e_nodes_new, sizeof(int) * num_nodes);
+        MMALLOC(e_nodes, sizeof(int) * num_nodes*2);
+        MMALLOC(b_nodes, sizeof(int) * num_nodes*2);
+        MMALLOC(e_nodes_new, sizeof(int) * num_nodes*2);
         num_e = 0;
         //num_b = 0;
         num_e_new = 0;
@@ -237,13 +245,17 @@ int init_nodes_from_read_structure(struct poahmm* poahmm, struct read_structure*
                                                 node_ptr->nuc = tlalphabet_get_code(a,s->seq[j][c]);
                                         }
                                 }
-                                node_ptr->rank = UINT32_MAX;
+                                node_ptr->rank = -1 * INT32_MAX;
                                 node_ptr->type = s->extract;
                                 node_ptr->identifier = n_index;
                                 n_index++;
 
                         }
                 }
+                /*for(c = 0; c < num_e_new;c++){
+                        fprintf(stdout,"%d ",e_nodes_new[c]);
+                }
+                fprintf(stdout,"\n");*/
                 num_e = num_e_new;
                 num_e_new = 0;
                 tmp = e_nodes;
@@ -263,35 +275,55 @@ int init_nodes_from_read_structure(struct poahmm* poahmm, struct read_structure*
         //poahmm->num_nodes = len;
         //LOG_MSG("assigned %d",n_index);
         poahmm->num_nodes = n_index;
-        for(i = 0; i < poahmm->alloced_num_nodes;i++){
-                poahmm->nodes[i]->rank = UINT32_MAX;
-        }
+        /*for(i = 0; i < poahmm->alloced_num_nodes;i++){
+                poahmm->nodes[i]->rank = INT32_MAX;
+                }*/
 
         MFREE(e_nodes);
         MFREE(e_nodes_new);
         MFREE(b_nodes);
 
+
         RUN(set_rank_transition_poahmm(poahmm));
         //LOG_MSG("Model len: %d -> %d", poahmm->min_model_len, poahmm->max_model_len);
         //LOG_MSG("Seq len: %d -> %d", poahmm->min_seq_len, poahmm->max_seq_len);
-        poahmm->max_rank = 0;
+        /*poahmm->max_rank = 0;
         for(i = 0; i< poahmm->num_nodes;i++){
                 if(poahmm->max_rank < poahmm->nodes[i]->rank){
                         poahmm->max_rank = poahmm->nodes[i]->rank;
-                }
-                /*fprintf(stdout,"RANK: %d %d", i, poahmm->nodes[i]->rank);
-                fprintf(stdout,"ENTRY: %f EXIT:%f\t", poahmm->entry_probabilities[i],poahmm->exit_probabilities[i]);
+                        }*/
+                //fprintf(stdout,"RANK: %d %d\n", i, poahmm->nodes[i]->rank);
+                /*fprintf(stdout,"ENTRY: %f EXIT:%f\t", poahmm->entry_probabilities[i],poahmm->exit_probabilities[i]);
                 for(j = 0 ; j < poahmm->num_nodes;j++){
                         fprintf(stdout,"%f ",poahmm->poa_graph[i][j]);
                         //poahmm->e_poa_graph[i][j] = 0.0;
                 }
                 fprintf(stdout,"\n");*/
-        }
+        //}
         //LOG_MSG("MAXRANK: %d %d", poahmm->max_rank,poahmm->num_nodes);
+        //exit(0);
         return OK;
 ERROR:
         return FAIL;
 }
+
+int set_terminal_gap_prob(struct poahmm* poahmm, int seq_len)
+{
+
+        poahmm->YY_boundary = prob2scaledprob(0.0f);
+        poahmm->YY_boundary_exit = prob2scaledprob(1.0f);
+        if(poahmm->min_model_len < seq_len){
+                float target_len = (float)seq_len - ( (float) poahmm->max_model_len - (float) poahmm->min_model_len) /4.0;
+                //j = i - poahmm->min_model_len
+                poahmm->YY_boundary = target_len / (target_len+1.0);
+                poahmm->YY_boundary_exit = 1.0 - poahmm->YY_boundary;
+                poahmm->YY_boundary = prob2scaledprob(poahmm->YY_boundary);
+                poahmm->YY_boundary_exit = prob2scaledprob(poahmm->YY_boundary_exit);
+        }
+        return OK;
+
+}
+
 
 int set_entry_prob(struct poahmm* poahmm, int* e_nodes, int num, int at_start,int index)
 {
@@ -306,10 +338,9 @@ int set_entry_prob(struct poahmm* poahmm, int* e_nodes, int num, int at_start,in
         return OK;
 }
 
-static int set_len_of_unknown_poa(const struct read_structure*rs, int* min_plus_len,int* max_plus_len, int min_seq_len, int max_seq_len)
+int set_len_of_unknown_poa(const struct read_structure*rs, int* min_plus_len,int* max_plus_len, int min_seq_len, int max_seq_len)
 {
         int i;
-
         int known_len;
         int num_unknown;
         int min;
@@ -318,6 +349,7 @@ static int set_len_of_unknown_poa(const struct read_structure*rs, int* min_plus_
         num_unknown = 0;
 
         for(i = 0; i < rs->num_segments  ;i++){
+                //LOG_MSG("%d: %d->%d %s", i, rs->seg_spec[i]->min_len, rs->seg_spec[i]->max_len, rs->seg_spec[i]->seq[0]);
                 if(rs->seg_spec[i]->max_len == INT32_MAX){
                         num_unknown++;
                 }else{
@@ -326,9 +358,18 @@ static int set_len_of_unknown_poa(const struct read_structure*rs, int* min_plus_
         }
         *min_plus_len = 0;
         *max_plus_len = 0;
+        //LOG_MSG("NumUnknown: %d len known:%d    %d %d ", num_unknown,known_len, min_seq_len, max_seq_len);
+
+
         if(num_unknown){
-                *max_plus_len = (int) ceilf (((float) max_seq_len - (float) known_len) / (float) num_unknown);
-                *min_plus_len = (int) floorf(((float) min_seq_len - (float) known_len) / (float) num_unknown);
+                if(known_len >= max_seq_len){
+                        /* oh dear sequence too short to fit this models  */
+                        *max_plus_len = -1;
+                        *min_plus_len = -1;
+                }else{
+                        *max_plus_len = (int) ceilf (((float) max_seq_len - (float) known_len) / (float) num_unknown);
+                        *min_plus_len = (int) floorf(((float) min_seq_len - (float) known_len) / (float) num_unknown);
+                }
         }
         return OK;
 ERROR:

@@ -44,7 +44,6 @@ int main (int argc,char * argv[]) {
                 RUN(read_architecture_files(al, param->arch_file));
         }
 
-
         /* QC on architecture ?? */
 #ifdef HAVE_OPENMP
         omp_set_num_threads(param->num_threads);
@@ -69,7 +68,7 @@ int main (int argc,char * argv[]) {
 
 
         RUN(test_architectures(al,si,param));
-        //exit(0);
+        exit(0);
 
         RUN(calibrate_architectures(al,si, main_rng));
 

@@ -229,7 +229,7 @@ int alloc_model_bag(struct model_bag** model_bag,const struct read_structure* r,
                 len = r->seg_spec[i]->alloc_len;
                 num_hmm = r->seg_spec[i]->num_seq;
                 mb->total_model_len += len;
-                LOG_MSG("Allocating model %d: %d %d %d",i,num_hmm,len, mb->total_model_len);
+                //LOG_MSG("Allocating model %d: %d %d %d",i,num_hmm,len, mb->total_model_len);
                 RUNP(mb->model[i] = malloc_model_according_to_read_structure(num_hmm,len,mb->current_dyn_length));
                 mb->total_hmm_num += mb->model[i]->num_hmms;
         }

@@ -323,6 +323,17 @@ int parse_rs_token(char* token, struct segment_specs** s_spec)
         if(spec->alloc_len == INT32_MAX){
                 spec->alloc_len = 1;
         }
+        /* set min_len to 1 for L and R segments  */
+
+
+        if(spec->extract == ARCH_ETYPE_WOBBLE_LEFT){
+                spec->min_len = 1;
+        }
+
+        if(spec->extract == ARCH_ETYPE_WOBBLE_RIGHT){
+                spec->min_len = 1;
+        }
+
         ASSERT(spec->alloc_len != 0, "Alloc len can't be 0");
 #ifdef DEBUG
         fprintf(stdout,"%s input\n", token);

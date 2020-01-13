@@ -6,6 +6,11 @@
 
 #include "test_arch.h"
 
+#include "poahmm.h"
+#include "poahmm_structs.h"
+#include "init_poahmm.h"
+
+
 
 #include "hmm_model_bag.h"
 //#include "io.h"
@@ -98,7 +103,7 @@ int test_architectures(struct arch_library* al, struct seq_stats* si, struct par
         for(i = 0; i < param->num_infiles;i++){
                 sum = prob2scaledprob(0.0f);
                 for(j = 0; j < al->num_arch;j++){
-                        //fprintf(stdout,"%f ",al->arch_posteriors[j][i]);
+                        //        fprintf(stdout,"%f ",al->arch_posteriors[j][i]);
                         sum = logsum(sum,al->arch_posteriors[j][i]);
                 }
                 //fprintf(stdout,"\n");
@@ -152,40 +157,73 @@ int test_arch(struct tl_seq_buffer** rb, struct arch_library* al, struct seq_sta
 {
         //fprintf(stdout,"Thread %d working on file %d; hmm %d\n",omp_get_thread_num(),i_file,i_hmm);
         //printf ("num_thds=%d, max_thds=%d\n",omp_get_thread_num(),omp_get_max_threads());
+        struct poahmm* poahmm = NULL;
 
-        struct model_bag* mb = NULL;
+        struct global_poahmm_param* p = NULL;
+        //struct model_bag* mb = NULL;
         struct tl_seq** ri = NULL;
         struct alphabet* a = NULL;
+
         uint8_t* tmp_seq = NULL;
+        uint8_t* tmp_qual = NULL;
         int num_seq;
         int i,j;
+        int base_q_offset = 0;
         float score = prob2scaledprob(1.0);
-        RUN(init_model_bag(&mb,al->read_structure[i_hmm], si->ssi[i_file], si->a, i_hmm));
-        if(!mb){                /* no model returned - probably because it is to long for reads on this file */
 
-                //fprintf(stdout,"Thread %d working on file %d; hmm %d\n",omp_get_thread_num(),i_file,i_hmm);
-                al->arch_posteriors[i_hmm][i_file] = prob2scaledprob(0.0f);
-                return OK;
+        base_q_offset = rb[i_file]->base_quality_offset;
+
+        MMALLOC(p, sizeof(struct global_poahmm_param));
+        p->min_seq_len = si->ssi[i_file]->average_length;
+        p->max_seq_len = si->ssi[i_file]->max_seq_len;
+        p->base_error = 0.05f;
+        p->indel_freq = 0.1f;
+        for(i =0; i < 5;i++){
+                p->back[i] = si->ssi[i_file]->background[i];
         }
+
+        RUN(poahmm_from_read_structure(&poahmm, p,al->read_structure[i_hmm],  si->a));
+        //LOG_MSG("Did I geta poa: %p", poahmm);
+
+        set_terminal_gap_prob(poahmm, si->ssi[i_file]->max_seq_len );
+        //RUN(init_model_bag(&mb,al->read_structure[i_hmm], si->ssi[i_file], si->a, i_hmm));
+        //if(!mb){                /* no model returned - probably because it is to long for reads on this file */
+
+
+                //al->arch_posteriors[i_hmm][i_file] = prob2scaledprob(0.0f);
+                //return OK;
+        //}
         num_seq = rb[i_file]->num_seq;
         ri = rb[i_file]->sequences;
 
         a = si->a;
 
         MMALLOC(tmp_seq, sizeof(uint8_t) * (si->ssi[i_file]->max_seq_len+1));
+        MMALLOC(tmp_qual, sizeof(uint8_t) * (si->ssi[i_file]->max_seq_len+1));
 
         for(i = 0; i < num_seq;i++){
                 for(j = 0; j < ri[i]->len;j++){
                         tmp_seq[j] = tlalphabet_get_code(a, ri[i]->seq[j]);
                 }
                 tmp_seq[ri[i]->len] = 0;
-                RUN(backward(mb, tmp_seq,ri[i]->len));
-                score +=  mb->b_score;
+                for(j = 0; j < ri[i]->len;j++){
+                        tmp_qual[j] = ri[i]->qual[j] - base_q_offset;
+                }
+                //tmp_qualt[ri[i]->len] = 0;
+                //l = (int) sb->sequences[i]->qual[j] - sb->base_quality_offset;
+                RUN(viterbi_poahmm_banded(poahmm, tmp_seq, tmp_qual,  ri[i]->len, NULL, 1));
+                score += poahmm->f_score;// - poahmm->random_scores[ ri[i]->len];
+                //RUN(backward(mb, tmp_seq,ri[i]->len));
+                //score +=  mb->b_score;
                 //fprintf(stdout,"%d %d %d %f %d\n",i,i_file,i_hmm, mb->b_score, ri[i]->len);
         }
-        free_model_bag(mb);
-
+        //free_model_bag(mb);
+        //fprintf(stdout,"Thread %d working on file %d; hmm %d\t%f score\n",omp_get_thread_num(),i_file,i_hmm,score);
         MFREE(tmp_seq);
+        MFREE(tmp_qual);
+
+        free_poahmm(poahmm);
+        MFREE(p);
         //fprintf(stdout,"F:%d HMM:%d SCORE:%f\n",i_file,i_hmm,score);
         al->arch_posteriors[i_hmm][i_file] = score;
         return OK;

@@ -15,7 +15,8 @@ Frith MC, Wan R, Horton P. Incorporating sequence quality data into alignment im
 
 struct qsubscore{
         float m[105][16];
-        float d;
+        //float d;
+        float r;
 };
 
 static float fill_qsubscore(float subm[4][4], int t, int q , float p,float n);
@@ -47,10 +48,17 @@ int calc_score_matrix(struct qsubscore** mat,  float base_error, float indel_fre
                 }
         }
         MMALLOC(b, sizeof(struct  qsubscore));
-        b->d = diag;
+        //b->d = diag;
+        b->r = prob2scaledprob(1.0/16.0);
         for(i = 0; i < 50;i++){
+
                 q = prob2scaledprob(1.0 - powf(10.0f, (-1.0 * (float)i) / 10.0f));
                 n = prob2scaledprob((powf(10.0f, (-1.0 * (float)i) / 10.0f) )/ 3.0f);
+                /*if(q <= prob2scaledprob(0.25f)){
+                        q = prob2scaledprob(0.25f);
+                        n = prob2scaledprob(0.25f);
+                        }*/
+                //if(p )
                 for(j = 0; j < 4; j++){
                         for(c = 0; c < 4;c++){
                                 key = (j << 2) | c;
@@ -86,7 +94,7 @@ float get_qsubscore(struct qsubscore* subm, uint8_t a, uint8_t b, uint8_t q)
 
         register uint8_t k;
         if(a == 4 || b == 4){
-                return subm->d;
+                return subm->r;
         }
         k = a << 2 | b;
 
@@ -128,6 +136,7 @@ struct bq_score{
         float nqual[128];
 
         float m[5][5];
+        float r;
         float diag;
         float off_d;
 };
@@ -185,7 +194,7 @@ int test_timing(void)
                         RUN(calc_score_simple(score, j, seq[i],qual[i],&a));
 
                         b = get_qsubscore(m, j,seq[i],qual[i]);
-                        ASSERT(a == b,"Scores differ ! %f %f", scaledprob2prob(a), scaledprob2prob(b));
+                        ASSERT(a == b,"Scores differ ! %f %f  (%c -> %c) baseq = %d", scaledprob2prob(a), scaledprob2prob(b), "ACGTN"[j],"ACGTN"[seq[i]],   qual[i]);
                 }
 
 
@@ -290,7 +299,7 @@ int calc_score_simple(struct bq_score*b, int t, int q , int l, float* ret)
 
         int i;
         if(q == 4){
-                *ret = b->diag;
+                *ret = b->r;
                 return OK;
         }
 
@@ -309,6 +318,7 @@ int calc_score_simple(struct bq_score*b, int t, int q , int l, float* ret)
 int init_bq_score(struct bq_score** b, float base_error, float indel_freq)
 {
         struct bq_score* s = NULL;
+        float sum;
         int i,j;
         MMALLOC(s, sizeof(struct bq_score));
         for(i = 0; i < 128;i++){
@@ -321,19 +331,28 @@ int init_bq_score(struct bq_score** b, float base_error, float indel_freq)
         }
 
         for(i = 0;i < 4;i++){
+                sum = prob2scaledprob(0.0);
                 for(j = 0;j < 4;j++){
                         if(i ==j){
                                 s->m[i][j]  = prob2scaledprob((1.0  - base_error* (1.0- indel_freq)) / 4.0);
                         }else{
                                 s->m[i][j] = prob2scaledprob( base_error* (1.0- indel_freq)/ 12.0);
                         }
+
+                        sum = logsum(sum, s->m[i][j] + prob2scaledprob(0.25f));
                 }
-                s->m[i][4] = prob2scaledprob(0.0f);//  prob2scaledprob((1.0  - base_error* (1.0- indel_freq)) / 4.0);
-                s->m[4][i] =prob2scaledprob(0.0f);// buffer for start and stop
-
+                s->m[i][4] = prob2scaledprob(1.0 / 16.0f);//  prob2scaledprob((1.0  - base_error* (1.0- indel_freq)) / 4.0);
+                //s->m[4][i] = sum;//prob2scaledprob(0.0f);// buffer for start and stop
         }
-
-        s->m[4][4] = prob2scaledprob(0.0f);// buffer for start and stop
+        sum = prob2scaledprob(0.0);
+        for(i = 0;i < 5;i++){
+                s->m[4][i] = prob2scaledprob(1.0 / 16.0);
+                //for(j = 0;j < 4;j++){
+                //sum = logsum(sum, s->m[i][j] + prob2scaledprob(1.0 / 16.0));
+                //}
+        }
+        s->r = prob2scaledprob(1.0/16.0);
+        //s->m[4][4] = sum;
         s->diag =  prob2scaledprob((1.0  - base_error* (1.0- indel_freq)) / 4.0);
         s->off_d =  prob2scaledprob( base_error* (1.0- indel_freq)/ 12.0);
         for(i = 0;i < 5;i++){
