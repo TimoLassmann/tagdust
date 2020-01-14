@@ -53,7 +53,7 @@ int emit_from_rs(const struct read_structure* rs, struct rng_state* rng, struct 
                                         s[l] = tl_random_int(rng, 4);
 
                                 }else{
-                                        s[l] = spec->seq[b][j];
+                                        s[l] =  tlalphabet_get_code(a, spec->seq[b][j]);
                                 }
 
                         }

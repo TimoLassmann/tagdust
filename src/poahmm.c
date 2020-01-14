@@ -1926,12 +1926,13 @@ struct poahmm_node* malloc_a_node(int maxseq_len)
         struct poahmm_node* node = NULL;
         MMALLOC(node , sizeof(struct poahmm_node));
         node->cells = NULL;
-        node->signal = NULL; /// leave this for now...
+        //node->signal = NULL; /// leave this for now...
 
         node->identifier = -1;
         node->nuc = 0;
-        node->total_signal = 0;
+        //node->total_signal = 0;
         node->rank = 0;
+        node->alt = 0;
         node->type = 0;
 
         MMALLOC(node->cells, sizeof(struct cell) * maxseq_len);
@@ -1948,9 +1949,9 @@ void free_a_node(struct poahmm_node* node)
                 if(node->cells){
                         MFREE(node->cells);
                 }
-                if(node->signal){
-                        MFREE(node->signal);
-                }
+                //if(node->signal){
+                //      MFREE(node->signal);
+                //}
                 MFREE(node);
         }
 }
@@ -2161,7 +2162,7 @@ int init_nodes_from_single_sequence(struct poahmm* poahmm, uint8_t* seq, int len
                 node_ptr = poahmm->nodes[i];
                 node_ptr->nuc = seq[i];
                 //node_ptr->signal[poahmm_data->seq_id[index]] = 1;
-                node_ptr->total_signal = 1;
+                //node_ptr->total_signal = 1;
                 node_ptr->identifier = i;
         }
         //stop state

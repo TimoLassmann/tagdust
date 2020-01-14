@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
         LOG_MSG("Simple plus test");
         LOG_MSG("-----------------------------------");
         RUN(test_simple_N_plus_arch(sim_data));
-        //RUN(test_indel(sim_data));
+        RUN(test_indel(sim_data));
         //RUN(single_seq_test());
         //RUN(arch_test());
 
@@ -137,10 +137,10 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
 {
         struct poahmm* poahmm = NULL;
         char* in[] = {
-                //"I:ACGT",
-                //"R2:E:AAACCCGGGTTT",
-                //"A:AA,TT"
-                "E:N"
+                "I:ACGT",
+                "R2:E:AAACCCGGGTTT",
+                "A:AA,TT"
+                //"E:N"
         };
 
         struct stats{
@@ -172,10 +172,11 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
 
         int active_read_structure;
 
-        int num_tests = 1;
+        int num_tests = 100;
         size = sizeof(in) / sizeof(char*);
 
         MMALLOC(path, sizeof(int)*1024);
+
         poahmm = sd->poahmm;
 
         LOG_MSG("Current poa size: nodes: %d seq_len:%d", poahmm->alloced_num_nodes , poahmm->alloc_seq_len);
@@ -187,7 +188,7 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
         }
 
 
-        active_read_structure = 1;
+        active_read_structure = sd->al->num_arch -1;
         LOG_MSG("Working with: %s",sd->al->spec_line[active_read_structure]);
 
         sd->gp->min_seq_len = 10;
@@ -203,7 +204,7 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
         //RUN(set_random_scores(poahmm, 50));
         //LOG_MSG("Model_len: %d -%d ", poahmm->min_model_len,poahmm->max_model_len);
         for(i = poahmm->min_model_len ;i <=  poahmm->max_model_len;i++){
-                for(base_q = 40; base_q >= 40;base_q -= 5){
+                for(base_q = 40; base_q >= 0;base_q -= 5){
                 //RUN(sim_seq_from_read_struct(&sd->seq, sd->al->read_structure[active_read_structure ] , i, sd->main_rng));
                 //RUN(generate_random_seq(sd->seq->seq, i, sd->main_rng));
                 //RUN(generate_random_seq(&seq, &i, sd->main_rng ));
@@ -478,7 +479,7 @@ int test_indel(struct shared_sim_data* sd)
         poahmm_to_dot(poahmm, "test3.dot");
 
 
-        MMALLOC(path, sizeof(int)*poahmm->max_rank + poahmm->alloc_seq_len);
+        MMALLOC(path, sizeof(int)*poahmm->max_model_len + poahmm->alloc_seq_len);
         LOG_MSG("Starting run");
 
 
@@ -489,16 +490,6 @@ int test_indel(struct shared_sim_data* sd)
 
         LOG_MSG("LEN: %d",sd->seq->len);
 
-        if(sd->seq->len < poahmm->max_rank){
-                LOG_MSG("Sequence too short to match");
-        }else if(poahmm->max_rank < sd->seq->len){
-                j = sd->seq->len - poahmm->max_rank;
-                poahmm->YY_boundary = (float)j / (float)(j + 2);
-                poahmm->YY_boundary_exit = 1.0 - poahmm->YY_boundary;
-                poahmm->YY_boundary = prob2scaledprob(poahmm->YY_boundary);
-                poahmm->YY_boundary_exit = prob2scaledprob(poahmm->YY_boundary_exit);
-
-        }
         if(sd->seq->len >= poahmm->alloc_seq_len){
                 LOG_MSG("Resize");
                 resize_poahmm(poahmm, poahmm->num_nodes, sd->seq->len);
@@ -520,16 +511,6 @@ int test_indel(struct shared_sim_data* sd)
         sd->seq->len = strnlen(sd->seq->seq, sd->seq->alloc_len);
         LOG_MSG("LEN: %d",sd->seq->len);
 
-        if(sd->seq->len < poahmm->max_rank){
-                LOG_MSG("Sequence too short to match");
-        }else if(poahmm->max_rank < sd->seq->len){
-                j = sd->seq->len - poahmm->max_rank;
-                poahmm->YY_boundary = (float)j / (float)(j + 2);
-                poahmm->YY_boundary_exit = 1.0 - poahmm->YY_boundary;
-                poahmm->YY_boundary = prob2scaledprob(poahmm->YY_boundary);
-                poahmm->YY_boundary_exit = prob2scaledprob(poahmm->YY_boundary_exit);
-
-        }
 
         RUN(seq_to_internal(sd->seq->seq, sd->seq->len, &i_seq, &i_len));
         RUN(viterbi_poahmm(poahmm,i_seq,i_len,path));
@@ -545,17 +526,6 @@ int test_indel(struct shared_sim_data* sd)
         snprintf(sd->seq->label, sd->seq->alloc_len, "%s%s%s","IIIIIIIIIIIIII","XXXX", "IIIIIIII");
         sd->seq->len = strnlen(sd->seq->seq, sd->seq->alloc_len);
         LOG_MSG("LEN: %d",sd->seq->len);
-
-        if(sd->seq->len < poahmm->max_rank){
-                LOG_MSG("Sequence too short to match");
-        }else if(poahmm->max_rank < sd->seq->len){
-                j = sd->seq->len - poahmm->max_rank;
-                poahmm->YY_boundary = (float)j / (float)(j + 2);
-                poahmm->YY_boundary_exit = 1.0 - poahmm->YY_boundary;
-                poahmm->YY_boundary = prob2scaledprob(poahmm->YY_boundary);
-                poahmm->YY_boundary_exit = prob2scaledprob(poahmm->YY_boundary_exit);
-
-        }
 
         RUN(seq_to_internal(sd->seq->seq, sd->seq->len, &i_seq, &i_len));
         RUN(viterbi_poahmm(poahmm,i_seq,i_len,path));
@@ -768,6 +738,17 @@ int print_path(struct poahmm* poahmm, uint32_t* path,char* seq,char* label)
                 }
         }
         fprintf(stdout,"\n");
+        for(i = 1; i < path[0];i++){
+                seq_pos = path[i] >> 16u;
+                node_pos = path[i] & 0xFFFFu;
+
+                if(node_pos!= 0xFFFFu){
+                        fprintf(stdout, " %3d",poahmm->nodes[node_pos]->alt);
+                }else{
+                        fprintf(stdout, " %3c", '-');
+                }
+        }
+        fprintf(stdout,"\n");
 
         return OK;
 }
@@ -937,9 +918,9 @@ int poahmm_to_dot(struct poahmm* poahmm,char* filename)
         node_number++;
         for(i = 0 ;i < poahmm->num_nodes;i++){
                 nuc =poahmm->nodes[i]->nuc;
-                snprintf(color, 10, "#%02X%02X%02X",	 min_color[nuc][0] + (int)((max_color[nuc][0] - min_color[nuc][0]) *( 1.0 - ((double)poahmm->nodes[i]->total_signal  / max_val))),
-                         min_color[nuc][1] + (int)((max_color[nuc][1] - min_color[nuc][1]) * ( 1.0 - ((double)poahmm->nodes[i]->total_signal  / max_val))),
-                         min_color[nuc][2] + (int)((max_color[nuc][2] - min_color[nuc][2]) *( 1.0 - ((double)poahmm->nodes[i]->total_signal  / max_val))));
+                snprintf(color, 10, "#%02X%02X%02X",	 min_color[nuc][0] + (int)((max_color[nuc][0] - min_color[nuc][0]) *( 1.0 - ((double)1.0  / max_val))),
+                         min_color[nuc][1] + (int)((max_color[nuc][1] - min_color[nuc][1]) * ( 1.0 - ((double)1.0  / max_val))),
+                         min_color[nuc][2] + (int)((max_color[nuc][2] - min_color[nuc][2]) *( 1.0 - ((double)1.0  / max_val))));
 
                 snprintf(color, 10, "#%02X%02X%02X",	 min_color[nuc][0] + (int)((max_color[nuc][0] - min_color[nuc][0]) *0.1),
                          min_color[nuc][1] + (int)((max_color[nuc][1] - min_color[nuc][1])  * 0.1),

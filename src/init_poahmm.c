@@ -71,7 +71,7 @@ int poahmm_from_read_structure(struct poahmm** poahmm,struct global_poahmm_param
         for(i = p->min_seq_len; i < p->max_seq_len;i++){
                 ph->random_scores[i] = prob2scaledprob(0.0f);
         }
-        for(i = ph->min_model_len; i <=  ph->max_model_len;i++){
+        for(i = ph->min_model_len; i <=  ph->max_seq_len ;i++){
                 //LOG_MSG("tsting length : %d (seq_len: %d)", i, c);
                 //for(c = 0; c < 10;c++){
                 //set_terminal_gap_prob(ph, i);
@@ -245,6 +245,8 @@ int init_nodes_from_read_structure(struct poahmm* poahmm, struct read_structure*
                                 node_ptr->rank = -1 * INT32_MAX;
                                 node_ptr->type = s->extract;
                                 node_ptr->identifier = n_index;
+                                node_ptr->alt = j;
+                                node_ptr->segment = i;
                                 n_index++;
 
                         }

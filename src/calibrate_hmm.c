@@ -31,8 +31,8 @@ struct calibrate_seq{
 struct calibrate_buffer{
         struct calibrate_seq** seq;
         int num_seq;
+        int max_len;
 };
-
 
 static int generate_test_sequences(struct  calibrate_buffer** ri_b, struct read_structure* rs  ,double mean,double stdev,struct rng_state* rng , struct alphabet* a);
 
@@ -121,10 +121,12 @@ int calibrate(struct arch_library* al, struct seq_stats* si,int* seeds,int i_fil
         RUN(generate_test_sequences(&cb, al->read_structure[i_hmm], si->ssi[i_file]->mean_seq_len,si->ssi[i_file]->stdev_seq_len,local_rng,si->a));
 
 
+        //LOG_MSG("SIMLEN: %d", cb->max_len);
+
         //RUN(init_model_bag(&mb,al->read_structure[i_hmm], si->ssi[i_file],si->a, i_hmm));
         MMALLOC(p, sizeof(struct global_poahmm_param));
         p->min_seq_len = si->ssi[i_file]->average_length;
-        p->max_seq_len = si->ssi[i_file]->max_seq_len+1;
+        p->max_seq_len = MACRO_MAX(cb->max_len, si->ssi[i_file]->max_seq_len);
         p->base_error = 0.05f;
         p->indel_freq = 0.1f;
         for(i =0; i < 5;i++){
@@ -132,7 +134,7 @@ int calibrate(struct arch_library* al, struct seq_stats* si,int* seeds,int i_fil
         }
 
 
-        RUN(poahmm_from_read_structure(&poahmm, p,al->read_structure[i_hmm],  si->a));
+        RUN(poahmm_from_read_structure(&poahmm, p, al->read_structure[i_hmm],  si->a));
         RUN(run_scoring(poahmm, cb));
         free_poahmm(poahmm);
         //free_model_bag(mb);
@@ -148,6 +150,7 @@ int calibrate(struct arch_library* al, struct seq_stats* si,int* seeds,int i_fil
 
         if(tmp < 10){
                 al->confidence_thresholds[i_file] = 0.0f;
+                LOG_MSG("Arch: %s thres: %f", al->spec_line[i_hmm], al->confidence_thresholds[i_file]);
                 goto SKIP;
         }
 
@@ -212,18 +215,20 @@ int calibrate(struct arch_library* al, struct seq_stats* si,int* seeds,int i_fil
                 al->confidence_thresholds[i_file] =  20;
         }
 
-        fprintf(stderr,"FDR:0.01: %f\n", thres[0]);
+
+        /*fprintf(stderr,"FDR:0.01: %f\n", thres[0]);
         fprintf(stderr,"FDR:0.05: %f\n", thres[1]);
         fprintf(stderr,"FDR:0.1: %f\n", thres[2]);
         fprintf(stderr,"Sen+spe: %f\n", thres[4]);
 
         fprintf(stderr,"Kappa: %f at %f\n",  kappa,thres[5]   );
-
-        fprintf(stderr,"Selected Threshold: %f\n", al->confidence_thresholds[i_file]);
+        fprintf(stderr,"Selected Threshold: %f\n", al->confidence_thresholds[i_file]);*/
         //sprintf(param->buffer,"Selected Threshold:: %f\n", param->confidence_threshold );
 
         //param->messages = append_message(param->messages, param->buffer);
         //free_read_info(ri,NUM_TEST_SEQ);
+
+        LOG_MSG("Arch: %s thres: %f", al->spec_line[i_hmm], al->confidence_thresholds[i_file]);
 SKIP:
         for(i = 0; i < cb->num_seq;i++){
                 MFREE(cb->seq[i]->seq);
@@ -239,6 +244,17 @@ ERROR:
         return FAIL;
 }
 
+
+
+
+
+
+
+
+
+
+
+
 static int generate_test_sequences(struct  calibrate_buffer** ri_b, struct read_structure* rs  ,double mean,double stdev,struct rng_state* rng , struct alphabet* a)
 {
 
@@ -250,7 +266,7 @@ static int generate_test_sequences(struct  calibrate_buffer** ri_b, struct read_
         MMALLOC(cb, sizeof(struct calibrate_buffer));
         cb->num_seq = NUM_TEST_SEQ;
         cb->seq = NULL;
-
+        cb->max_len = 0;
         MMALLOC(cb->seq, sizeof(struct calibrate_seq*) * cb->num_seq);
         for(i = 0; i < cb->num_seq;i++){
                 cb->seq[i] = NULL;
@@ -268,7 +284,10 @@ static int generate_test_sequences(struct  calibrate_buffer** ri_b, struct read_
         for(i = 0; i < j;i++){
                 t_len = (int) round(tl_random_gaussian(rng, mean, stdev));
                 RUN(emit_from_rs(rs, rng,a, &cb->seq[i]->seq,&cb->seq[i]->qual,  &cb->seq[i]->len, t_len));
-                //RUN(emit_read_sequence(mb, &cb->seq[i]->seq, &cb->seq[i]->len, t_len, rng));
+                if(cb->seq[i]->len > cb->max_len){
+                        cb->max_len = cb->seq[i]->len;
+                }
+//RUN(emit_read_sequence(mb, &cb->seq[i]->seq, &cb->seq[i]->len, t_len, rng));
                 cb->seq[i]->type = 0;
         }
         for(i = j; i < NUM_TEST_SEQ ;i++){
@@ -286,7 +305,9 @@ static int generate_test_sequences(struct  calibrate_buffer** ri_b, struct read_
                 }
                 cb->seq[i]->len = t_len;
                 cb->seq[i]->type = 1;
-
+                if(cb->seq[i]->len > cb->max_len){
+                        cb->max_len = cb->seq[i]->len;
+                }
                 //fprintf(stdout,"%d ", ri[i]->len);
         }
 
@@ -311,13 +332,13 @@ int run_scoring(struct poahmm* poahmm, struct calibrate_buffer* cb)
                 qual= cb->seq[i]->qual;
                 len = cb->seq[i]->len;
 
-                LOG_MSG("LEN: %d    model: %d %d %d", len, poahmm->min_model_len, poahmm->max_model_len,poahmm->alloc_seq_len);
+                //LOG_MSG("LEN: %d    model: %d %d %d", len, poahmm->min_model_len, poahmm->max_model_len,poahmm->alloc_seq_len);
                 viterbi_poahmm_banded(poahmm, seq, qual, len, NULL, 2);
 
                 //RUN(backward(mb, seq,len));
-
-                pbest = 1.0 - scaledprob2prob(poahmm->f_score - poahmm->random_scores[len]);
-
+                //LOG_MSG("F:%f\tR:%f", poahmm->f_score, poahmm->random_scores[len]);
+                pbest = logsum(poahmm->f_score, poahmm->random_scores[len]);
+                pbest = 1.0 - scaledprob2prob(poahmm->f_score - pbest);
                 //RUN(forward_max_posterior_decoding(mb,seq,NULL,len));
                 //RUN(random_score(mb, seq, len));
 

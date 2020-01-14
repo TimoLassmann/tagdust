@@ -75,7 +75,7 @@ int post_process_assign(struct assign_struct* as)
                 code[len] =0;
                 c = 0;
                 for(j = 0; j < bv->num_bit;j++){
-                        //LOG_MSG("Bit %d %d %d", j,bv->bits[j]->type,bv->bits[j]->file);
+                        //LOG_MSG("Bit %d %d %d", j,bv->bits[j]->type,bv->sample_group);
                         if(bv->bits[j]->type == ARCH_ETYPE_EXTRACT){
                                 code[len] = c+33;
                                 //len += bv->bits[j]->len;// strnlen(bv->bits[j]->p,256);

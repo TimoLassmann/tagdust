@@ -43,11 +43,13 @@ struct poahmm_boundary_node{
 
 struct poahmm_node{
         struct cell* cells;
-        uint32_t* signal;
+        //uint32_t* signal;
         int32_t rank;
         uint8_t nuc;
         uint8_t type;
-        int total_signal;
+        uint8_t alt;
+        uint8_t segment;
+        //int total_signal;
         int identifier;
 };
 

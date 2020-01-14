@@ -8,8 +8,12 @@
 
 #include "tlseqio.h"
 
-#include "hmm_model_bag.h"
-#include "core_hmm_functions.h"
+#include "poahmm.h"
+#include "poahmm_structs.h"
+#include "init_poahmm.h"
+
+//#include "hmm_model_bag.h"
+//#include "core_hmm_functions.h"
 #include "assign_data.h"
 
 #include "filter.h"
@@ -24,13 +28,16 @@
 struct collect_read{
         char* seq;
         char* qual;
+        uint32_t* path;
         char* label;
         int* hmm_label;
         int len;
         uint8_t f;
 };
 
-static int process_read(struct collect_read* ri, struct read_structure* rs , struct seq_bit_vec* b , int i_file);
+//static int process_read(struct collect_read* ri, struct read_structure* rs , struct seq_bit_vec* b , int i_file);
+
+static int process_read(struct collect_read* ri,struct poahmm* poahmm, struct read_structure* rs , struct seq_bit_vec* b , int local_bit_index);
 
 static int sanity_check_inputs(struct tl_seq_buffer** rb, int num_files);
 
@@ -38,8 +45,13 @@ static int run_extract( struct assign_struct* as,  struct tl_seq_buffer** rb, st
 
 static int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb, int bam);
 
+/* just 4 debugging;.. */
+
+static int print_path(struct poahmm* poahmm, uint32_t* path,char* seq);
+
 int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameters* param,struct rng_state* rng)
 {
+        struct kmer_counts* k = NULL;
         struct tl_seq_buffer**  rb = NULL;
         struct file_handler** f_hand = NULL;
         struct assign_struct* as = NULL;
@@ -64,9 +76,16 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
                 RUN(close_seq_file(&r_fh));
                 RUN(init_ref(&ref, wb, rng));
                 /* not necessary: */
+                RUN(alloc_kmer_counts(&k, 12));
+                RUN(add_counts(k, wb));
 
-                RUN(run_build_pst(&pst, wb));
+
+
+                RUN(run_build_pst(&pst, k));
+
+
 //RUN(run_build_pst(&p, sb));
+                free_kmer_counts(k);
                 free_tl_seq_buffer(wb);
                 wb = NULL;
         }
@@ -235,12 +254,17 @@ ERROR:
 
 int run_extract( struct assign_struct* as,  struct tl_seq_buffer** rb, struct arch_library* al, struct seq_stats* si,int i_file,int i_chunk)
 {
-        struct model_bag* mb = NULL;
+        struct global_poahmm_param* p = NULL;
+        struct poahmm* poahmm = NULL;
+        //struct model_bag* mb = NULL;
         struct alphabet* a = NULL;
         struct tl_seq** ri = NULL;
         struct collect_read cs;
+        uint32_t* path = NULL;
         uint8_t* tmp_seq = NULL;
-        char* label = NULL;
+        uint8_t* tmp_qual = NULL;
+        //char* label = NULL;
+
         float pbest = 0.0f;
         float Q = 0.0f;
 
@@ -249,42 +273,53 @@ int run_extract( struct assign_struct* as,  struct tl_seq_buffer** rb, struct ar
         int i;
         int j;
         int i_hmm;
+        int base_q_offset = 0;
         int seq_offset;
+
 
         a = si->a;
 
-        MMALLOC(tmp_seq, sizeof(uint8_t) * (si->ssi[i_file]->max_seq_len+1));
-        MMALLOC(label, sizeof(char) * (si->ssi[i_file]->max_seq_len+1));
 
         c = i_file * CHUNKS + i_chunk;
 
         i_hmm = al->arch_to_read_assignment[i_file];
-        RUN(init_model_bag(&mb,al->read_structure[i_hmm], si->ssi[i_file], si->a, i_hmm));
+        //RUN(init_model_bag(&mb,al->read_structure[i_hmm], si->ssi[i_file], si->a, i_hmm));
+
+        MMALLOC(p, sizeof(struct global_poahmm_param));
+        p->min_seq_len = si->ssi[i_file]->average_length;
+        p->max_seq_len = MACRO_MAX(rb[c]->max_len, si->ssi[i_file]->max_seq_len);
+        p->base_error = 0.05f;
+        p->indel_freq = 0.1f;
+        for(i =0; i < 5;i++){
+                p->back[i] = si->ssi[i_file]->background[i];
+        }
+
+
+        RUN(poahmm_from_read_structure(&poahmm, p, al->read_structure[i_hmm],  si->a));
+
+
         num_seq = rb[c]->num_seq;
         ri = rb[c]->sequences;
-
+        base_q_offset = rb[c]->base_quality_offset;
         seq_offset = rb[c]->offset;
+
+        MMALLOC(tmp_seq, sizeof(uint8_t) * (si->ssi[i_file]->max_seq_len+1));
+        MMALLOC(tmp_qual, sizeof(uint8_t) * (si->ssi[i_file]->max_seq_len+1));
+
+        MMALLOC(path, sizeof(uint32_t) *(si->ssi[i_file]->max_seq_len+ poahmm->num_nodes +2));
         for(i = 0; i < num_seq;i++){
                 for(j = 0; j < ri[i]->len;j++){
                         tmp_seq[j] = tlalphabet_get_code(a, ri[i]->seq[j]);
                 }
                 tmp_seq[ri[i]->len] = 0;
+                for(j = 0; j < ri[i]->len;j++){
+                        tmp_qual[j] = ri[i]->qual[j] - base_q_offset;
+                }
 
+                RUN(viterbi_poahmm_banded(poahmm, tmp_seq, tmp_qual,  ri[i]->len, path, 2));
 
-                //LOG_MSG("%d f:%d  on %d", tid,i_file,i);
-                RUN(backward(mb, tmp_seq,ri[i]->len));
-
-                /* FIXMEEEEE  */
-                RUN(forward_max_posterior_decoding(mb, tmp_seq, &label, ri[i]->len));
-                RUN(random_score(mb, tmp_seq, ri[i]->len));
-
-
-                //pbest = ri[i]->mapq;
-                //pbest = prob2scaledprob(0.0f);
-                //pbest = logsum(pbest, mb->f_score);
-                pbest = logsum(mb->bar_score + mb->f_score, mb->r_score);
-
-                pbest = 1.0 - scaledprob2prob(  (mb->bar_score + mb->f_score ) - pbest);
+                pbest = logsum(poahmm->f_score, poahmm->random_scores[ri[i]->len]);
+                pbest = 1.0 - scaledprob2prob(poahmm->f_score - pbest);
 
                 if(!pbest){
                         Q = 40.0;
@@ -294,45 +329,38 @@ int run_extract( struct assign_struct* as,  struct tl_seq_buffer** rb, struct ar
                         Q = -10.0 * log10(pbest) ;
                 }
 
-                //ri[i]->mapq = Q;
-                //ri[i]->bar_prob = 100;
 
 
-                        //as->bits[seq_offset+i]->Q[i_file] = Q;
-                //}
-                //fprintf(stdout,"File:%d %f %f\n",i_file, Q, al->confidence_thresholds[i_file]);
-                //as->bits[seq_offset+i]->pass = 0;
-                //}
-                //tmp_bar = as->assignment[seq_offset + i] + assign_offset;
-                //print_labelled_reads(mb,data->param ,ri[i]);
-                //RUN(extract_reads(mb,data->param,ri[i]));
-                //RUN(analyze_and_extract_reads(as,mb, al->read_structure[i_hmm], ri[i], i_file, al->confidence_thresholds[i_file]));
-                //LOG_MSG("i:%d, seqoff = %d",i, seq_offset);
-                //LOG_MSG("t: %d Working on file: %d  %d (%d seq) offset: %d",tid, i_file,i,num_seq,rb[c]->offset);
-                cs.label = label;
+                cs.path = path;
+                //cs.label = label;
                 cs.qual = ri[i]->qual;
                 cs.seq = ri[i]->seq;
                 cs.len = ri[i]->len;
-                cs.hmm_label = mb->label;
+                //cs.hmm_label = mb->label;
                 cs.f = 0;
                 if(Q < al->confidence_thresholds[i_file]){
-                        LOG_MSG("Q: %f thres %f %d", Q, al->confidence_thresholds[i_file], i_file);
+                        //LOG_MSG("Q: %f thres %f %d", Q, al->confidence_thresholds[i_file], i_file);
                         cs.f = READ_FAILQ;
                 }
 
-                RUN(process_read(&cs,al->read_structure[i_hmm], as->bit_vec[seq_offset+i], as->file_index[i_file]));
+                RUN(process_read(&cs,poahmm, al->read_structure[i_hmm], as->bit_vec[seq_offset+i], as->file_index[i_file]));
         }
-        free_model_bag(mb);
-        MFREE(label);
+        //free_model_bag(mb);
+        free_poahmm(poahmm);
+        MFREE(path);
+
         MFREE(tmp_seq);
+        MFREE(tmp_qual);
+
         return OK;
 ERROR:
         return FAIL;
 }
 
-int process_read(struct collect_read* ri, struct read_structure* rs , struct seq_bit_vec* b , int local_bit_index)
+int process_read(struct collect_read* ri,struct poahmm* poahmm, struct read_structure* rs , struct seq_bit_vec* b , int local_bit_index)
 {
         struct seq_bit* sb = NULL;
+        uint32_t* path = NULL;
         //char* type;
         char* read_label;
         int* label;
@@ -348,100 +376,116 @@ int process_read(struct collect_read* ri, struct read_structure* rs , struct seq
         uint8_t old_c = 255;
         int read = 0;
         //      int local_bit_index;
-
+        int seq_pos;
+        int node_pos;
         read_label = ri->label+1;
         label = ri->hmm_label;
+
+        path = ri->path;
+
         //type = rs->type;
         s_index = 0;
         //assign_offset = as->num_per_file[i_file];
-        for(j = 0; j < len;j++){
-                c1 = label[(int)read_label[j]];
-                segment = c1 & 0xFFFF; //which segment
-                hmm_in_segment = (c1 >> 16) & 0x7FFF; // which HMM in a particular segment....
-                //c = type[segment];
-                c = rs->seg_spec[segment]->extract;
-                //LOG_MSG("Decoding: %d read:%d hmmcode:%d  segment:%d seq:%d type: %d",j,read_label[j],label[read_label[j]], segment,hmm_in_segment, c);
-                switch (c) {
-                case ARCH_ETYPE_APPEND: //case 'F':
-                        if(c != old_c){
-                                s_index =0;
-                                sb = b->bits[local_bit_index];
+        for(j = 1; j < ri->path[0];j++){
+                seq_pos = (path[j] >> 16u );
+                node_pos = path[j] & 0xFFFFu;
+                //if(node_pos == 0xFFFFu){
+                //print_path(poahmm, path, ri->seq);
+                //}
+                if(node_pos!= 0xFFFFu){
+                        segment = poahmm->nodes[node_pos]->segment;
+                        hmm_in_segment =  poahmm->nodes[node_pos]->alt;
+                        c = poahmm->nodes[node_pos]->type;
 
-                                s_name = rs->seg_spec[segment]->name;
-                                if(b->append.l){
-                                        kputc(' ', &b->append);
+                        //LOG_MSG("decode-ing: %d s:%c s:%d h:%d type:%d", j, ri->seq[seq_pos], segment,hmm_in_segment,c);
+                        //c1 = label[(int)read_label[j]];
+                        //segment = c1 & 0xFFFF; //which segment
+                        //hmm_in_segment = (c1 >> 16) & 0x7FFF; // which HMM in a particular segment....
+                        //c = type[segment];
+                        //c = rs->seg_spec[segment]->extract;
+                        //LOG_MSG("Decoding: %d read:%d hmmcode:%d  segment:%d seq:%d type: %d",j,read_label[j],label[read_label[j]], segment,hmm_in_segment, c);
+                        switch (c) {
+                        case ARCH_ETYPE_APPEND: //case 'F':
+                                if(c != old_c){
+                                        s_index =0;
+                                        sb = b->bits[local_bit_index];
+
+                                        s_name = rs->seg_spec[segment]->name;
+                                        if(b->append.l){
+                                                kputc(' ', &b->append);
+                                        }
+
+                                        kputs(s_name, &b->append);
+
+                                        kputs(":Z:", &b->append);
+
+
+                                        //sb->len = 0;
+                                        //ASSERT(i_file == sb->file, "Oh dear: want %d got %d",i_file,sb->file);
+                                        //sb->file = i_file;
+                                        sb->code = (char) ( hmm_in_segment + 33);
+                                        sb->type = ARCH_ETYPE_APPEND;
+                                        //sb->p = ri->seq+j;
+                                        sb->fail = ri->f;
+                                        if(hmm_in_segment == 0 && rs->seg_spec[segment]->num_seq > 1){
+                                                //LOG_MSG("Read %s failrd", b->name);
+                                                sb->fail |= READ_NBAR;
+                                        }
+
+                                        local_bit_index++;
+                                }
+                                //kputc(ri->seq[j], &sb->p);
+
+                                if(rs->seg_spec[segment]->num_seq > 1){
+                                        kputc(rs->seg_spec[segment]->seq[hmm_in_segment][s_index], &b->append);
+                                }else{
+                                        kputc(ri->seq[j], &b->append);
                                 }
 
-                                kputs(s_name, &b->append);
+                                s_index++;
+                                break;
+                        case ARCH_ETYPE_SPLIT:// case 'B':
+                                if(c != old_c){
+                                        sb = b->bits[local_bit_index];
 
-                                kputs(":Z:", &b->append);
+                                        //ASSERT(i_file == sb->file, "Oh dear: want %d got %d",i_file,sb->file);
+                                        //sb->file = i_file;
+                                        sb->type = ARCH_ETYPE_SPLIT;
+                                        sb->code = (char) ( hmm_in_segment + 33);
 
 
-                                //sb->len = 0;
-                                //ASSERT(i_file == sb->file, "Oh dear: want %d got %d",i_file,sb->file);
-                                //sb->file = i_file;
-                                sb->code = (char) ( hmm_in_segment + 33);
-                                sb->type = ARCH_ETYPE_APPEND;
-                                //sb->p = ri->seq+j;
-                                sb->fail = ri->f;
-                                if(hmm_in_segment == 0 && rs->seg_spec[segment]->num_seq > 1){
-                                        //LOG_MSG("Read %s failrd", b->name);
-                                        sb->fail |= READ_NBAR;
+                                        //kputs(rs->seg_spec[segment]->seq[hmm_in_segment], &sb->p);
+                                        //sb->p = rs->seg_spec[segment]->seq[hmm_in_segment];
+                                        //rs->sequence_matrix[segment][hmm_in_segment];
+                                        //sb->len = rs->seg_spec[segment]->max_len;// should be identical to min_lena rs->segment_length[segment];
+                                        sb->fail = ri->f;
+                                        if(hmm_in_segment == 0){
+                                                //LOG_MSG("Read %s failrd", b->name);
+                                                sb->fail |= READ_NBAR;
+                                        }
+                                        local_bit_index++;
                                 }
-
-                                local_bit_index++;
-                        }
-                        //kputc(ri->seq[j], &sb->p);
-
-                        if(rs->seg_spec[segment]->num_seq > 1){
-                                kputc(rs->seg_spec[segment]->seq[hmm_in_segment][s_index], &b->append);
-                        }else{
-                                kputc(ri->seq[j], &b->append);
-                        }
-
-                        s_index++;
-                        break;
-                case ARCH_ETYPE_SPLIT:// case 'B':
-                        if(c != old_c){
-                                sb = b->bits[local_bit_index];
-
-                                //ASSERT(i_file == sb->file, "Oh dear: want %d got %d",i_file,sb->file);
-                                //sb->file = i_file;
-                                sb->type = ARCH_ETYPE_SPLIT;
-                                sb->code = (char) ( hmm_in_segment + 33);
-
-
-                                //kputs(rs->seg_spec[segment]->seq[hmm_in_segment], &sb->p);
-                                //sb->p = rs->seg_spec[segment]->seq[hmm_in_segment];
-                                //rs->sequence_matrix[segment][hmm_in_segment];
-                                //sb->len = rs->seg_spec[segment]->max_len;// should be identical to min_lena rs->segment_length[segment];
-                                sb->fail = ri->f;
-                                if(hmm_in_segment == 0){
-                                        //LOG_MSG("Read %s failrd", b->name);
-                                        sb->fail |= READ_NBAR;
+                                break;
+                        case ARCH_ETYPE_EXTRACT:// case 'R':
+                                if(c != old_c){
+                                        s_index = 0;
+                                        sb = b->bits[local_bit_index];
+                                        //ASSERT(i_file == sb->file, "Oh dear: want %d got %d",i_file,sb->file);
+                                        //sb->file = i_file;
+                                        //sb->code = (char)(read + 33);
+                                        sb->type = ARCH_ETYPE_EXTRACT;
+                                        sb->fail = ri->f;
+                                        local_bit_index++;
+                                        read++;
                                 }
-                                local_bit_index++;
+                                kputc(ri->seq[j],&sb->p);
+                                kputc(ri->qual[j],&sb->q);
+                                break;
+                        default:
+                                break;
                         }
-                        break;
-                case ARCH_ETYPE_EXTRACT:// case 'R':
-                        if(c != old_c){
-                                s_index = 0;
-                                sb = b->bits[local_bit_index];
-                                //ASSERT(i_file == sb->file, "Oh dear: want %d got %d",i_file,sb->file);
-                                //sb->file = i_file;
-                                //sb->code = (char)(read + 33);
-                                sb->type = ARCH_ETYPE_EXTRACT;
-                                sb->fail = ri->f;
-                                local_bit_index++;
-                                read++;
-                        }
-                        kputc(ri->seq[j],&sb->p);
-                        kputc(ri->qual[j],&sb->q);
-                        break;
-                default:
-                        break;
+                        old_c = c;
                 }
-                old_c = c;
         }
         //b->append[b->a_len] = 0;
         //fprintf(stdout,"%s\n%s\n",sb->p,sb->q);
@@ -626,3 +670,39 @@ ERROR:
 }
 
 
+
+
+
+int print_path(struct poahmm* poahmm, uint32_t* path,char* seq)
+{
+        uint32_t i;
+        char alphabet[5] = "ACGTN";
+        char etype[6] = "_EASIP";
+
+        uint32_t seq_pos;
+        uint32_t node_pos;
+        fprintf(stdout, "PATH:\n");
+
+        for(i = 1; i < path[0];i++){
+                seq_pos = path[i] >> 16u;
+                node_pos = path[i] & 0xFFFFu;
+                //fprintf(stdout,"Position %d: %d %d\n",i,seq_pos,node_pos);
+                if(seq_pos != 0xFFFFu){
+                        fprintf(stdout, " %3c", seq[seq_pos]);
+                }else{
+                        fprintf(stdout, " %3c", '-');
+                }
+        }
+        fprintf(stdout,"\n");
+        for(i = 1; i < path[0];i++){
+                seq_pos = path[i] >> 16u;
+                node_pos = path[i] & 0xFFFFu;
+
+                if(node_pos!= 0xFFFFu){
+                        fprintf(stdout, " %3c", alphabet[poahmm->nodes[node_pos]->nuc]);
+                }else{
+                        fprintf(stdout, " %3c", '-');
+                }
+        }
+        fprintf(stdout,"\n");
+}
