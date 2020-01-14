@@ -1010,7 +1010,7 @@ int viterbi_poahmm_banded(struct poahmm* poahmm,const uint8_t* seq, const uint8_
         if (bw < abs(len - poahmm->max_model_len)) bw = abs(len - poahmm->max_model_len  );
 
         register int s,e,x;
-
+        LOG_MSG("bw:%d", bw);
         //qsort(poahmm->rank_sorted_nodes,poahmm->num_nodes,sizeof(struct poahmm_node*), cmp_node_rank_low_to_high);
 
         cells = poahmm->begin->cells;
@@ -1029,7 +1029,7 @@ int viterbi_poahmm_banded(struct poahmm* poahmm,const uint8_t* seq, const uint8_
         // start proper DP.
         for(j = 0;  j < poahmm->num_nodes;j++){
                 node_id = poahmm->rank_sorted_nodes[j]->identifier;
-                //LOG_MSG("Start with node: %d (rank: %d)",node_id,poahmm->rank_sorted_nodes[j]->rank);
+                LOG_MSG("Start with node: %d (rank: %d)",node_id,poahmm->rank_sorted_nodes[j]->rank);
                 node_nuc = poahmm->nodes[node_id]->nuc;
                 cells = poahmm->nodes[node_id]->cells;
 
@@ -1038,7 +1038,7 @@ int viterbi_poahmm_banded(struct poahmm* poahmm,const uint8_t* seq, const uint8_
 
                 x = poahmm->nodes[node_id]->rank - bw; s = s > x ? s : x;
                 x = poahmm->nodes[node_id]->rank+1 + bw; e = e < x ? e : x;
-                //LOG_MSG("NODE: %d at rank %d: %d - %d (old: %d -%d)",node_id,  poahmm->nodes[node_id]->rank,s,e, 0, len);
+                LOG_MSG("NODE: %d at rank %d: %d - %d (old: %d -%d)",node_id,  poahmm->nodes[node_id]->rank,s,e, 0, len);
 
                 if(s == 0){
                         i = 0;

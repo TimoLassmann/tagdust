@@ -316,7 +316,7 @@ int run_extract( struct assign_struct* as,  struct tl_seq_buffer** rb, struct ar
                         tmp_qual[j] = ri[i]->qual[j] - base_q_offset;
                 }
 
-                RUN(viterbi_poahmm_banded(poahmm, tmp_seq, tmp_qual,  ri[i]->len, path, 2));
+                RUN(viterbi_poahmm_banded(poahmm, tmp_seq, tmp_qual,  ri[i]->len, path, 0));
 
                 pbest = logsum(poahmm->f_score, poahmm->random_scores[ri[i]->len]);
                 pbest = 1.0 - scaledprob2prob(poahmm->f_score - pbest);
@@ -389,9 +389,9 @@ int process_read(struct collect_read* ri,struct poahmm* poahmm, struct read_stru
         for(j = 1; j < ri->path[0];j++){
                 seq_pos = (path[j] >> 16u );
                 node_pos = path[j] & 0xFFFFu;
-                //if(node_pos == 0xFFFFu){
-                //print_path(poahmm, path, ri->seq);
-                //}
+                if(node_pos == 0xFFFFu){
+                                print_path(poahmm, path, ri->seq);
+                }
                 if(node_pos!= 0xFFFFu){
                         segment = poahmm->nodes[node_pos]->segment;
                         hmm_in_segment =  poahmm->nodes[node_pos]->alt;

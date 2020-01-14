@@ -333,7 +333,7 @@ int run_scoring(struct poahmm* poahmm, struct calibrate_buffer* cb)
                 len = cb->seq[i]->len;
 
                 //LOG_MSG("LEN: %d    model: %d %d %d", len, poahmm->min_model_len, poahmm->max_model_len,poahmm->alloc_seq_len);
-                viterbi_poahmm_banded(poahmm, seq, qual, len, NULL, 2);
+                viterbi_poahmm_banded(poahmm, seq, qual, len, NULL, 0);
 
                 //RUN(backward(mb, seq,len));
                 //LOG_MSG("F:%f\tR:%f", poahmm->f_score, poahmm->random_scores[len]);

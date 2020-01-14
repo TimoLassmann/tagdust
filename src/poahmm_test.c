@@ -46,6 +46,8 @@ int score_labelling(struct poahmm* poahmm, uint32_t* path,char* label, float* sc
 
 int single_seq_test(void);
 int arch_test(void);
+
+
 //int init_nodes_from_read_structure(struct poahmm* poahmm, struct read_structure* rs, struct alphabet* a, int random);
 
 int print_poa_graph(struct poahmm* poahmm);
@@ -58,7 +60,8 @@ int test_model_init(struct shared_sim_data* sd);
 int test_simple_N_plus_arch(struct shared_sim_data* sd);
 int test_banded(struct shared_sim_data* sd);
 int test_indel(struct shared_sim_data* sd);
-
+int single_tests(struct shared_sim_data* sd);
+int run_single_test(struct shared_sim_data* sd, char** arch,int n, char* seq, float mean_q, float stdev_q);
 
 int main(int argc, char *argv[])
 {
@@ -77,10 +80,12 @@ int main(int argc, char *argv[])
         LOG_MSG("-----------------------------------");
         LOG_MSG("Simple plus test");
         LOG_MSG("-----------------------------------");
-        RUN(test_simple_N_plus_arch(sim_data));
-        RUN(test_indel(sim_data));
+        //RUN(test_simple_N_plus_arch(sim_data));
+        //RUN(test_indel(sim_data));
         //RUN(single_seq_test());
         //RUN(arch_test());
+        single_tests(sim_data);
+
 
         free_sim_data(sim_data);
         return EXIT_SUCCESS;
@@ -88,6 +93,31 @@ ERROR:
         return EXIT_FAILURE;
 }
 
+
+int single_tests(struct shared_sim_data* sd)
+{
+        char** arch = NULL;
+        int i;
+
+        MMALLOC(arch, sizeof(char*) * 10);
+        for(i = 0; i < 10;i++){
+                arch[i] = NULL;
+                MMALLOC(arch[i], sizeof(char) * 50);
+        }
+
+
+        snprintf(arch[0], 20, "E:NNNNNN");
+        run_single_test(sd, arch, 1, "AAAAAA", 40, 1);
+
+        for(i = 0; i < 10;i++){
+                MFREE(arch[i]);
+        }
+        MFREE(arch);
+        return OK;
+ERROR:
+        return FAIL;
+
+}
 
 int test_model_init(struct shared_sim_data* sd)
 {
@@ -133,14 +163,74 @@ ERROR:
 /* 1) R+ */
 
 
+int run_single_test(struct shared_sim_data* sd, char** arch,int n, char* seq, float mean_q, float stdev_q)
+{
+
+        struct poahmm* poahmm = NULL;
+        int i,j;
+        int len;
+
+        int active_read_structure;
+        uint8_t* i_seq = NULL;
+        uint8_t* i_qual =  NULL;
+        uint32_t* path = NULL;
+
+        float e;
+
+
+        MMALLOC(path, sizeof(int)*1024);
+
+        poahmm = sd->poahmm;
+
+        LOG_MSG("Current poa size: nodes: %d seq_len:%d", poahmm->alloced_num_nodes , poahmm->alloc_seq_len);
+
+        RUN(read_arch_into_lib(sd->al, arch, n));
+        for(i = 0; i < sd->al->num_arch;i++){
+
+                LOG_MSG("Arch %d:  %s",i,sd->al->spec_line[i]);
+        }
+
+
+        active_read_structure = sd->al->num_arch -1;
+        LOG_MSG("Working with: %s",sd->al->spec_line[active_read_structure]);
+
+        sd->gp->min_seq_len = 10;
+        sd->gp->max_seq_len = 16;
+        RUN(poahmm_from_read_structure(&poahmm, sd->gp, sd->al->read_structure[active_read_structure ], sd->a));
+
+        len = strlen(seq);
+        MMALLOC(i_seq, sizeof(uint8_t) * (len+1));
+        MMALLOC(i_qual, sizeof(uint8_t) * (len+1));
+        for(i = 0; i < len; i++){
+                i_seq[i] = tlalphabet_get_code(sd->a, seq[i]);
+                i_qual[i] = tl_random_gaussian(sd->main_rng, mean_q, stdev_q);
+        }
+        RUN(viterbi_poahmm_banded(poahmm,i_seq, i_qual, len,path,0));
+
+
+        e = poahmm->f_score - poahmm->random_scores[i] ;//  poahmm->random_scores[i];
+        e = exp2f(e) / (1.0 + exp2f(e));
+        LOG_MSG("Len: %d:", i);
+        fprintf(stdout,"e:%f F:%5.3f\tR:%5.3f\n",e, poahmm->f_score, poahmm->random_scores[i]);
+        RUN(print_path(poahmm,path ,sd->seq->buffer, sd->seq->label ));
+
+        MFREE(path);
+        MFREE(i_seq);
+        MFREE(i_qual);
+
+        return OK;
+ERROR:
+        return FAIL;
+}
+
 int test_simple_N_plus_arch(struct shared_sim_data* sd)
 {
         struct poahmm* poahmm = NULL;
         char* in[] = {
-                "I:ACGT",
+                //"I:NNNNNN"
                 "R2:E:AAACCCGGGTTT",
                 "A:AA,TT"
-                //"E:N"
+                "E:N"
         };
 
         struct stats{
@@ -238,7 +328,7 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
                                 RUN(seq_to_internal(sd->seq->buffer, i, &i_seq, &i_len));
 
 
-                                RUN(viterbi_poahmm_banded(poahmm,i_seq, sd->seq->qual, i_len,path,2));
+                                RUN(viterbi_poahmm_banded(poahmm,i_seq, sd->seq->qual, i_len,path,0));
                                 //random_poahmm(poahmm, i_seq, i_len);
                                 RUN(score_labelling(poahmm, path,sd->seq->label, &accuracy));
 
@@ -339,7 +429,6 @@ RUN(print_path(poahmm,path ,sd->seq->buffer, sd->seq->label ));
 ERROR:
         return FAIL;
 }
-
 
 int test_banded(struct shared_sim_data* sd)
 {

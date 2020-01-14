@@ -211,7 +211,7 @@ int test_arch(struct tl_seq_buffer** rb, struct arch_library* al, struct seq_sta
                 }
                 //tmp_qualt[ri[i]->len] = 0;
                 //l = (int) sb->sequences[i]->qual[j] - sb->base_quality_offset;
-                RUN(viterbi_poahmm_banded(poahmm, tmp_seq, tmp_qual,  ri[i]->len, NULL, 1));
+                RUN(viterbi_poahmm_banded(poahmm, tmp_seq, tmp_qual,  ri[i]->len, NULL, 0));
                 score += poahmm->f_score;// - poahmm->random_scores[ ri[i]->len];
                 //RUN(backward(mb, tmp_seq,ri[i]->len));
                 //score +=  mb->b_score;
