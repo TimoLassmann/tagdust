@@ -103,7 +103,7 @@ int test_architectures(struct arch_library* al, struct seq_stats* si, struct par
         for(i = 0; i < param->num_infiles;i++){
                 sum = prob2scaledprob(0.0f);
                 for(j = 0; j < al->num_arch;j++){
-                        //        fprintf(stdout,"%f ",al->arch_posteriors[j][i]);
+                        //fprintf(stdout,"%f ",al->arch_posteriors[j][i]);
                         sum = logsum(sum,al->arch_posteriors[j][i]);
                 }
                 //fprintf(stdout,"\n");
@@ -185,7 +185,7 @@ int test_arch(struct tl_seq_buffer** rb, struct arch_library* al, struct seq_sta
         RUN(poahmm_from_read_structure(&poahmm, p,al->read_structure[i_hmm],  si->a));
         //LOG_MSG("Did I geta poa: %p", poahmm);
 
-        set_terminal_gap_prob(poahmm, si->ssi[i_file]->max_seq_len );
+        //set_terminal_gap_prob(poahmm, si->ssi[i_file]->max_seq_len );
         //RUN(init_model_bag(&mb,al->read_structure[i_hmm], si->ssi[i_file], si->a, i_hmm));
         //if(!mb){                /* no model returned - probably because it is to long for reads on this file */
 

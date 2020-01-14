@@ -72,16 +72,30 @@ int random_poahmm(struct poahmm* poahmm, uint8_t* seq, int len)
         float r_score = prob2scaledprob(1.0);
 
         //float *back = poahmm->background;
-
+        LOG_MSG("model: %d %d", poahmm->min_model_len, poahmm->max_model_len);
         qsub = poahmm->qsub;
         r_score = r_score;
-        //fprintf(stdout,"%f\n", scaledprob2prob(poahmm->MX));
+
+        /* going into a model gap */
+        LOG_MSG("begin %f", r_score);
         for(i = 0; i < len;i++){
-                //fprintf(stdout,"%d ->  %f\n", i , scaledprob2prob(back[seq[i]]));
-                //r_score += back[seq[i]] +poahmm->MM;
-                r_score += get_qsubscore(qsub, 4, seq[i], 50) + poahmm->MM;
+                r_score += poahmm->YY_boundary + poahmm->background[seq[i]];
+                LOG_MSG("%d %f (%f %f)", i,r_score, poahmm->YY_boundary , poahmm->background[seq[i]]);
         }
-        poahmm->r_score = r_score;
+        LOG_MSG("Seq %f", r_score);
+
+        r_score = r_score  + prob2scaledprob(0.25);
+        LOG_MSG("Starting: %f", r_score);
+        for(i = 1; i < poahmm->min_model_len;i++){
+                r_score = r_score + prob2scaledprob(0.25) + poahmm->XX;
+        }
+        //r_score = r_score + poahmm->XM;
+        LOG_MSG("Model %f", r_score);
+        //cells[i].fX +=  eX[node_nuc];
+
+//fprintf(stdout,"%f\n", scaledprob2prob(poahmm->MX));
+        poahmm->r_score = r_score +poahmm->YY_boundary_exit;
+
         return OK;
 }
 
@@ -1696,6 +1710,8 @@ int reestimate_param_poahmm(struct poahmm* poahmm)
         poahmm->YM = poahmm->e_YM - sum;
         poahmm->YY = poahmm->e_YY - sum;
         poahmm->YX = poahmm->e_YX - sum;
+        //poahmm->YY_boundary = prob2scaledprob(base_error * indel_freq);
+        //poahmm->YY_boundary_exit = prob2scaledprob( 1.0 - (base_error * indel_freq));
 
         RUN(set_pseudocount(poahmm, 0.05,0.1));
         return OK;
@@ -1729,6 +1745,8 @@ int set_pseudocount(struct poahmm* poahmm, double base_error, double indel_freq)
         poahmm->emission_X[4] = prob2scaledprob(1.0f);// buffer for start and stop
         poahmm->emission_Y[4] = prob2scaledprob(1.0f);// buffer for start and stop
 
+
+        //LOG_MSG("len: %d %d", poahmm->min_model_len, poahmm->max_model_len);
         poahmm->e_MM = prob2scaledprob( 1.0 - (base_error * indel_freq));
         poahmm->e_MX = prob2scaledprob(base_error * indel_freq/ 2.0);
         poahmm->e_MY = prob2scaledprob(base_error * indel_freq/ 2.0);
@@ -1741,6 +1759,10 @@ int set_pseudocount(struct poahmm* poahmm, double base_error, double indel_freq)
         poahmm->e_YX = prob2scaledprob(0.0f);
         poahmm->e_YY = prob2scaledprob(base_error * indel_freq);
 
+        poahmm->YY_boundary = prob2scaledprob(base_error * indel_freq);
+        poahmm->YY_boundary_exit = prob2scaledprob( 1.0 - (base_error * indel_freq));
+
+        //exit(0);
         return OK;
 }
 

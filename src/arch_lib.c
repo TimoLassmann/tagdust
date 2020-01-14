@@ -150,9 +150,9 @@ ERROR:
 int assign_segment_sequences(struct read_structure* read_structure, char* tmp, int segment)
 {
 
-        int i,f,g;
-        int count;
-        int len;
+        //int i,f,g;
+        //int count;
+        //int len;
 
         //struct segment_specs* s = NULL;
 
@@ -570,6 +570,8 @@ int sanity_check_arch_lib(struct arch_library* al)
 ERROR:
         return FAIL;
 }
+
+
 
 
 

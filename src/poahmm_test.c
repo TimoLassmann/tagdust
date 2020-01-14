@@ -54,7 +54,6 @@ int print_path(struct poahmm* poahmm, uint32_t* path,char* seq,char* label);
 int print_poahmm_param(struct poahmm* poahmm);
 int poahmm_to_dot(struct poahmm* poahmm,char* filename);
 
-
 int test_model_init(struct shared_sim_data* sd);
 int test_simple_N_plus_arch(struct shared_sim_data* sd);
 int test_banded(struct shared_sim_data* sd);
@@ -184,7 +183,7 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
         RUN(read_arch_into_lib(sd->al, in, size));
         for(i = 0; i < sd->al->num_arch;i++){
 
-                LOG_MSG("Working with: %s",sd->al->spec_line[i]);
+                LOG_MSG("Arch %d:  %s",i,sd->al->spec_line[i]);
         }
 
 
@@ -198,10 +197,12 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
         poahmm_to_dot(poahmm, "test.dot");
 
 
+        //LOG_MSG("MM N : %f %f", scaledprob2prob(poahmm->MM), (1.0/16.0));
+        //LOG_MSG("YY B : %f %f", scaledprob2prob(poahmm->YY_boundary ), scaledprob2prob(poahmm->background[1]));
+
         //RUN(set_random_scores(poahmm, 50));
-        LOG_MSG("Model_len: %d -%d ", poahmm->min_model_len,poahmm->max_model_len);
-        //exit(0);
-        for(i = poahmm->min_model_len ;i <=  poahmm->max_model_len+10;i++){
+        //LOG_MSG("Model_len: %d -%d ", poahmm->min_model_len,poahmm->max_model_len);
+        for(i = poahmm->min_model_len ;i <=  poahmm->max_model_len;i++){
                 for(base_q = 40; base_q >= 40;base_q -= 5){
                 //RUN(sim_seq_from_read_struct(&sd->seq, sd->al->read_structure[active_read_structure ] , i, sd->main_rng));
                 //RUN(generate_random_seq(sd->seq->seq, i, sd->main_rng));
@@ -225,7 +226,7 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
                         }
 
 
-                        set_terminal_gap_prob(poahmm, i);
+                        //set_terminal_gap_prob(poahmm, i);
                         //LOG_MSG("%f %f", scaledprob2prob(poahmm->YY_boundary), scaledprob2prob(poahmm->YY_boundary_exit));
                         error_rate = 0.05f;
                         for(j = 0; j < num_tests; j++){
@@ -237,13 +238,14 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
 
 
                                 RUN(viterbi_poahmm_banded(poahmm,i_seq, sd->seq->qual, i_len,path,2));
-                                random_poahmm(poahmm, i_seq, i_len);
+                                //random_poahmm(poahmm, i_seq, i_len);
                                 RUN(score_labelling(poahmm, path,sd->seq->label, &accuracy));
 
 
-                                e = poahmm->f_score - poahmm->r_score;//  poahmm->random_scores[i];
+                                e = poahmm->f_score - poahmm->random_scores[i] ;//  poahmm->random_scores[i];
                                 e = exp2f(e) / (1.0 + exp2f(e));
-                                fprintf(stdout,"%d a:%f e:%f F:%5.3f\tR:%5.3f nume:%d\n",i,accuracy,e, poahmm->f_score, poahmm->r_score, num_error);
+                                LOG_MSG("Len: %d:", i);
+                                fprintf(stdout,"%d a:%f e:%f F:%5.3f\tR:%5.3f nume:%d\n",i,accuracy,e, poahmm->f_score, poahmm->random_scores[i],  num_error);
                                 RUN(print_path(poahmm,path ,sd->seq->buffer, sd->seq->label ));
                                 //e = scaledprob2prob(e);
                                 if(e - 0.0001 >= 0.5f){
@@ -398,7 +400,7 @@ int test_banded(struct shared_sim_data* sd)
                 //RUN(seq_to_internal(sd->seq->seq, i, &i_seq, &i_len));
                 //poahmm->r_len = 1.0f;//   MACRO_MAX(1, i - poahmm->max_rank);
 
-                set_terminal_gap_prob(poahmm, i);
+                //set_terminal_gap_prob(poahmm, i);
                 if(i >= poahmm->alloc_seq_len){
                         LOG_MSG("Resize");
                         resize_poahmm(poahmm, poahmm->num_nodes, i);

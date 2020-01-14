@@ -7,15 +7,22 @@
 
 
 #include "arch_lib.h"
+#include "arch_lib_sim.h"
 #include "seq_stats.h"
-#include "hmm_model_bag.h"
-#include "core_hmm_functions.h"
+//#include "hmm_model_bag.h"
+//#include "core_hmm_functions.h"
+
+
+#include "poahmm.h"
+#include "poahmm_structs.h"
+#include "init_poahmm.h"
 
 
 #define NUM_TEST_SEQ 1000
 
 struct calibrate_seq{
         uint8_t* seq;
+        uint8_t* qual;
         int len;
         uint8_t type;
         float Q;
@@ -27,11 +34,11 @@ struct calibrate_buffer{
 };
 
 
+static int generate_test_sequences(struct  calibrate_buffer** ri_b, struct read_structure* rs  ,double mean,double stdev,struct rng_state* rng , struct alphabet* a);
 
-static int generate_test_sequences(struct  calibrate_buffer** ri_b, struct model_bag* mb,double mean,double stdev,struct rng_state* rng);
 
+static int run_scoring(struct poahmm* poahmm, struct calibrate_buffer* cb);
 
-static int run_scoring(struct model_bag* mb, struct calibrate_buffer* cb);
 static int qsort_cb_q_compare(const void *a, const void *b);
 static int calibrate(struct arch_library* al, struct seq_stats* si,int* seeds,int i_file,int i_hmm);
 
@@ -70,6 +77,8 @@ ERROR:
 
 int calibrate(struct arch_library* al, struct seq_stats* si,int* seeds,int i_file,int i_hmm)
 {
+        struct global_poahmm_param* p = NULL;
+        struct poahmm* poahmm = NULL;
         struct model_bag* mb = NULL;
         struct calibrate_buffer* cb = NULL;
         struct rng_state* local_rng = NULL;
@@ -93,7 +102,10 @@ int calibrate(struct arch_library* al, struct seq_stats* si,int* seeds,int i_fil
         TN = 0.0;
         FN = 0.0;
 
-        RUN(init_model_bag(&mb,al->read_structure[i_hmm], si->ssi[i_file], si->a, i_hmm));
+
+
+
+        /*RUN(init_model_bag(&mb,al->read_structure[i_hmm], si->ssi[i_file], si->a, i_hmm));
         ASSERT(mb!= NULL, "Could not init model...");
         for(i = 0; i < mb->num_models;i++){
 
@@ -103,24 +115,27 @@ int calibrate(struct arch_library* al, struct seq_stats* si,int* seeds,int i_fil
                         }
                         mb->model[i]->silent_to_M[0][0] = prob2scaledprob(0.0);
                 }
-                /*if(al->read_structure[i_hmm]->type[i] == 'S'){
-                        for(j = 0 ; j < mb->model[i]->num_hmms-1;j++){
-                                mb->model[i]->silent_to_M[j][0] = prob2scaledprob(1.0 / (float)( mb->model[i]->num_hmms-1));
-                        }
-                        mb->model[i]->silent_to_M[mb->model[i]->num_hmms-1][0] = prob2scaledprob(0.0);
-                        }*/
-        }
+        }*/
 
         RUNP(local_rng = init_rng(seeds[i_file]));
-        RUN(generate_test_sequences(&cb, mb, si->ssi[i_file]->mean_seq_len,si->ssi[i_file]->stdev_seq_len,local_rng));
-        free_model_bag(mb);
-        mb = NULL;
+        RUN(generate_test_sequences(&cb, al->read_structure[i_hmm], si->ssi[i_file]->mean_seq_len,si->ssi[i_file]->stdev_seq_len,local_rng,si->a));
 
 
-        RUN(init_model_bag(&mb,al->read_structure[i_hmm], si->ssi[i_file],si->a, i_hmm));
+        //RUN(init_model_bag(&mb,al->read_structure[i_hmm], si->ssi[i_file],si->a, i_hmm));
+        MMALLOC(p, sizeof(struct global_poahmm_param));
+        p->min_seq_len = si->ssi[i_file]->average_length;
+        p->max_seq_len = si->ssi[i_file]->max_seq_len+1;
+        p->base_error = 0.05f;
+        p->indel_freq = 0.1f;
+        for(i =0; i < 5;i++){
+                p->back[i] = si->ssi[i_file]->background[i];
+        }
 
-        RUN(run_scoring(mb, cb));
-        free_model_bag(mb);
+
+        RUN(poahmm_from_read_structure(&poahmm, p,al->read_structure[i_hmm],  si->a));
+        RUN(run_scoring(poahmm, cb));
+        free_poahmm(poahmm);
+        //free_model_bag(mb);
 
         /* Do I set thresholds at all???  */
         tmp=0.0;
@@ -217,19 +232,19 @@ SKIP:
         MFREE(cb->seq);
         MFREE(cb);
         free_rng(local_rng);
-
+        MFREE(p);
 
         return OK;
 ERROR:
         return FAIL;
 }
 
-static int generate_test_sequences(struct  calibrate_buffer** ri_b, struct model_bag* mb,double mean,double stdev,struct rng_state* rng)
+static int generate_test_sequences(struct  calibrate_buffer** ri_b, struct read_structure* rs  ,double mean,double stdev,struct rng_state* rng , struct alphabet* a)
 {
 
         struct calibrate_buffer* cb = NULL;
 
-        int i,j;
+        int i,j,c;
         int t_len;
 
         MMALLOC(cb, sizeof(struct calibrate_buffer));
@@ -242,6 +257,7 @@ static int generate_test_sequences(struct  calibrate_buffer** ri_b, struct model
                 MMALLOC(cb->seq[i], sizeof(struct calibrate_seq));
                 cb->seq[i]->len = 0;
                 cb->seq[i]->seq = NULL;
+                cb->seq[i]->qual = NULL;
                 cb->seq[i]->type = 0;
         }
 
@@ -251,15 +267,24 @@ static int generate_test_sequences(struct  calibrate_buffer** ri_b, struct model
         j = NUM_TEST_SEQ /2;
         for(i = 0; i < j;i++){
                 t_len = (int) round(tl_random_gaussian(rng, mean, stdev));
-                RUN(emit_read_sequence(mb, &cb->seq[i]->seq, &cb->seq[i]->len, t_len, rng));
+                RUN(emit_from_rs(rs, rng,a, &cb->seq[i]->seq,&cb->seq[i]->qual,  &cb->seq[i]->len, t_len));
+                //RUN(emit_read_sequence(mb, &cb->seq[i]->seq, &cb->seq[i]->len, t_len, rng));
                 cb->seq[i]->type = 0;
         }
         for(i = j; i < NUM_TEST_SEQ ;i++){
                 t_len = (int) round(tl_random_gaussian(rng, mean, stdev));
                 /* makesure t_len is >= the minimum length the model can handle. */
-                t_len = MACRO_MAX(mb->min_len, t_len);
-                //LOG_MSG("Generating %d min: %d",t_len,mb->min_len);
-                RUN(emit_random_sequence(mb, &cb->seq[i]->seq, &cb->seq[i]->len, t_len, rng));
+                t_len = MACRO_MAX(10, t_len);
+
+                MMALLOC(cb->seq[i]->seq, sizeof(uint8_t) * t_len);
+                MMALLOC(cb->seq[i]->qual, sizeof(uint8_t) * t_len);
+                for(c = 0; c < t_len;c++){
+                        cb->seq[i]->seq[c] = tl_random_int(rng, 4);
+                        cb->seq[i]->qual[c] = tl_random_gaussian(rng, 20.0, 2.0);
+                        //s->label[l] = etype[spec->extract];
+
+                }
+                cb->seq[i]->len = t_len;
                 cb->seq[i]->type = 1;
 
                 //fprintf(stdout,"%d ", ri[i]->len);
@@ -272,30 +297,34 @@ ERROR:
         return FAIL;
 }
 
-int run_scoring(struct model_bag* mb, struct calibrate_buffer* cb)
+int run_scoring(struct poahmm* poahmm, struct calibrate_buffer* cb)
 {
         float pbest = 0.0f;
         float Q = 0.0f;
         int i;
         uint8_t* seq = NULL;
+        uint8_t* qual = NULL;
         int len;
         for(i = 0; i < NUM_TEST_SEQ;i++){
 
                 seq = cb->seq[i]->seq;
+                qual= cb->seq[i]->qual;
                 len = cb->seq[i]->len;
 
+                LOG_MSG("LEN: %d    model: %d %d %d", len, poahmm->min_model_len, poahmm->max_model_len,poahmm->alloc_seq_len);
+                viterbi_poahmm_banded(poahmm, seq, qual, len, NULL, 2);
 
-                RUN(backward(mb, seq,len));
+                //RUN(backward(mb, seq,len));
 
+                pbest = 1.0 - scaledprob2prob(poahmm->f_score - poahmm->random_scores[len]);
 
-
-                RUN(forward_max_posterior_decoding(mb,seq,NULL,len));
-                RUN(random_score(mb, seq, len));
+                //RUN(forward_max_posterior_decoding(mb,seq,NULL,len));
+                //RUN(random_score(mb, seq, len));
 
 
                 //pbest = prob2scaledprob(0.0f);
                 //fprintf(stdout,"%d %f\n",i, pbest);
-                pbest = logsum(mb->f_score + mb->bar_score,mb->r_score);
+                //pbest = logsum(mb->f_score + mb->bar_score,mb->r_score);
                         //pbest = logsum(pbest, mb->r_score);
                 //LOG_MSG("%d %f %f %f %f sum:%f %d", len,mb->f_score, mb->b_score, mb->r_score,mb->bar_score, pbest, cb->seq[i]->type);
                 //                pbest = 1.0 - scaledprob2prob(  (mb->bar_score + mb->f_score ) - pbest);
@@ -303,7 +332,7 @@ int run_scoring(struct model_bag* mb, struct calibrate_buffer* cb)
 
                 //LOG_MSG("M:%f R:%f   best:%f",scaledprob2prob(mb->f_score+mb->bar_score  - pbest),scaledprob2prob(mb->r_score  - pbest),pbest);
 
-                pbest = 1.0 - scaledprob2prob(mb->f_score+mb->bar_score  - pbest);
+                //pbest = 1.0 - scaledprob2prob(mb->f_score+mb->bar_score  - pbest);
                 if(!pbest){
                         Q = 40.0;
                 }else if(pbest == 1.0){

@@ -40,7 +40,6 @@ int poahmm_from_read_structure(struct poahmm** poahmm,struct global_poahmm_param
 
         random = 1;
 
-        LOG_MSG("Plus : %d -  %d", p->min_seq_len,p->max_seq_len);
         RUN(set_len_of_unknown_poa(rs,&plus_min_len,&plus_max_len, p->min_seq_len, p->max_seq_len));
 
         if(plus_max_len == -1 || plus_min_len == -1){
@@ -48,7 +47,6 @@ int poahmm_from_read_structure(struct poahmm** poahmm,struct global_poahmm_param
                 *poahmm = ph;
                 return OK;
         }
-        LOG_MSG("Plus : %d -  %d", plus_min_len,plus_max_len);
         RUN(init_nodes_from_read_structure(ph, rs,a,random, plus_min_len, plus_max_len));
 
 
@@ -76,7 +74,7 @@ int poahmm_from_read_structure(struct poahmm** poahmm,struct global_poahmm_param
         for(i = ph->min_model_len; i <=  ph->max_model_len;i++){
                 //LOG_MSG("tsting length : %d (seq_len: %d)", i, c);
                 //for(c = 0; c < 10;c++){
-                set_terminal_gap_prob(ph, i);
+                //set_terminal_gap_prob(ph, i);
                 RUN(viterbi_poahmm_banded(ph, nnn,qqq, i, path,1));
                 ph->random_scores[i] = ph->f_score;
 
@@ -87,6 +85,7 @@ int poahmm_from_read_structure(struct poahmm** poahmm,struct global_poahmm_param
         MFREE(qqq);
 
         RUN(init_nodes_from_read_structure(ph, rs,a,0, plus_min_len,plus_max_len));
+
         *poahmm = ph;
         return OK;
 ERROR:
@@ -161,8 +160,6 @@ int init_nodes_from_read_structure(struct poahmm* poahmm, struct read_structure*
                 poahmm->e_exit_probabilities[i] = 0.0;
         }
 
-        poahmm->YY_boundary = prob2scaledprob(0.0f);
-        poahmm->YY_boundary_exit = prob2scaledprob(1.0f);
         MMALLOC(e_nodes, sizeof(int) * num_nodes*2);
         MMALLOC(b_nodes, sizeof(int) * num_nodes*2);
         MMALLOC(e_nodes_new, sizeof(int) * num_nodes*2);

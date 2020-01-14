@@ -39,6 +39,8 @@ interface.h \
 interface.c \
 arch_lib.h \
 arch_lib.c \
+arch_lib_sim.h \
+arch_lib_sim.c \
 arch_lib_parse_token.h \
 arch_lib_parse_token.c \
 seq_stats.h \
