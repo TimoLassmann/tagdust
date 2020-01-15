@@ -9,7 +9,9 @@ AM_LDFLAGS += -Wno-undef
 
 LIBS = @TLDEVEL_LIB@ $(HDF5_LDFLAGS)  $(HDF5_LIBS) -lm
 
-bin_PROGRAMS = tagdust pst poahmm 
+bin_PROGRAMS = tagdust pst poahmm  correct_test
+
+
 
 poahmm_SOURCES = \
 poahmm_test.c \
@@ -32,6 +34,12 @@ pst.c \
 pst_test.c \
 sim_seq_lib.h \
 sim_seq_lib.c
+
+correct_test_SOURCES = \
+correct.h \
+correct.c \
+correct_test.c
+
 
 tagdust_SOURCES = \
 main.c \
