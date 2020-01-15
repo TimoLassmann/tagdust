@@ -1010,7 +1010,7 @@ int viterbi_poahmm_banded(struct poahmm* poahmm,const uint8_t* seq, const uint8_
         if (bw < abs(len - poahmm->max_model_len)) bw = abs(len - poahmm->max_model_len  );
 
         register int s,e,x;
-        LOG_MSG("bw:%d", bw);
+        //LOG_MSG("bw:%d", bw);
         //qsort(poahmm->rank_sorted_nodes,poahmm->num_nodes,sizeof(struct poahmm_node*), cmp_node_rank_low_to_high);
 
         cells = poahmm->begin->cells;
@@ -1029,7 +1029,7 @@ int viterbi_poahmm_banded(struct poahmm* poahmm,const uint8_t* seq, const uint8_
         // start proper DP.
         for(j = 0;  j < poahmm->num_nodes;j++){
                 node_id = poahmm->rank_sorted_nodes[j]->identifier;
-                LOG_MSG("Start with node: %d (rank: %d)",node_id,poahmm->rank_sorted_nodes[j]->rank);
+                //LOG_MSG("Start with node: %d (rank: %d)",node_id,poahmm->rank_sorted_nodes[j]->rank);
                 node_nuc = poahmm->nodes[node_id]->nuc;
                 cells = poahmm->nodes[node_id]->cells;
 
@@ -1038,7 +1038,7 @@ int viterbi_poahmm_banded(struct poahmm* poahmm,const uint8_t* seq, const uint8_
 
                 x = poahmm->nodes[node_id]->rank - bw; s = s > x ? s : x;
                 x = poahmm->nodes[node_id]->rank+1 + bw; e = e < x ? e : x;
-                LOG_MSG("NODE: %d at rank %d: %d - %d (old: %d -%d)",node_id,  poahmm->nodes[node_id]->rank,s,e, 0, len);
+                //LOG_MSG("NODE: %d at rank %d: %d - %d (old: %d -%d)",node_id,  poahmm->nodes[node_id]->rank,s,e, 0, len);
 
                 if(s == 0){
                         i = 0;
@@ -1073,7 +1073,7 @@ int viterbi_poahmm_banded(struct poahmm* poahmm,const uint8_t* seq, const uint8_
                 }
                 //LOG_MSG("FX: %f", cells[i].fX);
                 //s++;
-                for(i = s; i < e;i++){
+                for(i = s; i <= e;i++){
 
                         //for(i = 1; i < len;i++){
                         //index_dp = &cells[i].f;
@@ -1144,18 +1144,26 @@ int viterbi_poahmm_banded(struct poahmm* poahmm,const uint8_t* seq, const uint8_
                                 //cells[i].fM = logsum(cells[i].fM, prev_cells[i-1].fY  + YM + tmp);// poahmm->poa_graph[n][node_id]);
 
                                 if((new_max  = prev_cells[i].fM + MX+ tmp)  > cells[i].fX){
-                                        cells[i].fX = new_max;
-                                        cells[i].X_to_state = n;
+                                        cells[i].fX = new_max;                                        cells[i].X_to_state = n;
                                         cells[i].X_trans = TO_M;
 
                                 }
 
                                 //cells[i].fX = logsum(cells[i].fX, prev_cells[i].fM + MX+ tmp);// poahmm->poa_graph[n][node_id]);
-                                if((new_max  = prev_cells[i].fX  + XX + tmp)  > cells[i].fX){
-                                        cells[i].fX = new_max;
-                                        cells[i].X_to_state = n;
-                                        cells[i].X_trans = TO_X;
+                                if(i == len){
+                                        if((new_max  = prev_cells[i].fX  + YY_boundary + tmp)  > cells[i].fX){
+                                                cells[i].fX = new_max;
+                                                cells[i].X_to_state = n;
+                                                cells[i].X_trans = TO_X;
 
+                                        }
+                                }else{
+                                        if((new_max  = prev_cells[i].fX  + XX + tmp)  > cells[i].fX){
+                                                cells[i].fX = new_max;
+                                                cells[i].X_to_state = n;
+                                                cells[i].X_trans = TO_X;
+
+                                        }
                                 }
                                 //cells[i].fX = logsum(cells[i].fX, prev_cells[i].fX  + XX + tmp);//poahmm->poa_graph[n][node_id]  );
 
@@ -1179,113 +1187,6 @@ int viterbi_poahmm_banded(struct poahmm* poahmm,const uint8_t* seq, const uint8_
                         cells[i].fY += eY[seq[i]];
                 }
 
-                if(e != len){
-
-                        cells[e].fM = prob2scaledprob(0.0);
-                        cells[e].fX= prob2scaledprob(0.0);
-                        cells[e].fY= prob2scaledprob(0.0);
-                        cells[len].fM = prob2scaledprob(0.0);
-                        cells[len].fX= prob2scaledprob(0.0);
-                        cells[len].fY= prob2scaledprob(0.0);
-
-                }else{
-                        i = len;
-                        prev_cells = poahmm->begin->cells;
-                        tmp =YY_boundary_exit+entry[node_id];
-                        //LOG_MSG("%d %d len:%d", node_id, i-1,len);
-                        cells[i].fM = prev_cells[i-1].fY + MM + tmp;//YY_boundary_exit+entry[node_id];
-                        cells[i].M_to_state = START_STATE;
-                        cells[i].M_trans = TO_B;
-
-                        cells[i].fX =  prev_cells[i].fY + MX + tmp;//YY_boundary_exit+entry[node_id];
-                        cells[i].X_to_state = START_STATE;
-                        cells[i].X_trans = TO_B;
-
-                        cells[i].fY =  prev_cells[i-1].fY + MY + tmp;//YY_boundary_exit+entry[node_id];
-                        cells[i].Y_to_state = START_STATE;
-                        cells[i].Y_trans = TO_B;
-
-
-                        if((new_max =cells[i-1].fY+ YY) > cells[i].fY ){
-                                cells[i].fY = new_max;
-                                cells[i].Y_to_state = node_id;
-                                cells[i].Y_trans = TO_Y;
-
-
-                        }
-                        //cells[i].fY = logsum(cells[i].fY,cells[i-1].fY+ YY);
-
-                        if((new_max = cells[i-1].fM + MY) > cells[i].fY ){
-                                cells[i].fY = new_max;
-                                cells[i].Y_to_state = node_id;
-                                cells[i].Y_trans = TO_M;
-
-
-                        }
-                        //cells[i].fY = logsum(cells[i].fY,cells[i-1].fM + MY);
-
-                        if((new_max = cells[i-1].fX + XY) > cells[i].fY ){
-                                cells[i].fY = new_max;
-                                cells[i].Y_to_state = node_id;
-                                cells[i].Y_trans = TO_X;
-
-
-                        }
-                        //cells[i].fY = logsum(cells[i].fY,cells[i-1].fX + XY);
-
-
-                        for(c = 1; c < poahmm->to_tindex[node_id][0];c++){
-                                n = poahmm->to_tindex[node_id][c];
-                                prev_cells = poahmm->nodes[n]->cells;
-                                tmp = poahmm->poa_graph[n][node_id];
-
-
-                                if((new_max =  prev_cells[i-1].fM + MM + tmp) > cells[i].fM){
-                                        cells[i].fM  = new_max;
-                                        cells[i].M_to_state = n;
-                                        cells[i].M_trans = TO_M;
-                                }
-                                //cells[i].fM = logsum(cells[i].fM, prev_cells[i-1].fM + MM + tmp);// poahmm->poa_graph[n][node_id]);
-                                if((new_max = prev_cells[i-1].fX  + XM + tmp) > cells[i].fM){
-                                        cells[i].fM = new_max;
-                                        cells[i].M_to_state = n;
-                                        cells[i].M_trans = TO_X;
-                                }
-                                //cells[i].fM = logsum(cells[i].fM, prev_cells[i-1].fX  + XM + tmp);// poahmm->poa_graph[n][node_id]);
-                                if((new_max = prev_cells[i-1].fY  + YM + tmp) > cells[i].fM){
-                                        cells[i].fM = new_max;
-                                        cells[i].M_to_state = n;
-                                        cells[i].M_trans = TO_Y;
-                                }
-                                //cells[i].fM = logsum(cells[i].fM, prev_cells[i-1].fY  + YM + tmp);// poahmm->poa_graph[n][node_id]);
-                                if((new_max  = prev_cells[i].fM + MX+ tmp)  > cells[i].fX){
-                                        cells[i].fX = new_max;
-                                        cells[i].X_to_state = n;
-                                        cells[i].X_trans = TO_M;
-
-                                }
-
-                                //cells[i].fX = logsum(cells[i].fX, prev_cells[i].fM  + MX + tmp);// poahmm->poa_graph[n][node_id]);
-                                if((new_max  = prev_cells[i].fX  + YY_boundary + tmp)  > cells[i].fX){
-                                        cells[i].fX = new_max;
-                                        cells[i].X_to_state = n;
-                                        cells[i].X_trans = TO_X;
-
-                                }
-                                //cells[i].fX = logsum(cells[i].fX, prev_cells[i].fX + YY_boundary + tmp);// poahmm->poa_graph[n][node_id]  );
-                                if((new_max  = prev_cells[i].fY  + YX + tmp)  > cells[i].fX){
-                                        cells[i].fX = new_max;
-                                        cells[i].X_to_state = n;
-                                        cells[i].X_trans = TO_Y;
-
-                                }
-                                //cells[i].fX = logsum(cells[i].fX, prev_cells[i].fY + YX + tmp);// poahmm->poa_graph[n][node_id]  );
-                        }
-                        cells[i].fM +=get_qsubscore(qsub, node_nuc, seq[i], qual[i]);
-                        //cells[i].fM += eM[node_nuc][seq[i]];
-                        cells[i].fX += eR[node_nuc];
-                        cells[i].fY += eY[seq[i]];
-                }
 
         }
 

@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
         LOG_MSG("-----------------------------------");
         LOG_MSG("Simple plus test");
         LOG_MSG("-----------------------------------");
-        //RUN(test_simple_N_plus_arch(sim_data));
+        RUN(test_simple_N_plus_arch(sim_data));
         //RUN(test_indel(sim_data));
         //RUN(single_seq_test());
         //RUN(arch_test());
@@ -262,7 +262,7 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
 
         int active_read_structure;
 
-        int num_tests = 100;
+        int num_tests = 10000;
         size = sizeof(in) / sizeof(char*);
 
         MMALLOC(path, sizeof(int)*1024);
@@ -294,7 +294,7 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
         //RUN(set_random_scores(poahmm, 50));
         //LOG_MSG("Model_len: %d -%d ", poahmm->min_model_len,poahmm->max_model_len);
         for(i = poahmm->min_model_len ;i <=  poahmm->max_model_len;i++){
-                for(base_q = 40; base_q >= 0;base_q -= 5){
+                for(base_q = 40; base_q >= 5;base_q -= 5){
                 //RUN(sim_seq_from_read_struct(&sd->seq, sd->al->read_structure[active_read_structure ] , i, sd->main_rng));
                 //RUN(generate_random_seq(sd->seq->seq, i, sd->main_rng));
                 //RUN(generate_random_seq(&seq, &i, sd->main_rng ));
@@ -316,10 +316,9 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
                                 stats.pass = 0.0;
                         }
 
-
                         //set_terminal_gap_prob(poahmm, i);
                         //LOG_MSG("%f %f", scaledprob2prob(poahmm->YY_boundary), scaledprob2prob(poahmm->YY_boundary_exit));
-                        error_rate = 0.05f;
+                        error_rate = 0.3f;
                         for(j = 0; j < num_tests; j++){
                                 //error_rate += 0.001f;
                                 RUN(sim_seq_from_read_struct(&sd->seq, sd->al->read_structure[active_read_structure ] , i,base_q,sd->main_rng));
@@ -328,16 +327,16 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
                                 RUN(seq_to_internal(sd->seq->buffer, i, &i_seq, &i_len));
 
 
-                                RUN(viterbi_poahmm_banded(poahmm,i_seq, sd->seq->qual, i_len,path,0));
+                                RUN(viterbi_poahmm_banded(poahmm,i_seq, sd->seq->qual, i_len,path,2));
                                 //random_poahmm(poahmm, i_seq, i_len);
                                 RUN(score_labelling(poahmm, path,sd->seq->label, &accuracy));
 
 
                                 e = poahmm->f_score - poahmm->random_scores[i] ;//  poahmm->random_scores[i];
                                 e = exp2f(e) / (1.0 + exp2f(e));
-                                LOG_MSG("Len: %d:", i);
-                                fprintf(stdout,"%d a:%f e:%f F:%5.3f\tR:%5.3f nume:%d\n",i,accuracy,e, poahmm->f_score, poahmm->random_scores[i],  num_error);
-                                RUN(print_path(poahmm,path ,sd->seq->buffer, sd->seq->label ));
+                                //LOG_MSG("Len: %d:", i);
+                                //fprintf(stdout,"%d a:%f e:%f F:%5.3f\tR:%5.3f nume:%d\n",i,accuracy,e, poahmm->f_score, poahmm->random_scores[i],  num_error);
+                                //RUN(print_path(poahmm,path ,sd->seq->buffer, sd->seq->label ));
                                 //e = scaledprob2prob(e);
                                 if(e - 0.0001 >= 0.5f){
                                         stats.pass++;
@@ -1260,7 +1259,7 @@ int sim_seq_from_read_struct(struct sim_seq** simseq, struct read_structure* rs,
                 c = 0;
                 for(i = 0; i < rs->num_segments;i++){
                         spec = rs->seg_spec[i];
-                        print_segment_spec(spec);
+                        //print_segment_spec(spec);
                         if(spec->max_len == INT32_MAX){
                                 g = tl_random_int(rng, plus_max_len - plus_min_len) + plus_min_len;
                         }else{
