@@ -258,6 +258,10 @@ int alloc_seq_bit(struct seq_bit** sb)
         b->p.m = 0;
         b->p.s = NULL;
 
+        b->p_corr.l = 0;
+        b->p_corr.m = 0;
+        b->p_corr.s = NULL;
+
         b->q.l = 0;
         b->q.m = 0;
         b->q.s = NULL;

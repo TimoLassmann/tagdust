@@ -38,6 +38,8 @@ sim_seq_lib.c
 correct_test_SOURCES = \
 correct.h \
 correct.c \
+base_quality.h \
+base_quality.c \
 correct_test.c
 
 

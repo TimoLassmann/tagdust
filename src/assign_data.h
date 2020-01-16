@@ -16,10 +16,13 @@
 #define READ_FAILR 2
 #define READ_FAILP 4
 #define READ_NBAR 8
+#define READ_FAILC 16
+
 
 struct seq_bit{
         struct seq_bit* next;
         kstring_t p;
+        kstring_t p_corr;
         kstring_t q;
         char code;
         uint8_t type;
