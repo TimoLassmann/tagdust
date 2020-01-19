@@ -9,7 +9,7 @@
 
 #include "base_quality.h"
 
-#include "assign_data.h"
+//#include "assign_data.h"
 
 #ifdef CORRECT_IMPORT
 #define EXTERN
@@ -21,7 +21,8 @@
 KHASH_MAP_INIT_INT(exact, int)
 
 
-EXTERN int ref_correct(khash_t(exact) * h ,struct qsubscore* subm, struct seq_bit* sb, int q_offset);
+
+//EXTERN int ref_correct(khash_t(exact) * h ,struct qsubscore* subm, struct seq_bit* sb, int q_offset);
 
 EXTERN int fill_exact_hash(khash_t(exact) ** hash, struct tl_seq_buffer* sb);
 

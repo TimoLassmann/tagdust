@@ -1,6 +1,9 @@
 #ifndef ARCH_LIB_H
 #define ARCH_LIB_H
 
+#include "correct.h"
+
+
 #include <stdint.h>
 
 #define ARCH_ETYPE_EXTRACT 1
@@ -11,9 +14,15 @@
 #define ARCH_ETYPE_WOBBLE_LEFT 6
 #define ARCH_ETYPE_WOBBLE_RIGHT 7
 
+#define ARCH_ETYPE_APPEND_CORRECT 8
+
+
 
 struct segment_specs{
+        khash_t(exact)* bar_hash;
         char* name;
+        char* correct_name;
+        char* qual_name;
         char** seq;
         int num_seq;
         int max_len;

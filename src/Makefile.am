@@ -18,6 +18,7 @@ poahmm_test.c \
 init_poahmm.h \
 init_poahmm.c \
 poahmm.h \
+poahmm_structs.h \
 poahmm.c \
 base_quality.h \
 base_quality.c \
@@ -25,6 +26,8 @@ sim_seq_lib.h \
 sim_seq_lib.c \
 arch_lib.h \
 arch_lib.c \
+correct.h \
+correct.c \
 arch_lib_parse_token.h \
 arch_lib_parse_token.c 
 
@@ -71,6 +74,7 @@ extract_reads.h \
 extract_reads.c \
 assign_data.h \
 assign_data.c \
+assign_actions.c \
 filter.h \
 filter.c \
 bpm.h \
@@ -78,11 +82,14 @@ bpm.c \
 pst.h \
 pst.c \
 init_poahmm.h \
+poahmm_structs.h \
 init_poahmm.c \
 poahmm.h \
 poahmm.c \
+correct.h \
+correct.c \
 base_quality.h \
-base_quality.c
+base_quality.c 
 
 
 

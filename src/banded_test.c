@@ -9,14 +9,14 @@
 uint8_t dyn_256_print(const uint8_t* t,const uint8_t* p,int n,int m);
 
 
-int main(int argc, char *argv[])
+int main(void)
 {
 
         struct alphabet* alphabet = NULL;
         struct rng_state* rng;
         //long int r;
         int len = 0;
-        int i,j,c;
+        int i;
         uint8_t* a = NULL;
         uint8_t* b = NULL;
         uint8_t score;
@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
         score = dyn_256_print(a,b,12,10);
 
         score = dyn_256_print(a,b,10,12);
-
+        LOG_MSG("%d ",score);
         return EXIT_SUCCESS;
 ERROR:
         return EXIT_FAILURE;

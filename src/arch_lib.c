@@ -778,7 +778,25 @@ int test_token_parsing(void)
                 free_segment_spec(s);
         }
 
-        //free_segment_spec(s);
+
+        /* New tagformat  */
+
+        snprintf(buffer, 256, "CR:CB:CZ:whitelist.txt");
+        status = parse_rs_token_message(buffer,&s);
+        if(status != OK){
+                ERROR_MSG("Parsing of %s failed", buffer);
+        }
+        free_segment_spec(s);
+
+        snprintf(buffer, 256, "CR:CB:whitelist.txt");
+        status = parse_rs_token_message(buffer,&s);
+        if(status != OK){
+                ERROR_MSG("Parsing of %s failed", buffer);
+        }
+        free_segment_spec(s);
+
+
+//free_segment_spec(s);
 
         return OK;
 ERROR:

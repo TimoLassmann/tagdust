@@ -61,9 +61,10 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd);
 int test_banded(struct shared_sim_data* sd);
 int test_indel(struct shared_sim_data* sd);
 int single_tests(struct shared_sim_data* sd);
-int run_single_test(struct shared_sim_data* sd, char** arch,int n, char* seq, float mean_q, float stdev_q);
 
-int main(int argc, char *argv[])
+int run_single_test(struct shared_sim_data* sd, char** arch,int n, char* seq,char* label, float mean_q, float stdev_q);
+
+int main(void)
 {
         struct shared_sim_data* sim_data=NULL;
         init_logsum();
@@ -106,8 +107,15 @@ int single_tests(struct shared_sim_data* sd)
         }
 
 
-        snprintf(arch[0], 20, "E:NNNNNN");
-        run_single_test(sd, arch, 1, "AAAAAA", 40, 1);
+        snprintf(arch[0], 50, "E:NNNNNN");
+        run_single_test(sd, arch, 1, "AAAAAA","EEEEEE", 40, 1);
+
+
+        snprintf(arch[0], 50, "S:NNNNNN");
+        snprintf(arch[1], 50, "R:N{2,4}");
+        run_single_test(sd, arch, 2, "ACGTACGGG","SSSSSSEEE", 40, 1);
+
+
 
         for(i = 0; i < 10;i++){
                 MFREE(arch[i]);
@@ -163,7 +171,7 @@ ERROR:
 /* 1) R+ */
 
 
-int run_single_test(struct shared_sim_data* sd, char** arch,int n, char* seq, float mean_q, float stdev_q)
+int run_single_test(struct shared_sim_data* sd, char** arch,int n, char* seq,char* label, float mean_q, float stdev_q)
 {
 
         struct poahmm* poahmm = NULL;
@@ -194,6 +202,8 @@ int run_single_test(struct shared_sim_data* sd, char** arch,int n, char* seq, fl
         active_read_structure = sd->al->num_arch -1;
         LOG_MSG("Working with: %s",sd->al->spec_line[active_read_structure]);
 
+        free_poahmm(poahmm);
+        poahmm = NULL;
         sd->gp->min_seq_len = 10;
         sd->gp->max_seq_len = 16;
         RUN(poahmm_from_read_structure(&poahmm, sd->gp, sd->al->read_structure[active_read_structure ], sd->a));
@@ -203,17 +213,21 @@ int run_single_test(struct shared_sim_data* sd, char** arch,int n, char* seq, fl
         MMALLOC(i_qual, sizeof(uint8_t) * (len+1));
         for(i = 0; i < len; i++){
                 i_seq[i] = tlalphabet_get_code(sd->a, seq[i]);
+
                 i_qual[i] = tl_random_gaussian(sd->main_rng, mean_q, stdev_q);
+                LOG_MSG("%c %d %d", seq[i],i_seq[i], i_qual[i]);
         }
-        RUN(viterbi_poahmm_banded(poahmm,i_seq, i_qual, len,path,0));
+        i_seq[len] = 0;
+        RUN(viterbi_poahmm_banded(poahmm,i_seq, i_qual, len,path,2));
 
 
         e = poahmm->f_score - poahmm->random_scores[i] ;//  poahmm->random_scores[i];
         e = exp2f(e) / (1.0 + exp2f(e));
         LOG_MSG("Len: %d:", i);
         fprintf(stdout,"e:%f F:%5.3f\tR:%5.3f\n",e, poahmm->f_score, poahmm->random_scores[i]);
-        RUN(print_path(poahmm,path ,sd->seq->buffer, sd->seq->label ));
+        RUN(print_path(poahmm,path ,seq,label));
 
+        sd->poahmm = poahmm;
         MFREE(path);
         MFREE(i_seq);
         MFREE(i_qual);
@@ -228,9 +242,9 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
         struct poahmm* poahmm = NULL;
         char* in[] = {
                 //"I:NNNNNN"
-                "R2:E:AAACCCGGGTTT",
-                "A:AA,TT"
-                "E:N"
+                "R2:E:N{4}",
+                "A:AA,TT",
+                "E:N{4}"
         };
 
         struct stats{
@@ -262,7 +276,7 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
 
         int active_read_structure;
 
-        int num_tests = 10000;
+        int num_tests = 1;
         size = sizeof(in) / sizeof(char*);
 
         MMALLOC(path, sizeof(int)*1024);
@@ -292,7 +306,7 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
         //LOG_MSG("YY B : %f %f", scaledprob2prob(poahmm->YY_boundary ), scaledprob2prob(poahmm->background[1]));
 
         //RUN(set_random_scores(poahmm, 50));
-        //LOG_MSG("Model_len: %d -%d ", poahmm->min_model_len,poahmm->max_model_len);
+        LOG_MSG("Model_len: %d -%d ", poahmm->min_model_len,poahmm->max_model_len);
         for(i = poahmm->min_model_len ;i <=  poahmm->max_model_len;i++){
                 for(base_q = 40; base_q >= 5;base_q -= 5){
                 //RUN(sim_seq_from_read_struct(&sd->seq, sd->al->read_structure[active_read_structure ] , i, sd->main_rng));
@@ -318,7 +332,7 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
 
                         //set_terminal_gap_prob(poahmm, i);
                         //LOG_MSG("%f %f", scaledprob2prob(poahmm->YY_boundary), scaledprob2prob(poahmm->YY_boundary_exit));
-                        error_rate = 0.3f;
+                        error_rate = 0.2f;
                         for(j = 0; j < num_tests; j++){
                                 //error_rate += 0.001f;
                                 RUN(sim_seq_from_read_struct(&sd->seq, sd->al->read_structure[active_read_structure ] , i,base_q,sd->main_rng));
@@ -335,8 +349,8 @@ int test_simple_N_plus_arch(struct shared_sim_data* sd)
                                 e = poahmm->f_score - poahmm->random_scores[i] ;//  poahmm->random_scores[i];
                                 e = exp2f(e) / (1.0 + exp2f(e));
                                 //LOG_MSG("Len: %d:", i);
-                                //fprintf(stdout,"%d a:%f e:%f F:%5.3f\tR:%5.3f nume:%d\n",i,accuracy,e, poahmm->f_score, poahmm->random_scores[i],  num_error);
-                                //RUN(print_path(poahmm,path ,sd->seq->buffer, sd->seq->label ));
+                                fprintf(stdout,"%d a:%f e:%f F:%5.3f\tR:%5.3f nume:%d\n",i,accuracy,e, poahmm->f_score, poahmm->random_scores[i],  num_error);
+                                RUN(print_path(poahmm,path ,sd->seq->buffer, sd->seq->label ));
                                 //e = scaledprob2prob(e);
                                 if(e - 0.0001 >= 0.5f){
                                         stats.pass++;
@@ -545,8 +559,8 @@ int test_indel(struct shared_sim_data* sd)
         uint32_t* path = NULL;
 
         int i_len;
-        int i;
-        int j;
+        //int i;
+        //int j;
 
         float e;
 
@@ -774,7 +788,7 @@ int print_path(struct poahmm* poahmm, uint32_t* path,char* seq,char* label)
 {
         uint32_t i;
         char alphabet[5] = "ACGTN";
-        char etype[6] = "_EASIP";
+        char etype[8] = "_EASIPLR";
 
         uint32_t seq_pos;
         uint32_t node_pos;
@@ -941,111 +955,6 @@ int print_poa_graph(struct poahmm* poahmm)
 
 
 
-int poahmm_to_dot(struct poahmm* poahmm,char* filename)
-{
-        FILE* fp_write;
-        static int node_number = 0;
-        int i,j;
-        int nuc = 0;
-
-        char color[10];
-
-        int min_color[5][3] = {
-                {5 ,255,5 }, // A green
-                {255 ,5,5}, // C red
-                {5 ,5,255}, // G blue
-                {255 ,255,5}, // T yellow
-                {125 ,125,125} // N black
-        };
-        int max_color[5][3] = {
-                {255 ,255 ,255}, // A green
-                {255 ,255 ,255}, // C red
-                {255 ,255 ,255}, // G blue
-                {255 ,255 ,255}, // T yellow
-                {255 ,255 ,255} // N
-        };
-        double max_val = 1.0;
-        /*for(i = 0 ;i < poahmm->num_nodes;i++){
-                if(poahmm->nodes[i]->total_signal > max_val){
-                        max_val = poahmm->nodes[i]->total_signal;
-                }
-                }*/
-
-        //fillcolor="#0000ff"
-
-        //if(!node_number){
-                RUNP(fp_write = fopen(filename, "w"));
-                //}else{
-                //RUNP(fp_write = fopen(filename, "a"));
-                //}
-        fprintf(fp_write, " // The graph name and the semicolons are optional\n");
-        fprintf(fp_write, "digraph graphname {\n");
-        //fprintf(fp_write, "graph [fontname=\"Monospace\"]\n");
-        fprintf(fp_write, "\"p\" [shape=record, label=\"Emission");
-
-        for(i = 0; i < 4;i++){
-                fprintf(fp_write, "| {%c|%7.2f|%7.2f|%7.2f|%7.2f} ", "ACGTN"[i], poahmm->emission_M[i][0], poahmm->emission_M[i][1], poahmm->emission_M[i][2], poahmm->emission_M[i][3]);
-
-        }
-
-        fprintf(fp_write, "| {%c| %3.2f | %3.2f | %3.2f | %3.2f } ", 'X', poahmm->emission_X[0], poahmm->emission_X[1], poahmm->emission_X[2], poahmm->emission_X[3]);
-        fprintf(fp_write, "| {%c| %3.2f | %3.2f | %3.2f | %3.2f } ", 'Y', poahmm->emission_Y[0], poahmm->emission_Y[1], poahmm->emission_Y[2], poahmm->emission_Y[3]);
-        fprintf(fp_write, "| {%c| %3.2f | %3.2f | %3.2f | %3.2f } ", 'B', poahmm->background[0], poahmm->background[1], poahmm->background[2], poahmm->background[3]);
-
-        fprintf(fp_write, "\"]\n");
-
-        fprintf(fp_write, "rankdir=\"LR\";\n");
-        node_number = 0;
-        /* start  */
-        fprintf(fp_write, "n%d [label=\"START\"];\n",node_number);
-        node_number++;
-
-        /* end */
-        fprintf(fp_write, "n%d [label=\"END\"];\n",node_number);
-
-        node_number++;
-        for(i = 0 ;i < poahmm->num_nodes;i++){
-                nuc =poahmm->nodes[i]->nuc;
-                snprintf(color, 10, "#%02X%02X%02X",	 min_color[nuc][0] + (int)((max_color[nuc][0] - min_color[nuc][0]) *( 1.0 - ((double)1.0  / max_val))),
-                         min_color[nuc][1] + (int)((max_color[nuc][1] - min_color[nuc][1]) * ( 1.0 - ((double)1.0  / max_val))),
-                         min_color[nuc][2] + (int)((max_color[nuc][2] - min_color[nuc][2]) *( 1.0 - ((double)1.0  / max_val))));
-
-                snprintf(color, 10, "#%02X%02X%02X",	 min_color[nuc][0] + (int)((max_color[nuc][0] - min_color[nuc][0]) *0.1),
-                         min_color[nuc][1] + (int)((max_color[nuc][1] - min_color[nuc][1])  * 0.1),
-                         min_color[nuc][2] + (int)((max_color[nuc][2] - min_color[nuc][2]) * 0.1));
-
-
-
-                fprintf(fp_write, "n%d [label=\"%c,%d\n%d\nS:%f;E:%f;\" ,style=filled  fillcolor=\"%s\"];\n", i+node_number,"ACGTN"[poahmm->nodes[i]->nuc], poahmm->nodes[i]->rank, poahmm->nodes[i]->identifier,poahmm->entry_probabilities[i],poahmm->exit_probabilities[i],color);
-
-
-
-        }
-        for(i = 0 ;i < poahmm->num_nodes;i++){
-                if(poahmm->entry_probabilities[i] != prob2scaledprob(0.0)){
-                        fprintf(fp_write, "n%d -> n%d [ label=\"p = %0.2f\" ];\n",0,i+node_number, scaledprob2prob(poahmm->entry_probabilities[i]));
-                }
-
-                if(poahmm->exit_probabilities[i] != prob2scaledprob(0.0)){
-                        fprintf(fp_write, "n%d -> n%d [ label=\"p = %0.2f\" ];\n",i+node_number,1, scaledprob2prob(poahmm->exit_probabilities[i]));
-                }
-        }
-
-
-        for(i = 0 ;i < poahmm->num_nodes;i++){
-                for(j = 0 ;j < poahmm->num_nodes;j++){
-                        if(poahmm->poa_graph[i][j] != prob2scaledprob(0.0)){
-                                fprintf(fp_write, "n%d -> n%d [ label=\"p = %0.2f\" ];\n",i+node_number,j+node_number, scaledprob2prob(poahmm->poa_graph[i][j]));
-                        }
-                }
-        }
-        node_number +=poahmm->num_nodes;
-        fprintf(fp_write, "}\n");
-        fclose(fp_write);
-        return OK;
-ERROR:
-        return FAIL;
-}
 
 
 

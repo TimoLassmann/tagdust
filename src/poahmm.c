@@ -1144,7 +1144,8 @@ int viterbi_poahmm_banded(struct poahmm* poahmm,const uint8_t* seq, const uint8_
                                 //cells[i].fM = logsum(cells[i].fM, prev_cells[i-1].fY  + YM + tmp);// poahmm->poa_graph[n][node_id]);
 
                                 if((new_max  = prev_cells[i].fM + MX+ tmp)  > cells[i].fX){
-                                        cells[i].fX = new_max;                                        cells[i].X_to_state = n;
+                                        cells[i].fX = new_max;
+                                        cells[i].X_to_state = n;
                                         cells[i].X_trans = TO_M;
 
                                 }
@@ -1186,7 +1187,14 @@ int viterbi_poahmm_banded(struct poahmm* poahmm,const uint8_t* seq, const uint8_
                         cells[i].fX +=  eX[node_nuc];
                         cells[i].fY += eY[seq[i]];
                 }
-
+                cells[e+1].fM = prob2scaledprob(0.0);
+                cells[e+1].fX = prob2scaledprob(0.0);
+                cells[e+1].fY = prob2scaledprob(0.0);
+                if(e != len){
+                        cells[len].fM = prob2scaledprob(0.0);
+                        cells[len].fX = prob2scaledprob(0.0);
+                        cells[len].fY = prob2scaledprob(0.0);
+                }
 
         }
 

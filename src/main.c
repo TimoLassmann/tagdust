@@ -22,7 +22,6 @@ int main (int argc,char * argv[]) {
         int i,j;
 
         RUN(interface(&param,argc,argv));
-
         if(!param){
                 return EXIT_SUCCESS;
         }
@@ -43,7 +42,6 @@ int main (int argc,char * argv[]) {
         if(param->arch_file){
                 RUN(read_architecture_files(al, param->arch_file));
         }
-
         /* QC on architecture ?? */
 #ifdef HAVE_OPENMP
         omp_set_num_threads(param->num_threads);
@@ -52,38 +50,24 @@ int main (int argc,char * argv[]) {
 #endif
         /* Start HMM stuff */
         init_logsum();
-        /* get all sequence stats  */
-        //LOG_MSG("Got here");
-        //for( i = 0; i < param->num_infiles;i++){
-        //fprintf(stdout," File %d max: %s\n",i, param->infile[i]);
-        //}
         RUN(get_sequence_stats(&si,al, param->infile, param->num_infiles, main_rng));
-        //si->ssi[0]->average_length;
-        /* here there have to be sanity checks  */
         for(i = 0; i < param->num_infiles;i++){
                 for(j = i+1; j < param->num_infiles;j++){
                         ASSERT(si->ssi[i]->total_num_seq == si->ssi[j]->total_num_seq,"File %s and %s contain different number of sequences", param->infile[i],param->infile[j]);
                 }
         }
 
-
         RUN(test_architectures(al,si,param));
-
 
         RUN(calibrate_architectures(al,si, main_rng));
         //exit(0);
         //int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameters* param)
         RUN(extract_reads(al,si,param,main_rng));
 
-
-        //sprintf(param->buffer,"Start Run\n--------------------------------------------------\n");
-        //param->messages = append_message(param->messages, param->buffer);
-        //hmm_controller_multiple(param);
         free_arch_lib(al);
         free_sequence_stats(si);
         free_param(param);
         free_rng(main_rng);
-
         return EXIT_SUCCESS;
 ERROR:
         if(param){

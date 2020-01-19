@@ -390,7 +390,7 @@ int process_read(struct collect_read* ri,struct poahmm* poahmm, struct read_stru
                 seq_pos = (path[j] >> 16u );
                 node_pos = path[j] & 0xFFFFu;
                 if(node_pos == 0xFFFFu){
-                                print_path(poahmm, path, ri->seq);
+                        print_path(poahmm, path, ri->seq);
                 }
                 if(node_pos!= 0xFFFFu){
                         segment = poahmm->nodes[node_pos]->segment;
@@ -677,7 +677,7 @@ int print_path(struct poahmm* poahmm, uint32_t* path,char* seq)
 {
         uint32_t i;
         char alphabet[5] = "ACGTN";
-        char etype[6] = "_EASIP";
+        char etype[6] = "_EASIPLR";
 
         uint32_t seq_pos;
         uint32_t node_pos;

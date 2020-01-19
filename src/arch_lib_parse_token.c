@@ -1,13 +1,22 @@
+#include <zlib.h>
 #include <string.h>
 
 #include "tldevel.h"
 
+#include "tlseqio.h"
+
+#include "correct.h"
+
 #include "arch_lib_parse_token.h"
+
+
 
 #define BUFFER_LEN 256
 
 static int parse_rs_token(char* token, struct segment_specs** s_spec);
 static int detect_extract_type(char c, uint8_t* t);
+
+static int read_white_list(struct tl_seq_buffer** b,char* filename);
 
 int parse_rs_token_message(char* token, struct segment_specs** s_spec)
 {
@@ -46,6 +55,10 @@ int parse_rs_token_message(char* token, struct segment_specs** s_spec)
                 fprintf(stdout,"      N{n} - match N exactly n times.\n");
                 fprintf(stdout,"      N{n,m} - match N exactly n .. m times.\n");
                 fprintf(stdout,"\n");
+                fprintf(stdout,"Or:\n");
+                fprintf(stdout,"   <NAME>:<CORRECTED>:<QUAL>:file.txt\n");
+                fprintf(stdout,"   e.g. CR:CB:CZ:whitelist.txt \n");
+                fprintf(stdout,"\n");
                 fprintf(stdout,"Some examples of valid options:\n");
                 fprintf(stdout,"   READ1:E:N+\n");
                 fprintf(stdout,"     extract a read into file \"XXX_READ1_XXX\"\n");
@@ -69,6 +82,7 @@ ERROR:
 int parse_rs_token(char* token, struct segment_specs** s_spec)
 {
         struct segment_specs* spec = NULL;
+        struct tl_seq_buffer* sb = NULL;
         int i;
         int j;
         int len;
@@ -112,18 +126,41 @@ int parse_rs_token(char* token, struct segment_specs** s_spec)
                                 state++;
                         }else if(state == 1){ /* extract type  */
 
-                                RUN(detect_extract_type(token[pos], &spec->extract));
+                                if(token[pos+1] == ':'){
+                                        RUN(detect_extract_type(token[pos], &spec->extract));
+                                        pos = i+1;
+                                        state++;
+                                        i = len+1; /* quit loop */
+
+                                }else{
+                                        spec->extract = ARCH_ETYPE_APPEND_CORRECT;
+                                        for(j = pos; j < i;j++){
+                                                spec->correct_name[j-pos] = token[j];
+                                        }
+                                        spec->correct_name[j-pos] = 0;
+                                        pos = i+1;
+                                        state++;
+                                }
+
+                        }else if(state == 2){
+
+                                for(j = pos; j < i;j++){
+                                        spec->qual_name[j-pos] = token[j];
+                                }
+                                spec->qual_name[j-pos] = 0;
                                 pos = i+1;
-                                i = len+1; /* quit loop */
                                 state++;
+                                i = len+1;
                         }
+
                         //state++;
                 }
         }
         ASSERT(state != 0, "Could not reach sequence part = state is 0");
-        ASSERT(state <= 2, "Could not reach sequence part = state is %d",state);
+        ASSERT(state <= 3, "Could not reach sequence part = state is %d",state);
 
-
+        LOG_MSG("State: %d: %s %s", state,spec->name,spec->correct_name,spec->qual_name );
+        //exit(0);
         if(state == 1){
                 ASSERT(pos < len, "No sequence?");
                 //LOG_MSG("name: %s %d %d",spec->name,pos,len);
@@ -142,6 +179,38 @@ int parse_rs_token(char* token, struct segment_specs** s_spec)
                 if(!strncmp(spec->name, "NA", BUFFER_LEN)){
                         ERROR_MSG("Name: \"NA\" has a special meaning in tagdust");
                 }
+        }else if(state == 3){
+                LOG_MSG("reading in barcodes from: %s", token + pos);
+                RUN(read_white_list(&sb, token + pos));
+                j = sb->sequences[0]->len;
+                spec->num_seq =1 ;
+                MMALLOC(spec->seq, sizeof(char*) * spec->num_seq);
+
+                for(i = 0; i < spec->num_seq;i++){
+                        spec->seq[i] = NULL;
+                        MMALLOC(spec->seq[i], sizeof(char) * (j+1));
+                }
+
+
+                for(i = 0; i < j;i++){
+                        spec->seq[0][i] = 'N';
+                }
+                spec->seq[0][j] = 0;
+                spec->alloc_len = j;
+                spec->min_len = j;
+                spec->max_len = j;
+                LOG_MSG("read: %d barcodes" , sb->num_seq);
+                //ASSERT(
+                RUN(fill_exact_hash(&spec->bar_hash , sb));
+                ///as->n_exact_hash++;
+                free_tl_seq_buffer(sb);
+#ifdef DEBUG
+                RUN(print_segment_spec(spec));
+#endif
+
+                *s_spec = spec;
+                return OK;
+
         }
         ASSERT(pos != 0, "Could not reach sequence part - pos is 0");
         o_bracket = 0;
@@ -343,7 +412,7 @@ int parse_rs_token(char* token, struct segment_specs** s_spec)
 
         *s_spec = spec;
 
-
+        free_tl_seq_buffer(sb);
         return OK;
 ERROR:
         free_segment_spec(spec);
@@ -357,6 +426,8 @@ int print_segment_spec(const struct segment_specs* spec)
         int i;
         ASSERT(spec != NULL, "No spec");
         fprintf(stdout,"   %s name\n", spec->name);
+        fprintf(stdout,"   %s name\n", spec->correct_name);
+        fprintf(stdout,"   %s name\n", spec->qual_name);
         fprintf(stdout,"   %d type\n", spec->extract);
         fprintf(stdout,"   %d %d (%d)  min,max len\n", spec->min_len,spec->max_len, spec->alloc_len);
         ASSERT(spec->num_seq != 0, "no sequence!");
@@ -428,9 +499,16 @@ int alloc_segment_spec(struct segment_specs** s)
         spec->alloc_len = 0;
         spec->seq = NULL;
         spec->name = NULL;
-
+        spec->correct_name = NULL;
+        spec->qual_name = NULL;
+        spec->bar_hash = NULL;
         MMALLOC(spec->name, sizeof(char) * BUFFER_LEN);
+        MMALLOC(spec->correct_name , sizeof(char) * BUFFER_LEN);
+        MMALLOC(spec->qual_name , sizeof(char) * BUFFER_LEN);
 
+        spec->name[0] = 0;
+        spec->correct_name[0] =0;
+        spec->qual_name[0] =0;
         *s = spec;
         return OK;
 ERROR:
@@ -442,6 +520,10 @@ void free_segment_spec(struct segment_specs*s)
 {
         int i;
         if(s){
+                if(s->bar_hash){
+
+                        kh_destroy(exact,  s->bar_hash);
+                }
                 if(s->seq){
                         for(i = 0; i < s->num_seq;i++){
                                 MFREE(s->seq[i]);
@@ -451,6 +533,89 @@ void free_segment_spec(struct segment_specs*s)
                 if(s->name){
                         MFREE(s->name);
                 }
+                if(s->correct_name){
+                        MFREE(s->correct_name);
+                }
+                if(s->qual_name){
+                        MFREE(s->qual_name);
+                }
                 MFREE(s);
         }
+}
+
+
+
+int read_white_list(struct tl_seq_buffer** b,char* filename)
+{
+        struct tl_seq_buffer* sb = NULL;
+        struct tl_seq* s = NULL;
+        gzFile f_ptr;
+        char* buffer = NULL;
+        char* tmp = NULL;
+        int buffer_len = 256;
+        int min_len;
+        int max_len;
+        MMALLOC(buffer, sizeof(char) * buffer_len);
+
+        sb =  *b;
+        if(!sb){
+                RUN(alloc_tl_seq_buffer(&sb, 1000000));
+        }
+
+        min_len = INT32_MAX;
+        max_len = INT32_MIN;
+
+        RUNP(f_ptr = gzopen(filename, "r"));
+        while((tmp =  gzgets(f_ptr, buffer, buffer_len)) != NULL){
+                //fprintf(stdout,"%s",buffer);
+                s = sb->sequences[sb->num_seq];
+                s->len = strnlen(buffer, buffer_len) -1;
+
+                snprintf(s->name, TL_SEQ_MAX_NAME_LEN, "Bar%d", sb->num_seq+1);
+
+                while(s->malloc_len < s->len){
+                        RUN(resize_tl_seq(s));
+                }
+                strncpy(s->seq, buffer, s->len);
+                s->seq[s->len] = 0;
+                if(s->len < min_len){
+                        min_len = s->len;
+                }
+                if(s->len > max_len){
+                        max_len = s->len;
+                }
+        //snprintf(s->seq, s->malloc_len, "%s",buffer);
+                sb->num_seq++;
+                //if(sb->num_seq == 100000){
+                //break;
+                //}
+                if(sb->num_seq == sb->malloc_num){
+                        RUN(resize_tl_seq_buffer(sb));
+                }
+        }
+
+        if(min_len != max_len){
+                ERROR_MSG("file %s contains sequences of different lenghts", filename);
+        }
+
+        sb->max_len  = max_len;
+
+        *b = sb;
+
+        gzclose(f_ptr);
+
+
+        MFREE(buffer);
+        return OK;
+
+ERROR:
+
+        if(buffer){
+                MFREE(buffer);
+        }
+        if(f_ptr){
+                gzclose(f_ptr);
+        }
+        return FAIL;
+
 }

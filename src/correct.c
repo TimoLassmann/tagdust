@@ -8,13 +8,15 @@
 
 #include "kstring.h"
 
+
+
 #define CORRECT_IMPORT
 #include "correct.h"
 
 static inline unsigned int nuc_to_internal(const char c);
 static inline uint32_t compress(uint32_t x, uint32_t m);
 /* do stuff  */
-static int code_to_seq_bit(struct seq_bit** sb, uint32_t k,int len);
+//static int code_to_seq_bit(struct seq_bit** sb, uint32_t k,int len);
 //int search_1M(khash_t(exact) * h , uint32_t key , int len);
 
 int fill_exact_hash(khash_t(exact) ** hash, struct tl_seq_buffer* sb)
@@ -49,21 +51,21 @@ int fill_exact_hash(khash_t(exact) ** hash, struct tl_seq_buffer* sb)
                         //fprintf(stdout,"set to 1 \n");
                 }
         }
-        i = 0;
+        /*i = 0;
         for (k = kh_begin(h); k != kh_end(h); ++k){
                 if (kh_exist(h, k)){
                         //fprintf(stdout, "%d %d ",k,kh_value(h, k));
                         key = kh_key(h,k);
                         //search_1M(h , key , 16);
                         //code_to_seq(key, 16);
-                        code_to_seq_bit(&sbit, key, 16);
+                        code_t_seq_bit(&sbit, key, 16);
                         ref_correct(h, subm, sbit,33);
                         LOG_MSG("%s %s %s", sbit->p.s, sbit->p_corr.s, sbit->q.s);
                         sbit->p.l = 0;
                         sbit->p_corr.l = 0;
                         sbit->q.l = 0;
                         i++;
-                        //if(i == 3){
+                        //if(i == 1000){
                         //break;
                         //}
                         //kh_value(h, k) = 1;
@@ -72,108 +74,13 @@ int fill_exact_hash(khash_t(exact) ** hash, struct tl_seq_buffer* sb)
                         }
                 }
         }
-
+        */
         *hash = h;
         return OK;
 ERROR:
         return FAIL;
 }
 
-int ref_correct(khash_t(exact) * h ,struct qsubscore* subm, struct seq_bit* sb, int q_offset)
-{
-        float scores[48]; /* 16 (maxlen * 3 for every edit ) */
-        uint8_t pos[48];
-        khiter_t k;
-        uint32_t i,j,l;
-        uint32_t edit;
-        uint32_t search;
-        uint32_t key;
-        uint32_t m_index;
-        float s;
-        float max;
-        l = MACRO_MIN(16, sb->p.l);
-        key = seq_to_code(sb->p.s , l);
-        //LOG_MSG("Searching for: ");
-
-
-        /* No error */
-        k = kh_get(exact, h, key);
-        if(k != kh_end(h)){
-                //kputsn( sb->p.s, sb->p.l , &sb->p_corr);
-                //return OK;
-        }
-        /* 1 error */
-        m_index = 0;
-        for(i = 0; i < l;i++){
-                for(edit = 1; edit < 4;edit++){
-                        search = key ^ ( edit << (i << 1));
-                        k = kh_get(exact, h, search);
-                        if(k != kh_end(h)){
-                                //LOG_MSG("Found! with 1M at %d  %d -> %d",i, (key >> (i << 1)) & 3, (search >> (i << 1)) & 3);
-                                //code_to_seq(key, 16);
-                                //code_to_seq(search, 16);
-                                //viterbi
-
-
-
-                                //LOG_MSG("Scoring:");
-                                s = prob2scaledprob(1.0);
-                                for(j =0; j < l;j++){
-                                        //fprintf(stdout,"%c", "ACGT"[(key >> (j << 1)) & 3]);
-                                        s+= get_qsubscore(subm,  (search >> (j << 1)) & 3,  (key >> (j << 1)) & 3, sb->q.s[j]- q_offset);
-                                }
-                                /*fprintf(stdout,"\n");
-                                for(j =0; j < l;j++){
-                                        fprintf(stdout,"%c", "ACGT"[(search >> (j << 1)) & 3]);
-                                }
-                                fprintf(stdout,"\n");
-                                for(j =0; j < l;j++){
-                                        fprintf(stdout,"%c", sb->q.s[j]);
-                                }
-
-
-                                fprintf(stdout,"\t%f\n", s);*/
-                                pos[m_index] =  (edit << 6u) | i;
-                                scores[m_index] = s;
-                                m_index++;
-                        }
-                }
-        }
-        if(m_index){
-                //LOG_MSG("DONE");
-                s= prob2scaledprob(0.0);
-                for(i = 0; i < m_index;i++){
-                        s = logsum(s, scores[i]);
-                }
-                max = 0.0;
-                edit = 0;
-                for(i = 0; i < m_index;i++){
-                        scores[i] = scaledprob2prob(scores[i] / s);
-                        if(scores[i] > max){
-                                edit = i;
-                                max = scores[i];
-                        }
-
-//      LOG_MSG("%d %f",i, scaledprob2prob(scores[i]  -s ));
-                }
-
-                if(max > 0.9){
-                        i = pos[edit] & 0x3F;
-                        edit = (pos[edit] >> 6u) & 3;
-                        search = key ^ ( edit << (i << 1));
-                        for(j =0; j < l;j++){
-                                kputc("ACGT"[(search >> (j << 1)) & 3], &sb->p_corr);
-                        }
-                }else{
-                        sb->fail |= READ_FAILC;
-                        LOG_MSG("%d candidates found; best score is %f", m_index, max);
-                }
-        }else{
-                kputsn("NA", 2,&sb->p_corr);
-                sb->fail |= READ_FAILC;
-        }
-        return OK;
-}
 
 
 
@@ -230,7 +137,7 @@ void code_to_seq(uint32_t k,int len)
         fprintf(stdout,"\n");
 }
 
-int code_to_seq_bit(struct seq_bit** sb, uint32_t k,int len)
+/*int code_to_seq_bit(struct seq_bit** sb, uint32_t k,int len)
 {
         struct seq_bit* s = NULL;
         uint8_t q;
@@ -272,8 +179,7 @@ int code_to_seq_bit(struct seq_bit** sb, uint32_t k,int len)
         return OK;
 ERROR:
         return FAIL;
-
-}
+        }*/
 
 
 
