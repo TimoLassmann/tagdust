@@ -25,7 +25,6 @@ int calc_score_matrix(struct qsubscore** mat,  float base_error, float indel_fre
 {
         struct qsubscore* b = NULL;
 
-
         float subm[4][4];
         float diag;
         float off;

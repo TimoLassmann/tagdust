@@ -27,10 +27,10 @@ int fill_exact_hash(khash_t(exact) ** hash, struct tl_seq_buffer* sb)
         uint32_t key;
         int ret;
 
-        struct qsubscore* subm = NULL;
+        //struct qsubscore* subm = NULL;
         struct seq_bit* sbit = NULL;
 
-        calc_score_matrix(&subm, 0.02f, 0.1f);
+        //calc_score_matrix(&subm, 0.02f, 0.1f);
 
         h = *hash;
         if(!h){

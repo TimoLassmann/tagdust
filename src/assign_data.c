@@ -1,19 +1,18 @@
 #include "assign_data.h"
 #include <string.h>
+
+#include "kstring.h"
 #include "tldevel.h"
 
-
-//static int qsort_seq_bits_by_file(const void *a, const void *b);
-//static int qsort_seq_bits_by_type_file(const void *a, const void *b);
-//static int qsort_seq_bits_by_file(const void *a, const void *b);
-//static int qsort_seq_bit_vec(const void *a, const void *b);
-
-static int setup_assign_structure(struct arch_library* al,struct assign_struct* as,int** plan);
+static int setup_assign_structure(struct arch_library* al,struct assign_struct* as);
 //static int setup_barcode_files(struct arch_library* al, struct assign_struct* as, char* prefix);
 static int setup_barcode_files(struct arch_library* al, struct assign_struct* as, char* prefix,int bam);
 
 static int alloc_seq_bit(struct seq_bit** sb);
 static int free_seq_bit(struct seq_bit** sb);
+
+static int alloc_bit_ann(struct bit_annotation** ba);
+static int free_bit_annotation(struct bit_annotation** sb);
 
 static int alloc_demux_struct(struct demux_struct** demux);
 
@@ -39,7 +38,7 @@ int init_assign_structure(struct assign_struct** assign,struct arch_library* al,
         struct seq_bit_vec* bv = NULL;
         //ASSERT(num_files >= 1,"no infiles");
 
-        int* plan;
+        //int* plan;
         int i,j;
         MMALLOC(as, sizeof(struct assign_struct));
         as->num_files = al->num_file;
@@ -53,8 +52,11 @@ int init_assign_structure(struct assign_struct** assign,struct arch_library* al,
         //as->exact = NULL;
         as->loc_out_reads = NULL;
         as->file_index = NULL;
+        as->subm = NULL;
+        as->bit_ann = NULL;
 
-        RUN(setup_assign_structure(al,as,&plan));
+        RUN(calc_score_matrix(&as->subm, 0.02f, 0.1f));
+        RUN(setup_assign_structure(al,as));
         RUN(setup_barcode_files(al,as,prefix,bam));
         //exit(0);
         //RUN(setup_output_files(as));
@@ -94,7 +96,7 @@ int init_assign_structure(struct assign_struct** assign,struct arch_library* al,
 
                 //MMALLOC(bv->Q,sizeof(float) * as->num_files);
                 bv->fail = 0;
-                MMALLOC(bv->bits , sizeof(struct seq_bit) * as->num_bits);
+                MMALLOC(bv->bits , sizeof(struct seq_bit*) * as->num_bits);
                 for(j = 0; j < as->num_bits;j++){
                         bv->bits[j] = NULL;
 
@@ -103,13 +105,63 @@ int init_assign_structure(struct assign_struct** assign,struct arch_library* al,
                         //bv->bits[j]->file = plan[j];
                 }
         }
-        MFREE(plan);
+        //MFREE(plan);
         *assign = as;
         return OK;
 ERROR:
         free_assign_structure(as);
         return FAIL;
 }
+
+int alloc_bit_ann(struct bit_annotation** ba)
+{
+        struct bit_annotation* b = NULL;
+
+
+        MMALLOC(b, sizeof(struct bit_annotation));
+        b->name.l = 0;
+        b->name.m = 0;
+        b->name.s = NULL;
+
+        b->c_name.l = 0;
+        b->c_name.m = 0;
+        b->c_name.s = NULL;
+
+        b->q_name.l = 0;
+        b->q_name.m = 0;
+        b->q_name.s = NULL;
+
+        *ba = b;
+        return OK;
+ERROR:
+        return FAIL;
+}
+
+int free_bit_annotation(struct bit_annotation** sb)
+{
+        struct bit_annotation* b = NULL;
+
+        b = *sb;
+        if(b){
+                if(b->name.m){
+                        MFREE(b->name.s);
+                }
+                if(b->c_name.m){
+                        MFREE(b->c_name.s);
+                }
+                if(b->q_name.m){
+                        MFREE(b->q_name.s);
+                }
+
+                MFREE(b);
+                b = NULL;
+        }
+        *sb = b;
+        return OK;
+//ERROR:
+        //return FAIL;
+}
+
 
 int alloc_seq_bit(struct seq_bit** sb)
 {
@@ -147,6 +199,9 @@ int free_seq_bit(struct seq_bit** sb)
 
         b = *sb;
         if(b){
+                if(b->p_corr.m){
+                        MFREE(b->p_corr.s);
+                }
                 if(b->p.m){
                         MFREE(b->p.s);
                 }
@@ -195,45 +250,78 @@ int reset_assign_structute(struct assign_struct* as)
         //      return FAIL;
 }
 
-int setup_assign_structure(struct arch_library* al,struct assign_struct* as,int** plan)
+int setup_assign_structure(struct arch_library* al,struct assign_struct* as)
 {
         struct read_structure* read_structure = NULL;
-
-        int* p = NULL;
+        struct segment_specs* s = NULL;
+        //int* p = NULL;
         int i,j;
         //int f;
         uint8_t c;
         int p_size;
-        int p_index;
+        //int p_index;
         ASSERT(al != NULL,"No archlib");
 
         ASSERT(as != NULL,"No assign struct ");
 
         as->num_bits = 0;
         as->out_reads = 0;
-        p_size = 256;
-        p_index = 0;
-        MMALLOC(p, sizeof(int) * p_size);
+        p_size = 0;
+        for(i = 0; i < al->num_file;i++){
+                read_structure = al->read_structure[al->arch_to_read_assignment[i]];
+                //fprintf(stdout,"Read %d:\n",i);
+                p_size += read_structure->num_segments;
+        }
+        //p_index = 0;
+        //MMALLOC(p, sizeof(int) * p_size);
         MMALLOC(as->loc_out_reads, sizeof(int) * p_size);
         MMALLOC(as->file_index , sizeof(int) * p_size);
 
+        MMALLOC(as->bit_ann, sizeof(struct bit_annotation*) * p_size);
+        for(i = 0; i < p_size;i++){
+                //as->bit_ann[i]
+                as->bit_ann[i] = NULL;
+
+                alloc_bit_ann(&as->bit_ann[i]);
+                //MMALLOC(as->bit_ann[i], sizeof(struct bit_annotation));
+                //as->bit_ann[i]->name;
+
+        }
+        //struct bit_annotation* a;
+        //a->c_name
         for(i = 0; i < al->num_file;i++){
                 as->file_index[i] = as->num_bits;
                 read_structure = al->read_structure[al->arch_to_read_assignment[i]];
                 //fprintf(stdout,"Read %d:\n",i);
+
                 for(j = 0; j < read_structure->num_segments;j++){
                         //c = read_structure->type[j];
+                        s = read_structure->seg_spec[j];
+                        c = s->extract;
 
-                        c = read_structure->seg_spec[j]->extract;
+                        if(s->name){
+                                kputs(s->name, &as->bit_ann[as->num_bits]->name);
+                        }
+                        if(s->name){
+                                kputs(s->correct_name, &as->bit_ann[as->num_bits]->c_name);
+                        }
+                        if(s->name){
+                                kputs(s->qual_name, &as->bit_ann[as->num_bits]->q_name);
+                        }
+                        if(s->bar_hash){
+                                as->bit_ann[as->num_bits]->bar_hash = s->bar_hash;
+                        }
+                        //as->bit_ann[0]->name = 0;
+
                         //print_segment_spec(read_structure->seg_spec[j]);
 
-                        p[p_index] = i;
-                        p_index++;
-                        if(p_index == p_size){
+                        /*p[p_index] = i;
+                          p_index++;*/
+                        /*if(p_index == p_size){
                                 p_size = p_size + p_size /2;
                                 MREALLOC(p, sizeof(int)* p_size);
                                 MREALLOC(as->loc_out_reads , sizeof(int) * p_size);
-                        }
+                                }*/
                         if(c == ARCH_ETYPE_EXTRACT){
                                 as->loc_out_reads[as->out_reads] = as->num_bits;
                                 //p[p_index] = as->out_reads;
@@ -290,7 +378,7 @@ int setup_assign_structure(struct arch_library* al,struct assign_struct* as,int*
 
         free_tl_seq_buffer(sb);*/
         //exit(0);
-        *plan = p;
+        //*plan = p;
         return OK;
 ERROR:
         return FAIL;
@@ -301,6 +389,9 @@ void free_assign_structure(struct assign_struct* as)
 {
         if(as){
                 int i,j;
+                if(as->subm){
+                        MFREE(as->subm);
+                }
                 if(as->bit_vec){
                         //MMALLOC(as->active_bits,sizeof(uint8_t) * as->total));
                         for(i = 0; i < as->alloc_total;i++){
@@ -322,6 +413,10 @@ void free_assign_structure(struct assign_struct* as)
                 if(as->demux_names){
                         as->demux_names->free_tree(as->demux_names);
                 }
+                for(j = 0; j < as->num_bits;j++){
+                        free_bit_annotation(&as->bit_ann[j]);
+                }
+                MFREE(as->bit_ann);
                 //for(i = 0; i < as->n_exact_hash;i++){
 
                 //}

@@ -199,6 +199,7 @@ int parse_rs_token(char* token, struct segment_specs** s_spec)
                 spec->alloc_len = j;
                 spec->min_len = j;
                 spec->max_len = j;
+                spec->extract = ARCH_ETYPE_APPEND_CORRECT;
                 LOG_MSG("read: %d barcodes" , sb->num_seq);
                 //ASSERT(
                 RUN(fill_exact_hash(&spec->bar_hash , sb));

@@ -126,9 +126,12 @@ int test_architectures(struct arch_library* al, struct seq_stats* si, struct par
                 sum = -1.0;
                 best = -1;
                 for(j = 0; j < al->num_arch;j++){
-                        if(al->arch_posteriors[j][i] > sum){
+                        //LOG_MSG("%s" , al->spec_line[j]);
+                        if(al->arch_posteriors[j][i] >= sum){
+
                                 best =j;
                                 sum = al->arch_posteriors[j][i];
+
                         }
                 }
                 ASSERT(best != -1,"No best arch found");

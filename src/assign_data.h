@@ -53,11 +53,18 @@ struct demux_struct{
         int count;
 };
 
-
+struct bit_annotation{
+        khash_t(exact)* bar_hash;
+        kstring_t name;
+        kstring_t c_name;
+        kstring_t q_name;
+};
 
 struct assign_struct{
         struct seq_bit_vec** bit_vec;
+        struct bit_annotation** bit_ann;
         struct rbtree_root* demux_names;
+        struct qsubscore* subm;
         //khash_t(exact)** exact;
         //struct rbtree_root* file_names;
         int* loc_out_reads;

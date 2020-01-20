@@ -231,6 +231,7 @@ int calibrate(struct arch_library* al, struct seq_stats* si,int* seeds,int i_fil
         LOG_MSG("Arch: %s thres: %f", al->spec_line[i_hmm], al->confidence_thresholds[i_file]);
 SKIP:
         for(i = 0; i < cb->num_seq;i++){
+                MFREE(cb->seq[i]->qual);
                 MFREE(cb->seq[i]->seq);
                 MFREE(cb->seq[i]);
         }

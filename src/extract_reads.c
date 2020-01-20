@@ -347,6 +347,7 @@ int run_extract( struct assign_struct* as,  struct tl_seq_buffer** rb, struct ar
         }
         //free_model_bag(mb);
         free_poahmm(poahmm);
+        MFREE(p);
         MFREE(path);
 
         MFREE(tmp_seq);
@@ -389,9 +390,9 @@ int process_read(struct collect_read* ri,struct poahmm* poahmm, struct read_stru
         for(j = 1; j < ri->path[0];j++){
                 seq_pos = (path[j] >> 16u );
                 node_pos = path[j] & 0xFFFFu;
-                if(node_pos == 0xFFFFu){
-                        print_path(poahmm, path, ri->seq);
-                }
+                //if(node_pos == 0xFFFFu){
+                //print_path(poahmm, path, ri->seq);
+                //}
                 if(node_pos!= 0xFFFFu){
                         segment = poahmm->nodes[node_pos]->segment;
                         hmm_in_segment =  poahmm->nodes[node_pos]->alt;
@@ -405,7 +406,21 @@ int process_read(struct collect_read* ri,struct poahmm* poahmm, struct read_stru
                         //c = rs->seg_spec[segment]->extract;
                         //LOG_MSG("Decoding: %d read:%d hmmcode:%d  segment:%d seq:%d type: %d",j,read_label[j],label[read_label[j]], segment,hmm_in_segment, c);
                         switch (c) {
-                        case ARCH_ETYPE_APPEND: //case 'F':
+                        case ARCH_ETYPE_APPEND_CORRECT:
+                                if(c != old_c){
+                                        s_index = 0;
+                                        sb = b->bits[local_bit_index];
+                                        //ASSERT(i_file == sb->file, "Oh dear: want %d got %d",i_file,sb->file);
+                                        //sb->file = i_file;
+                                        //sb->code = (char)(read + 33);
+                                        sb->type = ARCH_ETYPE_APPEND_CORRECT;
+                                        sb->fail = ri->f;
+                                        local_bit_index++;
+                                }
+                                kputc(ri->seq[j],&sb->p);
+                                kputc(ri->qual[j],&sb->q);
+                                break;
+                        case ARCH_ETYPE_APPEND:
                                 if(c != old_c){
                                         s_index =0;
                                         sb = b->bits[local_bit_index];
@@ -418,7 +433,6 @@ int process_read(struct collect_read* ri,struct poahmm* poahmm, struct read_stru
                                         kputs(s_name, &b->append);
 
                                         kputs(":Z:", &b->append);
-
 
                                         //sb->len = 0;
                                         //ASSERT(i_file == sb->file, "Oh dear: want %d got %d",i_file,sb->file);
@@ -444,7 +458,7 @@ int process_read(struct collect_read* ri,struct poahmm* poahmm, struct read_stru
 
                                 s_index++;
                                 break;
-                        case ARCH_ETYPE_SPLIT:// case 'B':
+                        case ARCH_ETYPE_SPLIT:
                                 if(c != old_c){
                                         sb = b->bits[local_bit_index];
 
@@ -487,6 +501,7 @@ int process_read(struct collect_read* ri,struct poahmm* poahmm, struct read_stru
                         old_c = c;
                 }
         }
+
         //b->append[b->a_len] = 0;
         //fprintf(stdout,"%s\n%s\n",sb->p,sb->q);
         //exit(0);
@@ -677,7 +692,7 @@ int print_path(struct poahmm* poahmm, uint32_t* path,char* seq)
 {
         uint32_t i;
         char alphabet[5] = "ACGTN";
-        char etype[6] = "_EASIPLR";
+        char etype[8] = "_EASIPLR";
 
         uint32_t seq_pos;
         uint32_t node_pos;
