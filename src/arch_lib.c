@@ -1,9 +1,13 @@
-
+#include <zlib.h>
 #include <string.h>
 #include <ctype.h>
 
 #include "arch_lib.h"
 #include "arch_lib_parse_token.h"
+
+#include "pst.h"
+#include "correct.h"
+
 
 #include "tldevel.h"
 
@@ -20,6 +24,8 @@ static int resize_arch_lib(struct arch_library* al);
 
 static int QC_read_structure(struct read_structure* read_structure );
 static int sanity_check_arch_lib(struct arch_library* al);
+
+static int read_white_list(struct tl_seq_buffer** b,char* filename);
 
 int read_architecture_files(struct arch_library* al, char* filename)
 {
@@ -153,11 +159,42 @@ int assign_segment_sequences(struct read_structure* read_structure, char* tmp, i
         //int i,f,g;
         //int count;
         //int len;
+        struct tl_seq_buffer* sb = NULL;
+        struct kmer_counts* k = NULL;
 
-        //struct segment_specs* s = NULL;
-
+        struct segment_specs* s = NULL;
+        int i,j;
         RUN(parse_rs_token_message(tmp,&read_structure->seg_spec[segment]));
         //read_structure->numseq_in_segment[segment] = read_structure->seg_spec[segment]->num_seq;
+
+        if(read_structure->seg_spec[segment]->extract == ARCH_ETYPE_APPEND_CORRECT){
+                s = read_structure->seg_spec[segment];
+                LOG_MSG("reading in barcodes from: %s",s->seq[0]);
+
+                RUN(read_white_list(&sb, s->seq[0]));
+                RUN(alloc_kmer_counts(&k, 10));
+                RUN(add_counts(k, sb));
+
+                RUN(run_build_pst(&  s->pst, k));
+                RUN(rm_counts(k,sb));
+
+                RUN(fill_exact_hash(&s->bar_hash , sb));
+
+                j = sb->sequences[0]->len;
+                //fprintf(stdout,"FILE::::%s\n", spec->seq[1]);
+                for(i = 0; i < j;i++){
+                        s->seq[0][i] = 'N';
+                }
+                s->seq[0][j] = 0;
+                s->alloc_len = j;
+                s->min_len = j;
+                s->max_len = j;
+                free_tl_seq_buffer(sb);
+                free_kmer_counts(k);
+                //LOG_MSG("Fo more fstygg");
+                //exit(0);
+
+        }
 
         //read_structure->segment_length[segment] = read_structure->seg_spec[segment]->max_len;
         //if(read_structure->seg_spec[segment]->max_len == INT32_MAX){
@@ -571,6 +608,80 @@ ERROR:
         return FAIL;
 }
 
+int read_white_list(struct tl_seq_buffer** b,char* filename)
+{
+        struct tl_seq_buffer* sb = NULL;
+        struct tl_seq* s = NULL;
+        gzFile f_ptr;
+        char* buffer = NULL;
+        char* tmp = NULL;
+        int buffer_len = 256;
+        int min_len;
+        int max_len;
+        MMALLOC(buffer, sizeof(char) * buffer_len);
+
+        sb =  *b;
+        if(!sb){
+                RUN(alloc_tl_seq_buffer(&sb, 1000000));
+        }
+
+        min_len = INT32_MAX;
+        max_len = INT32_MIN;
+
+        RUNP(f_ptr = gzopen(filename, "r"));
+        while((tmp =  gzgets(f_ptr, buffer, buffer_len)) != NULL){
+                //fprintf(stdout,"%s",buffer);
+                s = sb->sequences[sb->num_seq];
+                s->len = strnlen(buffer, buffer_len) -1;
+
+                snprintf(s->name, TL_SEQ_MAX_NAME_LEN, "Bar%d", sb->num_seq+1);
+
+                while(s->malloc_len < s->len){
+                        RUN(resize_tl_seq(s));
+                }
+                strncpy(s->seq, buffer, s->len);
+                s->seq[s->len] = 0;
+                if(s->len < min_len){
+                        min_len = s->len;
+                }
+                if(s->len > max_len){
+                        max_len = s->len;
+                }
+        //snprintf(s->seq, s->malloc_len, "%s",buffer);
+                sb->num_seq++;
+                //if(sb->num_seq == 100000){
+                //break;
+                //}
+                if(sb->num_seq == sb->malloc_num){
+                        RUN(resize_tl_seq_buffer(sb));
+                }
+        }
+
+        if(min_len != max_len){
+                ERROR_MSG("file %s contains sequences of different lenghts", filename);
+        }
+
+        sb->max_len  = max_len;
+
+        *b = sb;
+
+        gzclose(f_ptr);
+
+
+        MFREE(buffer);
+        return OK;
+
+ERROR:
+
+        if(buffer){
+                MFREE(buffer);
+        }
+        if(f_ptr){
+                gzclose(f_ptr);
+        }
+        return FAIL;
+
+}
 
 
 

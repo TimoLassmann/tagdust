@@ -1,6 +1,7 @@
 #ifndef ARCH_LIB_H
 #define ARCH_LIB_H
 
+#include "pst.h"
 #include "correct.h"
 
 
@@ -20,6 +21,7 @@
 
 struct segment_specs{
         khash_t(exact)* bar_hash;
+        struct pst* pst;
         char* name;
         char* correct_name;
         char* qual_name;

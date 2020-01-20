@@ -123,12 +123,12 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
                 total_read = 0;
                 //LOG_MSG("FILE:%s", infiles[i]);
                 while(1){
-                        RUN(read_fasta_fastq_file(f_hand, &rb,100000));
+                        RUN(read_fasta_fastq_file(f_hand, &rb,1000000));
                         //read
 //read_fasta_fastq(struct read_info_buffer *rb, struct file_handler *f_handle)
                         //RUN(fp(rb,f_hand));//  param,file,&numseq));
                         //if((status = fp(ri, param,file,&numseq)) != OK)  exit(status);
-
+                        //LOG_MSG("Read: %d", rb->num_seq);
                         if(!rb->num_seq ){
                                 break;
                         }
@@ -137,6 +137,10 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
                                 if(ri[j]->len > si->ssi[i]->max_seq_len){
                                         si->ssi[i]->max_seq_len = ri[j]->len;
                                 }
+                                if(ri[j]->len < si->ssi[i]->min_seq_len){
+                                        si->ssi[i]->min_seq_len = ri[j]->len;
+                                }
+
                                 s0_seq_len++;
                                 s1_seq_len += ri[j]->len;
                                 s2_seq_len += ri[j]->len * ri[j]->len;
@@ -168,7 +172,10 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
 
                         }
                         total_read += rb->num_seq;
-                        //LOG_MSG("total: %d", total_read);
+                        LOG_MSG("total: %d", total_read);
+                        if(total_read >= 10000000){
+                                break;
+                        }
                 }
                 RUN(close_seq_file(&f_hand));
                 //pclose(f_hand->f_ptr);
@@ -372,6 +379,7 @@ int alloc_sequence_stats_info(struct sequence_stats_info** si, int n)
         ssi->stdev_3_len = NULL;
         ssi->average_length = 0.0;
         ssi->max_seq_len = 0;
+        ssi->min_seq_len = INT32_MAX;
         ssi->mean_seq_len = 0.0;
         ssi->stdev_seq_len = 0.0;
         MMALLOC(ssi->expected_5_len, sizeof(double) * n);

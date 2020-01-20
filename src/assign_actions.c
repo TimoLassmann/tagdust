@@ -32,6 +32,7 @@ int post_process_assign(struct assign_struct* as)
                 //qsort(bv->bits, bv->num_bit,sizeof(struct seq_bit*), qsort_seq_bits_by_type_file);
                 len = 0;
                 //umi_len = 0;
+                //fprintf(stdout,"%s ",bv->name);
                 for(j = 0; j < bv->num_bit;j++){
 
                         if(bv->bits[j]->type == ARCH_ETYPE_SPLIT){
@@ -54,16 +55,15 @@ int post_process_assign(struct assign_struct* as)
                                 kputc(' ', &bv->append);
                                 kputs("CZ:Z:", &bv->append);
                                 kputs(bit->q.s , &bv->append);
-
-                                //kputs(":Z:", &b->append);
-
                         }
 
                         //if(bv->bits[j]->type == UMI_TYPE){
                         //umi_len += bv->bits[j]->len;
                         //}
+                        //fprintf(stdout," FAIL %d (%s) ", bv->bits[j]->fail,bv->bits[j]->p.s);
                         bv->fail |= bv->bits[j]->fail;
                 }
+                //fprintf(stdout,"\n");
                 code[len] =0;
                 c = 0;
                 for(j = 0; j < bv->num_bit;j++){

@@ -96,6 +96,4 @@ extern void free_assign_structure(struct assign_struct* as);
 extern int post_process_assign(struct assign_struct* as);
 extern int ref_correct(khash_t(exact) * h ,struct qsubscore* subm, struct seq_bit* sb, int q_offset);
 
-
-
 #endif

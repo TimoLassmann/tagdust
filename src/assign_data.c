@@ -240,6 +240,7 @@ int reset_assign_structute(struct assign_struct* as)
                         s = as->bit_vec[i]->bits[j];
                         s->p.l = 0;
                         s->q.l = 0;
+                        s->p_corr.l = 0;
                         //ASSERT(s->p.l == 0,"p is not null as %d  %d %d %s fail? %d",i, s->file,s->type, s->p.s, s->fail);
                         //ASSERT(s->q.l == 0,"p is not null");
                 }

@@ -52,19 +52,19 @@ int poahmm_from_read_structure(struct poahmm** poahmm,struct global_poahmm_param
 
 
 
-        LOG_MSG("Model Len: %d %d", ph->min_model_len,ph->max_model_len);
+        //LOG_MSG("Model Len: %d %d", ph->min_model_len,ph->max_model_len);
 
-        LOG_MSG("Seq Len: %d %d alloc: %d", ph->min_seq_len, ph->max_seq_len, ph->alloc_seq_len);
+        //LOG_MSG("Seq Len: %d %d alloc: %d", ph->min_seq_len, ph->max_seq_len, ph->alloc_seq_len);
 
-        LOG_MSG("Current poa size: nodes: %d seq_len:%d", ph->alloced_num_nodes , ph->alloc_seq_len);
+        //LOG_MSG("Current poa size: nodes: %d seq_len:%d", ph->alloced_num_nodes , ph->alloc_seq_len);
 
-        LOG_MSG("Writnign ");
-        poahmm_to_dot(ph, "test_singleN.dot");
+        //LOG_MSG("Writnign ");
+        //poahmm_to_dot(ph, "test_singleN.dot");
         //exit(0);
 
 
         c = MACRO_MAX(p->max_seq_len, ph->max_model_len) +2;
-        LOG_MSG("path will be %d long", c*2);
+        //LOG_MSG("path will be %d long", c*2);
         MMALLOC(path, sizeof(int)* c * 2);
         MMALLOC(nnn, sizeof(uint8_t) * c);
         MMALLOC(qqq, sizeof(uint8_t) * c);
@@ -79,7 +79,7 @@ int poahmm_from_read_structure(struct poahmm** poahmm,struct global_poahmm_param
                 ph->random_scores[i] = prob2scaledprob(0.0f);
         }
         for(i = ph->min_model_len; i <=  ph->max_seq_len ;i++){
-                LOG_MSG("tsting length : %d (seq_len: %d)", i, c);
+                //LOG_MSG("tsting length : %d (seq_len: %d)", i, c);
                 //for(c = 0; c < 10;c++){
                 //set_terminal_gap_prob(ph, i);
                 RUN(viterbi_poahmm_banded(ph, nnn,qqq, i, NULL,2));
@@ -134,7 +134,7 @@ int init_nodes_from_read_structure(struct poahmm* poahmm, struct read_structure*
                         poahmm->min_model_len += s->min_len;
                         poahmm->max_model_len += s->max_len;
                 }
-                print_segment_spec(s);
+                //print_segment_spec(s);
         }
 
         for(i= 0; i < rs->num_segments;i++){

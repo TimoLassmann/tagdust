@@ -138,7 +138,7 @@ int test_match_insert(char* infile)
         free_rng(rng);
         return OK;
 ERROR:
-        return NULL;
+        return FAIL;
 }
 
 int bar_test(void)

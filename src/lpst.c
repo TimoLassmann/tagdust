@@ -46,7 +46,14 @@ int lpst_score_read( struct read_structure* rs,struct tl_seq_buffer* sb, struct 
                 }
         }
         if(!n_pst){
-                P_S = prob2scaledprob(0.0f);
+
+                P_S = prob2scaledprob(1.0);
+                for(i = 0; i < sb->num_seq;i++){
+                        for(j = 0; j < sb->sequences[i]->len;j++){
+                                l = nuc_to_internal(sb->sequences[i]->seq[j]);
+                                P_S += si->background[l];
+                        }
+                }
                 *score= P_S;
                 return OK;
         }
@@ -117,6 +124,12 @@ int lpst_score_read( struct read_structure* rs,struct tl_seq_buffer* sb, struct 
                 }
         }
         *score = P_S;
+
+
+        MFREE(lpst->pst);
+        MFREE(lpst->jmptbl);
+
+        MFREE(lpst);
         return OK;
 ERROR:
         return FAIL;

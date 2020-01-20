@@ -20,7 +20,7 @@
 //#include "filter_pst.h"
 #include "pst.h"
 
-#define READ_CHUNK_SIZE 10000
+#define READ_CHUNK_SIZE 100000
 #define CHUNKS 10
 
 #define MAX_OUTREADNAME 128
@@ -216,13 +216,17 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
                         LOG_MSG("filter Took %f ",GET_TIMING(t1));
                 }
 
-
-                RUN(post_process_assign(as));
                 START_TIMER(t1);
+                RUN(post_process_assign(as));
+
                 STOP_TIMER(t1);
-                LOG_MSG("Took %f ",GET_TIMING(t1));
+                LOG_MSG("Processing took: %f ",GET_TIMING(t1));
                 //LOG_MSG("Write buff: %p",wb);
+                START_TIMER(t1);
                 RUN(write_all(as,&wb,param->bam));
+                STOP_TIMER(t1);
+                LOG_MSG("Write took: %f ",GET_TIMING(t1));
+
                 RUN(reset_assign_structute(as));
                 //exit(0);
         }
@@ -384,6 +388,7 @@ int process_read(struct collect_read* ri,struct poahmm* poahmm, struct read_stru
 
         path = ri->path;
 
+        //print_path(poahmm, path, ri->seq);
         //type = rs->type;
         s_index = 0;
         //assign_offset = as->num_per_file[i_file];
@@ -391,7 +396,7 @@ int process_read(struct collect_read* ri,struct poahmm* poahmm, struct read_stru
                 seq_pos = (path[j] >> 16u );
                 node_pos = path[j] & 0xFFFFu;
                 //if(node_pos == 0xFFFFu){
-                //print_path(poahmm, path, ri->seq);
+
                 //}
                 if(node_pos!= 0xFFFFu){
                         segment = poahmm->nodes[node_pos]->segment;
@@ -417,8 +422,8 @@ int process_read(struct collect_read* ri,struct poahmm* poahmm, struct read_stru
                                         sb->fail = ri->f;
                                         local_bit_index++;
                                 }
-                                kputc(ri->seq[j],&sb->p);
-                                kputc(ri->qual[j],&sb->q);
+                                kputc(ri->seq[seq_pos],&sb->p);
+                                kputc(ri->qual[seq_pos],&sb->q);
                                 break;
                         case ARCH_ETYPE_APPEND:
                                 if(c != old_c){
@@ -453,7 +458,7 @@ int process_read(struct collect_read* ri,struct poahmm* poahmm, struct read_stru
                                 if(rs->seg_spec[segment]->num_seq > 1){
                                         kputc(rs->seg_spec[segment]->seq[hmm_in_segment][s_index], &b->append);
                                 }else{
-                                        kputc(ri->seq[j], &b->append);
+                                        kputc(ri->seq[seq_pos], &b->append);
                                 }
 
                                 s_index++;
@@ -492,8 +497,8 @@ int process_read(struct collect_read* ri,struct poahmm* poahmm, struct read_stru
                                         local_bit_index++;
                                         read++;
                                 }
-                                kputc(ri->seq[j],&sb->p);
-                                kputc(ri->qual[j],&sb->q);
+                                kputc(ri->seq[seq_pos],&sb->p);
+                                kputc(ri->qual[seq_pos],&sb->q);
                                 break;
                         default:
                                 break;
@@ -530,7 +535,7 @@ int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb, int bam
         }else{
                 write_buf = NULL;
                 MMALLOC(write_buf,sizeof(struct tl_seq_buffer));
-                write_buf->malloc_num = 100000;
+                write_buf->malloc_num = 1000000;
                 write_buf->max_len = 0;
                 write_buf->num_seq = 0;
                 write_buf->L = 0;
@@ -569,7 +574,7 @@ int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb, int bam
                         //LOG_MSG("Writing %d fail: %d",i, bv->fail);
                         //bv = as->bit_vec[as->loc_out_reads[i]];
                         if(bv->fail){
-                                LOG_MSG("Writing %d", write_buf->num_seq);
+                                //LOG_MSG("Writing %d", write_buf->num_seq);
                                 RUN(write_seq_buf(write_buf, f_hand));
                                 write_buf->num_seq = 0;
 
@@ -579,12 +584,12 @@ int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb, int bam
 
                         /* check if we should write to new file */
                         if(dm[bv->out_file_id[out_read]]->id != file){
-                                LOG_MSG("New group: %d at %d", dm[bv->out_file_id[out_read]]->id,out_read);
-                                LOG_MSG("New group: %s", dm[bv->out_file_id[out_read]]->out_filename,out_read);
-                                LOG_MSG("New group: %p", dm[bv->out_file_id[out_read]]->f_hand,out_read);
+                                //LOG_MSG("New group: %d at %d", dm[bv->out_file_id[out_read]]->id,out_read);
+                                //LOG_MSG("New group: %s", dm[bv->out_file_id[out_read]]->out_filename,out_read);
+                                //LOG_MSG("New group: %p", dm[bv->out_file_id[out_read]]->f_hand,out_read);
 
                                 if(file != -1){
-                                        LOG_MSG("Writing %d", write_buf->num_seq);
+                                        //      LOG_MSG("Writing %d", write_buf->num_seq);
                                         RUN(write_seq_buf(write_buf, f_hand));
                                         write_buf->num_seq = 0;
                                         //RUN(close_seq_file(&f_hand));
@@ -600,7 +605,7 @@ int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb, int bam
                                 }
                                 f_hand= dm[bv->out_file_id[out_read]]->f_hand;
                                 file = dm[bv->out_file_id[out_read]]->id;
-                                LOG_MSG("New group: %p", dm[bv->out_file_id[out_read]]->f_hand,out_read);
+                                //LOG_MSG("New group: %p", dm[bv->out_file_id[out_read]]->f_hand,out_read);
                         }
 
                         sb = bv->bits[as->loc_out_reads[out_read]];
@@ -620,20 +625,20 @@ int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb, int bam
                         write_buf->num_seq++;
 
                         if(write_buf->num_seq == write_buf->malloc_num){
-                                LOG_MSG("Writing %d", write_buf->num_seq);
+                                //LOG_MSG("Writing %d", write_buf->num_seq);
                                 RUN(write_seq_buf(write_buf, f_hand));
                                 write_buf->num_seq = 0;
                         }
                 }
                 if(write_buf->num_seq){
-                        LOG_MSG("Writing %d  %p", write_buf->num_seq,f_hand);
+                        //LOG_MSG("Writing %d  %p", write_buf->num_seq,f_hand);
                         RUN(write_seq_buf(write_buf, f_hand));
                         write_buf->num_seq = 0;
                 }
         }
 
         STOP_TIMER(t1);
-        LOG_MSG("took %f",GET_TIMING(t1));
+        //LOG_MSG("took %f",GET_TIMING(t1));
 
         write_buf->num_seq = 0;
         for(i = 0; i < write_buf->malloc_num;i++){
@@ -692,7 +697,7 @@ int print_path(struct poahmm* poahmm, uint32_t* path,char* seq)
 {
         uint32_t i;
         char alphabet[5] = "ACGTN";
-        char etype[8] = "_EASIPLR";
+        char etype[9] = "_EASIPLRC";
 
         uint32_t seq_pos;
         uint32_t node_pos;
@@ -715,6 +720,17 @@ int print_path(struct poahmm* poahmm, uint32_t* path,char* seq)
 
                 if(node_pos!= 0xFFFFu){
                         fprintf(stdout, " %3c", alphabet[poahmm->nodes[node_pos]->nuc]);
+                }else{
+                        fprintf(stdout, " %3c", '-');
+                }
+        }
+        fprintf(stdout,"\n");
+        for(i = 1; i < path[0];i++){
+                seq_pos = path[i] >> 16u;
+                node_pos = path[i] & 0xFFFFu;
+
+                if(node_pos!= 0xFFFFu){
+                        fprintf(stdout, " %3c", etype[poahmm->nodes[node_pos]->type]);
                 }else{
                         fprintf(stdout, " %3c", '-');
                 }

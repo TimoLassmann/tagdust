@@ -11,6 +11,7 @@
 #include "init_poahmm.h"
 
 
+#include "lpst.h"
 
 #include "hmm_model_bag.h"
 //#include "io.h"
@@ -90,11 +91,6 @@ int test_architectures(struct arch_library* al, struct seq_stats* si, struct par
         }
 
 
-        for(i = 0; i < param->num_infiles;i++){
-                free_tl_seq_buffer(rb[i]);
-                //free_read_info_buffer(rb[i]);
-        }
-        MFREE(rb);
 
 //LOG_MSG("Testing %d models,", al->num_arch);
 
@@ -106,7 +102,7 @@ int test_architectures(struct arch_library* al, struct seq_stats* si, struct par
                         //fprintf(stdout,"%f ",al->arch_posteriors[j][i]);
                         sum = logsum(sum,al->arch_posteriors[j][i]);
                 }
-                //fprintf(stdout,"\n");
+
                 fprintf(stdout,"FILE: %s\t",param->infile[i]);
                 for(j = 0; j < al->num_arch;j++){
 
@@ -139,6 +135,43 @@ int test_architectures(struct arch_library* al, struct seq_stats* si, struct par
                 LOG_MSG("%s" , al->spec_line[best]);
                 if(al->arch_posteriors[best][i] < 10.0f){
                         WARNING_MSG("Two or more architectures have a high probability of matching %s", param->infile[i]);
+                        WARNING_MSG("Attempting to select best arch using probabilistic suffix trees.");
+                        sum = prob2scaledprob(0.0);
+                        for(j = 0; j < al->num_arch;j++){
+                                if(al->arch_posteriors[j][i] < 10.0f){
+                                        lpst_score_read(al->read_structure[j], rb[i],si->ssi[i], &al->arch_posteriors[j][i]);
+                                        //LOG_MSG("%s Re-scored as: %f", al->spec_line[j], al->arch_posteriors[j][i]);
+                                        sum = logsum(sum, al->arch_posteriors[j][i]);
+                                }else{
+                                        al->arch_posteriors[j][i] = prob2scaledprob(0.0);
+                                }
+                        }
+                        for(j = 0; j < al->num_arch;j++){
+                                al->arch_posteriors[j][i] = 1.0 - scaledprob2prob(al->arch_posteriors[j][i] - sum);
+                                if(al->arch_posteriors[j][i] < 0.00001f){
+                                        al->arch_posteriors[j][i] = 0.00001f;
+                                }
+                                al->arch_posteriors[j][i] = -10.0f * log10f(al->arch_posteriors[j][i]);
+                                //fprintf(stdout,"%f ",al->arch_posteriors[j][i]);
+                        }
+                        //fprintf(stdout,"\n");
+                        sum = -1.0;
+                        best = -1;
+                        for(j = 0; j < al->num_arch;j++){
+                                //LOG_MSG("%s" , al->spec_line[j]);
+                                if(al->arch_posteriors[j][i] >= sum){
+
+                                        best =j;
+                                        sum = al->arch_posteriors[j][i];
+
+                                }
+                        }
+                        ASSERT(best != -1,"No best arch found");
+                        if(al->arch_posteriors[best][i] < 10.0f){
+                                ERROR_MSG("Giving up!");
+                        }
+                        LOG_MSG("Best architecture for %s is (Q = %f):", param->infile[i], al->arch_posteriors[best][i]);
+                        //score_pst(p, test_seq, test_len, &out);
                 }
 
                 al->arch_to_read_assignment[i] = best;
@@ -147,12 +180,28 @@ int test_architectures(struct arch_library* al, struct seq_stats* si, struct par
 
         al->num_file = param->num_infiles;
 
+        for(i = 0; i < param->num_infiles;i++){
+                free_tl_seq_buffer(rb[i]);
+                //free_read_info_buffer(rb[i]);
+        }
+        MFREE(rb);
+
         MFREE(ab->arch_posterior);
         MFREE(ab->archs);
         MFREE(ab);
         free_alphabet(a);
         return OK;
 ERROR:
+        for(i = 0; i < param->num_infiles;i++){
+                free_tl_seq_buffer(rb[i]);
+                //free_read_info_buffer(rb[i]);
+        }
+        MFREE(rb);
+
+        MFREE(ab->arch_posterior);
+        MFREE(ab->archs);
+        MFREE(ab);
+        free_alphabet(a);
         return FAIL;
 }
 
@@ -177,7 +226,7 @@ int test_arch(struct tl_seq_buffer** rb, struct arch_library* al, struct seq_sta
         base_q_offset = rb[i_file]->base_quality_offset;
 
         MMALLOC(p, sizeof(struct global_poahmm_param));
-        p->min_seq_len = si->ssi[i_file]->average_length;
+        p->min_seq_len = si->ssi[i_file]->average_length; /* FIXMEEEEEEE  */
         p->max_seq_len = si->ssi[i_file]->max_seq_len;
         p->base_error = 0.05f;
         p->indel_freq = 0.1f;

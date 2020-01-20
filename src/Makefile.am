@@ -26,6 +26,8 @@ sim_seq_lib.h \
 sim_seq_lib.c \
 arch_lib.h \
 arch_lib.c \
+pst.h \
+pst.c \
 correct.h \
 correct.c \
 arch_lib_parse_token.h \
@@ -81,6 +83,8 @@ bpm.h \
 bpm.c \
 pst.h \
 pst.c \
+lpst.h \
+lpst.c \
 init_poahmm.h \
 poahmm_structs.h \
 init_poahmm.c \
