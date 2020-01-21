@@ -6,6 +6,7 @@ CLEANFILES =
 
 AM_LDFLAGS = @DEAD_STRIP@
 AM_LDFLAGS += -Wno-undef
+AM_LDFLAGS += -static
 
 LIBS = @TLDEVEL_LIB@ $(HDF5_LDFLAGS)  $(HDF5_LIBS) -lm
 
@@ -81,6 +82,7 @@ filter.h \
 filter.c \
 bpm.h \
 bpm.c \
+pst_structs.h \
 pst.h \
 pst.c \
 lpst.h \
@@ -207,6 +209,11 @@ band_test_SOURCES = banded_test.c
 core_hmm_test_SOURCES = \
 misc.h \
 misc.c \
+pst_structs.h \
+pst.h \
+pst.c \
+correct.h \
+correct.c \
 arch_lib.h \
 arch_lib.c \
 arch_lib_parse_token.h \
@@ -230,6 +237,11 @@ io_hdf5.c
 
 
 arch_lib_test_SOURCES = \
+pst_structs.h \
+pst.h \
+pst.c \
+correct.h \
+correct.c \
 arch_lib.h \
 arch_lib.c \
 arch_lib_parse_token.h \

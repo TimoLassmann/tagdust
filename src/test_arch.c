@@ -37,6 +37,7 @@ int test_architectures(struct arch_library* al, struct seq_stats* si, struct par
 
         float sum;
         int best;
+        int n_best;
         int i,j;
         //int (*fp)(struct read_info_buffer* rb, struct file_handler* f_handle) = NULL;
 
@@ -103,14 +104,14 @@ int test_architectures(struct arch_library* al, struct seq_stats* si, struct par
                         sum = logsum(sum,al->arch_posteriors[j][i]);
                 }
 
-                fprintf(stdout,"FILE: %s\t",param->infile[i]);
+                //fprintf(stdout,"FILE: %s\t",param->infile[i]);
                 for(j = 0; j < al->num_arch;j++){
 
-                        al->arch_posteriors[j][i] = 1.0 - scaledprob2prob(al->arch_posteriors[j][i] - sum);
+                        al->arch_posteriors[j][i] = scaledprob2prob(al->arch_posteriors[j][i] - sum);
                         if(al->arch_posteriors[j][i] < 0.00001f){
                                 al->arch_posteriors[j][i] = 0.00001f;
                         }
-                        al->arch_posteriors[j][i] = -10.0f * log10f(al->arch_posteriors[j][i]);
+                        //al->arch_posteriors[j][i] = -10.0f * log10f(al->arch_posteriors[j][i]);
                         fprintf(stdout,"%f ",al->arch_posteriors[j][i]);
                 }
                 fprintf(stdout,"\n");
@@ -121,58 +122,83 @@ int test_architectures(struct arch_library* al, struct seq_stats* si, struct par
                 al->arch_to_read_assignment[i] = -1;
                 sum = -1.0;
                 best = -1;
+                n_best = 0;
                 for(j = 0; j < al->num_arch;j++){
                         //LOG_MSG("%s" , al->spec_line[j]);
-                        if(al->arch_posteriors[j][i] >= sum){
-
-                                best =j;
+                        if(al->arch_posteriors[j][i] > sum){
+                                n_best = 1;
+                                best = j;
                                 sum = al->arch_posteriors[j][i];
 
+                        }else if(al->arch_posteriors[j][i] == sum){
+                                n_best++;
                         }
                 }
                 ASSERT(best != -1,"No best arch found");
-                LOG_MSG("Best architecture for %s is (Q = %f):", param->infile[i], al->arch_posteriors[best][i]);
-                LOG_MSG("%s" , al->spec_line[best]);
-                if(al->arch_posteriors[best][i] < 10.0f){
-                        WARNING_MSG("Two or more architectures have a high probability of matching %s", param->infile[i]);
-                        WARNING_MSG("Attempting to select best arch using probabilistic suffix trees.");
-                        sum = prob2scaledprob(0.0);
+                if(n_best > 1){
+                        WARNING_MSG("Two %d or more architectures have a high probability of matching %s",n_best, param->infile[i]);
                         for(j = 0; j < al->num_arch;j++){
-                                if(al->arch_posteriors[j][i] < 10.0f){
+                                if(al->arch_posteriors[j][i] == sum){
+                                        LOG_MSG("   %f %s" ,al->arch_posteriors[j][i], al->spec_line[j]);
+                                }
+                        }
+
+                        WARNING_MSG("Attempting to select best arch using probabilistic suffix trees.");
+                        for(j = 0; j < al->num_arch;j++){
+
+                                if(al->arch_posteriors[j][i] == sum){
                                         lpst_score_read(al->read_structure[j], rb[i],si->ssi[i], &al->arch_posteriors[j][i]);
-                                        //LOG_MSG("%s Re-scored as: %f", al->spec_line[j], al->arch_posteriors[j][i]);
-                                        sum = logsum(sum, al->arch_posteriors[j][i]);
                                 }else{
                                         al->arch_posteriors[j][i] = prob2scaledprob(0.0);
                                 }
                         }
+                        sum = prob2scaledprob(0.0f);
                         for(j = 0; j < al->num_arch;j++){
-                                al->arch_posteriors[j][i] = 1.0 - scaledprob2prob(al->arch_posteriors[j][i] - sum);
+                                //fprintf(stdout,"%f ",al->arch_posteriors[j][i]);
+                                sum = logsum(sum,al->arch_posteriors[j][i]);
+                        }
+
+                        //fprintf(stdout,"FILE: %s\t",param->infile[i]);
+                        for(j = 0; j < al->num_arch;j++){
+
+                                al->arch_posteriors[j][i] = scaledprob2prob(al->arch_posteriors[j][i] - sum);
                                 if(al->arch_posteriors[j][i] < 0.00001f){
                                         al->arch_posteriors[j][i] = 0.00001f;
                                 }
-                                al->arch_posteriors[j][i] = -10.0f * log10f(al->arch_posteriors[j][i]);
+                                //al->arch_posteriors[j][i] = -10.0f * log10f(al->arch_posteriors[j][i]);
                                 //fprintf(stdout,"%f ",al->arch_posteriors[j][i]);
                         }
                         //fprintf(stdout,"\n");
+                        //fprintf(stdout,"\n");
                         sum = -1.0;
                         best = -1;
+                        n_best = 0;
                         for(j = 0; j < al->num_arch;j++){
                                 //LOG_MSG("%s" , al->spec_line[j]);
-                                if(al->arch_posteriors[j][i] >= sum){
-
-                                        best =j;
+                                if(al->arch_posteriors[j][i] > sum){
+                                        n_best = 1;
+                                        best = j;
                                         sum = al->arch_posteriors[j][i];
 
+                                }else if(al->arch_posteriors[j][i] == sum){
+                                        n_best++;
                                 }
                         }
                         ASSERT(best != -1,"No best arch found");
-                        if(al->arch_posteriors[best][i] < 10.0f){
+                        if(n_best > 1){
+                                WARNING_MSG("Can't distinguish between:");
+                                for(j = 0; j < al->num_arch;j++){
+                                        if(al->arch_posteriors[j][i] ==sum){
+                                                LOG_MSG("   %s" , al->spec_line[j]);
+                                        }
+                                }
                                 ERROR_MSG("Giving up!");
                         }
-                        LOG_MSG("Best architecture for %s is (Q = %f):", param->infile[i], al->arch_posteriors[best][i]);
+                        //LOG_MSG("Best architecture for %s is (Q = %f):", param->infile[i], al->arch_posteriors[best][i]);
                         //score_pst(p, test_seq, test_len, &out);
                 }
+
+                LOG_MSG("%s -> %s ", param->infile[i], al->spec_line[best]);
 
                 al->arch_to_read_assignment[i] = best;
                 al->arch_posteriors[0][i] = al->arch_posteriors[best][i];

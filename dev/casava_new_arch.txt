@@ -1,5 +1,5 @@
-tagdust   -1     BC:A:ACAGTG,ACTTGA,TTAGGC
-tagdust   -1     BC:S:ACAGTG,ACTTGA,TTAGGC 
+tagdust   -1     BC:S:ACAGTG,ACTTGA,TTAGGC
+
 
 tagdust   -1     S:AAAGTG,AATTGA,AAAGGC 
 tagdust   -1     S:CCAGTG,CCTTGA,CCAGGC 

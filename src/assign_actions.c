@@ -14,7 +14,10 @@ int post_process_assign(struct assign_struct* as)
         struct seq_bit_vec* bv = NULL;
         struct seq_bit* bit = NULL;
         struct demux_struct* tmp_ptr = NULL;
+        struct bit_annotation* ann = NULL;
 
+
+        uint8_t etype;
         char* code =  NULL;
         //char* barcode;
         //char* umi;
@@ -35,32 +38,53 @@ int post_process_assign(struct assign_struct* as)
                 //fprintf(stdout,"%s ",bv->name);
                 for(j = 0; j < bv->num_bit;j++){
 
-                        if(bv->bits[j]->type == ARCH_ETYPE_SPLIT){
+
+                        etype = bv->bits[j]->type;
+                        switch (etype) {
+                        case ARCH_ETYPE_SPLIT: {
                                 code[len] = bv->bits[j]->code;
                                 //len += bv->bits[j]->len;// strnlen(bv->bits[j]->p,256);
                                 len++;
-
+                                break;
                         }
-                        if(bv->bits[j]->type == ARCH_ETYPE_APPEND_CORRECT){
-                                //LOG_MSG("correcyt");
+                        case ARCH_ETYPE_APPEND:{
                                 bit = bv->bits[j];
+                                ann = as->bit_ann[j];
+                                //LOG_MSG("%s %s %s", ann->name.s, ann->c_name.s,ann->q_name.s);
+                                kputs(ann->name.s, &bv->append);
+                                kputs(":Z:", &bv->append);
+                                kputs(bit->p.s , &bv->append);
+                                kputc(' ', &bv->append);
+                                break;
+                        }
+                        case ARCH_ETYPE_APPEND_CORRECT: {
+                                        //LOG_MSG("correcyt");
+                                bit = bv->bits[j];
+                                ann = as->bit_ann[j];
+                                //LOG_MSG("%s %s %s", ann->name.s, ann->c_name.s,ann->q_name.s);
                                 correct_index =  bit->correct_index;
                                 RUN(ref_correct(as->bit_ann[j]->bar_hash,as->subm, bit, 33));
 
-                                kputs("CR:Z:", &bv->append);
+                                kputs(ann->name.s, &bv->append);
+                                kputs(":Z:", &bv->append);
                                 kputs(bit->p.s , &bv->append);
                                 kputc(' ', &bv->append);
-                                kputs("CB:Z:", &bv->append);
+
+                                kputs(ann->c_name.s  , &bv->append);
+                                kputs(":Z:", &bv->append);
                                 kputs(bit->p_corr.s , &bv->append);
                                 kputc(' ', &bv->append);
-                                kputs("CZ:Z:", &bv->append);
-                                kputs(bit->q.s , &bv->append);
-                        }
 
-                        //if(bv->bits[j]->type == UMI_TYPE){
-                        //umi_len += bv->bits[j]->len;
-                        //}
-                        //fprintf(stdout," FAIL %d (%s) ", bv->bits[j]->fail,bv->bits[j]->p.s);
+                                kputs(ann->q_name.s  , &bv->append);
+                                kputs(":Z:", &bv->append);
+                                kputs(bit->q.s , &bv->append);
+                                kputc(' ', &bv->append);
+                                break;
+
+                        }
+                        default:
+                                break;
+                        }
                         bv->fail |= bv->bits[j]->fail;
                 }
                 //fprintf(stdout,"\n");

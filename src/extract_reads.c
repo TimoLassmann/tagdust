@@ -90,6 +90,7 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
                 wb = NULL;
         }
 
+        //param->bam = 1;
         /* figure out how many barcodes etc */
         RUN(init_assign_structure(&as, al, param->outfile, CHUNKS* READ_CHUNK_SIZE, param->bam));
 
@@ -413,7 +414,7 @@ int process_read(struct collect_read* ri,struct poahmm* poahmm, struct read_stru
                         switch (c) {
                         case ARCH_ETYPE_APPEND_CORRECT:
                                 if(c != old_c){
-                                        s_index = 0;
+                                        //s_index = 0;
                                         sb = b->bits[local_bit_index];
                                         //ASSERT(i_file == sb->file, "Oh dear: want %d got %d",i_file,sb->file);
                                         //sb->file = i_file;
@@ -430,14 +431,14 @@ int process_read(struct collect_read* ri,struct poahmm* poahmm, struct read_stru
                                         s_index =0;
                                         sb = b->bits[local_bit_index];
 
-                                        s_name = rs->seg_spec[segment]->name;
+                                        /*s_name = rs->seg_spec[segment]->name;
                                         if(b->append.l){
                                                 kputc(' ', &b->append);
                                         }
 
                                         kputs(s_name, &b->append);
 
-                                        kputs(":Z:", &b->append);
+                                        kputs(":Z:", &b->append);*/
 
                                         //sb->len = 0;
                                         //ASSERT(i_file == sb->file, "Oh dear: want %d got %d",i_file,sb->file);
@@ -456,9 +457,9 @@ int process_read(struct collect_read* ri,struct poahmm* poahmm, struct read_stru
                                 //kputc(ri->seq[j], &sb->p);
 
                                 if(rs->seg_spec[segment]->num_seq > 1){
-                                        kputc(rs->seg_spec[segment]->seq[hmm_in_segment][s_index], &b->append);
+                                        kputc(rs->seg_spec[segment]->seq[hmm_in_segment][s_index], &sb->p);
                                 }else{
-                                        kputc(ri->seq[seq_pos], &b->append);
+                                        kputc(ri->seq[seq_pos], &sb->p);
                                 }
 
                                 s_index++;

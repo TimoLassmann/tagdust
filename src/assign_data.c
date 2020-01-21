@@ -312,6 +312,8 @@ int setup_assign_structure(struct arch_library* al,struct assign_struct* as)
                         if(s->bar_hash){
                                 as->bit_ann[as->num_bits]->bar_hash = s->bar_hash;
                         }
+
+                        //LOG_MSG("%d %d %s %s %s", i,j,as->bit_ann[as->num_bits]->name.s,as->bit_ann[as->num_bits]->c_name.s,as->bit_ann[as->num_bits]->q_name.s);
                         //as->bit_ann[0]->name = 0;
 
                         //print_segment_spec(read_structure->seg_spec[j]);
