@@ -11,7 +11,6 @@
 #include "extract_reads.h"
 
 #include "tlrng.h"
-
 #include "tllogsum.h"
 
 int main (int argc,char * argv[]) {
@@ -28,6 +27,12 @@ int main (int argc,char * argv[]) {
         ASSERT(param->num_infiles > 0, "Number of inputs has to be greater than 0");
 
         ASSERT(param->outfile != NULL, "No output file suffix");
+
+        /* Sanity checks */
+        /* are we dealing with multiple lanes? */
+        /* are the sequences sorted? */
+        /* are the segment specifications valid?  */
+
 
         /* set top level rng generator  */
         RUNP(main_rng = init_rng(param->seed));

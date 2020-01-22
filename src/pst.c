@@ -1,8 +1,5 @@
 
-
 #include "tldevel.h"
-
-#include "tlseqio.h"
 #include "tllogsum.h"
 #include <string.h>
 
@@ -51,33 +48,18 @@ static int resize_fpst(struct fpst* f);
 static int prob2scaledprob_fpst(struct fpst* f);
 static void free_fpst(struct fpst* f);
 
-int score_pst(const struct pst* pst, const char* seq,const int len, float*r)
+int score_pst(const struct pst* pst, const char* seq,const int len, float* P_M, float* P_R)
 {
-        float** s_prob;
-        //float** p_prob;
-        int** s;
-        //int** p;
-
-        float P_S;
-        //float P_P;
-        //float P_R;
-        //float A,B;
+        int** s = pst->fpst_root->links;
+        float** s_prob = pst->fpst_root->prob;
+        const float* base_p = pst->fpst_root->prob[0];
+        float a, b;
         register int i,c,l,pos,n;
-
-        float* base_p = pst->fppt_root->prob[0];
-        //float sum;
-        s = pst->fpst_root->links;
-        //p = pst->fppt_root->links;
-        s_prob = pst->fpst_root->prob;
-        //p_prob = pst->fppt_root->prob;
-
-        P_S = prob2scaledprob(1.0);
-        //P_P = prob2scaledprob(1.0);
-        //      P_R = prob2scaledprob(1.0);
-
+        a = prob2scaledprob(1.0);
+        b = a;
         for(i = 0; i < len; i++){
                 l = nuc_to_internal(seq[i]);
-//                P_R = P_R +  prob2scaledprob(0.25f);//  base_p[l];
+                b = b + base_p[l];
                 pos = i;
                 n = 0;
                 while(pos){
@@ -88,36 +70,10 @@ int score_pst(const struct pst* pst, const char* seq,const int len, float*r)
                         }
                         n = s[n][c];
                 }
-                P_S += s_prob[n][l];
-                /*P_S += A;
-                pos= i;
-                n = 0;
-                while(pos != len-1){
-                        pos= pos+1;
-                        c = nuc_to_internal(seq[pos]);
-                        if(!p[n][c]){
-                                break;
-                        }
-                        n = p[n][c];
-                }
-                B =  p_prob[n][l];
-                //LOG_MSG("%d %c %f %f %f %f %f",i, seq[i], scaledprob2prob(MACRO_MAX(A, B)), scaledprob2prob(A),scaledprob2prob(B),A,B);
-
-                P_S += MACRO_MAX(A,B);*/
-                //sum = logsum(A+B, base_p[l]);
-                //LOG_MSG("%d: %f ",i, MACRO_MAX(A,B) - base_p[l]);
-
+                a += s_prob[n][l];
         }
-
-        //A = P_S-P_R;
-        //A = exp2f(A) / (1.0 + exp2f(A));
-
-        //LOG_MSG("%f %f  A:%f", P_S,P_R,A);
-        //if(P_S - P_R > 10){
-        *r = P_S;// P_S;// MACRO_MAX(P_P,P_S);
-        //}else{
-                //*r = prob2scaledprob(0.0f);
-        //}
+        *P_M = a;
+        *P_R = b;
         return OK;
 }
 
@@ -145,7 +101,7 @@ int scan_read_with_pst(struct pst* pst, char* seq, int len, float*r)
         float P_F;
         //float* base_p = pst->pst_root->nuc_probability;
 
-        float* base_p = pst->fppt_root->prob[0];
+        float* base_p = pst->fpst_root->prob[0];
 
         float A;
         float B;
@@ -166,8 +122,8 @@ int scan_read_with_pst(struct pst* pst, char* seq, int len, float*r)
                 P_S = P_S + A;
 
                 //B = get_ppt_prob(pst->ppt_root, seq,c, i);
-                B = get_fppt_prob(pst->fppt_root, seq, c, i,len);
-                P_P = P_P + B;
+                //B = get_fppt_prob(pst->fppt_root, seq, c, i,len);
+                //P_P = P_P + B;
                 //LOG_MSG("%f %f  fowards (%d / %d)", A,B,i,len);
 
 
@@ -284,7 +240,7 @@ int run_build_pst(struct pst** pst, struct kmer_counts* k)//  struct tl_seq_buff
                 //LOG_MSG("%c: %f", "ACGT"[i],c);
                 x = p->fpst_root->l;
                 p->fpst_root->prob[x][i] = c;
-                p->fppt_root->prob[x][i] = c;
+                //p->fppt_root->prob[x][i] = c;
                 sum += p->fpst_root->prob[x][i];
         }
 
@@ -294,10 +250,10 @@ int run_build_pst(struct pst** pst, struct kmer_counts* k)//  struct tl_seq_buff
                 p->fpst_root->prob[x][i] = p->fpst_root->prob[x][i] *(1.0f  - 4.0f * p->gamma_min) + p->gamma_min;
                 p->fpst_root->links[x][i] = 0;
 
-                x = p->fppt_root->l;
+                /*x = p->fppt_root->l;
                 p->fppt_root->prob[x][i] /=sum;
                 p->fppt_root->prob[x][i] = p->fppt_root->prob[x][i] *(1.0f  - 4.0f * p->gamma_min) + p->gamma_min;
-                p->fppt_root->links[x][i] = 0;
+                p->fppt_root->links[x][i] = 0;*/
 
 
                 //fprintf(stdout," %f", p->fppt_root->prob[x][i]);
@@ -306,7 +262,7 @@ int run_build_pst(struct pst** pst, struct kmer_counts* k)//  struct tl_seq_buff
         //fprintf(stdout,"\n");
         //exit(0);
         p->fpst_root->l = 0;
-        p->fppt_root->l = 0;
+        //p->fppt_root->l = 0;
 
         RUN(init_helper(&helper, k->counts[0], p->gamma_min));
         helper = build_pst(p,p->fpst_root,0, helper,k);
@@ -316,18 +272,18 @@ int run_build_pst(struct pst** pst, struct kmer_counts* k)//  struct tl_seq_buff
         helper = NULL;
 
 
-        RUN(init_helper(&helper, k->counts[0], p->gamma_min));
+        /*RUN(init_helper(&helper, k->counts[0], p->gamma_min));
         helper = build_ppt(p,p->fppt_root,0, helper,k);
         p->fppt_root->l++;
         free_pst_node(helper);
-        helper = NULL;
+        helper = NULL;*/
 
 
         RUN(prob2scaledprob_fpst(p->fpst_root));
-        RUN(prob2scaledprob_fpst(p->fppt_root));
+        //RUN(prob2scaledprob_fpst(p->fppt_root));
 
 
-        fprintf(stdout,"Size: %d\n", p->fppt_root->l + p->fpst_root->l * 8 *4);
+        //fprintf(stdout,"Size: %d\n", p->fppt_root->l + p->fpst_root->l * 8 *4);
 //LOG_MSG("PPT:");
         //exit(0);
         //print_pst(p,p->ppt_root);
@@ -564,10 +520,10 @@ int init_pst(struct pst** pst, int len)//, struct tl_seq_buffer* sb)
         p->p_min = 0.0001f;
         p->r = 1.02f;
         p->fpst_root = NULL;
-        p->fppt_root = NULL;
+        //p->fppt_root = NULL;
 
         RUN(alloc_fpst(&p->fpst_root, 64));
-        RUN(alloc_fpst(&p->fppt_root, 64));
+        //RUN(alloc_fpst(&p->fppt_root, 64));
         *pst = p;
         return OK;
 ERROR:
@@ -578,7 +534,7 @@ void free_pst(struct pst* p)
 {
         if(p){
                 free_fpst(p->fpst_root);
-                free_fpst(p->fppt_root);
+                //free_fpst(p->fppt_root);
                 MFREE(p);
         }
 }

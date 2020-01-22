@@ -16,7 +16,7 @@ struct pst {
 //        struct pst_node* pst_root;
         //struct pst_node* ppt_root;
         struct fpst* fpst_root;
-        struct fpst* fppt_root;
+        //struct fpst* fppt_root;
         float p_min;
         float gamma_min;
         float r;

@@ -36,7 +36,6 @@ struct collect_read{
 };
 
 //static int process_read(struct collect_read* ri, struct read_structure* rs , struct seq_bit_vec* b , int i_file);
-
 static int process_read(struct collect_read* ri,struct poahmm* poahmm, struct read_structure* rs , struct seq_bit_vec* b , int local_bit_index);
 
 static int sanity_check_inputs(struct tl_seq_buffer** rb, int num_files);
@@ -454,14 +453,11 @@ int process_read(struct collect_read* ri,struct poahmm* poahmm, struct read_stru
 
                                         local_bit_index++;
                                 }
-                                //kputc(ri->seq[j], &sb->p);
-
                                 if(rs->seg_spec[segment]->num_seq > 1){
                                         kputc(rs->seg_spec[segment]->seq[hmm_in_segment][s_index], &sb->p);
                                 }else{
                                         kputc(ri->seq[seq_pos], &sb->p);
                                 }
-
                                 s_index++;
                                 break;
                         case ARCH_ETYPE_SPLIT:
@@ -507,7 +503,6 @@ int process_read(struct collect_read* ri,struct poahmm* poahmm, struct read_stru
                         old_c = c;
                 }
         }
-
         //b->append[b->a_len] = 0;
         //fprintf(stdout,"%s\n%s\n",sb->p,sb->q);
         //exit(0);

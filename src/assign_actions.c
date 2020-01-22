@@ -15,8 +15,6 @@ int post_process_assign(struct assign_struct* as)
         struct seq_bit* bit = NULL;
         struct demux_struct* tmp_ptr = NULL;
         struct bit_annotation* ann = NULL;
-
-
         uint8_t etype;
         char* code =  NULL;
         //char* barcode;

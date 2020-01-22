@@ -56,7 +56,8 @@ int test_match_insert(char* infile)
         double s[5];
         char* test_seq = NULL;
 
-        float out;
+        float P_M;
+        float P_R;
         int test_len = 0;
         int i_point;
         int i,j;
@@ -89,11 +90,11 @@ int test_match_insert(char* infile)
                 for (j = 0; j < 1000000;j++){
                         RUN(generate_random_seq(&test_seq, &test_len, rng));
                         RUN(insert_seq(test_seq, test_len, sb->sequences[0]->seq, sb->sequences[0]->len, rng,&i_point));
-                        score_pst(p, test_seq, test_len, &out);
+                        score_pst(p, test_seq, test_len, &P_M,&P_R);
 
                         s[0]++;
-                        s[1] += out;
-                        s[2] += out * out;
+                        s[1] += P_M;
+                        s[2] += P_M* P_M;
                 }
                 s[3] = s[1] / s[0];
 
@@ -108,18 +109,19 @@ int test_match_insert(char* infile)
                 for (j = 0; j < 1000000;j++){
                         RUN(generate_random_seq(&test_seq, &test_len, rng));
                         //RUN(insert_seq(test_seq, test_len, sb->sequences[0]->seq, sb->sequences[0]->len, rng));
-                        score_pst(p, test_seq, test_len, &out);
+                        score_pst(p, test_seq, test_len, &P_M,&P_R);
 
                         s[0]++;
-                        s[1] += out;
-                        s[2] += out * out;
+                        s[1] += P_M;
+                        s[2] += P_M* P_M;
+
                 }
                 s[3] = s[1] / s[0];
 
                 s[4] = sqrt ( (s[0] * s[2] -  pow(s[1], 2.0)) /  (s[0] * ( s[0] - 1.0)));
                 START_TIMER(timer);
                 for (j = 0; j < 1000000;j++){
-                        score_pst(p, test_seq, test_len, &out);
+                        score_pst(p, test_seq, test_len, &P_M,&P_R);
                 }
                 STOP_TIMER(timer);
 //LOG_MSG("RANDOM: %f %f", s[3],s[4]);
@@ -148,7 +150,7 @@ int bar_test(void)
         struct pst* p = NULL;
         struct rng_state* rng = NULL;
         double error_rate;
-        float out;
+        float P_M,P_R;
         float Q,pbest;
         int i,j,c;
         int addition;
@@ -251,20 +253,20 @@ int bar_test(void)
         for(i = 0; i < 20;i++){
                 fprintf(stdout,"%s\t",ref_seq[i]);
 
-                score_pst_random(ref_seq[i], 16, back, &out);
-                scores[20] = out;
+                score_pst(p_array[0], ref_seq[i], 16, &P_M,&P_R);
+                scores[20] = P_R;
                 sum = prob2scaledprob(0.0f);
-                sum = logsum(sum, out);
+                sum = logsum(sum, P_R);
                 START_TIMER(t);
                 //for(c = 0; c < 679488;c++){
 
                         for(j = 0; j < 20;j++){
                                 //scan_read_with_pst(p_array[j],ref_seq[i] , 16,&out);
                                 //fprintf(stdout,"%f ",out);
-                                score_pst(p_array[j], ref_seq[i], 16, &out);
+                                score_pst(p_array[j], ref_seq[i], 16, &P_M,&P_R);
                                 //fprintf(stdout,"(%f)",out);
-                                scores[j] = out;
-                                sum = logsum(sum, out);
+                                scores[j] = P_M;
+                                sum = logsum(sum, P_M);
                         }
 
                         for(j = 0; j < 21;j++){
@@ -293,10 +295,10 @@ int bar_test(void)
         for(i = 0; i < 20;i++){
                 //int mutate_seq(char* ref,char* target,int len, float error_rate, struct rng_state* rng)
                 RUN(mutate_seq(ref_seq[i], test_seq, 16, 0.02, rng,&new_error));
-                score_pst_random(test_seq, 16, back, &out);
-                scores[20] = out;
+                score_pst(p_array[0], test_seq, 16,  &P_M,&P_R);
+                scores[20] = P_R;
                 sum = prob2scaledprob(0.0f);
-                sum = logsum(sum, out);
+                sum = logsum(sum, P_R);
                 fprintf(stdout,"%s\n",ref_seq[i]);
                 fprintf(stdout,"%s\t",test_seq);
                 START_TIMER(t);
@@ -305,10 +307,10 @@ int bar_test(void)
                 for(j = 0; j < 20;j++){
                         //scan_read_with_pst(p_array[j],ref_seq[i] , 16,&out);
                         //fprintf(stdout,"%f ",out);
-                        score_pst(p_array[j], test_seq, 16, &out);
+                        score_pst(p_array[j], test_seq, 16, &P_M,&P_R);
                         //fprintf(stdout,"(%f)",out);
-                        scores[j] = out;
-                        sum = logsum(sum, out);
+                        scores[j] = P_M;
+                        sum = logsum(sum, P_M);
                 }
                 //fprintf(stdout,"\n");
                 for(j = 0; j < 21;j++){

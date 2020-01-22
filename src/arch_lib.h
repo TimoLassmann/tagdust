@@ -41,16 +41,29 @@ struct read_structure{
 
 struct arch_library{
         struct read_structure** read_structure;
+        char* name;
         char** spec_line;
         float** arch_posteriors;
         float* confidence_thresholds;
         int* arch_to_read_assignment;
+        float P;
+        int priority;
         int num_arch;
-
         int alloc_num_arch;
         int num_file;
 };
 
+struct cookbook{
+        struct arch_library** lib;
+        int num_lib;
+        int alloc_num_lib;
+};
+
+
+
+extern int alloc_cookbook(struct cookbook** cookbook);
+extern int resize_cookbook(struct cookbook** cookbook);
+extern int free_cookbook(struct cookbook** cookbook);
 
 extern int read_architecture_files(struct arch_library* al, char* filename);
 extern int read_arch_into_lib(struct arch_library* al, char** list, int len);

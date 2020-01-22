@@ -91,11 +91,7 @@ int test_architectures(struct arch_library* al, struct seq_stats* si, struct par
                 }
         }
 
-
-
-//LOG_MSG("Testing %d models,", al->num_arch);
-
-/* convert posteriors into Phred scaled quality values */
+        /* convert posteriors into Phred scaled quality values */
 
         for(i = 0; i < param->num_infiles;i++){
                 sum = prob2scaledprob(0.0f);
@@ -116,7 +112,6 @@ int test_architectures(struct arch_library* al, struct seq_stats* si, struct par
                 }
                 fprintf(stdout,"\n");
         }
-
 
         for(i = 0; i < param->num_infiles;i++){
                 al->arch_to_read_assignment[i] = -1;

@@ -8,7 +8,6 @@
 #include "pst.h"
 #include "correct.h"
 
-
 #include "tldevel.h"
 
 #include "tlmisc.h"
@@ -40,7 +39,6 @@ int read_architecture_files(struct arch_library* al, char* filename)
         //int read;
         int n_segment;
         int i,index;
-
         char* tmp = NULL;
 
         ASSERT(my_file_exists(filename),"Could not find file %s.",filename);
@@ -341,6 +339,82 @@ ERROR:
                 //RUN(parse_rs_token_message(tmp,&read_structure->seg_spec[segment]));
                 }*/
 
+        return FAIL;
+}
+
+int alloc_cookbook(struct cookbook** cookbook)
+{
+        struct cookbook* r = NULL;
+        int i;
+        r = *cookbook;
+        if(r){
+                ERROR_MSG("The cookbook seems to be allocated already!");
+        }
+
+        MMALLOC(r, sizeof(struct cookbook));
+
+        r->alloc_num_lib = 16;
+        r->num_lib = 0;
+        r->lib = NULL;
+
+        MMALLOC(r->lib,sizeof(struct arch_library*) * r->alloc_num_lib);
+
+        for(i = 0; i < r->alloc_num_lib;i++){
+                r->lib[i] = NULL;
+
+                RUN(alloc_arch_lib(&r->lib[i]));
+        }
+        *cookbook = r;
+        return OK;
+ERROR:
+        free_cookbook(&r);
+        return FAIL;
+}
+
+int resize_cookbook(struct cookbook** cookbook)
+{
+        struct cookbook* r = NULL;
+        int i;
+        int old;
+        r = *cookbook;
+        if(!r){
+                ERROR_MSG("The cookbook does not exist.");
+        }
+
+        //MMALLOC(r, sizeof(struct cookbook));
+        old = r->alloc_num_lib;
+        r->alloc_num_lib = r->alloc_num_lib + 16;
+
+        MREALLOC(r->lib,sizeof(struct arch_library*) * r->alloc_num_lib);
+
+        for(i = old; i < r->alloc_num_lib;i++){
+                r->lib[i] = NULL;
+
+                RUN(alloc_arch_lib(&r->lib[i]));
+        }
+        *cookbook = r;
+        return OK;
+ERROR:
+        free_cookbook(&r);
+        return FAIL;
+}
+
+int free_cookbook(struct cookbook** cookbook)
+{
+        struct cookbook* r = NULL;
+        int i;
+        r = *cookbook;
+        if(r){
+               for(i = 0; i < r->alloc_num_lib;i++){
+                       free_arch_lib(r->lib[i]);
+               }
+               MFREE(r->lib);
+               MFREE(r);
+               r = NULL;
+        }
+        *cookbook = r;
+        return OK;
+ERROR:
         return FAIL;
 }
 
