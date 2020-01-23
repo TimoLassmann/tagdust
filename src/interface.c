@@ -29,49 +29,11 @@
 
 #include "tlmisc.h"
 
-#define OPT_SEG1 1
-#define OPT_SEG2 2
-#define OPT_SEG3 3
-#define OPT_SEG4 4
-#define OPT_SEG5 5
-#define OPT_SEG6 6
-#define OPT_SEG7 7
-#define OPT_SEG8 8
-#define OPT_SEG9 9
-#define OPT_SEG10 10
-#define OPT_TRAIN 11
-#define OPT_FORMAT 12
-#define OPT_START 13
-#define OPT_END 14
-#define OPT_MINLEN 15
-#define OPT_THRESHOLD 16
-#define OPT_EXACT5 17
-#define OPT_SIM 18
-#define OPT_NUMBARCODE 19
-#define OPT_FILTER_ERROR 20
-#define OPT_FILTER_REFERENCE 21
-#define OPT_DUST 22
 
-#define OPT_sim_barlen 23
-#define OPT_sim_barnum 24
-#define OPT_sim_5seq 25
-#define OPT_sim_3seq 26
-#define OPT_sim_readlen 27
-#define OPT_sim_readlen_mod 28
-#define OPT_sim_error_rate 29
-#define OPT_sim_InDel_frac 30
-#define OPT_sim_numseq 31
-#define OPT_sim_random_frac 32
-#define OPT_sim_endloss 33
-
-#define OPT_join_paired 34
-#define OPT_split 35
-#define OPT_archfile 36
-#define OPT_seed 37
-
-#define OPT_show_finger_seq 38
-
-#define  OPT_SHOWW 39
+#define OPT_SHOWW 1
+#define OPT_SEED 2
+#define OPT_RECIPE 3
+#define OPT_BOOK 4
 
 static int print_tagdust_warranty(void);
 
@@ -166,73 +128,22 @@ int interface(struct parameters** p,int argc, char *argv[])
 
         //int showw = 0;
         MMALLOC(param,sizeof(struct parameters));
-        param->segments = NULL;
-        param->num_segments = 0;
-        MMALLOC(param->segments, sizeof(char*) * 10);
-        for(i = 0;i < 10;i++){
-                param->segments[i] = NULL;
-        }
+        //param->segments = NULL;
+        //param->num_segments = 0;
+        //MMALLOC(param->segments, sizeof(char*) * 10);
+        //for(i = 0;i < 10;i++){
+        //param->segments[i] = NULL;
+        //}
         param->num_infiles = 0;
         param->infile = NULL;
         param->outfile = NULL;
         param->num_threads = 8;
         param->bam = 1;
-        param->quiet_flag = 0;
-        param->num_query = 1000000;
-        param->format = 0;
-        param->gzipped = 0;
-        param->bzipped = 0;
-        param->sam = 0;
-        param->train = 0;
-        param->fasta = 0;
-        param->matchstart = -1;
-        param->matchend = -1;
-        param->minlen = 16;
-        param->exact5 = 0;
-        param->sim = 0;
-        param->dust = 100;
-
-        param->sequencer_error_rate = 0.05f;
-        param->indel_frequency = 0.1f;
-        param->average_read_length = 50;
-        param->numbarcode = 8;
-        param->confidence_threshold = 0.0;
-        param->confidence_thresholds = NULL;
-        param->confidence_threshold_R1 = 0.0;
-        param->confidence_threshold_R2 = 0.0;
-
-        //param->read_structure = 0;
-        //param->read_structure_R1 = 0;
-        //param->read_structure_R2 = 0;
-        param->filter_error = 2;
-        param->reference_fasta  = 0;
-        param->random_prior = 0;
-
-        param->print_seq_finger = 0;
-
-
-        param->sim_3seq = 0;
-        param->sim_5seq = 0;
-        param->sim_barlen = 0;
-        param->sim_barnum = 0;
-        param->sim_error_rate = 0.0f;
-        param->sim_InDel_frac = 0.0f;
-        param->sim_numseq = 0;
-        param->sim_random_frac = 0.0f;
-        param->sim_readlen =0;
-        param->sim_readlen_mod = 0;
-        param->sim_end_loss = 0;
-        param->log = 0;
-        param->print_artifact = 0;
-        param->multiread = 0;
-        param->join = 0;
-        param->split = 0;
-        param->messages = 0;
-        param->buffer = 0;
         param->seed = 42;
+        param->filter_error = 2;
 
-        param->arch_file = NULL;
-
+        param->recipe = NULL;
+        param->book_file = NULL;
         //param->read_structures = NULL;
 
         //RUN(malloc_read_structure(&param->read_structure));
@@ -241,56 +152,18 @@ int interface(struct parameters** p,int argc, char *argv[])
         while (1){
                 static struct option long_options[] ={
                         {"showw", 0,0,OPT_SHOWW },
-                        {"1",required_argument,0, OPT_SEG1},
-                        {"2",required_argument,0, OPT_SEG2},
-                        {"3",required_argument,0, OPT_SEG3},
-                        {"4",required_argument,0, OPT_SEG4},
-                        {"5",required_argument,0, OPT_SEG5},
-                        {"6",required_argument,0, OPT_SEG6},
-                        {"7",required_argument,0, OPT_SEG7},
-                        {"8",required_argument,0, OPT_SEG8},
-                        {"9",required_argument,0, OPT_SEG9},
-                        {"10",required_argument,0, OPT_SEG10},
-                        {"train",required_argument,0, OPT_TRAIN},
-                        {"name",required_argument,0, OPT_FORMAT},
-                        {"format",required_argument,0, OPT_FORMAT},
-                        {"minlen",required_argument,0, OPT_MINLEN},
-                        {"start",required_argument,0, OPT_START},
-                        {"exact5",required_argument,0, OPT_EXACT5},
-                        {"simulation",required_argument,0, OPT_SIM},
-                        {"numbarcode",required_argument,0, OPT_NUMBARCODE},
-                        {"end",required_argument,0, OPT_END},
-                        {"threshold",required_argument,0, 'q'},
-
-                        {"fe",required_argument,0,OPT_FILTER_ERROR},
-                        {"ref",required_argument,0,OPT_FILTER_REFERENCE},
-                        {"dust",required_argument,0,OPT_DUST},
                         {"out",required_argument,0, 'o'},
-                        {"filter",required_argument,0, 'f'},
-                        {"sim_barlen",required_argument,0,OPT_sim_barlen},
-                        {"sim_barnum",required_argument,0,OPT_sim_barnum},
-                        {"sim_5seq",required_argument,0,OPT_sim_5seq},
-                        {"sim_3seq",required_argument,0,OPT_sim_3seq},
-                        {"sim_readlen",required_argument,0,OPT_sim_readlen},
-                        {"sim_readlen_mod",required_argument,0,OPT_sim_readlen_mod},
-                        {"sim_error_rate",required_argument,0,OPT_sim_error_rate},
-                        {"sim_InDel_frac",required_argument,0,OPT_sim_InDel_frac},
-                        {"sim_numseq",required_argument,0,OPT_sim_numseq},
-                        {"sim_random_frac",required_argument,0,OPT_sim_random_frac},
-                        {"sim_endloss",required_argument,0,OPT_sim_endloss},
-                        {"arch",required_argument,0,OPT_archfile},
-                        {"seed",required_argument,0, OPT_seed},
-                        {"show_finger_seq",0,0,OPT_show_finger_seq},
-                        {"join",0,0,OPT_join_paired},
-                        {"split",0,0,OPT_split},
+                        {"seed",required_argument,0, OPT_SEED},
+                        {"book",required_argument,0, OPT_BOOK },
+
                         {"help",0,0,'h'},
                         {"version",0,0,'v'},
-                        {"log",required_argument,0,'l'},
+                        {"recipe",required_argument,0,'r'},
                         {0, 0, 0, 0}
                 };
 
                 int option_index = 0;
-                c = getopt_long_only (argc, argv,"Q:e:o:p:q:hvf:t:i:l:L:a:",long_options, &option_index);
+                c = getopt_long_only (argc, argv,"o:t:r:qhv",long_options, &option_index);
 
                 if (c == -1){
                         break;
@@ -299,165 +172,20 @@ int interface(struct parameters** p,int argc, char *argv[])
                 switch(c) {
                 case 0:
                         break;
-                case OPT_seed:
+                case OPT_BOOK:
+                        param->book_file = optarg;
+                        break;
+                case OPT_SEED:
                         param->seed = atoi(optarg);
                         break;
-                case OPT_archfile:
-                        param->arch_file = optarg;
+                case 'r':
+                        param->recipe = optarg;
                         break;
-                case	OPT_split:
-                        param->split = 1;
-                        break;
-                case OPT_join_paired:
-                        param->join = 1;
-                        break;
-                case OPT_sim_endloss:
-                        param->sim_end_loss = atoi(optarg);
-                        break;
-                case OPT_sim_barlen:
-                        param->sim_barlen = atoi(optarg);
-                        break;
-                case OPT_sim_barnum:
-                        param->sim_barnum = atoi(optarg);
-                        break;
-                case OPT_sim_5seq:
-                        param->sim_5seq = optarg;
-                        break;
-                case OPT_sim_3seq:
-                        param->sim_3seq = optarg;
-                        break;
-                case OPT_sim_readlen:
-                        param->sim_readlen = atoi(optarg);
-                        break;
-                case OPT_sim_readlen_mod:
-                        param->sim_readlen_mod = atoi(optarg);
-                        break;
-                case OPT_sim_error_rate:
-                        param->sim_error_rate = atof(optarg);
-                        break;
-                case OPT_sim_InDel_frac:
-                        param->sim_InDel_frac = atof(optarg);
-                        break;
-                case OPT_sim_numseq:
-                        param->sim_numseq = atoi(optarg);
-                        param->sim = 1;
-                        break;
-                case OPT_sim_random_frac:
-                        param->sim_random_frac = atof(optarg);
-                        break;
-
-                case OPT_SEG1:
-                        param->segments[0] = optarg;
-                        param->num_segments = 1;
-                        break;
-                case OPT_SEG2:
-                        param->segments[1] = optarg;
-                        param->num_segments = 2;
-                        break;
-                case OPT_SEG3:
-                        param->segments[2] = optarg;
-                        param->num_segments = 3;
-                        break;
-                case OPT_SEG4:
-                        param->segments[3] = optarg;
-                        param->num_segments = 4;
-                        break;
-                case OPT_SEG5:
-                        param->segments[4] = optarg;
-                        param->num_segments = 5;
-                        break;
-                case OPT_SEG6:
-                        param->segments[5] = optarg;
-                        param->num_segments = 6;
-                        break;
-                case OPT_SEG7:
-                        param->segments[6] = optarg;
-                        param->num_segments = 7;
-                        break;
-                case OPT_SEG8:
-                        param->segments[7] = optarg;
-                        param->num_segments = 8;
-                        break;
-                case OPT_SEG9:
-                        param->segments[8] = optarg;
-                        param->num_segments = 9;
-                        break;
-                case OPT_SEG10:
-                        param->segments[9] = optarg;
-                        param->num_segments = 10;
-                        break;
-                case OPT_TRAIN:
-                        param->train = optarg;
-                        break;
-                case OPT_FORMAT:
-                        param->format = optarg;
-                        break;
-                case OPT_START:
-                        param->matchstart = atoi(optarg)-1;
-                        break;
-                case OPT_END:
-                        param->matchend = atoi(optarg);
-                        break;
-                case OPT_THRESHOLD:
-                        param->confidence_threshold = atof(optarg);
-                        break;
-                case OPT_EXACT5:
-                        param->exact5 = optarg;
-                        break;
-                case OPT_MINLEN:
-                        param->minlen = atoi(optarg);
-                        break;
-                case OPT_SIM:
-                        param->sim = atoi(optarg);
-                        break;
-                case OPT_NUMBARCODE:
-                        param->numbarcode = atoi(optarg);
-                        break;
-                case OPT_FILTER_ERROR:
-                        param->filter_error = atoi(optarg);
-                        break;
-                case OPT_FILTER_REFERENCE:
-                        param->reference_fasta = optarg;
-                        break;
-                case OPT_DUST:
-                        param->dust = atoi(optarg);
-                        break;
-
-                case OPT_show_finger_seq:
-                        param->print_seq_finger = 1;
-                        break;
-                case 'l':
-                case 'L':
-                        param->log = optarg;
-                        break;
-                case 'f':
-                        param->filter = optarg;
-                        break;
-                case 'a':
-                        param->print_artifact = optarg;
-                        break;
-
-
                 case 'o':
                         param->outfile = optarg;
                         break;
-                case 'e':
-                        param->sequencer_error_rate = atof(optarg); //0.01f;
-                        break;
-                case 'i':
-                        param->indel_frequency = atof(optarg); //0.01f;
-                        break;
                 case 't':
                         param->num_threads = atoi(optarg);
-                        break;
-                case 'q':
-                        param->confidence_threshold = atof(optarg);
-                        //param->quiet_flag = 1;
-                        break;
-
-                case 'Q':
-                        param->confidence_threshold = atof(optarg);
-                        //param->quiet_flag = 1;
                         break;
                 case 'h':
                         help = 1;
@@ -698,18 +426,8 @@ int free_param(struct parameters* param)
                   if(param->read_structure_R2){
                   free_read_structure(param->read_structure_R2);
                   }*/
-                if(param->confidence_thresholds){
-                        MFREE(param->confidence_thresholds);
-                }
-                MFREE(param->segments);
 
                 MFREE(param->infile);
-                if(param->messages){
-                        MFREE(param->messages);
-                }
-                if(param->buffer){
-                        MFREE(param->buffer);
-                }
                 MFREE(param);
         }
 

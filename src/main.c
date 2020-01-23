@@ -15,6 +15,7 @@
 
 int main (int argc,char * argv[]) {
         struct parameters* param = NULL;
+        struct cookbook* cookbook = NULL;
         struct arch_library* al = NULL;
         struct seq_stats* si = NULL;
         struct rng_state* main_rng = NULL;
@@ -28,9 +29,16 @@ int main (int argc,char * argv[]) {
 
         ASSERT(param->outfile != NULL, "No output file suffix");
 
-        struct cookbook* cookbook = NULL;
-        read_cookbook(&cookbook,param->infile[0]);
-
+        if(param->book_file && param->recipe){
+                RUN(read_cookbook_command_line(&cookbook,param->recipe));
+        }else if(param->book_file){
+                RUN(read_cookbook_file (&cookbook,param->book_file));
+        }else if(param->recipe){
+                /* make book with one entry from command line...  */
+                RUN(read_cookbook_command_line(&cookbook,param->recipe));
+        }else{
+                ERROR_MSG("No recipe specified. Either use --book <file> or --recipe <r>");
+        }
         free_cookbook(&cookbook);
 
         exit(0);
@@ -44,15 +52,15 @@ int main (int argc,char * argv[]) {
         RUNP(main_rng = init_rng(param->seed));
 
         /* create architecture library */
-        RUN(alloc_arch_lib(&al));
+        //RUN(alloc_arch_lib(&al));
 
-        if(param->segments[0]){
+        /*if(param->segments[0]){
                 RUN(read_arch_into_lib(al, param->segments, param->num_segments));
         }
 
         if(param->arch_file){
                 RUN(read_architecture_files(al, param->arch_file));
-        }
+                }*/
         /* QC on architecture ?? */
 #ifdef HAVE_OPENMP
         omp_set_num_threads(param->num_threads);

@@ -60,10 +60,9 @@ struct cookbook{
 };
 
 
-extern int read_cookbook(struct cookbook** cookbook, char* filename);
+extern int read_cookbook_command_line(struct cookbook** cookbook, char* in);
+extern int read_cookbook_file(struct cookbook** cookbook, char* filename);
 
-extern int alloc_cookbook(struct cookbook** cookbook);
-extern int resize_cookbook(struct cookbook** cookbook);
 extern int free_cookbook(struct cookbook** cookbook);
 
 extern int read_architecture_files(struct arch_library* al, char* filename);

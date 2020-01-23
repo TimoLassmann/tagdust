@@ -14,6 +14,9 @@
 
 #define BUFFER_LEN 256
 
+static int alloc_cookbook(struct cookbook** cookbook);
+static int resize_cookbook(struct cookbook** cookbook);
+
 static int malloc_read_structure(struct read_structure** read_structure);
 static int resize_read_structure(struct read_structure* rs);
 static void free_read_structure(struct read_structure* read_structure);
@@ -26,8 +29,62 @@ static int sanity_check_arch_lib(struct arch_library* al);
 
 static int read_white_list(struct tl_seq_buffer** b,char* filename);
 
+int read_cookbook_command_line(struct cookbook** cookbook, char* in)
+{
 
-int read_cookbook(struct cookbook** cookbook, char* filename)
+        struct cookbook* cb = NULL;
+        char* r_token = NULL;
+        char* r_end = NULL;
+        char* token = NULL;
+        char* t_end = NULL;
+
+        int l_arch_num;
+        int n_segment;
+        int l;
+        cb = *cookbook;
+        if(cb){
+                ERROR_MSG("Cookbook already exists");
+        }
+
+        RUN(alloc_cookbook(&cb));
+
+        cb->num_lib = 0;
+        l_arch_num = 0;
+
+
+        r_token = strtok_r(in, "@",&r_end);
+        while(r_token != NULL){
+
+                fprintf(stdout,"%s\n", r_token);
+                l = strlen(r_token);
+
+                cb->lib[cb->num_lib]->spec_line[cb->lib[cb->num_lib]->num_arch] = NULL;
+                MMALLOC(cb->lib[cb->num_lib]->spec_line[cb->lib[cb->num_lib]->num_arch], sizeof(char) * (l+1));
+                memcpy(cb->lib[cb->num_lib]->spec_line[cb->lib[cb->num_lib]->num_arch], r_token,l);
+                cb->lib[cb->num_lib]->spec_line[cb->lib[cb->num_lib]->num_arch][l] = 0;
+
+
+                n_segment = 0;
+                token = strtok_r(r_token, ";", &t_end);
+                while(token != NULL){
+                        fprintf(stdout,"   %s\n", token);
+                        RUN(assign_segment_sequences(cb->lib[cb->num_lib]->read_structure[cb->lib[cb->num_lib]->num_arch], token, n_segment));
+                        n_segment++;
+                        token = strtok_r(NULL, ";",&t_end);
+                }
+
+                cb->lib[cb->num_lib]->num_arch++;
+
+                r_token = strtok_r(NULL, "@",&r_end);
+        }
+
+        *cookbook = cb;
+        return OK;
+ERROR:
+        return FAIL;
+}
+
+int read_cookbook_file(struct cookbook** cookbook, char* filename)
 {
         struct cookbook* cb = NULL;
 
@@ -103,15 +160,15 @@ int read_cookbook(struct cookbook** cookbook, char* filename)
                         while(isspace(*s_ptr)){
                                 s_ptr++;
                         }
-                        cb->lib[cb->num_lib]->spec_line[l_arch_num] = NULL;
-                        MMALLOC(cb->lib[cb->num_lib]->spec_line[l_arch_num], sizeof(char) * line_len);
+                        cb->lib[cb->num_lib]->spec_line[cb->lib[cb->num_lib]->num_arch] = NULL;
+                        MMALLOC(cb->lib[cb->num_lib]->spec_line[cb->lib[cb->num_lib]->num_arch], sizeof(char) * line_len);
                         index = 0;
-                        tmp = cb->lib[cb->num_lib]->spec_line[l_arch_num];
+                        tmp = cb->lib[cb->num_lib]->spec_line[cb->lib[cb->num_lib]->num_arch];
                         n_segment = 0;
                         token = strtok(s_ptr, ";");
                         while(token != NULL){
                                 c = strnlen(token,  line_len);
-                                RUN(assign_segment_sequences(cb->lib[cb->num_lib]->read_structure[n_segment], token, n_segment));
+                                RUN(assign_segment_sequences(cb->lib[cb->num_lib]->read_structure[cb->lib[cb->num_lib]->num_arch], token, n_segment));
                                 for(i = 0;i < c;i++){
                                         tmp[index] = token[i];
                                         index++;
@@ -122,8 +179,7 @@ int read_cookbook(struct cookbook** cookbook, char* filename)
                                 token = strtok(NULL, ";");
                         }
                         tmp[index-1] = 0;
-
-                        LOG_MSG("   %s",tmp);
+                        LOG_MSG("   %s (%d)",tmp, l_arch_num);
                         cb->lib[cb->num_lib]->num_arch++;
                 }
 
