@@ -26,6 +26,124 @@ static int sanity_check_arch_lib(struct arch_library* al);
 
 static int read_white_list(struct tl_seq_buffer** b,char* filename);
 
+
+int read_cookbook(struct cookbook** cookbook, char* filename)
+{
+        struct cookbook* cb = NULL;
+
+        FILE* f_ptr = NULL;
+        char* line_buffer = NULL;
+        size_t line_len = 0;
+        ssize_t nread;
+        //int n_recipe;
+        char* s_ptr = NULL;
+        char* token = NULL;
+        char* tmp = NULL;
+
+        int i;
+        int l;
+        int l_arch_num = 0;
+        int index;
+
+        int n_segment;
+        int c;
+
+        ASSERT(my_file_exists(filename),"Could not find file %s.",filename);
+
+        cb = *cookbook;
+        if(cb){
+                ERROR_MSG("Cookbook already exists");
+        }
+
+        RUN(alloc_cookbook(&cb));
+
+        cb->num_lib = 0;
+        l_arch_num = 0;
+
+        LOG_MSG("Reading recipes:");
+
+        RUNP(f_ptr = fopen(filename, "r"));
+        while ((nread = getline(&line_buffer, &line_len, f_ptr)) != -1){
+                line_buffer[strcspn(line_buffer, "\r\n")] = 0;
+
+                /* strip trailing whitespace  */
+                l = strnlen(line_buffer, line_len);
+                l--;
+                while(isspace( line_buffer[l])){
+                        line_buffer[l] =0;
+                        l--;
+                }
+
+
+                s_ptr = strstr(line_buffer, "NAME");
+                if(s_ptr == line_buffer){
+                        s_ptr += strlen("NAME");
+                        while(isspace(*s_ptr)){
+                                s_ptr++;
+                        }
+                        l = strlen(s_ptr);
+                        MMALLOC(cb->lib[cb->num_lib]->name, sizeof(char) * (l + 1));
+                        memcpy(cb->lib[cb->num_lib]->name, s_ptr,l);
+                        cb->lib[cb->num_lib]->name[l] = 0;
+                        LOG_MSG("%s",cb->lib[cb->num_lib]->name);
+                }
+
+                s_ptr = strstr(line_buffer, "INPUTS");
+                if(s_ptr == line_buffer){
+                        s_ptr += strlen("INPUTS");
+                        while(isspace(*s_ptr)){
+                                s_ptr++;
+                        }
+                        l_arch_num = atoi(s_ptr);
+                }
+
+                s_ptr = strstr(line_buffer, "ARCH");
+                if(s_ptr == line_buffer){
+                        s_ptr += strlen("ARCH");
+                        while(isspace(*s_ptr)){
+                                s_ptr++;
+                        }
+                        cb->lib[cb->num_lib]->spec_line[l_arch_num] = NULL;
+                        MMALLOC(cb->lib[cb->num_lib]->spec_line[l_arch_num], sizeof(char) * line_len);
+                        index = 0;
+                        tmp = cb->lib[cb->num_lib]->spec_line[l_arch_num];
+                        n_segment = 0;
+                        token = strtok(s_ptr, ";");
+                        while(token != NULL){
+                                c = strnlen(token,  line_len);
+                                RUN(assign_segment_sequences(cb->lib[cb->num_lib]->read_structure[n_segment], token, n_segment));
+                                for(i = 0;i < c;i++){
+                                        tmp[index] = token[i];
+                                        index++;
+                                }
+                                tmp[index] = ' ';
+                                index++;
+                                n_segment++;
+                                token = strtok(NULL, ";");
+                        }
+                        tmp[index-1] = 0;
+
+                        LOG_MSG("   %s",tmp);
+                        cb->lib[cb->num_lib]->num_arch++;
+                }
+
+                s_ptr = strstr(line_buffer, "//");
+                if(s_ptr == line_buffer){
+                        ASSERT(cb->lib[cb->num_lib]->num_arch== l_arch_num,"Recipe %s expects %d archs but got %d", cb->lib[cb->num_lib]->name, cb->lib[cb->num_lib]->num_arch,l_arch_num);
+                        cb->num_lib++;
+                        l_arch_num = 0;
+                        if(cb->num_lib == cb->alloc_num_lib){
+                                RUN(resize_cookbook(&cb));
+                        }
+                }
+        }
+        fclose(f_ptr);
+        *cookbook = cb;
+        return OK;
+ERROR:
+        return FAIL;
+}
+
 int read_architecture_files(struct arch_library* al, char* filename)
 {
         FILE* f_ptr = NULL;
@@ -153,18 +271,12 @@ ERROR:
 
 int assign_segment_sequences(struct read_structure* read_structure, char* tmp, int segment)
 {
-
-        //int i,f,g;
-        //int count;
-        //int len;
         struct tl_seq_buffer* sb = NULL;
         struct kmer_counts* k = NULL;
 
         struct segment_specs* s = NULL;
         int i,j;
         RUN(parse_rs_token_message(tmp,&read_structure->seg_spec[segment]));
-        //read_structure->numseq_in_segment[segment] = read_structure->seg_spec[segment]->num_seq;
-
         if(read_structure->seg_spec[segment]->extract == ARCH_ETYPE_APPEND_CORRECT){
                 s = read_structure->seg_spec[segment];
                 LOG_MSG("reading in barcodes from: %s",s->seq[0]);
@@ -350,18 +462,13 @@ int alloc_cookbook(struct cookbook** cookbook)
         if(r){
                 ERROR_MSG("The cookbook seems to be allocated already!");
         }
-
         MMALLOC(r, sizeof(struct cookbook));
-
         r->alloc_num_lib = 16;
         r->num_lib = 0;
         r->lib = NULL;
-
         MMALLOC(r->lib,sizeof(struct arch_library*) * r->alloc_num_lib);
-
         for(i = 0; i < r->alloc_num_lib;i++){
                 r->lib[i] = NULL;
-
                 RUN(alloc_arch_lib(&r->lib[i]));
         }
         *cookbook = r;
@@ -380,8 +487,6 @@ int resize_cookbook(struct cookbook** cookbook)
         if(!r){
                 ERROR_MSG("The cookbook does not exist.");
         }
-
-        //MMALLOC(r, sizeof(struct cookbook));
         old = r->alloc_num_lib;
         r->alloc_num_lib = r->alloc_num_lib + 16;
 
@@ -435,6 +540,9 @@ int alloc_arch_lib(struct arch_library** arch)
         al->confidence_thresholds = NULL;
         al->read_structure = NULL;
         al->spec_line = NULL;
+        al->name = NULL;
+        al->P = 0.0f;
+        al->priority = 0;
 
         MMALLOC(al->confidence_thresholds, sizeof(float) * al->alloc_num_arch);
         MMALLOC(al->spec_line, sizeof(char*) * al->alloc_num_arch);
@@ -447,7 +555,7 @@ int alloc_arch_lib(struct arch_library** arch)
         }
 
         /* load default model */
-        RUN(read_arch_into_lib(al, in, 1));
+        //RUN(read_arch_into_lib(al, in, 1));
         *arch = al;
         return OK;
 ERROR:
@@ -692,6 +800,12 @@ int read_white_list(struct tl_seq_buffer** b,char* filename)
         int buffer_len = 256;
         int min_len;
         int max_len;
+
+
+        if(!my_file_exists(filename)){
+                ERROR_MSG("File: %s does not exist!", filename);
+        }
+
         MMALLOC(buffer, sizeof(char) * buffer_len);
 
         sb =  *b;
@@ -701,6 +815,7 @@ int read_white_list(struct tl_seq_buffer** b,char* filename)
 
         min_len = INT32_MAX;
         max_len = INT32_MIN;
+
 
         RUNP(f_ptr = gzopen(filename, "r"));
         while((tmp =  gzgets(f_ptr, buffer, buffer_len)) != NULL){

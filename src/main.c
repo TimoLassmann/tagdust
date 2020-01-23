@@ -28,6 +28,12 @@ int main (int argc,char * argv[]) {
 
         ASSERT(param->outfile != NULL, "No output file suffix");
 
+        struct cookbook* cookbook = NULL;
+        read_cookbook(&cookbook,param->infile[0]);
+
+        free_cookbook(&cookbook);
+
+        exit(0);
         /* Sanity checks */
         /* are we dealing with multiple lanes? */
         /* are the sequences sorted? */

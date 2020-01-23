@@ -60,6 +60,7 @@ struct cookbook{
 };
 
 
+extern int read_cookbook(struct cookbook** cookbook, char* filename);
 
 extern int alloc_cookbook(struct cookbook** cookbook);
 extern int resize_cookbook(struct cookbook** cookbook);

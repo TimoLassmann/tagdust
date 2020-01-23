@@ -158,7 +158,7 @@ int parse_rs_token(char* token, struct segment_specs** s_spec)
         ASSERT(state != 0, "Could not reach sequence part = state is 0");
         ASSERT(state <= 3, "Could not reach sequence part = state is %d",state);
 
-        LOG_MSG("State: %d: %s %s", state,spec->name,spec->correct_name,spec->qual_name );
+        //LOG_MSG("State: %d: %s %s", state,spec->name,spec->correct_name,spec->qual_name );
         //exit(0);
         if(state == 1){
                 ASSERT(pos < len, "No sequence?");
