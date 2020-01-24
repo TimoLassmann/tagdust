@@ -26,10 +26,12 @@ int main (int argc,char * argv[]) {
                 return EXIT_SUCCESS;
         }
         ASSERT(param->num_infiles > 0, "Number of inputs has to be greater than 0");
-
         ASSERT(param->outfile != NULL, "No output file suffix");
 
         if(param->book_file && param->recipe){
+                /* Format:
+                   ./tagdust -r "@BC:S:ACAGTG,ACTTGA,TTAGGC;READ1:E:N{20-30};@READ2:E:N+;" ../dev/casava_read1_small.fastq.gz -o ~/tmp/gg
+                */
                 RUN(read_cookbook_command_line(&cookbook,param->recipe));
         }else if(param->book_file){
                 RUN(read_cookbook_file (&cookbook,param->book_file));
@@ -39,16 +41,15 @@ int main (int argc,char * argv[]) {
         }else{
                 ERROR_MSG("No recipe specified. Either use --book <file> or --recipe <r>");
         }
-        free_cookbook(&cookbook);
 
-        exit(0);
+
+        //exit(0);
         /* Sanity checks */
         /* are we dealing with multiple lanes? */
         /* are the sequences sorted? */
-        /* are the segment specifications valid?  */
+        /* are the segment specifications valid? */
 
-
-        /* set top level rng generator  */
+        /* set top level rng generator */
         RUNP(main_rng = init_rng(param->seed));
 
         /* create architecture library */
@@ -69,7 +70,7 @@ int main (int argc,char * argv[]) {
 #endif
         /* Start HMM stuff */
         init_logsum();
-        RUN(get_sequence_stats(&si,al, param->infile, param->num_infiles, main_rng));
+        RUN(get_sequence_stats(&si, param->infile, param->num_infiles, main_rng));
         for(i = 0; i < param->num_infiles;i++){
                 for(j = i+1; j < param->num_infiles;j++){
                         ASSERT(si->ssi[i]->total_num_seq == si->ssi[j]->total_num_seq,"File %s and %s contain different number of sequences", param->infile[i],param->infile[j]);
@@ -77,14 +78,15 @@ int main (int argc,char * argv[]) {
         }
 
 
-        RUN(test_architectures(al,si,param));
-        //exit(0);
+        RUN(test_architectures(cookbook,si,param));
+        exit(0);
         RUN(calibrate_architectures(al,si, main_rng));
         //exit(0);
         //int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameters* param)
         RUN(extract_reads(al,si,param,main_rng));
 
-        free_arch_lib(al);
+        //free_arch_lib(al);
+        free_cookbook(&cookbook);
         free_sequence_stats(si);
         free_param(param);
         free_rng(main_rng);

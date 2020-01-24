@@ -4,7 +4,7 @@
 
 #include "tlalphabet.h"
 
-#include "arch_lib.h"
+//#include "arch_lib.h"
 //#include "io.h"
 struct sequence_stats_info{
         double background[5];
@@ -29,7 +29,7 @@ struct seq_stats{
         int num;
 };
 
-extern int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* al,char** infiles,int numfiles,struct rng_state* main_rng);
+extern int get_sequence_stats(struct seq_stats** sequence_stats, char** infiles,int numfiles,struct rng_state* main_rng);
 
 //extern int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* al,char** infiles,int numfiles);
 

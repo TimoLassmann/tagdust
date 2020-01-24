@@ -5,6 +5,8 @@
 #include "seq_stats.h"
 #include "tlalphabet.h"
 
+#include "arch_lib.h"
+
 struct model_bag{
         struct model** model;
         float** dyn_prog_matrix;/**<@brief Dyn. Prog. Matrix - used to find consistent max posterior path. */

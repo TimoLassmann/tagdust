@@ -14,7 +14,7 @@ static void free_sequence_stats_info(struct sequence_stats_info* si);
 static int five_prime_exact_match(char* seq,char*p,int seq_len, double* res);
 static int three_prime_exact_match(char* seq,char*p,int seq_len, double* res);
 
-int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* al,char** infiles,int numfiles,struct rng_state* main_rng)
+int get_sequence_stats(struct seq_stats** sequence_stats,char** infiles,int numfiles,struct rng_state* main_rng)
 {
         struct seq_stats* si = NULL;
         struct file_handler* f_hand = NULL;
@@ -33,12 +33,14 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
         char** five_test_sequence = NULL;
         char** three_test_sequence = NULL;
 
+        /*
         double* five_s0 = NULL;
         double* five_s1 = NULL;
         double* five_s2 = NULL;
         double* three_s0 = NULL;
         double* three_s1 = NULL;
         double* three_s2 = NULL;
+        */
         double res;
         double sum;
 
@@ -47,12 +49,12 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
         double s2_seq_len;
 
 
-        MMALLOC(five_s0, sizeof(double) * al->num_arch);
+        /*MMALLOC(five_s0, sizeof(double) * al->num_arch);
         MMALLOC(five_s1, sizeof(double) * al->num_arch);
         MMALLOC(five_s2, sizeof(double) * al->num_arch);
         MMALLOC(three_s0, sizeof(double) * al->num_arch);
         MMALLOC(three_s1, sizeof(double) * al->num_arch);
-        MMALLOC(three_s2, sizeof(double) * al->num_arch);
+        MMALLOC(three_s2, sizeof(double) * al->num_arch);*/
 
         MMALLOC(si, sizeof(struct seq_stats));
         si->num = numfiles;
@@ -65,14 +67,16 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
 
         for(i = 0; i < si->num;i++){
                 si->ssi[i] = NULL;
-                RUN(alloc_sequence_stats_info(&si->ssi[i], al->num_arch));
+                RUN(alloc_sequence_stats_info(&si->ssi[i], 1));//  al->num_arch));
         }
 
 
         //RUN(alloc_read_info_buffer(&rb,100000));
 
         /* copy5' and 3' sequences for matching in case of partial segments */
-        MMALLOC(five_test_sequence, sizeof(char*) * al->num_arch);
+
+        /*
+MMALLOC(five_test_sequence, sizeof(char*) * al->num_arch);
         MMALLOC(three_test_sequence, sizeof(char*) * al->num_arch);
         for(i = 0;i < al->num_arch;i++){
                 five_test_sequence[i] = NULL;
@@ -101,7 +105,7 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
                         }
                         three_test_sequence[i][len] = 0;
                 }
-        }
+        }*/
 
         /* Do stuff */
 
@@ -109,14 +113,14 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
                 RUN(open_fasta_fastq_file(&f_hand, infiles[i], TLSEQIO_READ));
                 //aopen_fasta_fastq_file(struct file_handler **fh, char *filename, int mode)
                 //RUN(io_handler(&f_hand,infiles[i]));
-                for(c = 0;c < al->num_arch;c++){
+                /*for(c = 0;c < al->num_arch;c++){
                         five_s0[c] = 0.0;
                         five_s1[c] = 0.0;
                         five_s2[c] = 0.0;
                         three_s0[c] = 0.0;
                         three_s1[c] = 0.0;
                         three_s2[c] = 0.0;
-                }
+                        }*/
                 s0_seq_len = 0.0;
                 s1_seq_len = 0.0;
                 s2_seq_len = 0.0;
@@ -150,6 +154,7 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
 
                                         si->ssi[i]->background[tlalphabet_get_code(a,ri[j]->seq[c])] += 1.0f;
                                 }
+                                /*
                                 for(c = 0;c < al->num_arch;c++){
                                         if(five_test_sequence[c]){
                                                 five_prime_exact_match(ri[j]->seq, five_test_sequence[c], ri[j]->len, &res);
@@ -168,7 +173,7 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
                                                         three_s2[c] += res*res;
                                                 }
                                         }
-                                }
+                                }*/
 
                         }
                         total_read += rb->num_seq;
@@ -199,6 +204,8 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
                 for(j = 0; j < 5;j++){
                         si->ssi[i]->background[j] = prob2scaledprob(si->ssi[i]->background[j]  / sum);
                 }
+
+                /*
 
                 for(c = 0;c < al->num_arch;c++){
                         if(five_test_sequence[c]){
@@ -258,10 +265,10 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
                                 si->ssi[i]->mean_3_len[c] = -1.0;
                                 si->ssi[i]->stdev_3_len[c] = -1.0;
                         }
-                }
+                        }*/
         }
 
-
+        /*
         for(i = 0;i < al->num_arch;i++){
                 if(five_test_sequence[i]){
                         MFREE(five_test_sequence[i]);
@@ -280,6 +287,7 @@ int get_sequence_stats(struct seq_stats** sequence_stats, struct arch_library* a
         MFREE(three_s0);
         MFREE(three_s1);
         MFREE(three_s2);
+        */
         free_tl_seq_buffer(rb);
         //free_read_info_buffer(rb);
         //free_alphabet(a);
