@@ -79,7 +79,9 @@ int main (int argc,char * argv[]) {
 
 
         RUN(test_architectures(cookbook,si,param));
-        exit(0);
+
+        al = cookbook->lib[cookbook->best];
+        //exit(0);
         RUN(calibrate_architectures(al,si, main_rng));
         //exit(0);
         //int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameters* param)
@@ -92,6 +94,9 @@ int main (int argc,char * argv[]) {
         free_rng(main_rng);
         return EXIT_SUCCESS;
 ERROR:
+        free_sequence_stats(si);
+        free_rng(main_rng);
+        free_cookbook(&cookbook);
         if(param){
                 //fprintf(stdout,"%s",param->errmsg);
                 free_param(param);

@@ -193,6 +193,7 @@ int read_cookbook_file(struct cookbook** cookbook, char* filename)
                         }
                 }
         }
+        MFREE(line_buffer);
         fclose(f_ptr);
         *cookbook = cb;
         return OK;
@@ -522,9 +523,13 @@ int alloc_cookbook(struct cookbook** cookbook)
         r->alloc_num_lib = 16;
         r->num_lib = 0;
         r->lib = NULL;
+        r->scores = NULL;
+        r->best = -1;
         MMALLOC(r->lib,sizeof(struct arch_library*) * r->alloc_num_lib);
+        MMALLOC(r->scores,sizeof(float) * r->alloc_num_lib);
         for(i = 0; i < r->alloc_num_lib;i++){
                 r->lib[i] = NULL;
+                r->scores[i] = 0.0;
                 RUN(alloc_arch_lib(&r->lib[i]));
         }
         *cookbook = r;
@@ -547,10 +552,11 @@ int resize_cookbook(struct cookbook** cookbook)
         r->alloc_num_lib = r->alloc_num_lib + 16;
 
         MREALLOC(r->lib,sizeof(struct arch_library*) * r->alloc_num_lib);
+        MREALLOC(r->scores,sizeof(float) * r->alloc_num_lib);
 
         for(i = old; i < r->alloc_num_lib;i++){
                 r->lib[i] = NULL;
-
+                r->scores[i] = 0.0;
                 RUN(alloc_arch_lib(&r->lib[i]));
         }
         *cookbook = r;
@@ -569,6 +575,7 @@ int free_cookbook(struct cookbook** cookbook)
                for(i = 0; i < r->alloc_num_lib;i++){
                        free_arch_lib(r->lib[i]);
                }
+               MFREE(r->scores);
                MFREE(r->lib);
                MFREE(r);
                r = NULL;
@@ -599,7 +606,7 @@ int alloc_arch_lib(struct arch_library** arch)
         al->name = NULL;
         al->P = 0.0f;
         al->priority = 0;
-
+        al->read_order_check = 1;
         MMALLOC(al->confidence_thresholds, sizeof(float) * al->alloc_num_arch);
         MMALLOC(al->spec_line, sizeof(char*) * al->alloc_num_arch);
         MMALLOC(al->read_structure, sizeof(struct read_structure*) * al->alloc_num_arch);
@@ -662,6 +669,9 @@ void free_arch_lib(struct arch_library* al)
                 }
                 if(al->arch_to_read_assignment){
                         MFREE(al->arch_to_read_assignment);
+                }
+                if(al->name){
+                        MFREE(al->name);
                 }
                 MFREE(al->spec_line);
                 MFREE(al->read_structure);

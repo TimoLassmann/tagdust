@@ -47,6 +47,7 @@ struct arch_library{
         float* confidence_thresholds;
         int* arch_to_read_assignment;
         float P;
+        uint8_t read_order_check;
         int priority;
         int num_arch;
         int alloc_num_arch;
@@ -55,8 +56,10 @@ struct arch_library{
 
 struct cookbook{
         struct arch_library** lib;
+        float* scores;
         int num_lib;
         int alloc_num_lib;
+        int best;
 };
 
 

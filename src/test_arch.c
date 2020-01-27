@@ -23,9 +23,12 @@
 
 static int test_arch_file_order(struct arch_library* al, struct seq_stats* si, struct parameters* param);
 
+static int test_files(struct arch_library* al,struct tl_seq_buffer** rb, struct seq_stats* si,int n_files, int* ambigious);
 
-static int test_files_poahmm(struct arch_library* al,struct tl_seq_buffer** rb, struct seq_stats* si,int n_files, int* ambigious);
-static int test_files_lpst(struct arch_library* al,struct tl_seq_buffer** rb, struct seq_stats* si,int n_files, int* ambigious);
+static int ambiguous_read_order_warning(struct arch_library* al, struct parameters* param);
+static int double_assignment_warning(struct arch_library* al,int x);
+//static int test_files_poahmm(struct arch_library* al,struct tl_seq_buffer** rb, struct seq_stats* si,int n_files, int* ambigious);
+//static int test_files_lpst(struct arch_library* al,struct tl_seq_buffer** rb, struct seq_stats* si,int n_files, int* ambigious);
 
 
 
@@ -35,41 +38,131 @@ static int test_arch(struct tl_seq_buffer** rb, struct arch_library* al, struct 
 
 int test_architectures(struct cookbook* cb, struct seq_stats* si, struct parameters* param)
 {
-
+        float sum;
+        float max;
+        int best;
+        int n_best;
         int i;
         for(i = 0 ;i < cb->num_lib;i++){
-                LOG_MSG("Testing: %s", cb->lib[i]->name);
+                //LOG_MSG("------");
+                //LOG_MSG("Testing: %s", cb->lib[i]->name);
                 RUN(test_arch_file_order(cb->lib[i], si, param));
-                LOG_MSG("score: %f", cb->lib[i]->P);
+                cb->scores[i] = cb->lib[i]->P;
+
+                //LOG_MSG("score: %f", cb->lib[i]->P);
+                //LOG_MSG("------");
         }
+        sum = prob2scaledprob(0.0f);
+        for(i = 0 ;i < cb->num_lib;i++){
+                sum = logsum(sum, cb->scores[i]);
+        }
+        best = -1;
+        max = -1.0;
+        n_best = 0;
+        for(i = 0 ;i < cb->num_lib;i++){
+                //LOG_MSG("%s -> %f", cb->lib[i]->name, scaledprob2prob(cb->scores[i] - sum));
+                if(max < scaledprob2prob(cb->scores[i] - sum)){
+                        best = i;
+                        max = scaledprob2prob(cb->scores[i] - sum);
+                        n_best = 1;
+                }else if(max == scaledprob2prob(cb->scores[i] - sum)){
+                        n_best++;
+                }
+        }
+        if(n_best == 0 || n_best > 1){
+                WARNING_MSG("These %d recipes match the input:",n_best);
+                WARNING_MSG("");
+                for(i = 0 ;i < cb->num_lib;i++){
+                        if(max == scaledprob2prob(cb->scores[i] - sum)){
+                                WARNING_MSG("   %s",cb->lib[i]->name);
+                        }
+                }
+                WARNING_MSG("");
+                ERROR_MSG("Can't determine which one to use!");
+
+        }
+        LOG_MSG("Selecting: %s" , cb->lib[best]->name);
+
+        for(i = 0;i <  cb->lib[best]->num_arch;i++){
+                LOG_MSG("%s",  cb->lib[best]->spec_line[i]);
+
+        }
+        if(!cb->lib[best]->read_order_check){
+                RUN(ambiguous_read_order_warning(cb->lib[best], param));
+                WARNING_MSG("will assume that the input file order matches the order in the recipe:");
+                for(i = 0; i < cb->lib[best]->num_arch;i++){
+                        cb->lib[best]->arch_to_read_assignment[i] = i;
+                        WARNING_MSG("%s -> %s", param->infile[i],cb->lib[best]->spec_line[i]);
+                }
+        }
+        /* selecting this library  */
+        cb->best = best;
 
         return OK;
 ERROR:
         return FAIL;
 }
 
+
+int ambiguous_read_order_warning(struct arch_library* al, struct parameters* param)
+{
+        int i;
+        WARNING_MSG("");
+        WARNING_MSG("Minor problem with this recipe:");
+        for(i = 0;i < al->num_arch;i++){
+                WARNING_MSG("%s", al->spec_line[i]);
+
+        }
+        WARNING_MSG("");
+        WARNING_MSG("Can't determine which one of the above");
+        WARNING_MSG("should be applied to which one of these input files:");
+        for(i = 0;i < al->num_arch;i++){
+                WARNING_MSG("%s",param->infile[i]);
+        }
+        return OK;
+}
+
+int double_assignment_warning(struct arch_library* al,int x)
+{
+        int i;
+        WARNING_MSG("");
+        WARNING_MSG("Problem with this: recipe:");
+        for(i = 0;i < al->num_arch;i++){
+                WARNING_MSG("%s", al->spec_line[i]);
+
+        }
+        WARNING_MSG("");
+        WARNING_MSG("This read definition matches multiple reads:");
+        WARNING_MSG("%s", al->spec_line[x]);
+
+        return OK;
+}
+
 int test_arch_file_order(struct arch_library* al, struct seq_stats* si, struct parameters* param)
 {
         struct arch_bag* ab = NULL;
         struct file_handler* f_hand = NULL;
-
         struct tl_seq_buffer** rb = NULL;
         struct alphabet* a = NULL;
 
         float sum;
+        int ambigious = 1;
         int best;
         int n_best;
         int i,j;
 
-        RUN(create_alphabet(&a, 0, TLALPHABET_DEFAULT_DNA));
+
 
         if(al->num_arch != param->num_infiles){
                 al->P = prob2scaledprob(0.0);
                 return OK;
         }
-
+        al->P =  prob2scaledprob(1.0);
 //int (*fp)(struct read_info_buffer* rb, struct file_handler* f_handle) = NULL;
 
+
+
+        RUN(create_alphabet(&a, 0, TLALPHABET_DEFAULT_DNA));
         /* alloc matrix for posteriors  */
         al->arch_posteriors = NULL;
 
@@ -83,7 +176,6 @@ int test_arch_file_order(struct arch_library* al, struct seq_stats* si, struct p
         }
 
         MMALLOC(al->arch_to_read_assignment, sizeof(int) * param->num_infiles);
-
         //omp_set_num_threads(param->num_threads);
 
         /* here I combine: architectures with sequence parameters of individual input files  */
@@ -108,15 +200,18 @@ int test_arch_file_order(struct arch_library* al, struct seq_stats* si, struct p
                 RUN(read_fasta_fastq_file(f_hand, &rb[i],NUM_TEST_SEQ));
                 RUN(close_seq_file(&f_hand));
         }
-        int ambigious = 1;
-        RUN(test_files_poahmm(al, rb, si, param->num_infiles, &ambigious));
+
+
+        RUN(test_files(al, rb, si, param->num_infiles, &ambigious));
+        //LOG_MSG("%f poa ", al->P);
+        //if( ambigious){
+//        RUN(test_files_lpst(al, rb, si, param->num_infiles, &ambigious));
+        //LOG_MSG("%f lpst ", al->P);
+        //}
 
         if( ambigious){
-                RUN(test_files_lpst(al, rb, si, param->num_infiles, &ambigious));
-        }
-
-        if( ambigious){
-                ERROR_MSG("Giving up!");
+                al->read_order_check = 0;
+                //ERROR_MSG("Giving up!");
         }
 
 
@@ -148,18 +243,16 @@ ERROR:
         return FAIL;
 }
 
-int test_files_poahmm(struct arch_library* al,struct tl_seq_buffer** rb, struct seq_stats* si,int n_files, int* ambigious)
+int test_files(struct arch_library* al,struct tl_seq_buffer** rb, struct seq_stats* si,int n_files, int* ambigious)
 {
         float sum;
-
+        float max;
         int best;
         int n_best;
 
         int i,j;
 
-
         *ambigious = 0;
-
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel default(shared)
@@ -167,87 +260,95 @@ int test_files_poahmm(struct arch_library* al,struct tl_seq_buffer** rb, struct 
 #endif
         for(j = 0; j < al->num_arch;j++){
                 for(i = 0; i < n_files;i++){
-                        if( al->arch_posteriors[j][i] == 1.0f){
-                                test_arch(rb,al,si,i,j);
-                        }
+                        //if( al->arch_posteriors[j][i] == 1.0f){
+                        test_arch(rb,al,si,i,j);
+                        lpst_score_read(al->read_structure[j], rb[i],si->ssi[i], &max);
+                        al->arch_posteriors[j][i] += max;
+                                //}
                 }
         }
 
         /* convert posteriors into Phred scaled quality values */
-        for(i = 0; i < n_files;i++){
+        //al->P = 1.0;
+        for(i = 0; i < n_files ;i++){
                 sum = prob2scaledprob(0.0f);
                 for(j = 0; j < al->num_arch;j++){
                         //fprintf(stdout,"%f ",al->arch_posteriors[j][i]);
                         sum = logsum(sum,al->arch_posteriors[j][i]);
                 }
 
-                //fprintf(stdout,"FILE: %s\t",param->infile[i]);
-                for(j = 0; j < al->num_arch;j++){
-
-                        al->arch_posteriors[j][i] = scaledprob2prob(al->arch_posteriors[j][i] - sum);
-                        if(al->arch_posteriors[j][i] < 0.00001f){
-                                al->arch_posteriors[j][i] = 0.00001f;
-                        }
-                        //al->arch_posteriors[j][i] = -10.0f * log10f(al->arch_posteriors[j][i]);
-                        fprintf(stdout,"FILE %d: %f ",i,al->arch_posteriors[j][i]);
-                }
-                fprintf(stdout,"\n");
-        }
-        al->P = 1.0;
-        for(i = 0; i < n_files ;i++){
                 al->arch_to_read_assignment[i] = -1;
-                sum = -1.0;
+                max = -1.0;
                 best = -1;
                 n_best = 0;
                 for(j = 0; j < al->num_arch;j++){
+                        fprintf(stdout,"%5f ",scaledprob2prob(al->arch_posteriors[j][i] - sum));
                         //LOG_MSG("%s" , al->spec_line[j]);
-                        if(al->arch_posteriors[j][i] > sum){
+                        if(scaledprob2prob(al->arch_posteriors[j][i] - sum) > max){
                                 n_best = 1;
                                 best = j;
-                                sum = al->arch_posteriors[j][i];
+                                max = scaledprob2prob(al->arch_posteriors[j][i] - sum);
 
-                        }else if(al->arch_posteriors[j][i] == sum){
+                        }else if(scaledprob2prob(al->arch_posteriors[j][i] - sum) == max){
                                 n_best++;
                         }
                 }
+                fprintf(stdout,"\n");
                 /* score of matching the complete architecture */
-                al->P = al->P * sum;
+                //al->P = al->P * sum;
                 ASSERT(best != -1,"No best arch found");
+                al->P = al->P + al->arch_posteriors[best][i];
+                al->arch_to_read_assignment[i] = best;
                 if(n_best == 1){
-                        al->arch_to_read_assignment[i] = best;
-                        al->arch_posteriors[0][i] = al->arch_posteriors[best][i];
+
+                        //al->arch_to_read_assignment[i] = best;
+                        //al->arch_posteriors[0][i] = al->arch_posteriors[best][i];
                 }else{
                         WARNING_MSG("%d or more architectures have a high probability of matching reads in file  %d.",n_best, i);
 
                         for(j = 0; j < al->num_arch;j++){
-                                if(al->arch_posteriors[j][i] == sum){
+                                if(scaledprob2prob(al->arch_posteriors[j][i] - sum) == max){
                                         LOG_MSG("   %f %s" ,al->arch_posteriors[j][i], al->spec_line[j]);
-                                        al->arch_posteriors[j][i] = 1.0f;
+                                        //al->arch_posteriors[j][i] = 1.0f;
                                 }else{
-                                        al->arch_posteriors[j][i] = 0.0f;
+                                        //al->arch_posteriors[j][i] = 0.0f;
                                 }
 
                         }
+
                         *ambigious = 1;
                 }
         }
+        fprintf(stdout,"\n");
+        for(j = 0; j < al->num_arch;j++){
+                al->arch_posteriors[j][0] = 0;
+        }
+
+        for(j = 0; j < n_files ;j++){
+                al->arch_posteriors[al->arch_to_read_assignment[j]][0]++;
+        }
+        for(j = 0; j < al->num_arch;j++){
+                if(al->arch_posteriors[j][0] > 1.1f){
+                        RUN(double_assignment_warning(al, j));
+                        al->P = prob2scaledprob(0.0);
+                        break;
+                }
+                //LOG_MSG("%d %f",j , al->arch_posteriors[0][j]);
+        }
         return OK;
 ERROR:
-        return NULL;
+        return FAIL;
 }
 
-int test_files_lpst(struct arch_library* al,struct tl_seq_buffer** rb, struct seq_stats* si,int n_files, int* ambigious)
+/*int test_files_lpst(struct arch_library* al,struct tl_seq_buffer** rb, struct seq_stats* si,int n_files, int* ambigious)
 {
         float sum;
-
+        float max;
         int best;
         int n_best;
-
         int i,j;
 
-
         *ambigious = 0;
-
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel default(shared)
@@ -255,51 +356,37 @@ int test_files_lpst(struct arch_library* al,struct tl_seq_buffer** rb, struct se
 #endif
         for(j = 0; j < al->num_arch;j++){
                 for(i = 0; i < n_files;i++){
-                        if( al->arch_posteriors[j][i] == 1.0f){
-                                lpst_score_read(al->read_structure[j], rb[i],si->ssi[i], &al->arch_posteriors[j][i]);
-                        }
+                        //if( al->arch_posteriors[j][i] == 1.0f){
+                        lpst_score_read(al->read_structure[j], rb[i],si->ssi[i], &al->arch_posteriors[j][i]);
+                        //}
                 }
         }
 
-        /* convert posteriors into Phred scaled quality values */
-        for(i = 0; i < n_files;i++){
+        for(i = 0; i < n_files ;i++){
                 sum = prob2scaledprob(0.0f);
                 for(j = 0; j < al->num_arch;j++){
                         //fprintf(stdout,"%f ",al->arch_posteriors[j][i]);
                         sum = logsum(sum,al->arch_posteriors[j][i]);
                 }
 
-                //fprintf(stdout,"FILE: %s\t",param->infile[i]);
-                for(j = 0; j < al->num_arch;j++){
-
-                        al->arch_posteriors[j][i] = scaledprob2prob(al->arch_posteriors[j][i] - sum);
-                        if(al->arch_posteriors[j][i] < 0.00001f){
-                                al->arch_posteriors[j][i] = 0.00001f;
-                        }
-                        //al->arch_posteriors[j][i] = -10.0f * log10f(al->arch_posteriors[j][i]);
-                        fprintf(stdout,"%f ",al->arch_posteriors[j][i]);
-                }
-                fprintf(stdout,"\n");
-        }
-
-        for(i = 0; i < n_files ;i++){
                 al->arch_to_read_assignment[i] = -1;
-                sum = -1.0;
+                max = -1.0;
                 best = -1;
                 n_best = 0;
                 for(j = 0; j < al->num_arch;j++){
                         //LOG_MSG("%s" , al->spec_line[j]);
-                        if(al->arch_posteriors[j][i] > sum){
+                        if(scaledprob2prob(al->arch_posteriors[j][i] - sum) > max){
                                 n_best = 1;
                                 best = j;
-                                sum = al->arch_posteriors[j][i];
+                                max = scaledprob2prob(al->arch_posteriors[j][i] - sum);
 
-                        }else if(al->arch_posteriors[j][i] == sum){
+                        }else if(al->arch_posteriors[j][i] == max){
                                 n_best++;
                         }
                 }
                 ASSERT(best != -1,"No best arch found");
                 if(n_best == 1){
+                        al->P = al->P + al->arch_posteriors[best][i];
                         al->arch_to_read_assignment[i] = best;
                         al->arch_posteriors[0][i] = al->arch_posteriors[best][i];
                 }else{
@@ -321,7 +408,7 @@ int test_files_lpst(struct arch_library* al,struct tl_seq_buffer** rb, struct se
 ERROR:
         return NULL;
 }
-
+*/
 
 
 
