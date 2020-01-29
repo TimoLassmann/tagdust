@@ -9,6 +9,8 @@
 #include "arch_lib.h"
 #include "seq_stats.h"
 
-extern int test_architectures(struct cookbook* cb, struct seq_stats* si, struct parameters* param);
+#include "read_groups.h"
+//extern int test_architectures(struct cookbook* cb, struct seq_stats* si, struct parameters* param);
+extern int test_architectures(struct cookbook* cb, struct seq_stats* si, struct parameters* param, struct read_groups* rg);
 
 #endif

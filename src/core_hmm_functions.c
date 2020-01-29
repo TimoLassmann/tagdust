@@ -1869,7 +1869,7 @@ int main(int argc, char *argv[])
 
         fflush(stdout);
 
-        RUN(init_model_bag(&mb,al->read_structure[1], ssi,a, 0));
+        RUN(init_model_bag(&mb,al->read_structure[0], ssi,a, 0));
 
 
 

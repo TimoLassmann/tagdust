@@ -95,7 +95,9 @@ poahmm.c \
 correct.h \
 correct.c \
 base_quality.h \
-base_quality.c 
+base_quality.c \
+read_groups.h \
+read_groups.c
 
 
 
@@ -202,7 +204,7 @@ TESTS_ENVIRONMENT = \
          export devdir; \
 	$(VALGRIND)
 
-check_PROGRAMS = arch_lib_test interface_test io_hdf5_test zwrite core_hmm_test band_test bq_test
+check_PROGRAMS = arch_lib_test interface_test io_hdf5_test zwrite core_hmm_test band_test bq_test read_group_test
 
 band_test_SOURCES = banded_test.c
 
@@ -261,6 +263,13 @@ base_quality.h \
 base_quality.c
 bq_test_CPPFLAGS = $(AM_CPPFLAGS) -DBASEQTEST
 
+read_group_test_SOURCES = \
+read_groups.h \
+read_groups.c \
+seq_stats.h \
+seq_stats.c 
+
+read_group_test_CPPFLAGS = $(AM_CPPFLAGS) -DREAD_GROUP_ITEST
 
 zwrite_SOURCES = test_pipe.c
 
