@@ -14,7 +14,7 @@
 
 #include "correct.h"
 
-
+#include "read_groups.h"
 
 #define READ_FAILQ 1
 #define READ_FAILR 2
@@ -83,7 +83,7 @@ struct assign_struct{
 
 
 
-extern int init_assign_structure(struct assign_struct** assign,struct arch_library* al,char* prefix, int total,int bam);
+extern int init_assign_structure(struct assign_struct** assign,struct arch_library* al, struct read_groups* rg, char* prefix, int total,int bam);
 
 
 extern int sort_as_by_file_type(struct assign_struct* as);

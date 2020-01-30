@@ -5,8 +5,8 @@
 
 #include "arch_lib.h"
 #include "seq_stats.h"
-
+#include "read_groups.h"
 #include "interface.h"
 
-extern int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameters* param,struct rng_state* rng);
+extern int extract_reads(struct arch_library* al, struct read_groups* rg,struct parameters* param,struct rng_state* rng);
 #endif

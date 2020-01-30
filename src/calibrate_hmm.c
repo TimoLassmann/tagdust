@@ -2,13 +2,13 @@
 
 #include "tllogsum.h"
 
-
+#include "seq_stats.h"
 #include "calibrate_hmm.h"
 
 
 #include "arch_lib.h"
 #include "arch_lib_sim.h"
-#include "seq_stats.h"
+
 //#include "hmm_model_bag.h"
 //#include "core_hmm_functions.h"
 
@@ -40,10 +40,10 @@ static int generate_test_sequences(struct  calibrate_buffer** ri_b, struct read_
 static int run_scoring(struct poahmm* poahmm, struct calibrate_buffer* cb);
 
 static int qsort_cb_q_compare(const void *a, const void *b);
-static int calibrate(struct arch_library* al, struct seq_stats* si,int* seeds,int i_file,int i_hmm);
+static int calibrate(struct arch_library* al, struct sequence_stats_info* ssi, struct alphabet*a, int* seeds,int i_file,int i_hmm);
 
 
-int calibrate_architectures(struct arch_library* al, struct seq_stats* si,struct rng_state* main_rng)
+int calibrate_architectures(struct arch_library* al, struct read_ensembl* e,struct rng_state* main_rng)
 {
         int i,j;
 
@@ -59,10 +59,10 @@ int calibrate_architectures(struct arch_library* al, struct seq_stats* si,struct
 #pragma omp parallel default(shared)
 #pragma omp for private(i)
 #endif
-        for(i = 0; i < al->num_file;i++){
-                j = al->arch_to_read_assignment[i];
+        for(i = 0; i < e->num_files;i++){
+                j =  e->arch_to_read_assignment[i];
                 //LOG_MSG("File %d HMM: %d",i,j);
-                calibrate(al, si,seeds, i, j);
+                calibrate(al, e->ssi[i] ,e->a, seeds, i, j);
         }
 
         //for(i = 0; i < al->num_file;i++){
@@ -75,14 +75,14 @@ ERROR:
         return FAIL;
 }
 
-int calibrate(struct arch_library* al, struct seq_stats* si,int* seeds,int i_file,int i_hmm)
+int calibrate(struct arch_library* al, struct sequence_stats_info* ssi, struct alphabet*a, int* seeds,int i_file,int i_hmm)
 {
         struct global_poahmm_param* p = NULL;
         struct poahmm* poahmm = NULL;
-        struct model_bag* mb = NULL;
+        //struct model_bag* mb = NULL;
         struct calibrate_buffer* cb = NULL;
         struct rng_state* local_rng = NULL;
-        int i,j;
+        int i;
 
         double TP,FP,TN,FN;
         double kappa = 0.0;
@@ -92,18 +92,12 @@ int calibrate(struct arch_library* al, struct seq_stats* si,int* seeds,int i_fil
 
         double P_o = 0.0;
 
-
-
         float thres[6];
-
 
         TP = 0.0;
         FP = 0.0;
         TN = 0.0;
         FN = 0.0;
-
-
-
 
         /*RUN(init_model_bag(&mb,al->read_structure[i_hmm], si->ssi[i_file], si->a, i_hmm));
         ASSERT(mb!= NULL, "Could not init model...");
@@ -118,23 +112,23 @@ int calibrate(struct arch_library* al, struct seq_stats* si,int* seeds,int i_fil
         }*/
 
         RUNP(local_rng = init_rng(seeds[i_file]));
-        RUN(generate_test_sequences(&cb, al->read_structure[i_hmm], si->ssi[i_file]->mean_seq_len,si->ssi[i_file]->stdev_seq_len,local_rng,si->a));
+        RUN(generate_test_sequences(&cb, al->read_structure[i_hmm], ssi->mean_seq_len,ssi->stdev_seq_len,local_rng,a));
 
 
         //LOG_MSG("SIMLEN: %d", cb->max_len);
 
         //RUN(init_model_bag(&mb,al->read_structure[i_hmm], si->ssi[i_file],si->a, i_hmm));
         MMALLOC(p, sizeof(struct global_poahmm_param));
-        p->min_seq_len = si->ssi[i_file]->average_length;
-        p->max_seq_len = MACRO_MAX(cb->max_len, si->ssi[i_file]->max_seq_len);
+        p->min_seq_len = ssi->average_length;
+        p->max_seq_len = MACRO_MAX(cb->max_len, ssi->max_seq_len);
         p->base_error = 0.05f;
         p->indel_freq = 0.1f;
         for(i =0; i < 5;i++){
-                p->back[i] = si->ssi[i_file]->background[i];
+                p->back[i] = ssi->background[i];
         }
 
 
-        RUN(poahmm_from_read_structure(&poahmm, p, al->read_structure[i_hmm],  si->a));
+        RUN(poahmm_from_read_structure(&poahmm, p, al->read_structure[i_hmm],  a));
         RUN(run_scoring(poahmm, cb));
         free_poahmm(poahmm);
         //free_model_bag(mb);
@@ -365,8 +359,6 @@ int run_scoring(struct poahmm* poahmm, struct calibrate_buffer* cb)
                 cb->seq[i]->Q = Q;
         }
         return OK;
-ERROR:
-        return FAIL;
 }
 
 

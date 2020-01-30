@@ -4,9 +4,12 @@
 #include "kstring.h"
 #include "tldevel.h"
 
-static int setup_assign_structure(struct arch_library* al,struct assign_struct* as);
+static int setup_assign_structure(struct arch_library* al, struct read_ensembl*e, struct assign_struct* as);
+//static int setup_assign_structure(struct arch_library* al,struct assign_struct* as);
 //static int setup_barcode_files(struct arch_library* al, struct assign_struct* as, char* prefix);
-static int setup_barcode_files(struct arch_library* al, struct assign_struct* as, char* prefix,int bam);
+//int setup_barcode_files(struct arch_library* al, struct assign_struct* as, char* prefix,int bam);
+static int setup_barcode_files(struct arch_library* al, struct read_ensembl* e, struct assign_struct* as, char* prefix,int bam);
+
 
 static int alloc_seq_bit(struct seq_bit** sb);
 static int free_seq_bit(struct seq_bit** sb);
@@ -16,7 +19,8 @@ static int free_bit_annotation(struct bit_annotation** sb);
 
 static int alloc_demux_struct(struct demux_struct** demux);
 
-static int add_file_name_options(struct rbtree_root** r, struct arch_library* al,int bam);
+static int add_file_name_options(struct rbtree_root** r, struct read_ensembl*e,  struct arch_library* al,int bam);
+//static int add_file_name_options(struct rbtree_root** r, struct arch_library* al,int bam);
 static int add_options(struct rbtree_root** r, char** seq, int num_seq,int max_len,char sep);
 //static int add_options(struct rbtree_root** r, char** seq, int num_seq,int max_len);
 static int create_demux_tree(struct rbtree_root** r);
@@ -32,7 +36,7 @@ static int create_demux_tree(struct rbtree_root** r);
         return OK;
         }*/
 
-int init_assign_structure(struct assign_struct** assign,struct arch_library* al,char* prefix, int total,int bam)
+int init_assign_structure(struct assign_struct** assign,struct arch_library* al,struct read_groups*rg,   char* prefix, int total,int bam)
 {
         struct assign_struct* as = NULL;
         struct seq_bit_vec* bv = NULL;
@@ -56,8 +60,8 @@ int init_assign_structure(struct assign_struct** assign,struct arch_library* al,
         as->bit_ann = NULL;
 
         RUN(calc_score_matrix(&as->subm, 0.02f, 0.1f));
-        RUN(setup_assign_structure(al,as));
-        RUN(setup_barcode_files(al,as,prefix,bam));
+        RUN(setup_assign_structure(al,rg->e[0] ,as));
+        RUN(setup_barcode_files(al, rg->e[0],as,prefix,bam));
         //exit(0);
         //RUN(setup_output_files(as));
         //LOG_MSG("%d", as->out_reads);
@@ -251,7 +255,7 @@ int reset_assign_structute(struct assign_struct* as)
         //      return FAIL;
 }
 
-int setup_assign_structure(struct arch_library* al,struct assign_struct* as)
+int setup_assign_structure(struct arch_library* al, struct read_ensembl*e, struct assign_struct* as)
 {
         struct read_structure* read_structure = NULL;
         struct segment_specs* s = NULL;
@@ -268,11 +272,15 @@ int setup_assign_structure(struct arch_library* al,struct assign_struct* as)
         as->num_bits = 0;
         as->out_reads = 0;
         p_size = 0;
-        for(i = 0; i < al->num_file;i++){
-                read_structure = al->read_structure[al->arch_to_read_assignment[i]];
-                //fprintf(stdout,"Read %d:\n",i);
+        for(i = 0; i < e->num_files;i++){
+                read_structure = al->read_structure[e->arch_to_read_assignment[i]];
                 p_size += read_structure->num_segments;
         }
+        //for(i = 0; i < al->num_file;i++){
+        //      read_structure = al->read_structure[al->arch_to_read_assignment[i]];
+                //fprintf(stdout,"Read %d:\n",i);
+        //      p_size += read_structure->num_segments;
+        //}
         //p_index = 0;
         //MMALLOC(p, sizeof(int) * p_size);
         MMALLOC(as->loc_out_reads, sizeof(int) * p_size);
@@ -290,9 +298,12 @@ int setup_assign_structure(struct arch_library* al,struct assign_struct* as)
         }
         //struct bit_annotation* a;
         //a->c_name
-        for(i = 0; i < al->num_file;i++){
+        for(i = 0; i < e->num_files;i++){
+                read_structure = al->read_structure[e->arch_to_read_assignment[i]];
+
+                //for(i = 0; i < al->num_file;i++){
                 as->file_index[i] = as->num_bits;
-                read_structure = al->read_structure[al->arch_to_read_assignment[i]];
+                //read_structure = al->read_structure[al->arch_to_read_assignment[i]];
                 //fprintf(stdout,"Read %d:\n",i);
 
                 for(j = 0; j < read_structure->num_segments;j++){
@@ -443,7 +454,7 @@ static int resolve_default(void* ptr_a,void* ptr_b);
 static void free_demux_struct(void* ptr);
 
 
-int setup_barcode_files(struct arch_library* al, struct assign_struct* as, char* prefix,int bam)
+int setup_barcode_files(struct arch_library* al, struct read_ensembl* e, struct assign_struct* as, char* prefix,int bam)
 {
         struct read_structure* read_structure = NULL;
         int i,j,f;
@@ -477,9 +488,11 @@ int setup_barcode_files(struct arch_library* al, struct assign_struct* as, char*
         tmp_ptr = NULL;
 
 
-
-        for(i = 0; i < al->num_file;i++){
-                read_structure = al->read_structure[al->arch_to_read_assignment[i]];
+        for(i = 0; i < e->num_files;i++){
+                read_structure = al->read_structure[e->arch_to_read_assignment[i]];
+                //}
+        //for(i = 0; i < al->num_file;i++){
+        //read_structure = al->read_structure[al->arch_to_read_assignment[i]];
                 //fprintf(stdout,"Read %d: ",i);
                 for(j = 0; j < read_structure->num_segments;j++){
 
@@ -496,7 +509,7 @@ int setup_barcode_files(struct arch_library* al, struct assign_struct* as, char*
                 }
                 //fprintf(stdout,"\n");
         }
-        RUN(add_file_name_options(&root,al,bam));
+        RUN(add_file_name_options(&root,e,al,bam));
 
         RUN(root->flatten_tree(root));
 
@@ -538,7 +551,7 @@ ERROR:
 4) adds all the possibilities to the prefix output files (which is either the -o option ot -o + barcode sequences))
 - ufff */
 
-int add_file_name_options(struct rbtree_root** r, struct arch_library* al,int bam)
+int add_file_name_options(struct rbtree_root** r, struct read_ensembl*e,  struct arch_library* al,int bam)
 {
         struct rbtree_root* root = NULL;
         struct rbtree_root* root2 = NULL;
@@ -554,9 +567,10 @@ int add_file_name_options(struct rbtree_root** r, struct arch_library* al,int ba
 
         int len;
         RUN(create_demux_tree(&root));
-
-        for(i = 0; i < al->num_file;i++){
-                read_structure = al->read_structure[al->arch_to_read_assignment[i]];
+        for(i = 0; i < e->num_files;i++){
+                //for(i = 0; i < al->num_file;i++){
+                //read_structure = al->read_structure[al->arch_to_read_assignment[i]];
+                read_structure = al->read_structure[e->arch_to_read_assignment[i]];
                 //fprintf(stdout,"Read %d: ",i);
 
                 for(j = 0; j < read_structure->num_segments;j++){

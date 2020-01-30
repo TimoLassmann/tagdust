@@ -17,7 +17,7 @@ static int set_len_of_unknown(const struct read_structure*rs, int* min_plus_len,
 
 static inline int nuc_to_internal(const char c);
 
-int lpst_score_read( struct read_structure* rs,struct tl_seq_buffer* sb, struct sequence_stats_info* si, float* score)
+int lpst_score_read(struct tl_seq_buffer* sb, struct read_structure* rs, struct sequence_stats_info* si, float* score)
 {
         struct lpst_model* lpst = NULL;
         struct segment_specs* spec;
@@ -32,12 +32,13 @@ int lpst_score_read( struct read_structure* rs,struct tl_seq_buffer* sb, struct 
         float P_S;
         int l,pos,n;
 
-
-
         init_logsum();
-
         RUN(set_len_of_unknown(rs,&plus_min_len,&plus_max_len, si->min_seq_len,si->max_seq_len));
-
+        if(plus_max_len == -1 || plus_min_len == -1){
+                WARNING_MSG("LPST: Model too long from sequences.");
+                *score = prob2scaledprob(0.0);
+                return OK;
+        }
         n_pst = 0;
         for(i= 0; i < rs->num_segments;i++){
                 spec = rs->seg_spec[i];

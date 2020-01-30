@@ -38,7 +38,7 @@ int read_cookbook_command_line(struct cookbook** cookbook, char* in)
         char* token = NULL;
         char* t_end = NULL;
 
-        int l_arch_num;
+        //int l_arch_num;
         int n_segment;
         int l;
         cb = *cookbook;
@@ -49,7 +49,7 @@ int read_cookbook_command_line(struct cookbook** cookbook, char* in)
         RUN(alloc_cookbook(&cb));
 
         cb->num_lib = 0;
-        l_arch_num = 0;
+        //al_arch_num = 0;
 
 
         r_token = strtok_r(in, "@",&r_end);

@@ -1,3 +1,4 @@
+
 #include <math.h>
 
 #include "tllogsum.h"
@@ -30,7 +31,9 @@ static int double_assignment_warning(struct arch_library* al,int x);
 
 
 
-static int test_arch(struct tl_seq_buffer** rb, struct arch_library* al, struct seq_stats* si,int i_file,int i_hmm,float* score);
+//static int test_arch(struct tl_seq_buffer** rb, struct arch_library* al, struct seq_stats* si,int i_file,int i_hmm,float* score);
+
+static int test_arch(struct tl_seq_buffer* sb, struct read_structure* rs, struct sequence_stats_info* si, struct alphabet* a, float* score);
 
 
 
@@ -107,10 +110,17 @@ int test_architectures(struct cookbook* cb, struct read_groups* rg)
                 LOG_MSG("Read group %d:", g);
                 for(i = 0; i < cb->lib[best]->num_arch;i++){
                         c= rg->e[g]->arch_to_read_assignment[i];
-                        LOG_MSG("%s -> %s",rg->e[g]->filenames[i],cb->lib[best]->spec_line[c]);
+                        LOG_MSG("%d %d  %s -> %s",i,c,rg->e[g]->filenames[i],cb->lib[best]->spec_line[c]);
                 }
         }
-
+        sort_read_groups_based_on_arch_assign(rg);
+        for(g = 0 ; g < rg->num_groups;g++){
+                LOG_MSG("Read group %d:", g);
+                for(i = 0; i < cb->lib[best]->num_arch;i++){
+                        c= rg->e[g]->arch_to_read_assignment[i];
+                        LOG_MSG("%d %d  %s -> %s",i,c,rg->e[g]->filenames[i],cb->lib[best]->spec_line[c]);
+                }
+        }
         /* selecting this library  */
 
         cb->best = best;
@@ -125,12 +135,8 @@ int test_arch_file_order(struct arch_library* al,struct read_groups* rg)
         struct file_handler* f_hand = NULL;
         struct tl_seq_buffer** rb = NULL;
         struct read_ensembl* e = NULL;
-        //struct alphabet* a = NULL;
-
 
         int ambigious = 1;
-
-        
         int i;
         int n_rg;
         if(al->num_arch != rg->e[0]->num_files){
@@ -248,9 +254,9 @@ int test_files(struct arch_library* al,struct tl_seq_buffer** rb, struct read_en
         for(j = 0; j < al->num_arch;j++){
                 for(i = 0; i < e->num_files;i++){
                         //if( al->arch_posteriors[j][i] == 1.0f){
-                        test_arch(rb,al,e->si,i,j,&max);
+                        test_arch(rb[i],al->read_structure[j],e->ssi[i],e->a,  &max);
                         post[j][i] = max;
-                        lpst_score_read(al->read_structure[j], rb[i],e->si->ssi[i], &max);
+                        lpst_score_read(rb[i],al->read_structure[j],e->ssi[i], &max);
                         post[j][i] += max;
                         //al->arch_posteriors[j][i] += max;
                                 //}
@@ -440,8 +446,9 @@ ERROR:
 
 
 
+int test_arch(struct tl_seq_buffer* sb, struct read_structure* rs, struct sequence_stats_info* si, struct alphabet* a, float* score)
 
-int test_arch(struct tl_seq_buffer** rb, struct arch_library* al, struct seq_stats* si,int i_file,int i_hmm,float* score)
+///int test_arch(struct tl_seq_buffer** rb, struct arch_library* al, struct sequence_stats_info** ssi,int i_file,int i_hmm,float* score)
 {
         //fprintf(stdout,"Thread %d working on file %d; hmm %d\n",omp_get_thread_num(),i_file,i_hmm);
         //printf ("num_thds=%d, max_thds=%d\n",omp_get_thread_num(),omp_get_max_threads());
@@ -450,7 +457,7 @@ int test_arch(struct tl_seq_buffer** rb, struct arch_library* al, struct seq_sta
         struct global_poahmm_param* p = NULL;
         //struct model_bag* mb = NULL;
         struct tl_seq** ri = NULL;
-        struct alphabet* a = NULL;
+        //struct alphabet* a = NULL;
 
         uint8_t* tmp_seq = NULL;
         uint8_t* tmp_qual = NULL;
@@ -459,18 +466,19 @@ int test_arch(struct tl_seq_buffer** rb, struct arch_library* al, struct seq_sta
         int base_q_offset = 0;
         float l_score = prob2scaledprob(1.0);
 
-        base_q_offset = rb[i_file]->base_quality_offset;
+
+        base_q_offset = sb->base_quality_offset;//rb[i_file]->base_quality_offset;
 
         MMALLOC(p, sizeof(struct global_poahmm_param));
-        p->min_seq_len = si->ssi[i_file]->average_length; /* FIXMEEEEEEE  */
-        p->max_seq_len = si->ssi[i_file]->max_seq_len;
+        p->min_seq_len = si->average_length;//  ssi[i_file]->average_length; /* FIXMEEEEEEE  */
+        p->max_seq_len = si->max_seq_len;// ssi[i_file]->max_seq_len;
         p->base_error = 0.05f;
         p->indel_freq = 0.1f;
         for(i =0; i < 5;i++){
-                p->back[i] = si->ssi[i_file]->background[i];
+                p->back[i] = si->background[i];//  si->ssi[i_file]->background[i];
         }
 
-        RUN(poahmm_from_read_structure(&poahmm, p,al->read_structure[i_hmm],  si->a));
+        RUN(poahmm_from_read_structure(&poahmm, p, rs, a));
 
         if(poahmm == NULL){
                 *score = prob2scaledprob(0.0f);
@@ -486,13 +494,13 @@ int test_arch(struct tl_seq_buffer** rb, struct arch_library* al, struct seq_sta
                 //al->arch_posteriors[i_hmm][i_file] = prob2scaledprob(0.0f);
                 //return OK;
         //}
-        num_seq = rb[i_file]->num_seq;
-        ri = rb[i_file]->sequences;
+        num_seq =  sb->num_seq;//  rb[i_file]->num_seq;
+        ri =sb->sequences;//  rb[i_file]->sequences;
 
-        a = si->a;
+        //a = si->a;
 
-        MMALLOC(tmp_seq, sizeof(uint8_t) * (si->ssi[i_file]->max_seq_len+1));
-        MMALLOC(tmp_qual, sizeof(uint8_t) * (si->ssi[i_file]->max_seq_len+1));
+        MMALLOC(tmp_seq, sizeof(uint8_t) * (si->max_seq_len+1));//  ssi[i_file]->max_seq_len+1));
+        MMALLOC(tmp_qual, sizeof(uint8_t) * (si->max_seq_len+1));
 
         for(i = 0; i < num_seq;i++){
                 for(j = 0; j < ri[i]->len;j++){

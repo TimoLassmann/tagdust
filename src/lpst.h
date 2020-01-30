@@ -8,7 +8,8 @@
 
 /* linear arrangement of pst models  */
 
-extern int lpst_score_read( struct read_structure* rs,struct tl_seq_buffer* sb, struct sequence_stats_info* si, float* score);
+extern int lpst_score_read(struct tl_seq_buffer* sb, struct read_structure* rs, struct sequence_stats_info* si, float* score);
+
 
 
 #endif

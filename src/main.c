@@ -18,7 +18,7 @@ int main (int argc,char * argv[]) {
         struct parameters* param = NULL;
         struct cookbook* cookbook = NULL;
         struct arch_library* al = NULL;
-        struct seq_stats* si = NULL;
+        //struct seq_stats* si = NULL;
         struct rng_state* main_rng = NULL;
         struct read_groups* read_groups = NULL;
         int i,j,c;
@@ -76,12 +76,16 @@ int main (int argc,char * argv[]) {
         WARNING_MSG("Running without OpenMP!");
 #endif
         init_logsum();
+
+
+
+
         for(i = 0; i < read_groups->num_groups;i++){
                 LOG_MSG("Get stats on %d ", i);
-                RUN(get_sequence_stats(&read_groups->e[i]->si, read_groups->e[i]->filenames, read_groups->e[i]->num_files, main_rng));
+                RUN(get_sequence_stats(read_groups->e[i], main_rng));
                 for(j = 0; j < read_groups->e[i]->num_files;j++){
                         for(c = j+1; c < read_groups->e[i]->num_files;c++){
-                                ASSERT(read_groups->e[i]->si->ssi[j]->total_num_seq == read_groups->e[i]->si->ssi[c]->total_num_seq,"File %s and %s contain different number of sequences", read_groups->e[i]->filenames[j], read_groups->e[i]->filenames[c]);
+                                ASSERT(read_groups->e[i]->ssi[j]->total_num_seq == read_groups->e[i]->ssi[c]->total_num_seq,"File %s and %s contain different number of sequences", read_groups->e[i]->filenames[j], read_groups->e[i]->filenames[c]);
                         }
                 }
         }
@@ -89,26 +93,27 @@ int main (int argc,char * argv[]) {
         //exit(0);
 
 
-
         RUN(test_architectures(cookbook, read_groups));
 
 
+
         al = cookbook->lib[cookbook->best];
-        free_read_groups(read_groups);
-        exit(0);
-        RUN(calibrate_architectures(al,si, main_rng));
-        //exit(0);
+
+        RUN(calibrate_architectures(al, read_groups->e[0] , main_rng));
+
         //int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameters* param)
-        RUN(extract_reads(al,si,param,main_rng));
+        RUN(extract_reads(al,read_groups ,param,main_rng));
 
         //free_arch_lib(al);
+        free_read_groups(read_groups);
+
         free_cookbook(&cookbook);
-        free_sequence_stats(si);
+        //free_sequence_stats(si);
         free_param(param);
         free_rng(main_rng);
         return EXIT_SUCCESS;
 ERROR:
-        free_sequence_stats(si);
+        //free_sequence_stats(si);
         free_rng(main_rng);
         free_cookbook(&cookbook);
         if(param){

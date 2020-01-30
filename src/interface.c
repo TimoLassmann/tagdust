@@ -137,10 +137,12 @@ int interface(struct parameters** p,int argc, char *argv[])
         param->num_infiles = 0;
         param->infile = NULL;
         param->outfile = NULL;
+        param->reference_fasta = NULL;
         param->num_threads = 8;
         param->bam = 1;
         param->seed = 42;
         param->filter_error = 2;
+
 
         param->recipe = NULL;
         param->book_file = NULL;

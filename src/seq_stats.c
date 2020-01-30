@@ -14,9 +14,9 @@ static void free_sequence_stats_info(struct sequence_stats_info* si);
 static int five_prime_exact_match(char* seq,char*p,int seq_len, double* res);
 static int three_prime_exact_match(char* seq,char*p,int seq_len, double* res);
 
-int get_sequence_stats(struct seq_stats** sequence_stats,char** infiles,int numfiles,struct rng_state* main_rng)
+int get_sequence_stats(struct read_ensembl* e, struct rng_state* main_rng)
 {
-        struct seq_stats* si = NULL;
+        //struct seq_stats* si = NULL;
         struct file_handler* f_hand = NULL;
 
         struct tl_seq_buffer* rb = NULL;
@@ -27,11 +27,11 @@ int get_sequence_stats(struct seq_stats** sequence_stats,char** infiles,int numf
 
         int i,j,c;
         int total_read;
-        int len;
-        int last;
+        //sint len;
+        //int last;
 
-        char** five_test_sequence = NULL;
-        char** three_test_sequence = NULL;
+        //char** five_test_sequence = NULL;
+        //char** three_test_sequence = NULL;
 
         /*
         double* five_s0 = NULL;
@@ -41,7 +41,7 @@ int get_sequence_stats(struct seq_stats** sequence_stats,char** infiles,int numf
         double* three_s1 = NULL;
         double* three_s2 = NULL;
         */
-        double res;
+        //double res;
         double sum;
 
         double s0_seq_len;
@@ -55,7 +55,7 @@ int get_sequence_stats(struct seq_stats** sequence_stats,char** infiles,int numf
         MMALLOC(three_s0, sizeof(double) * al->num_arch);
         MMALLOC(three_s1, sizeof(double) * al->num_arch);
         MMALLOC(three_s2, sizeof(double) * al->num_arch);*/
-
+        /*
         MMALLOC(si, sizeof(struct seq_stats));
         si->num = numfiles;
         si->ssi = NULL;
@@ -63,14 +63,23 @@ int get_sequence_stats(struct seq_stats** sequence_stats,char** infiles,int numf
         si->a = NULL;
 
         RUN(create_alphabet(&si->a, main_rng, TLALPHABET_DEFAULT_DNA));
+
+        e->a
         a = si->a;
 
         for(i = 0; i < si->num;i++){
                 si->ssi[i] = NULL;
                 RUN(alloc_sequence_stats_info(&si->ssi[i], 1));//  al->num_arch));
+        }*/
+
+
+        RUN(create_alphabet(&e->a, main_rng, TLALPHABET_DEFAULT_DNA));
+        a = e->a;
+        for(i = 0; i < e->num_files;i++){
+                e->ssi[i] = NULL;
+                RUN(alloc_sequence_stats_info(&e->ssi[i], 1));//  al->num_arch
+
         }
-
-
         //RUN(alloc_read_info_buffer(&rb,100000));
 
         /* copy5' and 3' sequences for matching in case of partial segments */
@@ -108,9 +117,9 @@ MMALLOC(five_test_sequence, sizeof(char*) * al->num_arch);
         }*/
 
         /* Do stuff */
-
-        for(i = 0; i < numfiles;i++){
-                RUN(open_fasta_fastq_file(&f_hand, infiles[i], TLSEQIO_READ));
+        for(i = 0; i < e->num_files;i++){
+                //for(i = 0; i < numfiles;i++){
+                RUN(open_fasta_fastq_file(&f_hand,  e->filenames[i], TLSEQIO_READ));
                 //aopen_fasta_fastq_file(struct file_handler **fh, char *filename, int mode)
                 //RUN(io_handler(&f_hand,infiles[i]));
                 /*for(c = 0;c < al->num_arch;c++){
@@ -138,21 +147,22 @@ MMALLOC(five_test_sequence, sizeof(char*) * al->num_arch);
                         }
                         ri = rb->sequences ;
                         for(j = 0; j < rb->num_seq;j++){
-                                if(ri[j]->len > si->ssi[i]->max_seq_len){
-                                        si->ssi[i]->max_seq_len = ri[j]->len;
+                                if(ri[j]->len > e->ssi[i]->max_seq_len){
+                                        e->ssi[i]->max_seq_len = ri[j]->len;
                                 }
-                                if(ri[j]->len < si->ssi[i]->min_seq_len){
-                                        si->ssi[i]->min_seq_len = ri[j]->len;
+                                if(ri[j]->len < e->ssi[i]->min_seq_len){
+                                        e->ssi[i]->min_seq_len = ri[j]->len;
                                 }
 
                                 s0_seq_len++;
                                 s1_seq_len += ri[j]->len;
                                 s2_seq_len += ri[j]->len * ri[j]->len;
                                 //print_sequence(rb->ri[j], stdout);
-                                si->ssi[i]->average_length += ri[j]->len;
+                                e->ssi[i]->average_length += ri[j]->len;
+
                                 for(c = 0;c < ri[i]->len;c++){
 
-                                        si->ssi[i]->background[tlalphabet_get_code(a,ri[j]->seq[c])] += 1.0f;
+                                        e->ssi[i]->background[tlalphabet_get_code(a,ri[j]->seq[c])] += 1.0f;
                                 }
                                 /*
                                 for(c = 0;c < al->num_arch;c++){
@@ -186,23 +196,23 @@ MMALLOC(five_test_sequence, sizeof(char*) * al->num_arch);
                 //pclose(f_hand->f_ptr);
                 //LOG_MSG("total: %d", total_read);
 
-                si->ssi[i]->total_num_seq = total_read;
-                si->ssi[i]->average_length = (int) floor((double) si->ssi[i]->average_length / (double) total_read   + 0.5);
+                e->ssi[i]->total_num_seq = total_read;
+                e->ssi[i]->average_length = (int) floor((double) e->ssi[i]->average_length / (double) total_read   + 0.5);
 
-                si->ssi[i]->mean_seq_len  = s1_seq_len / s0_seq_len;
+                e->ssi[i]->mean_seq_len  = s1_seq_len / s0_seq_len;
 
-                si->ssi[i]->stdev_seq_len = sqrt ( (s0_seq_len * s2_seq_len -  pow(s1_seq_len, 2.0)) /  (s0_seq_len * ( s0_seq_len - 1.0)));
+                e->ssi[i]->stdev_seq_len = sqrt ( (s0_seq_len * s2_seq_len -  pow(s1_seq_len, 2.0)) /  (s0_seq_len * ( s0_seq_len - 1.0)));
                 //ssi->mean_5_len = five_s1 / five_s0;
 
 
                 
                 sum = 0.0;
                 for(j = 0; j < 5;j++){
-                        sum += si->ssi[i]->background[j];
+                        sum += e->ssi[i]->background[j];
                 }
 
                 for(j = 0; j < 5;j++){
-                        si->ssi[i]->background[j] = prob2scaledprob(si->ssi[i]->background[j]  / sum);
+                        e->ssi[i]->background[j] = prob2scaledprob(e->ssi[i]->background[j]  / sum);
                 }
 
                 /*
@@ -292,10 +302,10 @@ MMALLOC(five_test_sequence, sizeof(char*) * al->num_arch);
         //free_read_info_buffer(rb);
         //free_alphabet(a);
         //LOG_MSG("Got here");
-        *sequence_stats = si;
+        //*sequence_stats = si;
         return OK;
 ERROR:
-        free_sequence_stats(si);
+        //free_sequence_stats(si);
         return FAIL;
 }
 
@@ -352,7 +362,7 @@ int three_prime_exact_match(char* seq,char*p,int seq_len, double* res)
         return OK;
 }
 
-void free_sequence_stats(struct seq_stats* si)
+/*void free_sequence_stats(struct seq_stats* si)
 {
         int i;
         if(si){
@@ -363,7 +373,7 @@ void free_sequence_stats(struct seq_stats* si)
                 MFREE(si->ssi);
                 MFREE(si);
         }
-}
+        }*/
 
 int alloc_sequence_stats_info(struct sequence_stats_info** si, int n)
 {

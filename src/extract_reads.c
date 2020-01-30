@@ -38,9 +38,13 @@ struct collect_read{
 //static int process_read(struct collect_read* ri, struct read_structure* rs , struct seq_bit_vec* b , int i_file);
 static int process_read(struct collect_read* ri,struct poahmm* poahmm, struct read_structure* rs , struct seq_bit_vec* b , int local_bit_index);
 
+
 static int sanity_check_inputs(struct tl_seq_buffer** rb, int num_files);
 
-static int run_extract( struct assign_struct* as,  struct tl_seq_buffer** rb, struct arch_library* al, struct seq_stats* si,int i_file,int i_chunk);
+//static int run_extract( struct assign_struct* as,  struct tl_seq_buffer** rb, struct arch_library* al, struct seq_stats* si,int i_file,int i_chunk);
+static int run_extract( struct assign_struct* as,  struct tl_seq_buffer** rb, struct arch_library* al, struct read_ensembl* e,int i_file,int i_chunk);
+
+
 
 static int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb, int bam);
 
@@ -48,7 +52,7 @@ static int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb, 
 
 static int print_path(struct poahmm* poahmm, uint32_t* path,char* seq);
 
-int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameters* param,struct rng_state* rng)
+int extract_reads(struct arch_library* al, struct read_groups* rg,struct parameters* param,struct rng_state* rng)
 {
         struct kmer_counts* k = NULL;
         struct tl_seq_buffer**  rb = NULL;
@@ -57,13 +61,14 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
         struct tl_seq_buffer*  wb = NULL;
 
         struct file_handler* r_fh = NULL;
-
+        struct read_ensembl* e = NULL;
         struct ref* ref = NULL;
 
         struct pst* pst = NULL;
 
-        int i,j,c;
+        int i,j,c,g;
         int total_read;
+        int n_files;
 
         DECLARE_TIMER(t1);
 
@@ -91,7 +96,7 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
 
         //param->bam = 1;
         /* figure out how many barcodes etc */
-        RUN(init_assign_structure(&as, al, param->outfile, CHUNKS* READ_CHUNK_SIZE, param->bam));
+        RUN(init_assign_structure(&as, al, rg,param->outfile, CHUNKS* READ_CHUNK_SIZE, param->bam));
 
         as->block_size = READ_CHUNK_SIZE;
         //RUN(galloc(&as->assignment, as->total, as->num_barcodes));
@@ -102,133 +107,139 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
         /* to: check which architecture belongs to which read */
         ASSERT(param != NULL, "no parameters");
         ASSERT(al != NULL, "No arch library");
-        ASSERT(si != NULL, "no seq stats");
+        //ASSERT(si != NULL, "no seq stats");
 
         //LOG_MSG("Got here");
-        MMALLOC(rb, sizeof(struct tl_seq_buffer*) * param->num_infiles * CHUNKS);
-        MMALLOC(f_hand, sizeof(struct file_handler*) * param->num_infiles);
+        //MMALLOC(rb, sizeof(struct tl_seq_buffer*) * param->num_infiles * CHUNKS);
+        //MMALLOC(f_hand, sizeof(struct file_handler*) * param->num_infiles);
 
-        for(i = 0; i < param->num_infiles;i++){
-                f_hand[i] = NULL;
-                RUN(open_fasta_fastq_file(&f_hand[i], param->infile[i], TLSEQIO_READ));
-                //RUN(io_handler(&f_hand[i], param->infile[i]));
-        }
-        for(i = 0; i < param->num_infiles * CHUNKS;i++){
-                rb[i] = NULL;
-                //RUN(alloc_read_info_buffer(&rb[i], READ_CHUNK_SIZE));
-        }
-
-
-        while(1){
-                /* read everything in  */
-                total_read = 0;
-                for(i = 0; i < param->num_infiles * CHUNKS;i++){
-                        if(rb[i]){
-                                rb[i]->offset = 0;
-                                rb[i]->num_seq = 0;
-                        }
+        n_files = rg->e[0]->num_files;
+        MMALLOC(rb, sizeof(struct tl_seq_buffer*) * n_files * CHUNKS);
+        MMALLOC(f_hand, sizeof(struct file_handler*) * n_files);
+        for(g = 0; g < rg->num_groups;g++){
+                e = rg->e[g];
+                for(i = 0; i < n_files;i++){
+                        f_hand[i] = NULL;
+                        RUN(open_fasta_fastq_file(&f_hand[i], e->filenames[i], TLSEQIO_READ));
+                        //RUN(io_handler(&f_hand[i], param->infile[i]));
                 }
-                for(i = 0; i < param->num_infiles;i++){
+                for(i = 0; i < n_files * CHUNKS;i++){
+                        rb[i] = NULL;
+                        //RUN(alloc_read_info_buffer(&rb[i], READ_CHUNK_SIZE));
+                }
 
-                        /* set offset of first chunk to be the off ser  */
-                        if(rb[i*CHUNKS]){
 
-                                rb[i * CHUNKS]->offset =
-                                        rb[i* CHUNKS + CHUNKS-1]->offset
-                                        + rb[i* CHUNKS + CHUNKS-1]->num_seq;
-                        }
-                        for(j = 0; j < CHUNKS;j++){
-                                RUN(read_fasta_fastq_file(f_hand[i], &rb[i * CHUNKS + j],READ_CHUNK_SIZE));
-                                //RUN(read_fasta_fastq(rb[i * CHUNKS + j],f_hand[i]));
-                                //RUN(fp(rb[i * CHUNKS + j],f_hand[i]));//  param,file,&numseq));
-                                total_read += rb[i* CHUNKS + j]->num_seq;
-                        }
-                        for(j =1; j < CHUNKS;j++){
-                                if(rb[i* CHUNKS + j]){
-                                        rb[i* CHUNKS + j]->offset = rb[i* CHUNKS + j-1]->offset +  rb[i* CHUNKS + j-1]->num_seq;
+                while(1){
+                        /* read everything in  */
+                        total_read = 0;
+                        for(i = 0; i < n_files * CHUNKS;i++){
+                                if(rb[i]){
+                                        rb[i]->offset = 0;
+                                        rb[i]->num_seq = 0;
                                 }
                         }
-                }
-                /* Assign name to assign struct  */
-                //for(i = 0; i < param->num_infiles;i++){
-                i = 0;
-                for(j = 0; j < CHUNKS;j++){
-                        for(c = 0;c < rb[j]->num_seq;c++){
-                                as->bit_vec[i]->name = rb[j]->sequences[c]->name;
-                                i++;
+                        for(i = 0; i < n_files;i++){
+
+                                /* set offset of first chunk to be the off ser  */
+                                if(rb[i*CHUNKS]){
+
+                                        rb[i * CHUNKS]->offset =
+                                                rb[i* CHUNKS + CHUNKS-1]->offset
+                                                + rb[i* CHUNKS + CHUNKS-1]->num_seq;
+                                }
+                                for(j = 0; j < CHUNKS;j++){
+                                        RUN(read_fasta_fastq_file(f_hand[i], &rb[i * CHUNKS + j],READ_CHUNK_SIZE));
+                                        //RUN(read_fasta_fastq(rb[i * CHUNKS + j],f_hand[i]));
+                                        //RUN(fp(rb[i * CHUNKS + j],f_hand[i]));//  param,file,&numseq));
+                                        total_read += rb[i* CHUNKS + j]->num_seq;
+                                }
+                                for(j =1; j < CHUNKS;j++){
+                                        if(rb[i* CHUNKS + j]){
+                                                rb[i* CHUNKS + j]->offset = rb[i* CHUNKS + j-1]->offset +  rb[i* CHUNKS + j-1]->num_seq;
+                                        }
+                                }
                         }
-                }
-                as->num_reads = i;
-                //}
-                //if(!  )
-                if(!total_read){
-                        LOG_MSG("Done");
-                        break;
-                }
-                //LOG_MSG("Pausing here");
-                //sleep(100);
+                        /* Assign name to assign struct  */
+                        //for(i = 0; i < param->num_infiles;i++){
+                        i = 0;
+                        for(j = 0; j < CHUNKS;j++){
+                                for(c = 0;c < rb[j]->num_seq;c++){
+                                        as->bit_vec[i]->name = rb[j]->sequences[c]->name;
+                                        i++;
+                                }
+                        }
+                        as->num_reads = i;
+                        //}
+                        //if(!  )
+                        if(!total_read){
+                                LOG_MSG("Done");
+                                break;
+                        }
+                        //LOG_MSG("Pausing here");
+                        //sleep(100);
 
-                /* sanity check input - are the files correctly sorted */
-                //RUN(sanity_check_inputs(rb,param->num_infiles));
-                //fflush(stdout);
-                /* extract reads  */
+                        /* sanity check input - are the files correctly sorted */
+                        //RUN(sanity_check_inputs(rb,param->num_infiles));
+                        //fflush(stdout);
+                        /* extract reads  */
 
-                START_TIMER(t1);
+                        START_TIMER(t1);
 #ifdef HAVE_OPENMP
-                LOG_MSG("Run parallel");
+                        LOG_MSG("Run parallel");
 #pragma omp parallel default(shared)
 #pragma omp for collapse(2) private(i, j)
 #endif
-                for(i = 0; i < param->num_infiles;i++){
-                        for(j = 0; j < CHUNKS;j++){
-                                run_extract(as, rb,al,si,i,j);
+                        for(i = 0; i < n_files;i++){
+                                for(j = 0; j < CHUNKS;j++){
+                                        run_extract(as, rb,al,e,i,j);
+                                }
                         }
-                }
 
-                STOP_TIMER(t1);
-                LOG_MSG("extract Took %f ",GET_TIMING(t1));
-                //RUN(sort_as_by_file_type(as));
+                        STOP_TIMER(t1);
+                        LOG_MSG("extract Took %f ",GET_TIMING(t1));
+                        //RUN(sort_as_by_file_type(as));
 
-                if(ref){
-                        START_TIMER(t1);
+                        if(ref){
+                                START_TIMER(t1);
 #ifdef HAVE_OPENMP
 #pragma omp parallel default(shared)
 
 #pragma omp for private(i)
 #endif
-                        for(i = 0; i < as->num_reads;i++){
-                                run_filter_exact(as,ref, i, param->filter_error);
+                                for(i = 0; i < as->num_reads;i++){
+                                        run_filter_exact(as,ref, i, param->filter_error);
+                                }
+                                STOP_TIMER(t1);
+                                LOG_MSG("filter Took %f ",GET_TIMING(t1));
                         }
-                        STOP_TIMER(t1);
-                        LOG_MSG("filter Took %f ",GET_TIMING(t1));
-                }
 
-                if(ref){
-                        START_TIMER(t1);
+                        if(ref){
+                                START_TIMER(t1);
 #ifdef HAVE_OPENMP
 #pragma omp parallel default(shared)
 #pragma omp for private(i)
 #endif
-                        for(i = 0; i < as->num_reads;i++){
-                                run_filter_pst(as,pst,i,0.5f);
+                                for(i = 0; i < as->num_reads;i++){
+                                        run_filter_pst(as,pst,i,0.5f);
+                                }
+                                STOP_TIMER(t1);
+                                LOG_MSG("filter Took %f ",GET_TIMING(t1));
                         }
+
+                        START_TIMER(t1);
+                        RUN(post_process_assign(as));
+
                         STOP_TIMER(t1);
-                        LOG_MSG("filter Took %f ",GET_TIMING(t1));
+                        LOG_MSG("Processing took: %f ",GET_TIMING(t1));
+                        //LOG_MSG("Write buff: %p",wb);
+                        START_TIMER(t1);
+                        RUN(write_all(as,&wb,param->bam));
+                        STOP_TIMER(t1);
+                        LOG_MSG("Write took: %f ",GET_TIMING(t1));
+
+                        RUN(reset_assign_structute(as));
+                        //exit(0);
                 }
-
-                START_TIMER(t1);
-                RUN(post_process_assign(as));
-
-                STOP_TIMER(t1);
-                LOG_MSG("Processing took: %f ",GET_TIMING(t1));
-                //LOG_MSG("Write buff: %p",wb);
-                START_TIMER(t1);
-                RUN(write_all(as,&wb,param->bam));
-                STOP_TIMER(t1);
-                LOG_MSG("Write took: %f ",GET_TIMING(t1));
-
-                RUN(reset_assign_structute(as));
-                //exit(0);
         }
         /* FIXME */
         if(wb){
@@ -239,14 +250,14 @@ int extract_reads(struct arch_library* al, struct seq_stats* si,struct parameter
                 free_pst(pst);
         }
         free_assign_structure(as);
-        for(i = 0; i < param->num_infiles* CHUNKS;i++){
+        for(i = 0; i < n_files* CHUNKS;i++){
                 if(rb[i]){
                         free_tl_seq_buffer(rb[i]);
                 }
         }
         MFREE(rb);
 
-        for(i = 0; i < param->num_infiles;i++){
+        for(i = 0; i < n_files;i++){
                 RUN(close_seq_file(&f_hand[i]));
         }
         MFREE(f_hand);
@@ -256,7 +267,7 @@ ERROR:
         return FAIL;
 }
 
-int run_extract( struct assign_struct* as,  struct tl_seq_buffer** rb, struct arch_library* al, struct seq_stats* si,int i_file,int i_chunk)
+int run_extract( struct assign_struct* as,  struct tl_seq_buffer** rb, struct arch_library* al, struct read_ensembl* e,int i_file,int i_chunk)
 {
         struct global_poahmm_param* p = NULL;
         struct poahmm* poahmm = NULL;
@@ -264,6 +275,7 @@ int run_extract( struct assign_struct* as,  struct tl_seq_buffer** rb, struct ar
         struct alphabet* a = NULL;
         struct tl_seq** ri = NULL;
         struct collect_read cs;
+        //struct seq_stats* si = NULL;
         uint32_t* path = NULL;
         uint8_t* tmp_seq = NULL;
         uint8_t* tmp_qual = NULL;
@@ -280,26 +292,28 @@ int run_extract( struct assign_struct* as,  struct tl_seq_buffer** rb, struct ar
         int base_q_offset = 0;
         int seq_offset;
 
+        //si = e->si;
 
-        a = si->a;
+        a =  e->a;
 
 
         c = i_file * CHUNKS + i_chunk;
 
-        i_hmm = al->arch_to_read_assignment[i_file];
+
+        i_hmm =  e->arch_to_read_assignment[i_file];// al->arch_to_read_assignment[i_file];
         //RUN(init_model_bag(&mb,al->read_structure[i_hmm], si->ssi[i_file], si->a, i_hmm));
 
         MMALLOC(p, sizeof(struct global_poahmm_param));
-        p->min_seq_len = si->ssi[i_file]->average_length;
-        p->max_seq_len = MACRO_MAX(rb[c]->max_len, si->ssi[i_file]->max_seq_len);
+        p->min_seq_len = e->ssi[i_file]->average_length;
+        p->max_seq_len = MACRO_MAX(rb[c]->max_len, e->ssi[i_file]->max_seq_len);
         p->base_error = 0.05f;
         p->indel_freq = 0.1f;
         for(i =0; i < 5;i++){
-                p->back[i] = si->ssi[i_file]->background[i];
+                p->back[i] = e->ssi[i_file]->background[i];
         }
 
 
-        RUN(poahmm_from_read_structure(&poahmm, p, al->read_structure[i_hmm],  si->a));
+        RUN(poahmm_from_read_structure(&poahmm, p, al->read_structure[i_hmm], e->a));
 
 
         num_seq = rb[c]->num_seq;
@@ -307,10 +321,10 @@ int run_extract( struct assign_struct* as,  struct tl_seq_buffer** rb, struct ar
         base_q_offset = rb[c]->base_quality_offset;
         seq_offset = rb[c]->offset;
 
-        MMALLOC(tmp_seq, sizeof(uint8_t) * (si->ssi[i_file]->max_seq_len+1));
-        MMALLOC(tmp_qual, sizeof(uint8_t) * (si->ssi[i_file]->max_seq_len+1));
+        MMALLOC(tmp_seq, sizeof(uint8_t) * (e->ssi[i_file]->max_seq_len+1));
+        MMALLOC(tmp_qual, sizeof(uint8_t) * (e->ssi[i_file]->max_seq_len+1));
 
-        MMALLOC(path, sizeof(uint32_t) *(si->ssi[i_file]->max_seq_len+ poahmm->num_nodes +2));
+        MMALLOC(path, sizeof(uint32_t) *(e->ssi[i_file]->max_seq_len+ poahmm->num_nodes +2));
         for(i = 0; i < num_seq;i++){
                 for(j = 0; j < ri[i]->len;j++){
                         tmp_seq[j] = tlalphabet_get_code(a, ri[i]->seq[j]);
@@ -367,24 +381,24 @@ int process_read(struct collect_read* ri,struct poahmm* poahmm, struct read_stru
         struct seq_bit* sb = NULL;
         uint32_t* path = NULL;
         //char* type;
-        char* read_label;
-        int* label;
+        //char* read_label;
+        //sint* label;
         uint8_t c;
-        int j;
+        uint32_t j;
         int s_index;
         //int s_len;
-        char* s_name;
+        //char* s_name;
         int segment;
         int hmm_in_segment;
-        int c1;
-        int len = ri->len;
+        //int c1;
+        //int len = ri->len;
         uint8_t old_c = 255;
         int read = 0;
         //      int local_bit_index;
         int seq_pos;
         int node_pos;
-        read_label = ri->label+1;
-        label = ri->hmm_label;
+        //read_label = ri->label+1;
+        //label = ri->hmm_label;
 
         path = ri->path;
 
@@ -508,14 +522,14 @@ int process_read(struct collect_read* ri,struct poahmm* poahmm, struct read_stru
         //exit(0);
         //ri->len = s_pos;
         return OK;
-ERROR:
-        return FAIL;
+//ERROR:
+        //return FAIL;
 }
 
 int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb, int bam)
 {
         struct demux_struct** dm;
-        struct demux_struct* tmp_ptr = NULL;
+        //struct demux_struct* tmp_ptr = NULL;
         struct seq_bit_vec* bv;
         struct seq_bit*sb;
         struct tl_seq_buffer* write_buf;
@@ -732,4 +746,5 @@ int print_path(struct poahmm* poahmm, uint32_t* path,char* seq)
                 }
         }
         fprintf(stdout,"\n");
+        return OK;
 }
