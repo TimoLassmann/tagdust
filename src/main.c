@@ -90,7 +90,7 @@ int main (int argc,char * argv[]) {
 
 
 
-        RUN(test_architectures(cookbook,si,param, read_groups));
+        RUN(test_architectures(cookbook, read_groups));
 
 
         al = cookbook->lib[cookbook->best];

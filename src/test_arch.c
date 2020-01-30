@@ -9,10 +9,6 @@
 #include "poahmm.h"
 #include "poahmm_structs.h"
 #include "init_poahmm.h"
-
-
-
-
 #include "lpst.h"
 
 #include "hmm_model_bag.h"
@@ -23,11 +19,10 @@
 
 #define NUM_TEST_SEQ 100
 
-static int test_arch_file_order(struct arch_library* al, struct seq_stats* si, struct parameters* param, struct read_groups* rg);
+static int test_arch_file_order(struct arch_library* al,struct read_groups* rg);
 
-static int test_files(struct arch_library* al,struct tl_seq_buffer** rb, struct seq_stats* si,int n_files,         struct read_ensembl* e, int* ambigious);
-
-static int ambiguous_read_order_warning(struct arch_library* al, struct parameters* param);
+static int test_files(struct arch_library* al,struct tl_seq_buffer** rb, struct read_ensembl* e, int* ambigious);
+static int ambiguous_read_order_warning(struct arch_library* al, struct read_ensembl* e);
 static int double_assignment_warning(struct arch_library* al,int x);
 //static int test_files_poahmm(struct arch_library* al,struct tl_seq_buffer** rb, struct seq_stats* si,int n_files, int* ambigious);
 //static int test_files_lpst(struct arch_library* al,struct tl_seq_buffer** rb, struct seq_stats* si,int n_files, int* ambigious);
@@ -39,17 +34,19 @@ static int test_arch(struct tl_seq_buffer** rb, struct arch_library* al, struct 
 
 
 
-int test_architectures(struct cookbook* cb, struct seq_stats* si, struct parameters* param, struct read_groups* rg)
+int test_architectures(struct cookbook* cb, struct read_groups* rg)
 {
         float sum;
         float max;
         int best;
         int n_best;
         int i;
+        int g;
+        int c;
         for(i = 0 ;i < cb->num_lib;i++){
                 //LOG_MSG("------");
                 //LOG_MSG("Testing: %s", cb->lib[i]->name);
-                RUN(test_arch_file_order(cb->lib[i], si, param,rg));
+                RUN(test_arch_file_order(cb->lib[i],rg));
                 cb->scores[i] = cb->lib[i]->P;
 
                 //LOG_MSG("score: %f", cb->lib[i]->P);
@@ -72,7 +69,8 @@ int test_architectures(struct cookbook* cb, struct seq_stats* si, struct paramet
                         n_best++;
                 }
         }
-        if(n_best == 0 || n_best > 1){
+        if( n_best > 1){
+
                 WARNING_MSG("These %d recipes match the input:",n_best);
                 WARNING_MSG("");
                 for(i = 0 ;i < cb->num_lib;i++){
@@ -84,40 +82,56 @@ int test_architectures(struct cookbook* cb, struct seq_stats* si, struct paramet
                 ERROR_MSG("Can't determine which one to use!");
 
         }
-        LOG_MSG("Selecting: %s" , cb->lib[best]->name);
-
-        for(i = 0;i <  cb->lib[best]->num_arch;i++){
-                LOG_MSG("%s",  cb->lib[best]->spec_line[i]);
-
+        if(n_best == 0){
+                ERROR_MSG("No recipes matched the input");
         }
         if(!cb->lib[best]->read_order_check){
-                RUN(ambiguous_read_order_warning(cb->lib[best], param));
+                RUN(ambiguous_read_order_warning(cb->lib[best], rg->e[0]));
                 WARNING_MSG("will assume that the input file order matches the order in the recipe:");
+                for(g = 0 ; g < rg->num_groups;g++){
+                        //LOG_MSG("Read group %d:", g);
+                        for(i = 0; i < cb->lib[best]->num_arch;i++){
+                                rg->e[g]->arch_to_read_assignment[i] = i;
+                                //LOG_MSG("%s -> %s",rg->e[g]->filenames[i],cb->lib[best]->spec_line[i]);
+                        }
+                }
+
+                //for(i = 0; i < cb->lib[best]->num_arch;i++){
+                //cb->lib[best]->arch_to_read_assignment[i] = i;
+                //WARNING_MSG("%s -> %s", param->infile[i],cb->lib[best]->spec_line[i]);
+                //}
+        }
+
+        LOG_MSG("Selecting: %s" , cb->lib[best]->name);
+        for(g = 0 ; g < rg->num_groups;g++){
+                LOG_MSG("Read group %d:", g);
                 for(i = 0; i < cb->lib[best]->num_arch;i++){
-                        cb->lib[best]->arch_to_read_assignment[i] = i;
-                        WARNING_MSG("%s -> %s", param->infile[i],cb->lib[best]->spec_line[i]);
+                        c= rg->e[g]->arch_to_read_assignment[i];
+                        LOG_MSG("%s -> %s",rg->e[g]->filenames[i],cb->lib[best]->spec_line[c]);
                 }
         }
+
         /* selecting this library  */
+
         cb->best = best;
         return OK;
 ERROR:
         return FAIL;
 }
 
-int test_arch_file_order(struct arch_library* al, struct seq_stats* si, struct parameters* param,struct read_groups* rg)
+int test_arch_file_order(struct arch_library* al,struct read_groups* rg)
 {
-        struct arch_bag* ab = NULL;
+        //struct arch_bag* ab = NULL;
         struct file_handler* f_hand = NULL;
         struct tl_seq_buffer** rb = NULL;
         struct read_ensembl* e = NULL;
         //struct alphabet* a = NULL;
 
-        float sum;
+
         int ambigious = 1;
-        int best;
-        int n_best;
-        int i,j;
+
+        
+        int i;
         int n_rg;
         if(al->num_arch != rg->e[0]->num_files){
                 //WARNING_MSG("numarch != infiles %d %d", al->num_arch, rg->e[0]->num_files);
@@ -131,7 +145,7 @@ int test_arch_file_order(struct arch_library* al, struct seq_stats* si, struct p
         /* alloc matrix for posteriors  */
         al->arch_posteriors = NULL;
 
-        MMALLOC(al->arch_posteriors, sizeof(float*) * al->num_arch);
+        /*MMALLOC(al->arch_posteriors, sizeof(float*) * al->num_arch);
         for(i = 0; i < al->num_arch;i++){
                 al->arch_posteriors[i] = NULL;
                 MMALLOC(al->arch_posteriors[i], sizeof(float) * param->num_infiles);
@@ -140,7 +154,7 @@ int test_arch_file_order(struct arch_library* al, struct seq_stats* si, struct p
                 }
         }
 
-        MMALLOC(al->arch_to_read_assignment, sizeof(int) * param->num_infiles);
+        MMALLOC(al->arch_to_read_assignment, sizeof(int) * param->num_infiles);*/
 
         //omp_set_num_threads(param->num_threads);
 
@@ -148,7 +162,7 @@ int test_arch_file_order(struct arch_library* al, struct seq_stats* si, struct p
         /* to: check which architecture belongs to which read */
 
         ASSERT(al != NULL, "No arch library");
-        ASSERT(param != NULL, "No parameters");
+        //ASSERT(param != NULL, "No parameters");
         //ASSERT(si != NULL, "no seqstats");
 
 
@@ -171,7 +185,7 @@ int test_arch_file_order(struct arch_library* al, struct seq_stats* si, struct p
                         RUN(read_fasta_fastq_file(f_hand, &rb[i],NUM_TEST_SEQ));
                         RUN(close_seq_file(&f_hand));
                 }
-                RUN(test_files(al, rb, si, param->num_infiles,e, &ambigious));
+                RUN(test_files(al, rb, e, &ambigious));
         }
         //LOG_MSG("%f poa ", al->P);
         //if( ambigious){
@@ -213,7 +227,7 @@ ERROR:
         return FAIL;
 }
 
-int test_files(struct arch_library* al,struct tl_seq_buffer** rb, struct seq_stats* si,int n_files,        struct read_ensembl* e, int* ambigious)
+int test_files(struct arch_library* al,struct tl_seq_buffer** rb, struct read_ensembl* e, int* ambigious)
 {
         float** post = NULL;
         float sum;
@@ -222,6 +236,7 @@ int test_files(struct arch_library* al,struct tl_seq_buffer** rb, struct seq_sta
         int n_best;
 
         int i,j;
+        int n_files;
 
         *ambigious = 0;
         n_files = e->num_files;
@@ -270,7 +285,11 @@ int test_files(struct arch_library* al,struct tl_seq_buffer** rb, struct seq_sta
                 //fprintf(stdout,"\n");
                 /* score of matching the complete architecture */
                 //al->P = al->P * sum;
-                ASSERT(best != -1,"No best arch found");
+                //ASSERT(best != -1,"No best arch found");
+                if(best == -1){
+                        al->P = prob2scaledprob(0.0f);
+                        return OK;
+                }
                 al->P = al->P + post[best][i];
 
                 e->arch_to_read_assignment[i] = best;
@@ -315,7 +334,7 @@ ERROR:
         return FAIL;
 }
 
-int ambiguous_read_order_warning(struct arch_library* al, struct parameters* param)
+int ambiguous_read_order_warning(struct arch_library* al, struct read_ensembl* e)
 {
         int i;
         WARNING_MSG("");
@@ -327,8 +346,8 @@ int ambiguous_read_order_warning(struct arch_library* al, struct parameters* par
         WARNING_MSG("");
         WARNING_MSG("Can't determine which one of the above");
         WARNING_MSG("should be applied to which one of these input files:");
-        for(i = 0;i < al->num_arch;i++){
-                WARNING_MSG("%s",param->infile[i]);
+        for(i = 0;i < e->num_files;i++){
+                WARNING_MSG("%s",e->filenames[i]);
         }
         return OK;
 }
@@ -452,6 +471,11 @@ int test_arch(struct tl_seq_buffer** rb, struct arch_library* al, struct seq_sta
         }
 
         RUN(poahmm_from_read_structure(&poahmm, p,al->read_structure[i_hmm],  si->a));
+
+        if(poahmm == NULL){
+                *score = prob2scaledprob(0.0f);
+                return OK;
+        }
         //LOG_MSG("Did I geta poa: %p", poahmm);
 
         //set_terminal_gap_prob(poahmm, si->ssi[i_file]->max_seq_len );
@@ -498,6 +522,7 @@ int test_arch(struct tl_seq_buffer** rb, struct arch_library* al, struct seq_sta
         //al->arch_posteriors[i_hmm][i_file] = score;
         return OK;
 ERROR:
+        //*score = prob2scaledprob(0.0f);
         return FAIL;
 }
 

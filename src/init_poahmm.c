@@ -45,7 +45,8 @@ int poahmm_from_read_structure(struct poahmm** poahmm,struct global_poahmm_param
 
         if(plus_max_len == -1 || plus_min_len == -1){
                 WARNING_MSG("Model too long from sequences.");
-                *poahmm = ph;
+                free_poahmm(ph);
+                *poahmm = NULL;
                 return OK;
         }
         RUN(init_nodes_from_read_structure(ph, rs,a,random, plus_min_len, plus_max_len));
