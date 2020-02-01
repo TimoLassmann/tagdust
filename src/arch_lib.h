@@ -39,6 +39,15 @@ struct read_structure{
         int alloc_num_seqments;
 };
 
+struct hash_store{
+        khash_t(exact)** hash;
+        struct pst** pst;
+        char** name;
+        int* len;
+        int alloc_hash;
+        int num_hash;
+};
+
 struct arch_library{
         struct read_structure** read_structure;
         char* name;
@@ -56,6 +65,7 @@ struct arch_library{
 
 struct cookbook{
         struct arch_library** lib;
+        struct hash_store* hs;
         float* scores;
         int num_lib;
         int alloc_num_lib;

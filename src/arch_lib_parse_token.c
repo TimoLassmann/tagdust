@@ -524,11 +524,11 @@ void free_segment_spec(struct segment_specs*s)
         int i;
         if(s){
                 if(s->pst){
-                        free_pst(s->pst);
+                        //free_pst(s->pst);
                 }
                 if(s->bar_hash){
 
-                        kh_destroy(exact,  s->bar_hash);
+                        //kh_destroy(exact,  s->bar_hash);
                 }
                 if(s->seq){
                         for(i = 0; i < s->num_seq;i++){

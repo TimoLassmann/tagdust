@@ -22,7 +22,7 @@ struct parameters {
         //struct read_structure** read_structures;
         //struct read_structure* read_structure_R1;
         //struct read_structure* read_structure_R2;
-        char* reference_fasta;
+        char* filter_fasta;
         char* outfile;
         char* recipe;
         char* book_file;

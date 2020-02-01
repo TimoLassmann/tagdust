@@ -41,7 +41,7 @@ int emit_from_rs(const struct read_structure* rs, struct rng_state* rng, struct 
                 //LOG_MSG("G: %d", g);
                 b = 0;
                 if(spec->num_seq >1){
-                        b = tl_random_int(rng, spec->num_seq-1) + 1;
+                        b = tl_random_int(rng, spec->num_seq);
                 }
                 for(j = 0; j < g;j++){
                         //LOG_MSG("j:%d",j);

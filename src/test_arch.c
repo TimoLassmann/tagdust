@@ -105,20 +105,21 @@ int test_architectures(struct cookbook* cb, struct read_groups* rg)
                 //}
         }
 
+        //LOG_MSG("Selecting: %s" , cb->lib[best]->name);
+        //for(g = 0 ; g < rg->num_groups;g++){
+                //LOG_MSG("Read group %d:", g);
+        //for(i = 0; i < cb->lib[best]->num_arch;i++){
+        //c= rg->e[g]->arch_to_read_assignment[i];
+                        //LOG_MSG("%d %d  %s -> %s",i,c,rg->e[g]->filenames[i],cb->lib[best]->spec_line[c]);
+        //}
+        //}
+        sort_read_groups_based_on_arch_assign(rg);
         LOG_MSG("Selecting: %s" , cb->lib[best]->name);
         for(g = 0 ; g < rg->num_groups;g++){
                 LOG_MSG("Read group %d:", g);
                 for(i = 0; i < cb->lib[best]->num_arch;i++){
                         c= rg->e[g]->arch_to_read_assignment[i];
-                        LOG_MSG("%d %d  %s -> %s",i,c,rg->e[g]->filenames[i],cb->lib[best]->spec_line[c]);
-                }
-        }
-        sort_read_groups_based_on_arch_assign(rg);
-        for(g = 0 ; g < rg->num_groups;g++){
-                LOG_MSG("Read group %d:", g);
-                for(i = 0; i < cb->lib[best]->num_arch;i++){
-                        c= rg->e[g]->arch_to_read_assignment[i];
-                        LOG_MSG("%d %d  %s -> %s",i,c,rg->e[g]->filenames[i],cb->lib[best]->spec_line[c]);
+                        LOG_MSG("%s -> %s",rg->e[g]->filenames[i],cb->lib[best]->spec_line[c]);
                 }
         }
         /* selecting this library  */
@@ -253,7 +254,8 @@ int test_files(struct arch_library* al,struct tl_seq_buffer** rb, struct read_en
 #endif
         for(j = 0; j < al->num_arch;j++){
                 for(i = 0; i < e->num_files;i++){
-                        //if( al->arch_posteriors[j][i] == 1.0f){
+                        LOG_MSG("Running: %s", al->spec_line[j]);
+//if( al->arch_posteriors[j][i] == 1.0f){
                         test_arch(rb[i],al->read_structure[j],e->ssi[i],e->a,  &max);
                         post[j][i] = max;
                         lpst_score_read(rb[i],al->read_structure[j],e->ssi[i], &max);

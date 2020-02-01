@@ -17,11 +17,16 @@
 static int alloc_cookbook(struct cookbook** cookbook);
 static int resize_cookbook(struct cookbook** cookbook);
 
+static int alloc_hash_store(struct hash_store** hs);
+static int resize_hash_store(struct hash_store** hs);
+static void free_hash_store(struct hash_store* h);
+
 static int malloc_read_structure(struct read_structure** read_structure);
 static int resize_read_structure(struct read_structure* rs);
 static void free_read_structure(struct read_structure* read_structure);
 
-static int assign_segment_sequences(struct read_structure* read_structure, char* tmp, int segment);
+static int assign_segment_sequences(struct read_structure* read_structure,struct hash_store*hs,  char* tmp, int segment);
+//static int assign_segment_sequences(struct read_structure* read_structure, char* tmp, int segment);
 static int resize_arch_lib(struct arch_library* al);
 
 static int QC_read_structure(struct read_structure* read_structure );
@@ -68,7 +73,7 @@ int read_cookbook_command_line(struct cookbook** cookbook, char* in)
                 token = strtok_r(r_token, ";", &t_end);
                 while(token != NULL){
                         fprintf(stdout,"   %s\n", token);
-                        RUN(assign_segment_sequences(cb->lib[cb->num_lib]->read_structure[cb->lib[cb->num_lib]->num_arch], token, n_segment));
+                        RUN(assign_segment_sequences(cb->lib[cb->num_lib]->read_structure[cb->lib[cb->num_lib]->num_arch], cb->hs, token, n_segment));
                         n_segment++;
                         token = strtok_r(NULL, ";",&t_end);
                 }
@@ -168,7 +173,7 @@ int read_cookbook_file(struct cookbook** cookbook, char* filename)
                         token = strtok(s_ptr, ";");
                         while(token != NULL){
                                 c = strnlen(token,  line_len);
-                                RUN(assign_segment_sequences(cb->lib[cb->num_lib]->read_structure[cb->lib[cb->num_lib]->num_arch], token, n_segment));
+                                RUN(assign_segment_sequences(cb->lib[cb->num_lib]->read_structure[cb->lib[cb->num_lib]->num_arch], cb->hs, token, n_segment));
                                 for(i = 0;i < c;i++){
                                         tmp[index] = token[i];
                                         index++;
@@ -242,7 +247,7 @@ int read_architecture_files(struct arch_library* al, char* filename)
                                         //LOG_MSG("setsegment to %d", n_segment);
                                 }else{
                                         if(n_segment != -1){
-                                                RUN(assign_segment_sequences(al->read_structure[target], token, n_segment));
+                                                RUN(assign_segment_sequences(al->read_structure[target], NULL,token, n_segment));
                                                 //LOG_MSG("readinto %d", n_segment);
                                                 n_segment = -1;
                                                 for(i = 0;i < c;i++){
@@ -309,7 +314,7 @@ int read_arch_into_lib(struct arch_library* al, char** list, int len)
         for(i = 0; i < len;i++){
                 if(list[i]){
                         snprintf(buffer, BUFFER_LEN, "%s", list[i]);
-                        RUN(assign_segment_sequences(al->read_structure[target], buffer, i));
+                        RUN(assign_segment_sequences(al->read_structure[target],NULL, buffer, i));
 
                 }
         }
@@ -326,28 +331,60 @@ ERROR:
         return FAIL;
 }
 
-int assign_segment_sequences(struct read_structure* read_structure, char* tmp, int segment)
+int assign_segment_sequences(struct read_structure* read_structure,struct hash_store*hs,  char* tmp, int segment)
 {
         struct tl_seq_buffer* sb = NULL;
         struct kmer_counts* k = NULL;
 
         struct segment_specs* s = NULL;
         int i,j;
+        int n;
         RUN(parse_rs_token_message(tmp,&read_structure->seg_spec[segment]));
         if(read_structure->seg_spec[segment]->extract == ARCH_ETYPE_APPEND_CORRECT){
+
                 s = read_structure->seg_spec[segment];
-                LOG_MSG("reading in barcodes from: %s",s->seq[0]);
+                n = -1;
+                for(j = 0; j < hs->num_hash;j++){
+                        if(!strcmp(hs->name[j], s->seq[0])){
+                                n = j;
+                                break;
+                        }
+                }
+                if(n != -1){
+                        LOG_MSG("Already in cookbook: %s", s->seq[0]);
+                        s->bar_hash = hs->hash[n];
+                        s->pst = hs->pst[n];
+                        j = hs->len[n];
+                }else{
 
-                RUN(read_white_list(&sb, s->seq[0]));
-                RUN(alloc_kmer_counts(&k, 10));
-                RUN(add_counts(k, sb));
+                        n = strlen(s->seq[0]);
+                        MMALLOC(hs->name[hs->num_hash], sizeof(char) * (n+1));
+                        memcpy(hs->name[hs->num_hash], s->seq[0],n);
+                        hs->name[hs->num_hash][n] = 0;
 
-                RUN(run_build_pst(&  s->pst, k));
-                RUN(rm_counts(k,sb));
+                        LOG_MSG("reading in barcodes from: %s",s->seq[0]);
 
-                RUN(fill_exact_hash(&s->bar_hash , sb));
+                        RUN(read_white_list(&sb, s->seq[0]));
+                        RUN(alloc_kmer_counts(&k, 10));
+                        RUN(add_counts(k, sb));
 
-                j = sb->sequences[0]->len;
+                        RUN(run_build_pst(&hs->pst[hs->num_hash], k));
+                        RUN(rm_counts(k,sb));
+
+                        RUN(fill_exact_hash(&hs->hash[hs->num_hash], sb));
+                        j = sb->sequences[0]->len;
+                        hs->len[hs->num_hash] = j;
+
+                        s->bar_hash = hs->hash[hs->num_hash];
+                        s->pst = hs->pst[hs->num_hash];
+                        free_tl_seq_buffer(sb);
+                        free_kmer_counts(k);
+                        hs->num_hash++;
+                        if(hs->num_hash == hs->alloc_hash){
+                                resize_hash_store(&hs);
+                        }
+                }
+
                 //fprintf(stdout,"FILE::::%s\n", spec->seq[1]);
                 for(i = 0; i < j;i++){
                         s->seq[0][i] = 'N';
@@ -356,9 +393,9 @@ int assign_segment_sequences(struct read_structure* read_structure, char* tmp, i
                 s->alloc_len = j;
                 s->min_len = j;
                 s->max_len = j;
-                free_tl_seq_buffer(sb);
-                free_kmer_counts(k);
-                //LOG_MSG("Fo more fstygg");
+
+                //LOG_MSG("Fo more fstygg");p
+
                 //exit(0);
 
         }
@@ -367,9 +404,6 @@ int assign_segment_sequences(struct read_structure* read_structure, char* tmp, i
         //if(read_structure->seg_spec[segment]->max_len == INT32_MAX){
         //read_structure->segment_length[segment] = 1;
         //}
-
-
-
 
         if(segment+1 >read_structure->num_segments  ){
                 read_structure->num_segments = segment+1;
@@ -525,8 +559,11 @@ int alloc_cookbook(struct cookbook** cookbook)
         r->lib = NULL;
         r->scores = NULL;
         r->best = -1;
+        r->hs = NULL;
         MMALLOC(r->lib,sizeof(struct arch_library*) * r->alloc_num_lib);
         MMALLOC(r->scores,sizeof(float) * r->alloc_num_lib);
+
+        RUN(alloc_hash_store(&r->hs));
         for(i = 0; i < r->alloc_num_lib;i++){
                 r->lib[i] = NULL;
                 r->scores[i] = 0.0;
@@ -575,6 +612,7 @@ int free_cookbook(struct cookbook** cookbook)
                for(i = 0; i < r->alloc_num_lib;i++){
                        free_arch_lib(r->lib[i]);
                }
+               free_hash_store(r->hs);
                MFREE(r->scores);
                MFREE(r->lib);
                MFREE(r);
@@ -584,6 +622,82 @@ int free_cookbook(struct cookbook** cookbook)
         return OK;
 ERROR:
         return FAIL;
+}
+
+
+int alloc_hash_store(struct hash_store** hs)
+{
+        struct hash_store* h = NULL;
+        int i;
+        MMALLOC(h, sizeof(struct hash_store));
+        h->alloc_hash = 4;
+        h->num_hash = 0;
+        h->name = NULL;
+        h->hash = NULL;
+        h->len = NULL;
+        h->pst = NULL;
+
+        MMALLOC(h->name, sizeof(char*) * h->alloc_hash);
+        MMALLOC(h->hash, sizeof(khash_t(exact)*) * h->alloc_hash);
+        MMALLOC(h->len, sizeof(int) * h->alloc_hash);
+        MMALLOC(h->pst, sizeof(struct pst*) * h->alloc_hash);
+        for(i = 0; i < h->alloc_hash;i++){
+                h->name[i] = NULL;
+                h->hash[i] = NULL;
+                h->pst[i] = NULL;
+                h->len[i]= 0;
+        }
+        *hs = h;
+        return OK;
+ERROR:
+        return FAIL;
+}
+
+int resize_hash_store(struct hash_store** hs)
+{
+        struct hash_store* h = NULL;
+        int i;
+        int o;
+
+        h = *hs;
+        if(!h){
+                ERROR_MSG("No hash store to be resized");
+        }
+
+        o = h->alloc_hash;
+        h->alloc_hash = h->alloc_hash + h->alloc_hash /2;
+        MREALLOC(h->name, sizeof(char*) * h->alloc_hash);
+        MREALLOC(h->hash, sizeof(khash_t(exact)*) * h->alloc_hash);
+        MREALLOC(h->pst, sizeof(struct pst*) * h->alloc_hash);
+        MREALLOC(h->len, sizeof(int) * h->alloc_hash);
+
+        for(i = o; i < h->alloc_hash;i++){
+                h->name[i] = NULL;
+                h->hash[i] = NULL;
+                h->pst[i] = NULL;
+                h->len[i] = 0;
+        }
+        *hs = h;
+        return OK;
+ERROR:
+        return FAIL;
+}
+
+void free_hash_store(struct hash_store* h)
+{
+        int i;
+        if(h){
+                for(i = 0; i < h->num_hash;i++){
+                        kh_destroy(exact, h->hash[i]);
+                        MFREE(h->name[i]);
+
+                }
+                MFREE(h->hash);
+                MFREE(h->pst);
+                MFREE(h->name);
+                MFREE(h->len);
+                MFREE(h);
+        }
 }
 
 int alloc_arch_lib(struct arch_library** arch)

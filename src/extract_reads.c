@@ -3,7 +3,6 @@
 #include <math.h>
 #include <string.h>
 
-
 #include "tllogsum.h"
 
 #include "tlseqio.h"
@@ -44,8 +43,6 @@ static int sanity_check_inputs(struct tl_seq_buffer** rb, int num_files);
 //static int run_extract( struct assign_struct* as,  struct tl_seq_buffer** rb, struct arch_library* al, struct seq_stats* si,int i_file,int i_chunk);
 static int run_extract( struct assign_struct* as,  struct tl_seq_buffer** rb, struct arch_library* al, struct read_ensembl* e,int i_file,int i_chunk);
 
-
-
 static int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb, int bam);
 
 /* just 4 debugging;.. */
@@ -72,26 +69,22 @@ int extract_reads(struct arch_library* al, struct read_groups* rg,struct paramet
 
         DECLARE_TIMER(t1);
 
-        if(param->reference_fasta){
+        if(param->filter_fasta){
                 //RUN(read_reference_sequences(&ref, param->reference_fasta,param->seed));
-                RUN(open_fasta_fastq_file(&r_fh, param->reference_fasta, TLSEQIO_READ));
+                RUN(open_fasta_fastq_file(&r_fh, param->filter_fasta, TLSEQIO_READ));
 
                 RUN(read_fasta_fastq_file(r_fh, &wb, 65536));
                 RUN(close_seq_file(&r_fh));
                 RUN(init_ref(&ref, wb, rng));
                 /* not necessary: */
-                RUN(alloc_kmer_counts(&k, 12));
-                RUN(add_counts(k, wb));
-
-
-
-                RUN(run_build_pst(&pst, k));
-
-
-//RUN(run_build_pst(&p, sb));
-                free_kmer_counts(k);
-                free_tl_seq_buffer(wb);
-                wb = NULL;
+                if(param->filter_error == -1){
+                        RUN(alloc_kmer_counts(&k, 12));
+                        RUN(add_counts(k, wb));
+                        RUN(run_build_pst(&pst, k));
+                        free_kmer_counts(k);
+                        free_tl_seq_buffer(wb);
+                        wb = NULL;
+                }
         }
 
         //param->bam = 1;
@@ -198,22 +191,21 @@ int extract_reads(struct arch_library* al, struct read_groups* rg,struct paramet
                         STOP_TIMER(t1);
                         LOG_MSG("extract Took %f ",GET_TIMING(t1));
                         //RUN(sort_as_by_file_type(as));
-
-                        if(ref){
+                        if(ref && param->filter_error != -1){
                                 START_TIMER(t1);
 #ifdef HAVE_OPENMP
 #pragma omp parallel default(shared)
-
 #pragma omp for private(i)
 #endif
                                 for(i = 0; i < as->num_reads;i++){
                                         run_filter_exact(as,ref, i, param->filter_error);
                                 }
                                 STOP_TIMER(t1);
-                                LOG_MSG("filter Took %f ",GET_TIMING(t1));
+                                //LOG_MSG("filter Took %f ",GET_TIMING(t1));
+                                LOG_MSG("Filtering reads (exact) took %f ",GET_TIMING(t1));
                         }
 
-                        if(ref){
+                        if(ref && param->filter_error == -1){
                                 START_TIMER(t1);
 #ifdef HAVE_OPENMP
 #pragma omp parallel default(shared)
@@ -223,7 +215,7 @@ int extract_reads(struct arch_library* al, struct read_groups* rg,struct paramet
                                         run_filter_pst(as,pst,i,0.5f);
                                 }
                                 STOP_TIMER(t1);
-                                LOG_MSG("filter Took %f ",GET_TIMING(t1));
+                                LOG_MSG("Filtering reads (pst) took %f ",GET_TIMING(t1));
                         }
 
                         START_TIMER(t1);
@@ -245,7 +237,7 @@ int extract_reads(struct arch_library* al, struct read_groups* rg,struct paramet
         if(wb){
                 free_tl_seq_buffer(wb);
         }
-        if(param->reference_fasta){
+        if(param->filter_fasta){
                 free_ref(&ref);
                 free_pst(pst);
         }
@@ -334,7 +326,7 @@ int run_extract( struct assign_struct* as,  struct tl_seq_buffer** rb, struct ar
                         tmp_qual[j] = ri[i]->qual[j] - base_q_offset;
                 }
 
-                RUN(viterbi_poahmm_banded(poahmm, tmp_seq, tmp_qual,  ri[i]->len, path, 0));
+                RUN(viterbi_poahmm_banded(poahmm, tmp_seq, tmp_qual,  ri[i]->len, path, 2));
 
                 pbest = logsum(poahmm->f_score, poahmm->random_scores[ri[i]->len]);
                 pbest = 1.0 - scaledprob2prob(poahmm->f_score - pbest);
@@ -358,6 +350,7 @@ int run_extract( struct assign_struct* as,  struct tl_seq_buffer** rb, struct ar
                 cs.f = 0;
                 if(Q < al->confidence_thresholds[i_file]){
                         //LOG_MSG("Q: %f thres %f %d", Q, al->confidence_thresholds[i_file], i_file);
+                        //LOG_MSG("%s %s", ri[i]->seq,ri[i]->qual);
                         cs.f = READ_FAILQ;
                 }
 
@@ -574,7 +567,7 @@ int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb, int bam
         START_TIMER(t1);
 
         for(out_read = 0; out_read < as->out_reads;out_read++){
-                //LOG_MSG("OUT:%d",out_read);
+                LOG_MSG("OUT:%d",out_read);
                 file = -1;
                 for(i = 0; i < as->num_reads ;i++){
 
@@ -608,6 +601,7 @@ int write_all(const struct assign_struct* as, struct tl_seq_buffer** wb, int bam
                                 if(!dm[bv->out_file_id[out_read]]->f_hand){
                                         if(bam){
                                                 LOG_MSG("Opening BAM : %s" , dm[bv->out_file_id[out_read]]->out_filename);
+                                                LOG_MSG("ID: %d", bv->out_file_id[out_read]);
                                                 RUN(open_sam_bam(&dm[bv->out_file_id[out_read]]->f_hand, dm[bv->out_file_id[out_read]]->out_filename, TLSEQIO_WRITE));
                                         }else{
                                                 RUN(open_fasta_fastq_file(&dm[bv->out_file_id[out_read]]->f_hand, dm[bv->out_file_id[out_read]]->out_filename, TLSEQIO_WRITE));

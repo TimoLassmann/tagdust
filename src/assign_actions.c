@@ -84,9 +84,13 @@ int post_process_assign(struct assign_struct* as)
                                 break;
                         }
                         bv->fail |= bv->bits[j]->fail;
+                        if(bv->fail){
+                                LOG_MSG("FAIL:%d  %s",bv->fail,bv->name);
+                        }
                 }
                 //fprintf(stdout,"\n");
                 code[len] =0;
+                //LOG_MSG("BCVVXC");
                 c = 0;
                 for(j = 0; j < bv->num_bit;j++){
                         //LOG_MSG("Bit %d %d %d", j,bv->bits[j]->type,bv->sample_group);
@@ -97,7 +101,7 @@ int post_process_assign(struct assign_struct* as)
                                 code[len] =0;
                                 //fprintf(stdout,"CODE::: %s\n",code);
                                 RUNP(tmp_ptr = as->demux_names->tree_get_data(as->demux_names,code));
-                                //LOG_MSG("Setting: %d to id: %d code: %s %s", c,tmp_ptr->id,code,tmp_ptr->out_filename);
+                                //LOG_MSG("Setting: %d to id: %d code: %s %s FAIL: %d", c,tmp_ptr->id,code,tmp_ptr->out_filename,bv->fail );
                                 bv->out_file_id[c] = tmp_ptr->id;
                                 len--;
                                 c++;

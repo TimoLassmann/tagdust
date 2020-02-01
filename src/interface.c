@@ -34,6 +34,8 @@
 #define OPT_SEED 2
 #define OPT_RECIPE 3
 #define OPT_BOOK 4
+#define OPT_FILTER 5
+#define OPT_ERROR 6
 
 static int print_tagdust_warranty(void);
 
@@ -137,11 +139,11 @@ int interface(struct parameters** p,int argc, char *argv[])
         param->num_infiles = 0;
         param->infile = NULL;
         param->outfile = NULL;
-        param->reference_fasta = NULL;
+        param->filter_fasta = NULL;
+        param->filter_error = -1;
         param->num_threads = 8;
         param->bam = 1;
         param->seed = 42;
-        param->filter_error = 2;
 
 
         param->recipe = NULL;
@@ -157,7 +159,8 @@ int interface(struct parameters** p,int argc, char *argv[])
                         {"out",required_argument,0, 'o'},
                         {"seed",required_argument,0, OPT_SEED},
                         {"book",required_argument,0, OPT_BOOK },
-
+                        {"filter", required_argument,0,OPT_FILTER},
+                        {"error", required_argument, 0, OPT_ERROR},
                         {"help",0,0,'h'},
                         {"version",0,0,'v'},
                         {"recipe",required_argument,0,'r'},
@@ -173,6 +176,12 @@ int interface(struct parameters** p,int argc, char *argv[])
 
                 switch(c) {
                 case 0:
+                        break;
+                case OPT_ERROR:
+                        param->filter_error = atoi(optarg);
+                        break;
+                case OPT_FILTER:
+                        param->filter_fasta = optarg;
                         break;
                 case OPT_BOOK:
                         param->book_file = optarg;

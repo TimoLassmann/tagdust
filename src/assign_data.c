@@ -493,7 +493,7 @@ int setup_barcode_files(struct arch_library* al, struct read_ensembl* e, struct 
                 //}
         //for(i = 0; i < al->num_file;i++){
         //read_structure = al->read_structure[al->arch_to_read_assignment[i]];
-                //fprintf(stdout,"Read %d: ",i);
+                fprintf(stdout,"Read %d:\n",i);
                 for(j = 0; j < read_structure->num_segments;j++){
 
                         //c = read_structure->type[j];
@@ -512,15 +512,15 @@ int setup_barcode_files(struct arch_library* al, struct read_ensembl* e, struct 
         RUN(add_file_name_options(&root,e,al,bam));
 
         RUN(root->flatten_tree(root));
-
+        //exit(0);
                 //root_new = init_tree(fp_get,fp_cmp,fp_cmp_same,fp_print,fp_free);
         for(f = 0;f < root->num_entries;f++){
                 tmp_ptr = root->data_nodes[f];
                 tmp_ptr->id = f;
 
-                fprintf(stdout,"%s %s %d %d\n",tmp_ptr->out_filename, tmp_ptr->key ,tmp_ptr->count, tmp_ptr->id);
+                //fprintf(stdout,"%s %s %d %d\n",tmp_ptr->out_filename, tmp_ptr->key ,tmp_ptr->count, tmp_ptr->id);
         }
-
+        //exit(0);
         //root->free_tree(root);
         as->demux_names = root;
 
@@ -566,12 +566,14 @@ int add_file_name_options(struct rbtree_root** r, struct read_ensembl*e,  struct
         int i,j,c;
 
         int len;
+        LOG_MSG("Add filename opts");
         RUN(create_demux_tree(&root));
+        c = 0;
         for(i = 0; i < e->num_files;i++){
                 //for(i = 0; i < al->num_file;i++){
                 //read_structure = al->read_structure[al->arch_to_read_assignment[i]];
                 read_structure = al->read_structure[e->arch_to_read_assignment[i]];
-                //fprintf(stdout,"Read %d: ",i);
+                fprintf(stdout,"Read %d: ",i);
 
                 for(j = 0; j < read_structure->num_segments;j++){
                         if(read_structure->seg_spec[j]->extract == ARCH_ETYPE_EXTRACT){
@@ -586,16 +588,18 @@ int add_file_name_options(struct rbtree_root** r, struct read_ensembl*e,  struct
                                         MMALLOC(tmp_ptr->out_filename,sizeof(char) * 2);
                                         tmp_ptr->out_filename[0] = 'R';
                                         tmp_ptr->out_filename[1] = 0;
-
                                 }
+                                len = strlen(read_structure->seg_spec[j]->name);
 
-                                MMALLOC(tmp_ptr->key, sizeof(char)*2);
-                                tmp_ptr->key[0] = (char)(j+33);
-                                tmp_ptr->key[1] = 0;
+                                MMALLOC(tmp_ptr->key, sizeof(char)*(len+1));
+                                memcpy(tmp_ptr->key, read_structure->seg_spec[j]->name,len);
+                                //tmp_ptr->key[0] = (char)(c+33);
+                                tmp_ptr->key[len] = 0;
                                 tmp_ptr->count = 1;
                                 RUN(root->tree_insert(root,tmp_ptr));
                                 tmp_ptr = NULL;
-                                //fprintf(stdout,"%s NAME\n",read_structure->seg_spec[j]->name);
+                                //fprintf(stdout,"%s NAME J:%d\n",read_structure->seg_spec[j]->name,j);
+                                c++;
                         }
                 }
         }
@@ -607,7 +611,7 @@ int add_file_name_options(struct rbtree_root** r, struct read_ensembl*e,  struct
         for(i = 0;i < root->num_entries;i++){
                 tmp_ptr = root->data_nodes[i];
                 tmp_ptr->id = i;
-                ///fprintf(stdout,"%s %s %d\n",tmp_ptr->out_filename, tmp_ptr->key ,tmp_ptr->count);
+                //fprintf(stdout,"AFTER DEMUX %s %s %d\n",tmp_ptr->out_filename, tmp_ptr->key ,tmp_ptr->count);
                 if(tmp_ptr->count > 1){
                         for(j = 0; j < tmp_ptr->count;j++){
                                 RUN(alloc_demux_struct(&new_ptr));
@@ -649,7 +653,6 @@ int add_file_name_options(struct rbtree_root** r, struct read_ensembl*e,  struct
         if(bam){
                 RUN(add_options(&root2, suffix_bam, 1,4,0));
         }else{
-
                 RUN(add_options(&root2, suffix, 1,  9,0));
         }
 
@@ -659,13 +662,14 @@ int add_file_name_options(struct rbtree_root** r, struct read_ensembl*e,  struct
         for(i = 0;i < root2->num_entries;i++){
                 tmp_ptr = root2->data_nodes[i];
                 tmp_ptr->id = i;
-                //fprintf(stdout,"%s %s %d\n",tmp_ptr->out_filename, tmp_ptr->key ,tmp_ptr->count);
+                //fprintf(stdout,"at root2: %s %s %d\n",tmp_ptr->out_filename, tmp_ptr->key ,tmp_ptr->count);
                 additional[i] = tmp_ptr->out_filename;
                 c = strlen(tmp_ptr->out_filename);
                 if(c > len){
                         len = c;
                 }
         }
+        //exit(0);
 
         root= *r;
         RUN(add_options(&root, additional, root2->num_entries,  len,'_'));
@@ -701,6 +705,7 @@ int add_options(struct rbtree_root** r, char** seq, int num_seq,int max_len,char
 
                 for(f = 0;f < root->num_entries;f++){
                         tmp_ptr = root->data_nodes[f];
+                        //LOG_MSG("unroll: %s", tmp_ptr->out_filename);
                         for(i = 0; i < num_seq;i++){
                                 //for(g = 0;g < read_structure->seg_spec[j]->num_seq;g++){
                                 len = strlen(tmp_ptr->out_filename);
