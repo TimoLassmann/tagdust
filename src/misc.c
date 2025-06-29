@@ -704,111 +704,95 @@ int bpm_check_error_global(const unsigned char* t,const unsigned char* p,int n,i
 }
 
 
+/** Helper macros for portable bit-parallel Myers algorithm */
+#define DIV_CEIL(a,b) (a == 0 ? 1 : a/b+(a%b == 0 ? 0 : 1))
+
+/** \fn int bmp_single(const unsigned char* t, const unsigned char* p, int n, int m)
+ \brief Portable Myers bit-parallel algorithm for single sequence comparison.
+ \param t target sequence.
+ \param p pattern sequence.
+ \param n length of target.
+ \param m length of pattern.
+ \return edit distance.
+ */
+static int bmp_single(const unsigned char* t, const unsigned char* p, int n, int m)
+{
+    register uint64_t VP,VN,D0,HN,HP,X;
+    register uint64_t i;
+    uint64_t MASK = 0;
+    int64_t diff;
+    uint64_t B[4];  // 4 nucleotides: A=0, C=1, G=2, T=3
+    int k;
+
+    if(m > 63){
+        m = 63;
+    }
+    diff = m;
+    k = m;
+    
+    for(i = 0; i < 4; i++){
+        B[i] = 0;
+    }
+
+    // Build bit patterns for each nucleotide
+    for(i = 0; i < (uint64_t)m; i++){
+        if(p[i] != 65){  // Skip 'A' characters (65) like original
+            B[p[i] & 0x3u] |= (1ul << i);
+        }
+    }
+
+    VP = (1ul << (m))-1;
+    VN = 0ul;
+    m--;
+    MASK = 1ul << (m);
+
+    for(i = 0; i < (uint64_t) n; i++){
+        X = (B[t[i] & 0x3u] | VN);
+        D0 = ((VP+(X&VP)) ^ VP) | X;
+        HN = VP & D0;
+        HP = VN | (~(VP | D0));
+        X = HP << 1ul;
+        VN = X & D0;
+        VP = (HN << 1ul) | (~(X | D0));
+
+        diff += (HP & MASK)? 1 : 0;
+        diff -= (HN & MASK)? 1 : 0;
+        if(diff < k){
+            k = diff;
+        }
+    }
+    return k;
+}
+
 /** \fn int validate_bpm_sse(unsigned char**  query, int* query_lengths,unsigned char* t,int n,int num)
- \brief Calculates edit distance between four queries and one target. 
+ \brief Calculates edit distance between four queries and one target using portable algorithm.
  \param query array of four strings.
  \param query_lengths lengths of query strings.
  \param t target sequence.
  \param n length of t.
- \param number of queries. 
+ \param num number of queries (should be 4).
  */
 
 int validate_bpm_sse(unsigned char**  query, int* query_lengths,unsigned char* t,int n,int num)
 {
-	int i,j;
-	int len = 0;
-	int new_len = 0;
-	
-	unsigned int _MM_ALIGN16 nuc[16];
-	
-	unsigned int _MM_ALIGN16 lengths[4];
-	
-	__m128i VP,VN,D0,HN,HP,X,MASK,K,NOTONE,diff,zero,one;
-	__m128i* nuc_p;
-	__m128i xmm1,xmm2;
-	
-	for(i = 0; i < 16;i++){
-		nuc[i] = 0ul;
-	}
-	
-	for(i = 0; i < num;i++){
-		len = query_lengths[i];
-		
-		
-		
-		new_len = 0;
-		for(j = 0; j < len;j++){
-			if(query[i][j] != 65){
-				nuc[((int)(query[i][j] & 0x3u) << 2) + i] |=  (1ul << j);// (unsigned long int)(len-1-j));
-				new_len++;
-			}
-		}
-		
-		if(new_len > 31){
-			new_len = 31;
-		}
-		
-		lengths[i] = new_len;
-		
-		
-	}
-	nuc_p = (__m128i*) nuc;
-	zero = _mm_set1_epi32(0);
-	one = _mm_set1_epi32(1);
-	diff =  _mm_load_si128 ( (__m128i*) lengths );  // _mm_set1_epi32(m);
-	VP =  _mm_set1_epi32(0xFFFFFFFFu);
-	VN =  _mm_set1_epi32(0);
-	NOTONE =  _mm_set1_epi32(0xFFFFFFFF);
-	K =  _mm_set1_epi32(0x7FFFFFFF);
-	
-	for(i = 0; i< 4;i++){
-		lengths[i]--;
-		lengths[i] = 1 << lengths[i];
-	}
-	
-	MASK =  _mm_load_si128 ( (__m128i*) lengths ); //  _mm_set1_epi32(1ul << m);
-	
-	for(i = 0; i < n ;i++){
-		//fprintf(stderr,"%c",*t + 65);
-		X = _mm_or_si128 (*(nuc_p +( (int)(*t)  & 0x3u) ) , VN);
-		//X = (B[(int) *t] | VN);
-		xmm1 = _mm_and_si128(X, VP);
-		xmm2 = _mm_add_epi32(VP ,xmm1);
-		xmm1 = _mm_xor_si128 (xmm2, VP);
-		D0 = _mm_or_si128(xmm1, X);
-		//D0 = ((VP+(X&VP)) ^ VP) | X ;
-		HN = _mm_and_si128(VP, D0);
-		//HN = VP & D0;
-		xmm1 = _mm_or_si128(VP, D0);
-		xmm2 = _mm_andnot_si128 (xmm1,NOTONE);
-		HP = _mm_or_si128(VN, xmm2);
-		//HP = VN | ~(VP | D0);
-		X = _mm_slli_epi32(HP,1);
-		//X = HP << 1ul;
-		VN = _mm_and_si128(X, D0);
-		//VN = X & D0;
-		xmm1 = _mm_slli_epi32(HN,1);
-		xmm2 = _mm_or_si128(X, D0);
-		xmm2 = _mm_andnot_si128 (xmm2,NOTONE);
-		VP = _mm_or_si128(xmm1, xmm2);
-		//VP = (HN << 1ul) | ~(X | D0);
-		xmm1 = _mm_and_si128(HP, MASK);
-		xmm2 = _mm_cmpgt_epi32(xmm1, zero);
-		diff = _mm_add_epi32(diff , _mm_and_si128( xmm2, one));
-		//diff += (HP & MASK) >> m;
-		xmm1 = _mm_and_si128(HN, MASK);
-		xmm2 = _mm_cmpgt_epi32(xmm1, zero);
-		diff = _mm_sub_epi32(diff,  _mm_and_si128( xmm2, one));
-		//diff -= (HN & MASK) >> m;
-		xmm1 = _mm_cmplt_epi32(diff, K);
-		xmm2 = _mm_and_si128(xmm1, diff);
-		K = _mm_or_si128(xmm2, _mm_andnot_si128  (xmm1,K));
-		t++;
-	}
-	
-	_mm_store_si128 ((__m128i*) query_lengths, K);
-	
-	return 1;
+    int i;
+    int results[4];
+    
+    // Process each query sequence individually using portable algorithm
+    for(i = 0; i < num && i < 4; i++){
+        if(query_lengths[i] > 0){
+            results[i] = bmp_single(t, query[i], n, query_lengths[i]);
+        } else {
+            results[i] = n;  // Maximum possible distance for empty queries
+        }
+    }
+    
+    // Store results back in query_lengths array (same behavior as original)
+    for(i = 0; i < num && i < 4; i++){
+        query_lengths[i] = results[i];
+    }
+    
+    return 1;
 }
 
 

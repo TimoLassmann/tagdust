@@ -1,10 +1,104 @@
 
-.deps/*
-.deps
-*/.deps
+# Autotools generated files
+/autom4te.cache/
+/config.log
+/config.status
+/configure
+/Makefile
+/Makefile.in
+*/Makefile
+*/Makefile.in
+/aclocal.m4
+/compile
+/config.guess
+/config.sub
+/depcomp
+/install-sh
+/missing
+/test-driver
 stamp-h1
-config.log
-config.status
 src/config.h
+src/config.h.in
 
+# Build dependencies
+.deps/
+*/.deps/
+*.deps
 
+# Compiled object files
+*.o
+*.obj
+
+# Compiled executables (main programs)
+src/tagdust
+src/simreads
+src/evalres
+src/merge
+src/rename_qiime
+
+# Test executables
+src/*_rtest
+src/tagdustiotest
+
+# Test output files
+*.log
+*.trs
+test-suite.log
+
+# Generated test files (from dev/ tests)
+dev/*.fq
+dev/*_btrim_pattern.txt
+dev/*_logfile.txt
+dev/*_tagdust_arch.txt
+dev/*_results.txt
+dev/*_fastxbarcodefile.txt
+
+# LaTeX generated files (from casava_demo/ and doc/)
+*.aux
+*.bbl
+*.blg
+*.dvi
+*.fdb_latexmk
+*.fls
+*.ilg
+*.idx
+*.ind
+*.lof
+*.lot
+*.nav
+*.out
+*.snm
+*.toc
+*.bcf
+*.run.xml
+*.ps
+
+# Backup files
+*~
+*.bak
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor files
+*.sublime-project
+*.sublime-workspace
+.vscode/
+.idea/
+
+# Distribution packages
+*.tar.gz
+*.tar.bz2
+*.zip
+
+# Core dumps
+core
+core.*

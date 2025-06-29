@@ -29,8 +29,13 @@
 #define tagdust2_misc_h
 
 #include <stdio.h>
+#if HAVE_CONFIG_H
+#include "config.h"
+#endif
+#ifdef HAVE_XMMINTRIN_H
 #include <emmintrin.h>
 #include <mmintrin.h>
+#endif
 #include <stdlib.h>
 #include <string.h>
 #include "math.h"
