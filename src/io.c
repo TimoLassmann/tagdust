@@ -190,7 +190,7 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
 	
 	if(five_len){
 		if(five_s0 <= 1){
-			sprintf(param->buffer,"WARNING: there seems to e not a single read containing the 5' partial sequence.\n");
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"WARNING: there seems to e not a single read containing the 5' partial sequence.\n");
 			param->messages = append_message(param->messages, param->buffer);
 			ssi->mean_5_len  = ssi->expected_5_len;
 			ssi->stdev_5_len  = 1.0;
@@ -210,7 +210,7 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
 		
 		//fprintf(stderr,"5: %f %f	%f\n", ssi->mean_5_len,  ssi->stdev_5_len,five_s0);
 			if(ssi->mean_5_len <= 1){
-				sprintf(param->buffer,"WARNING: 5' partial segment seems not to be present in the data (length < 1).\n");
+				snprintf(param->buffer, MSG_BUFFER_SIZE,"WARNING: 5' partial segment seems not to be present in the data (length < 1).\n");
 				param->messages = append_message(param->messages, param->buffer);
 				//free_param(param);
 				//exit(EXIT_FAILURE);
@@ -225,7 +225,7 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
 	
 	if(three_len){
 		if(three_s0 <= 1){
-			sprintf(param->buffer,"WARNING: 3' partial segment seems not to be present in the data.\n");
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"WARNING: 3' partial segment seems not to be present in the data.\n");
 			param->messages = append_message(param->messages, param->buffer);
 			ssi->mean_3_len  = ssi->expected_3_len;
 			ssi->stdev_3_len  = 1.0;
@@ -243,7 +243,7 @@ struct sequence_stats_info* get_sequence_stats(struct parameters* param, struct 
 		//}
 		//fprintf(stderr,"3: %f %f	%f\n", ssi->mean_3_len,  ssi->stdev_3_len,three_s0);
 			if(ssi->mean_3_len <= 1){
-				sprintf(param->buffer,"WARNING: 3' partial segment seems not to be present in the data (length < 1).\n");
+				snprintf(param->buffer, MSG_BUFFER_SIZE,"WARNING: 3' partial segment seems not to be present in the data (length < 1).\n");
 			//	fprintf(stderr,"%s",param->buffer);
 				param->messages = append_message(param->messages, param->buffer);
 				//free_param(param);
@@ -401,7 +401,7 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 	param->fasta = 0;
 	
 	if(!file_exists(param->infile[file_num])){
-		sprintf(param->buffer,"Error: Cannot find input file: %s\n",param->infile[file_num] );
+		snprintf(param->buffer, MSG_BUFFER_SIZE,"Error: Cannot find input file: %s\n",param->infile[file_num] );
 		param->messages = append_message(param->messages, param->buffer);
 		free_param(param);
 		exit(EXIT_FAILURE);
@@ -457,7 +457,7 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 	
 	
 	if(param->gzipped && gzcat == -1){
-		sprintf(param->buffer,"Cannot find gzcat / zcat on your system. Try gzcat <infile> | samstat -f sam/bam/fa/fq\n");
+		snprintf(param->buffer, MSG_BUFFER_SIZE,"Cannot find gzcat / zcat on your system. Try gzcat <infile> | samstat -f sam/bam/fa/fq\n");
 		param->messages = append_message(param->messages, param->buffer);
 		free_param(param);
 		exit(EXIT_FAILURE);
@@ -540,7 +540,7 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 				strcat ( command, tmp);
 			}
 			if (!(file = popen(command, "r"))) {
-				sprintf(param->buffer,"Cannot open bam file '%s' with command:%s\n",param->infile[file_num],command);
+				snprintf(param->buffer, MSG_BUFFER_SIZE,"Cannot open bam file '%s' with command:%s\n",param->infile[file_num],command);
 				param->messages = append_message(param->messages, param->buffer);
 				free_param(param);
 				exit(EXIT_FAILURE);
@@ -574,7 +574,7 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 				strcat ( command, tmp);
 			}
 			if (!(file = popen(command, "r"))) {
-				sprintf(param->buffer,"Cannot open bam file '%s' with command:%s\n",param->infile[file_num],command);
+				snprintf(param->buffer, MSG_BUFFER_SIZE,"Cannot open bam file '%s' with command:%s\n",param->infile[file_num],command);
 				param->messages = append_message(param->messages, param->buffer);
 				free_param(param);
 				exit(EXIT_FAILURE);
@@ -597,7 +597,7 @@ FILE* io_handler(FILE* file, int file_num,struct parameters* param)
 			strcat ( command, tmp);
 			//fprintf(stderr,"%s\n",command);
 			if (!(file = popen(command, "r"))) {
-				sprintf(param->buffer,"Cannot open bam file '%s' with command:%s\n",param->infile[file_num],command);
+				snprintf(param->buffer, MSG_BUFFER_SIZE,"Cannot open bam file '%s' with command:%s\n",param->infile[file_num],command);
 				param->messages = append_message(param->messages, param->buffer);
 				free_param(param);
 				exit(EXIT_FAILURE);
@@ -798,7 +798,7 @@ int print_all(struct read_info*** read_info_container,struct parameters* param, 
 		// check for existing files (should not occur since I check for files right at the beginning of a run
 		i = check_for_existing_demultiplexed_files_multiple(param, num_out_reads);
 		if(i){
-			sprintf(param->buffer,"ERROR: some output files already exists.\n");
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"ERROR: some output files already exists.\n");
 			param->messages = append_message(param->messages, param->buffer);
 			free_param(param);
 			exit(EXIT_FAILURE);
@@ -1030,12 +1030,13 @@ int get_finger_seq(int key,char* finger_seq_buffer)
 
 FILE* open_file(struct parameters* param, char* buffer, char* mode)
 {
+	(void)param; /* Unused parameter */
 	FILE* file = NULL;
 	int status;
 	//sprintf (buffer, "%s_READ%d.fq",param->outfile,i+1);
 	//if ((file = fopen(buffer, mode )) == NULL){
 	if((file = fopen(buffer, mode)) == NULL) KSLIB_XEXCEPTION_SYS(kslEWRT,"Failed to open file:%s",buffer);
-	//	sprintf(param->buffer,"ERROR: cannot open file %s for writing.\n", buffer);
+	//	snprintf(param->buffer, MSG_BUFFER_SIZE,"ERROR: cannot open file %s for writing.\n", buffer);
 	//	param->messages = append_message(param->messages, param->buffer);
 	//	free_param(param);
 	//	exit(EXIT_FAILURE);
@@ -1113,7 +1114,7 @@ void print_split_files(struct parameters* param, struct read_info** ri, int nums
 				check_for_files = 0;
 				if(!stat ( buffer, &buf )){
 					//file found.
-					sprintf(param->buffer,"ERROR: output file: %s already exists.\n", buffer);
+					snprintf(param->buffer, MSG_BUFFER_SIZE,"ERROR: output file: %s already exists.\n", buffer);
 					param->messages = append_message(param->messages, param->buffer);
 					free_param(param);
 					exit(EXIT_FAILURE);
@@ -1207,9 +1208,10 @@ void print_split_files(struct parameters* param, struct read_info** ri, int nums
 			
 			//strcat (buffer, tmp);
 			//ri[i]->name = realloc(ri[i]->name, sizeof(char) * (strlen(buffer) + 1) );
-			MREALLOC(ri[i]->name,tmp,sizeof(char) * (strlen(buffer) + 1)) ;
+			size_t buffer_len = strlen(buffer);
+			MREALLOC(ri[i]->name,tmp,sizeof(char) * (buffer_len + 1)) ;
 			assert(ri[i]->name  != NULL);
-			strcpy(ri[i]->name, buffer);
+			SAFE_STRCPY(ri[i]->name, buffer, buffer_len + 1);
 			
 			
 						
@@ -1657,6 +1659,7 @@ int read_sam_chunk(struct read_info** ri,struct parameters* param,FILE* file,int
 		}
 	}
 	*buffer_count = c;
+	(void)read; /* Counter not currently used */
 	return kslOK;
 	//return c;
 ERROR:
@@ -1772,7 +1775,7 @@ int read_fasta_fastq(struct read_info** ri,struct parameters* param,FILE *file,i
 					}
 					
 					if(len-1 != ri[park_pos]->len ){
-						sprintf(param->buffer,"ERROR: Length of sequence and base qualities differ!.\n");
+						snprintf(param->buffer, MSG_BUFFER_SIZE,"ERROR: Length of sequence and base qualities differ!.\n");
 						param->messages = append_message(param->messages, param->buffer);
 						free_param(param);
 						exit(EXIT_FAILURE);
@@ -2159,10 +2162,10 @@ int compare_read_names(struct parameters* param, char* name1, char* name2)
 	if(detected == -1){
 		//option 1: casava 1.8
 		// name should look like this:@EAS139:136:FC706VJ:2:2104:15343:197393 1:Y:18:ATCACG
-		number_of_values_found =sscanf(name1,"%[^:]:%d:%[^:]:%d:%d:%d:%d ", instrument_R1,&run_id_R1,flowcell_R1,&flowcell_lane_R1,&tile_number_R1,&x_coordinate_R1,&y_coordinate_R1 );
+		number_of_values_found =sscanf(name1,"%99[^:]:%d:%99[^:]:%d:%d:%d:%d ", instrument_R1,&run_id_R1,flowcell_R1,&flowcell_lane_R1,&tile_number_R1,&x_coordinate_R1,&y_coordinate_R1 );
 		if(number_of_values_found == 7){
 			detected = 1;
-			sprintf(param->buffer,"Detected casava 1.8 format.\n");
+			snprintf(param->buffer, kslibMSGBUFSIZE, "Detected casava 1.8 format.\n");
 			param->messages = append_message(param->messages, param->buffer);
 		}
 		//fprintf(stderr,"casava 1.8?:%d %s\n",number_of_values_found, name1);
@@ -2174,13 +2177,13 @@ int compare_read_names(struct parameters* param, char* name1, char* name2)
 		//option 2: casava 1.7
 		// name should look like this:@HWUSI-EAS100R:6:73:941:1973#0/1
 		//HWUSI-EAS747_0040_FC64GRTAAXX:8:1:3268:1065#0/1
-		number_of_values_found =sscanf(name1,"%[^:]:%d:%d:%d:%d", instrument_R1,&flowcell_lane_R1,&tile_number_R1,&x_coordinate_R1,&y_coordinate_R1);
+		number_of_values_found =sscanf(name1,"%99[^:]:%d:%d:%d:%d", instrument_R1,&flowcell_lane_R1,&tile_number_R1,&x_coordinate_R1,&y_coordinate_R1);
 		//fprintf(stderr,"casava 1.7?:%d %s\n", number_of_values_found,name1);
 		//fprintf(stderr,"%s\n%d\n%d\n%d\n%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
 
 		if(number_of_values_found == 5){
 			detected = 2;
-			sprintf(param->buffer,"Detected casava <1.7 format.\n");
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"Detected casava <1.7 format.\n");
 			param->messages = append_message(param->messages, param->buffer);
 		}
 	}
@@ -2190,17 +2193,17 @@ int compare_read_names(struct parameters* param, char* name1, char* name2)
 	}
 
 	if(detected == 1){
-		number_of_values_found =sscanf(name1,"%[^:]:%d:%[^:]:%d:%d:%d:%d ", instrument_R1,&run_id_R1,flowcell_R1,&flowcell_lane_R1,&tile_number_R1,&x_coordinate_R1,&y_coordinate_R1 );
+		number_of_values_found =sscanf(name1,"%99[^:]:%d:%99[^:]:%d:%d:%d:%d ", instrument_R1,&run_id_R1,flowcell_R1,&flowcell_lane_R1,&tile_number_R1,&x_coordinate_R1,&y_coordinate_R1 );
 		if(number_of_values_found != 7){
-			sprintf(param->buffer,"File name %s\n does not match detected casava 1.8 format.\n",name1);
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"File name %s\n does not match detected casava 1.8 format.\n",name1);
 			param->messages = append_message(param->messages, param->buffer);
 			return 1;
 			
 		}
 		
-		number_of_values_found =sscanf(name2,"%[^:]:%d:%[^:]:%d:%d:%d:%d ", instrument_R2,&run_id_R2,flowcell_R2,&flowcell_lane_R2,&tile_number_R2,&x_coordinate_R2,&y_coordinate_R2 );
+		number_of_values_found =sscanf(name2,"%99[^:]:%d:%99[^:]:%d:%d:%d:%d ", instrument_R2,&run_id_R2,flowcell_R2,&flowcell_lane_R2,&tile_number_R2,&x_coordinate_R2,&y_coordinate_R2 );
 		if(number_of_values_found != 7){
-			sprintf(param->buffer,"File name %s\n does not match detected casava 1.8 format.\n",name2);
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"File name %s\n does not match detected casava 1.8 format.\n",name2);
 #ifdef UTEST
 			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
 			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R2,flowcell_lane_R2,tile_number_R2,x_coordinate_R2,y_coordinate_R2);
@@ -2210,7 +2213,7 @@ int compare_read_names(struct parameters* param, char* name1, char* name2)
 		}
 		
 		if(y_coordinate_R1 != y_coordinate_R2){
-			sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
 #ifdef UTEST
 			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
 			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R2,flowcell_lane_R2,tile_number_R2,x_coordinate_R2,y_coordinate_R2);
@@ -2220,7 +2223,7 @@ int compare_read_names(struct parameters* param, char* name1, char* name2)
 		}
 		
 		if(x_coordinate_R1 != x_coordinate_R2){
-			sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
 #ifdef UTEST
 			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
 			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R2,flowcell_lane_R2,tile_number_R2,x_coordinate_R2,y_coordinate_R2);
@@ -2230,7 +2233,7 @@ int compare_read_names(struct parameters* param, char* name1, char* name2)
 		}
 		
 		if(tile_number_R1 !=  tile_number_R2){
-			sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
 #ifdef UTEST
 			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
 			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R2,flowcell_lane_R2,tile_number_R2,x_coordinate_R2,y_coordinate_R2);
@@ -2240,7 +2243,7 @@ int compare_read_names(struct parameters* param, char* name1, char* name2)
 		}
 		
 		if(flowcell_lane_R1 !=  flowcell_lane_R2){
-			sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
 #ifdef UTEST
 			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
 			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R2,flowcell_lane_R2,tile_number_R2,x_coordinate_R2,y_coordinate_R2);
@@ -2250,7 +2253,7 @@ int compare_read_names(struct parameters* param, char* name1, char* name2)
 		}
 		
 		if(strcmp(flowcell_R1,flowcell_R2)){
-			sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
 #ifdef UTEST
 			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
 			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R2,flowcell_lane_R2,tile_number_R2,x_coordinate_R2,y_coordinate_R2);
@@ -2259,7 +2262,7 @@ int compare_read_names(struct parameters* param, char* name1, char* name2)
 			return 1;
 		}
 		if(run_id_R1 !=  run_id_R2){
-			sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
 #ifdef UTEST
 			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
 			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R2,flowcell_lane_R2,tile_number_R2,x_coordinate_R2,y_coordinate_R2);
@@ -2268,7 +2271,7 @@ int compare_read_names(struct parameters* param, char* name1, char* name2)
 			return 1;
 		}
 		if(strcmp(instrument_R1,instrument_R2)){
-			sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
 #ifdef UTEST
 			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
 			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R2,flowcell_lane_R2,tile_number_R2,x_coordinate_R2,y_coordinate_R2);
@@ -2282,10 +2285,10 @@ int compare_read_names(struct parameters* param, char* name1, char* name2)
 	}
 	
 	if(detected == 2){
-		number_of_values_found =sscanf(name1,"%[^:]:%d:%d:%d:%d", instrument_R1,&flowcell_lane_R1,&tile_number_R1,&x_coordinate_R1,&y_coordinate_R1);
+		number_of_values_found =sscanf(name1,"%99[^:]:%d:%d:%d:%d", instrument_R1,&flowcell_lane_R1,&tile_number_R1,&x_coordinate_R1,&y_coordinate_R1);
 
 		if(number_of_values_found != 5){
-			sprintf(param->buffer,"File name %s\n does not match detected casava <1.8 format.\n",name1);
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"File name %s\n does not match detected casava <1.8 format.\n",name1);
 #ifdef UTEST
 			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
 			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R2,flowcell_lane_R2,tile_number_R2,x_coordinate_R2,y_coordinate_R2);
@@ -2293,10 +2296,10 @@ int compare_read_names(struct parameters* param, char* name1, char* name2)
 			param->messages = append_message(param->messages, param->buffer);
 			return 1;
 		}
-		number_of_values_found =sscanf(name2,"%[^:]:%d:%d:%d:%d", instrument_R2,&flowcell_lane_R2,&tile_number_R2,&x_coordinate_R2,&y_coordinate_R2);
+		number_of_values_found =sscanf(name2,"%99[^:]:%d:%d:%d:%d", instrument_R2,&flowcell_lane_R2,&tile_number_R2,&x_coordinate_R2,&y_coordinate_R2);
 		
 		if(number_of_values_found != 5){
-			sprintf(param->buffer,"File name %s\n does not match detected casava <1.8 format.\n",name2);
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"File name %s\n does not match detected casava <1.8 format.\n",name2);
 #ifdef UTEST
 			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
 			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R2,flowcell_lane_R2,tile_number_R2,x_coordinate_R2,y_coordinate_R2);
@@ -2306,7 +2309,7 @@ int compare_read_names(struct parameters* param, char* name1, char* name2)
 		}
 		
 		if(y_coordinate_R1 != y_coordinate_R2){
-			sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
 #ifdef UTEST
 			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
 			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R2,flowcell_lane_R2,tile_number_R2,x_coordinate_R2,y_coordinate_R2);
@@ -2316,7 +2319,7 @@ int compare_read_names(struct parameters* param, char* name1, char* name2)
 		}
 		
 		if(x_coordinate_R1 != x_coordinate_R2){
-			sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
 #ifdef UTEST
 			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
 			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R2,flowcell_lane_R2,tile_number_R2,x_coordinate_R2,y_coordinate_R2);
@@ -2326,7 +2329,7 @@ int compare_read_names(struct parameters* param, char* name1, char* name2)
 		}
 		
 		if(tile_number_R1 !=  tile_number_R2){
-			sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
 #ifdef UTEST
 			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
 			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R2,flowcell_lane_R2,tile_number_R2,x_coordinate_R2,y_coordinate_R2);
@@ -2336,7 +2339,7 @@ int compare_read_names(struct parameters* param, char* name1, char* name2)
 		}
 		
 		if(flowcell_lane_R1 !=  flowcell_lane_R2){
-			sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
 #ifdef UTEST
 			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
 			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R2,flowcell_lane_R2,tile_number_R2,x_coordinate_R2,y_coordinate_R2);
@@ -2346,7 +2349,7 @@ int compare_read_names(struct parameters* param, char* name1, char* name2)
 		}
 		
 		if(strcmp(instrument_R1,instrument_R2)){
-			sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"Files seem to contain reads in different order:\n%s\n%s\n",name1, name2);
 #ifdef UTEST
 			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
 			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R2,flowcell_lane_R2,tile_number_R2,x_coordinate_R2,y_coordinate_R2);
@@ -2357,7 +2360,7 @@ int compare_read_names(struct parameters* param, char* name1, char* name2)
 	}
 	if(detected == 1000){
 		number_of_values_found = 0;
-		for(i = 0; i < strlen(name1);i++){
+		for(i = 0; i < (int)strlen(name1);i++){
 			if(isspace(name1[i]) || name1[i] == ';'){
 				break;
 			}
@@ -2376,7 +2379,7 @@ int compare_read_names(struct parameters* param, char* name1, char* name2)
 			}*/
 		}
 		if(number_of_values_found){
-			sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",name1,name2);
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"Files seem to contain reads in different order:\n%s\n%s\n",name1,name2);
 #ifdef UTEST
 			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R1,flowcell_lane_R1,tile_number_R1,x_coordinate_R1,y_coordinate_R1);
 			fprintf(stderr,"@%s:%d:%d:%d:%d\n", instrument_R2,flowcell_lane_R2,tile_number_R2,x_coordinate_R2,y_coordinate_R2);

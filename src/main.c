@@ -124,13 +124,13 @@ int main (int argc,char * argv[]) {
 			}
 		}
 		
-		sprintf(param->buffer,"Start Run\n--------------------------------------------------\n");
+		snprintf(param->buffer, MSG_BUFFER_SIZE,"Start Run\n--------------------------------------------------\n");
 		param->messages = append_message(param->messages, param->buffer);
 		hmm_controller_multiple(param);
 		free_param(param);
 	}
 	
-	/*sprintf(param->buffer,"Start Run\n--------------------------------------------------\n");
+	/*snprintf(param->buffer, MSG_BUFFER_SIZE,"Start Run\n--------------------------------------------------\n");
 	param->messages = append_message(param->messages, param->buffer);
 
 	if(param->infiles == 0){
@@ -148,7 +148,7 @@ int main (int argc,char * argv[]) {
 		free_param(param);
 		exit(EXIT_FAILURE);
 	}else	if(param->infiles == 1){
-		sprintf(param->buffer,"Running in single end mode.\n");
+		snprintf(param->buffer, MSG_BUFFER_SIZE,"Running in single end mode.\n");
 		param->messages = append_message(param->messages, param->buffer);
 		if(param->arch_file){
 			param = test_architectures(param, 0);
@@ -157,7 +157,7 @@ int main (int argc,char * argv[]) {
 		if (param->read_structure->num_segments == 0){
 			param->read_structure = assign_segment_sequences(param->read_structure, "R:N" , 0 );
 			if(QC_read_structure(param)){
-				sprintf(param->buffer,"Something wrong with architecture....\n");
+				snprintf(param->buffer, MSG_BUFFER_SIZE,"Something wrong with architecture....\n");
 				param->messages = append_message(param->messages, param->buffer);
 				free_param(param);
 				exit(EXIT_FAILURE);
@@ -167,7 +167,7 @@ int main (int argc,char * argv[]) {
 	
 		hmm_controller(param,0);
 	}else if(param->infiles == 2){
-		sprintf(param->buffer,"Running in paired end mode.\n");
+		snprintf(param->buffer, MSG_BUFFER_SIZE,"Running in paired end mode.\n");
 		param->messages = append_message(param->messages, param->buffer);
 		
 		if(param->arch_file){
@@ -211,6 +211,7 @@ ERROR:
 		fprintf(stdout,"%s",param->errmsg);
 		free_param(param);
 	}
+	(void)status; /* Used by KSLIB_XFAIL macro */
 	return EXIT_SUCCESS;
 	
 }

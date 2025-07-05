@@ -32,10 +32,6 @@
 #if HAVE_CONFIG_H
 #include "config.h"
 #endif
-#ifdef HAVE_XMMINTRIN_H
-#include <emmintrin.h>
-#include <mmintrin.h>
-#endif
 #include <stdlib.h>
 #include <string.h>
 #include "math.h"
@@ -82,14 +78,6 @@
 #define INV_SQRT_2PI 0.3989422804014327
 
 
-#ifndef _MM_ALIGN16
-#ifdef __GNUC__
-#define _MM_ALIGN16 __attribute__((aligned (16)))
-#endif
-#ifdef __MSVC__
-#define _MM_ALIGN16 __declspec(align(16))
-#endif
-#endif
 
 
 #endif

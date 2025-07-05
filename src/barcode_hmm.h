@@ -39,14 +39,6 @@
 #endif
 
 
-#ifndef _MM_ALIGN16
-#ifdef __GNUC__
-#define _MM_ALIGN16 __attribute__((aligned (16)))
-#endif
-#ifdef __MSVC__
-#define _MM_ALIGN16 __declspec(align(16))
-#endif
-#endif
 
 
 
@@ -212,7 +204,7 @@ struct hmm_column{
 	float i_emit_e[5];/**<@brief Estimated Insert  emision probabilities. */
 	
 	int identifier;  /**< @brief currently unused. */
-}_MM_ALIGN16;
+};
 
 
 
@@ -224,7 +216,7 @@ struct hmm{
 	struct hmm_column** hmm_column;/**<@brief Pointers to @ref hmm_column. */
 	int num_columns;/**<@brief Number of columns - HMM length. */
 	
-}_MM_ALIGN16;
+};
 
 
 
@@ -246,7 +238,7 @@ struct model{
 	float skip_e;/**<@brief Estimated probability to skip segment*/
 	int average_length; /**<@brief Not used.... */
 	int num_hmms;/**<@brief Number of HMMs in segment.*/
-}_MM_ALIGN16;
+};
 
 /**
  @brief Collects multiple @ref model (s) into the complete HMM.
@@ -277,7 +269,7 @@ struct model_bag{
 	
 	int total_hmm_num; /**<@brief Total number of profile HMMs in complete HMM.*/
 	float model_multiplier; /**< @brief Number of different profile HMM combinations. */
-}_MM_ALIGN16;
+};
 
 
 struct arch_bag{

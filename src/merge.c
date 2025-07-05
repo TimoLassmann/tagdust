@@ -164,7 +164,7 @@ int merge(struct parameters* param)
 		for(i = 0; i < param->infiles-1;i++){
 			for(j = i +1; j < param->infiles;j++){
 				if(numseqs[i] != numseqs[j]){
-					sprintf(param->buffer,"Input File:%s and %s differ in number of entries.\n", param->infile[i],param->infile[j]);
+					snprintf(param->buffer, MSG_BUFFER_SIZE,"Input File:%s and %s differ in number of entries.\n", param->infile[i],param->infile[j]);
 					param->messages = append_message(param->messages, param->buffer);
 					free_param(param);
 					exit(EXIT_FAILURE);
@@ -181,7 +181,7 @@ int merge(struct parameters* param)
 					for(c = 0;c < HMMER3_MIN(1000,numseqs[0] );c++){
 						//fprintf(stderr,"%s\n%s\n", read_info_container[i][c]->name,read_info_container[j][c]->name);
 						if(compare_read_names(param,read_info_container[i][c]->name,read_info_container[j][c]->name) ){
-							sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n", read_info_container[i][c]->name,read_info_container[j][c]->name);
+							snprintf(param->buffer, MSG_BUFFER_SIZE,"Files seem to contain reads in different order:\n%s\n%s\n", read_info_container[i][c]->name,read_info_container[j][c]->name);
 							param->messages = append_message(param->messages, param->buffer);
 							free_param(param);
 							exit(EXIT_FAILURE);
@@ -259,7 +259,7 @@ int run_merge(struct parameters* param, struct read_info*** read_info_container,
 	
 	rc = pthread_attr_init(&attr);
 	if(rc){
-		sprintf(param->buffer,"ERROR; return code from pthread_attr_init() is %d\n", rc);
+		snprintf(param->buffer, MSG_BUFFER_SIZE,"ERROR; return code from pthread_attr_init() is %d\n", rc);
 		param->messages = append_message(param->messages, param->buffer);
 		
 		free_param(param);
@@ -276,7 +276,7 @@ int run_merge(struct parameters* param, struct read_info*** read_info_container,
 	for (t = 0;t < param->num_threads;t++){
 		rc = pthread_join(threads[t], NULL);
 		if (rc){
-			sprintf(param->buffer,"ERROR; return code from pthread_join()is %d\n", rc);
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"ERROR; return code from pthread_join()is %d\n", rc);
 			param->messages = append_message(param->messages, param->buffer);
 			free_param(param);
 			exit(EXIT_FAILURE );
@@ -391,6 +391,7 @@ int resize_profiles(struct profiles* p, int len)
 	}
 	return kslOK;
 ERROR:
+	(void)status; /* Used by MMALLOC/MREALLOC macros */
 	return kslFAIL;
 }
 

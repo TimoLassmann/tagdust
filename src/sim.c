@@ -28,6 +28,7 @@
 
 #include <stdio.h>
 #include <time.h>
+#include "tagdust2.h"
 #include "interface.h"
 #include <math.h>
 #include <assert.h>
@@ -332,13 +333,13 @@ void simulation_for_benchmark(struct parameters* param)
 		}
 		
 		if(param->sim_5seq){
-			strcat ( sequenced_read,  param->sim_5seq);
+			SAFE_STRCAT(sequenced_read, param->sim_5seq, 200);
 		}
 		barcode_used = 0;
 		if(param->sim_barnum){
 			barcode_used = (int) (rand_r(&seed) % (int) (param->sim_barnum)) ;
 		
-			strcat ( sequenced_read, barcode[barcode_used]);
+			SAFE_STRCAT(sequenced_read, barcode[barcode_used], 200);
 		}
 		
 		c = param->sim_readlen - param->sim_readlen_mod +  (int) (rand_r(&seed) % (int) (param->sim_readlen_mod*2)) ;
@@ -359,10 +360,10 @@ void simulation_for_benchmark(struct parameters* param)
 		read[c] = 0;
 		//fprintf(stderr,"%s\n", read);
 
-		strcat ( sequenced_read, read);
+		SAFE_STRCAT(sequenced_read, read, 200);
 		
 		if(param->sim_3seq){
-			strcat ( sequenced_read,  param->sim_3seq);
+			SAFE_STRCAT(sequenced_read, param->sim_3seq, 200);
 		}
 		//fprintf(stderr,"%s\n", sequenced_read);
 		c = 0;
@@ -467,7 +468,7 @@ void simulation_for_benchmark(struct parameters* param)
 	
 	for(i = (int)((float) param->sim_numseq * (1.0-param->sim_random_frac)); i < param->sim_numseq   ;i++){
 		if(param->sim_5seq){
-			strcat ( sequenced_read,  param->sim_5seq);
+			SAFE_STRCAT(sequenced_read, param->sim_5seq, 200);
 		}
 		for(j = 0; j < c;j++){
 			r = (float)rand_r(&seed)/(float)RAND_MAX;

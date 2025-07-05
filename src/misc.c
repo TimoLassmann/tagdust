@@ -39,7 +39,7 @@
 
 
 
-static unsigned long next = 1;
+static uint32_t next = 1;
 
 
 /** \var float logsum_lookup
@@ -404,44 +404,44 @@ unsigned int pop(int x)
  */
 int bpm(const  char* t,const  char* p,int n,int m)
 {
-	register unsigned long int i;//,c;
-	unsigned long int diff;
-	unsigned long int B[255];
+	register size_t i;//,c;
+	uint64_t diff;
+	uint64_t B[255];
 	if(m > 31){
 		m = 31;
 	}
 	
-	unsigned long int k = m;
+	uint64_t k = (uint64_t)m;
 	//static int counter = 0;
-	register unsigned long int VP,VN,D0,HN,HP,X;
+	register uint64_t VP,VN,D0,HN,HP,X;
 	
-	long int MASK = 0;
+	int64_t MASK = 0;
 	//c = 0;
 	
-	diff = m;
+	diff = (uint64_t)m;
 	
 	for(i = 0; i < 255;i++){
 		B[i] = 0;
 	}
 	
-	for(i = 0; i < m;i++){
-		B[(int)(p[i] )] |= (1ul << i);
+	for(i = 0; i < (size_t)m;i++){
+		B[(int)(p[i] )] |= (UINT64_C(1) << i);
 	}
 	
 	//c = 0;
-	VP = 0xFFFFFFFFFFFFFFFFul;
-	VN = 0ul;
+	VP = UINT64_MAX;
+	VN = 0;
 	m--;
-	MASK = 1ul << m;
+	MASK = UINT64_C(1) << m;
 	
-	for(i = 0; i < n;i++){
+	for(i = 0; i < (size_t)n;i++){
 		X = (B[(int)(t[i])  ] | VN);
 		D0 = ((VP+(X&VP)) ^ VP) | X ;
 		HN = VP & D0;
 		HP = VN | ~(VP | D0);
-		X = HP << 1ul;
+		X = HP << 1;
 		VN = X & D0;
-		VP = (HN << 1ul) | ~(X | D0);
+		VP = (HN << 1) | ~(X | D0);
 		diff += (HP & MASK) >> m;
 		diff -= (HN & MASK) >> m;
 		if(diff < k){
@@ -468,9 +468,9 @@ int bpm(const  char* t,const  char* p,int n,int m)
  */
 int bpm_global(const  char* t,const  char* p,int n,int m)
 {
-	register unsigned long int i;//,c;
-	unsigned long int diff;
-	unsigned long int B[255];
+	register size_t i;//,c;
+	uint64_t diff;
+	uint64_t B[255];
 	int status;
 	
 	int c;
@@ -486,7 +486,7 @@ int bpm_global(const  char* t,const  char* p,int n,int m)
 		p2[i] = 'F';
 	}
 	c = 5;
-	for(i = 0; i < n;i++){
+	for(i = 0; i < (size_t)n;i++){
 		p1[c] = t[i];
 		c++;
 	}
@@ -499,7 +499,7 @@ int bpm_global(const  char* t,const  char* p,int n,int m)
 	
 	
 	c = 5;
-	for(i = 0; i < m;i++){
+	for(i = 0; i < (size_t)m;i++){
 		p2[c] = p[i];
 		c++;
 	}
@@ -517,37 +517,37 @@ int bpm_global(const  char* t,const  char* p,int n,int m)
 		m = 31;
 	}
 	
-	unsigned long int k = m;
+	uint64_t k = (uint64_t)m;
 	//static int counter = 0;
-	register unsigned long int VP,VN,D0,HN,HP,X;
+	register uint64_t VP,VN,D0,HN,HP,X;
 	
-	long int MASK = 0;
+	int64_t MASK = 0;
 	//c = 0;
 	
-	diff = m;
+	diff = (uint64_t)m;
 	
 	for(i = 0; i < 255;i++){
 		B[i] = 0;
 	}
 	
-	for(i = 0; i < m;i++){
-		B[(int)(p2[i] )] |= (1ul << i);
+	for(i = 0; i < (size_t)m;i++){
+		B[(int)(p2[i] )] |= (UINT64_C(1) << i);
 	}
 	
 	//c = 0;
-	VP = 0xFFFFFFFFFFFFFFFFul;
-	VN = 0ul;
+	VP = UINT64_MAX;
+	VN = 0;
 	m--;
-	MASK = 1ul << m;
+	MASK = UINT64_C(1) << m;
 	
-	for(i = 0; i < n;i++){
+	for(i = 0; i < (size_t)n;i++){
 		X = (B[(int)(p1[i])  ] | VN);
 		D0 = ((VP+(X&VP)) ^ VP) | X ;
 		HN = VP & D0;
 		HP = VN | ~(VP | D0);
-		X = HP << 1ul;
+		X = HP << 1;
 		VN = X & D0;
-		VP = (HN << 1ul) | ~(X | D0);
+		VP = (HN << 1) | ~(X | D0);
 		diff += (HP & MASK) >> m;
 		diff -= (HN & MASK) >> m;
 		if(diff < k){
@@ -580,27 +580,27 @@ ERROR:
  */
 int bpm_check_error(const unsigned char* t,const unsigned char* p,int n,int m)
 {
-	register unsigned long int i;//,c;
-	unsigned long int diff;
-	unsigned long int B[5];
+	register size_t i;//,c;
+	uint64_t diff;
+	uint64_t B[5];
 	
 	int new_len = 0;
-	unsigned long int k = m;
+	uint64_t k = (uint64_t)m;
 	//static int counter = 0;
-	register unsigned long int VP,VN,D0,HN,HP,X;
+	register uint64_t VP,VN,D0,HN,HP,X;
 	
-	long int MASK = 0;
+	int64_t MASK = 0;
 	//c = 0;
 	
-	diff = m;
+	diff = (uint64_t)m;
 	
 	for(i = 0; i < 5;i++){
 		B[i] = 0;
 	}
 	
-	for(i = 0; i < m;i++){
+	for(i = 0; i < (size_t)m;i++){
 		if(p[i] != 65){
-		B[(int)(p[i] & 0x3)] |= (1ul << i);
+		B[(int)(p[i] & 0x3)] |= (UINT64_C(1) << i);
 		new_len++;
 		}
 		
@@ -613,18 +613,18 @@ int bpm_check_error(const unsigned char* t,const unsigned char* p,int n,int m)
 	
 	
 	//c = 0;
-	VP = 0xFFFFFFFFFFFFFFFFul;
-	VN = 0ul;
+	VP = UINT64_MAX;
+	VN = 0;
 	m--;
-	MASK = 1ul << m;
-	for(i = 0; i < n;i++){
+	MASK = UINT64_C(1) << m;
+	for(i = 0; i < (size_t)n;i++){
 		X = (B[(int)(t[i] &0x3)  ] | VN);
 		D0 = ((VP+(X&VP)) ^ VP) | X ;
 		HN = VP & D0;
 		HP = VN | ~(VP | D0);
-		X = HP << 1ul;
+		X = HP << 1;
 		VN = X & D0;
-		VP = (HN << 1ul) | ~(X | D0);
+		VP = (HN << 1) | ~(X | D0);
 		diff += (HP & MASK) >> m;
 		diff -= (HN & MASK) >> m;
 		if(diff < k){
@@ -652,43 +652,43 @@ int bpm_check_error(const unsigned char* t,const unsigned char* p,int n,int m)
  */
 int bpm_check_error_global(const unsigned char* t,const unsigned char* p,int n,int m)
 {
-	register unsigned long int i;//,c;
-	unsigned long int diff;
-	unsigned long int B[5];
+	register size_t i;//,c;
+	uint64_t diff;
+	uint64_t B[5];
 	if(m > 63){
 		m = 63;
 	}
 	
-	//unsigned long int k = m;
+	//uint64_t k = m;
 	//static int counter = 0;
-	register unsigned long int VP,VN,D0,HN,HP,X;
+	register uint64_t VP,VN,D0,HN,HP,X;
 	
-	long int MASK = 0;
+	int64_t MASK = 0;
 	//c = 0;
 	
-	diff = m;
+	diff = (uint64_t)m;
 	
 	for(i = 0; i < 5;i++){
 		B[i] = 0;
 	}
 	
-	for(i = 0; i < m;i++){
-		B[(int)(p[i] & 0x3)] |= (1ul << i);
+	for(i = 0; i < (size_t)m;i++){
+		B[(int)(p[i] & 0x3)] |= (UINT64_C(1) << i);
 	}
 	
 	//c = 0;
-	VP = 0xFFFFFFFFFFFFFFFFul;
-	VN = 0ul;
+	VP = UINT64_MAX;
+	VN = 0;
 	m--;
-	MASK = 1ul << m;
-	for(i = 0; i < n;i++){
+	MASK = UINT64_C(1) << m;
+	for(i = 0; i < (size_t)n;i++){
 		X = (B[(int)(t[i] &0x3)  ] | VN);
 		D0 = ((VP+(X&VP)) ^ VP) | X ;
 		HN = VP & D0;
 		HP = VN | ~(VP | D0);
-		X = HP << 1ul;
+		X = HP << 1;
 		VN = X & D0;
-		VP = (HN << 1ul) | ~(X | D0);
+		VP = (HN << 1) | ~(X | D0);
 		diff += (HP & MASK) >> m;
 		diff -= (HN & MASK) >> m;
 		//if(diff < k){
@@ -727,7 +727,7 @@ static int bmp_single(const unsigned char* t, const unsigned char* p, int n, int
     if(m > 63){
         m = 63;
     }
-    diff = m;
+    diff = (uint64_t)m;
     k = m;
     
     for(i = 0; i < 4; i++){
@@ -737,14 +737,14 @@ static int bmp_single(const unsigned char* t, const unsigned char* p, int n, int
     // Build bit patterns for each nucleotide
     for(i = 0; i < (uint64_t)m; i++){
         if(p[i] != 65){  // Skip 'A' characters (65) like original
-            B[p[i] & 0x3u] |= (1ul << i);
+            B[p[i] & 0x3u] |= (UINT64_C(1) << i);
         }
     }
 
-    VP = (1ul << (m))-1;
-    VN = 0ul;
+    VP = (UINT64_C(1) << (m))-1;
+    VN = 0;
     m--;
-    MASK = 1ul << (m);
+    MASK = UINT64_C(1) << (m);
 
     for(i = 0; i < (uint64_t) n; i++){
         X = (B[t[i] & 0x3u] | VN);
@@ -806,7 +806,7 @@ int validate_bpm_sse(unsigned char**  query, int* query_lengths,unsigned char* t
 
 char* shorten_pathname(char* p)
 {
-	int i;
+	size_t i;
 	char* tmp = p;
 	for(i = 0; i< strlen(p);i++){
 		if(p[i] == '/'){
@@ -927,7 +927,7 @@ int highest_bit(long long int n)
 	if (n == 0)
 		return 0;
 	
-	for (i = 0; i < sizeof mask / sizeof mask[0]; i++) {
+	for (i = 0; i < (int)(sizeof mask / sizeof mask[0]); i++) {
 		int mi = lo + (hi - lo) / 2;
 		
 		if ((n >> mi) != 0)

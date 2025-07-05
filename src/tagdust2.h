@@ -44,12 +44,46 @@ __LINE__, __func__, __VA_ARGS__); } while (0)
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <math.h>
 #include <ctype.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <time.h>
 #include <assert.h>
+
+/* Safe string operation macros */
+#define SAFE_STRCAT(dest, src, size) do { \
+    size_t dest_len = strnlen(dest, size - 1); \
+    if (dest_len < size - 1) { \
+        size_t remaining = size - dest_len - 1; \
+        size_t src_len = strnlen(src, remaining); \
+        memcpy(dest + dest_len, src, src_len); \
+        dest[dest_len + src_len] = '\0'; \
+    } \
+} while(0)
+
+#define SAFE_STRCAT_CHECK(dest, src, size, retval) do { \
+    size_t dest_len = strnlen(dest, size - 1); \
+    if (dest_len >= size - 1) return retval; \
+    size_t remaining = size - dest_len - 1; \
+    size_t src_len = strnlen(src, remaining); \
+    if (dest_len + src_len >= size) return retval; \
+    memcpy(dest + dest_len, src, src_len); \
+    dest[dest_len + src_len] = '\0'; \
+} while(0)
+
+#define SAFE_STRCPY(dest, src, size) do { \
+    strncpy(dest, src, size - 1); \
+    dest[size - 1] = '\0'; \
+} while(0)
+
+#define VALIDATE_STRING_LENGTH(str, max_len, error_msg) do { \
+    if (strnlen(str, max_len + 1) > max_len) { \
+        fprintf(stderr, "Error: %s (max %zu chars)\n", error_msg, (size_t)max_len); \
+        return -1; \
+    } \
+} while(0)
 
 
 /** \def MAX_SEQ_LEN 
@@ -61,16 +95,16 @@ __LINE__, __func__, __VA_ARGS__); } while (0)
  */
 #define MAX_LINE 10000
 
+/* Security-focused buffer size constants */
+#define MSG_BUFFER_SIZE 1024        /* For param->buffer and error messages */
+#define FILENAME_BUFFER_SIZE 1000   /* For file paths and names */
+#define SEQUENCE_BUFFER_SIZE 1000   /* For biological sequences */
+#define COMMAND_BUFFER_SIZE 10000   /* For command lines and large text */
+#define HEADER_BUFFER_SIZE 512      /* For FASTQ headers */
+#define BARCODE_BUFFER_SIZE 100     /* For barcode sequences */
 
 
-#ifndef _MM_ALIGN16
-#ifdef __GNUC__
-#define _MM_ALIGN16 __attribute__((aligned (16)))
-#endif
-#ifdef __MSVC__
-#define _MM_ALIGN16 __declspec(align(16))
-#endif
-#endif
+
 
 
 

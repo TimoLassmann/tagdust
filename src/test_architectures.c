@@ -63,9 +63,9 @@ int test_architectures(struct parameters* param, int file_num)
 	ab->num_arch = 0;
 	//1) file 0 = architecture file (tagdust commands on  each line)
 	//    file 1 = read file to test .
-	sprintf(param->buffer,"Looking at file:%s\n", param->infile[file_num]);
+	snprintf(param->buffer, MSG_BUFFER_SIZE, "Looking at file:%s\n", param->infile[file_num]);
 	param->messages = append_message(param->messages, param->buffer);
-	sprintf(param->buffer,"Searching for best architecture in file '%s'\n", param->arch_file);
+	snprintf(param->buffer, MSG_BUFFER_SIZE, "Searching for best architecture in file '%s'\n", param->arch_file);
 	param->messages = append_message(param->messages, param->buffer);
 	if((inarch = fopen(param->arch_file, "r")) == NULL) KSLIB_XEXCEPTION_SYS(kslEWRT,"Failed to open file:%s", param->arch_file);
 	
@@ -121,12 +121,12 @@ int test_architectures(struct parameters* param, int file_num)
 					mb = init_model_bag(param, ssi);
 				}
 				MMALLOC(ab->command_line[ab->num_arch],sizeof(char) * (strlen(line)+2));
-				strcpy(ab->command_line[ab->num_arch] , line);
+				SAFE_STRCPY(ab->command_line[ab->num_arch], line, strlen(line)+2);
 				//fprintf(stderr,"TESTING:\n%s\n",ab->command_line[ab->num_arch]);
 				ab->archs[ab->num_arch] = init_model_bag(param, ssi);
 				ab->num_arch++;
 				if(ab->num_arch == MAX_NUM_ARCH){
-					sprintf(param->buffer,"Error - your architechture file has too many architectures. Currently only %d allowed.\n", MAX_NUM_ARCH);
+					snprintf(param->buffer, MSG_BUFFER_SIZE,"Error - your architechture file has too many architectures. Currently only %d allowed.\n", MAX_NUM_ARCH);
 					param->messages = append_message(param->messages, param->buffer);
 					free_param(param);
 					exit(EXIT_FAILURE);
@@ -139,7 +139,7 @@ int test_architectures(struct parameters* param, int file_num)
 	fclose(inarch);
 	
 	if(!ab->num_arch){
-		sprintf(param->buffer,"Error - could not find any architectures in file: %s\n", param->arch_file);
+		snprintf(param->buffer, MSG_BUFFER_SIZE,"Error - could not find any architectures in file: %s\n", param->arch_file);
 		param->messages = append_message(param->messages, param->buffer);
 		free_param(param);
 		exit(EXIT_FAILURE);
@@ -150,7 +150,7 @@ int test_architectures(struct parameters* param, int file_num)
 		for(i = 0 ;i < ab->num_arch;i++){
 			for(j = i+1;j < ab->num_arch;j++){
 				if(!strcmp(ab->command_line[i], ab->command_line[j])){
-					sprintf(param->buffer,"ERROR: two architectures in %s are the same:%s\n%s\n", param->arch_file,ab->command_line[i], ab->command_line[j] );
+					snprintf(param->buffer, MSG_BUFFER_SIZE,"ERROR: two architectures in %s are the same:%s\n%s\n", param->arch_file,ab->command_line[i], ab->command_line[j] );
 					param->messages = append_message(param->messages, param->buffer);
 					free_param(param);
 					exit(EXIT_FAILURE);
@@ -209,7 +209,7 @@ int test_architectures(struct parameters* param, int file_num)
 			if(i == best_architecture){
 				param->buffer = pretty_print_selected_architecture(ab->command_line[i],param->buffer);
 				param->messages = append_message(param->messages, param->buffer);
-				sprintf(param->buffer,"%0.2f Confidence.\n", ab->arch_posterior[i]);
+				snprintf(param->buffer, MSG_BUFFER_SIZE,"%0.2f Confidence.\n", ab->arch_posterior[i]);
 				param->messages = append_message(param->messages, param->buffer);
 			}
 		}
@@ -217,7 +217,7 @@ int test_architectures(struct parameters* param, int file_num)
 		best_architecture = 0;
 		param->buffer = pretty_print_selected_architecture(ab->command_line[0],param->buffer);
 		param->messages = append_message(param->messages, param->buffer);
-		sprintf(param->buffer,"Confidence: %0.2f\n", 1.0);
+		snprintf(param->buffer, MSG_BUFFER_SIZE,"Confidence: %0.2f\n", 1.0);
 		param->messages = append_message(param->messages, param->buffer);
 	}
 	//4) set param->read_structure to best arch...

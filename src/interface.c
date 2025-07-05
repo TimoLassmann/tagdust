@@ -48,7 +48,8 @@
 */
 struct parameters* interface(struct parameters* param,int argc, char *argv[])
 {
-        int i,j,c;
+        int i,c;
+        size_t j;
         int help = 0;
         int version = 0;
 
@@ -439,7 +440,7 @@ struct parameters* interface(struct parameters* param,int argc, char *argv[])
 
         if(param->reference_fasta || param->dust){
                 if(param->multiread){
-                        sprintf(param->buffer,"WARNING: cannot dust or filter sequences by comparison to a known sequence if multiple reads are present in one input seqeunce.\n");
+                        snprintf(param->buffer, MSG_BUFFER_SIZE,"WARNING: cannot dust or filter sequences by comparison to a known sequence if multiple reads are present in one input seqeunce.\n");
                         param->messages = append_message(param->messages, param->buffer);
                         param->dust = 0;
                         param->reference_fasta = 0;
@@ -562,7 +563,7 @@ int assign_segment_sequences(struct parameters* param, char* tmp, int segment)
         if(tmp[0] == 'B'){
                 f = f + 1;
                 g = 0;
-                for(i = 0; i < strlen(read_structure->sequence_matrix[segment][0]);i++){
+                for(i = 0; i < (int)strlen(read_structure->sequence_matrix[segment][0]);i++){
                         read_structure->sequence_matrix[segment][f][g] = 'N';
                         g++;
                 }
@@ -572,7 +573,7 @@ int assign_segment_sequences(struct parameters* param, char* tmp, int segment)
         if(tmp[0] == 'S'){
                 f = f + 1;
                 g = 0;
-                for(i = 0; i < strlen(read_structure->sequence_matrix[segment][0]);i++){
+                for(i = 0; i < (int)strlen(read_structure->sequence_matrix[segment][0]);i++){
                         read_structure->sequence_matrix[segment][f][g] = 'N';
                         g++;
                 }
@@ -707,12 +708,12 @@ void usage()
 */
 int free_param(struct parameters* param)
 {
-        char logfile[200];
+        char logfile[FILENAME_BUFFER_SIZE];
         FILE* outfile = 0;
         int i,status;
         //if(param->log){
         if(param->outfile){
-                sprintf (logfile, "%s_logfile.txt",param->outfile);
+                snprintf(logfile, FILENAME_BUFFER_SIZE, "%s_logfile.txt",param->outfile);
                 if((outfile = fopen(logfile, "w")) == NULL) KSLIB_XEXCEPTION_SYS(kslEWRT,"Failed to open file:%s",logfile);
                 //if ((outfile = fopen( logfile, "w")) == NULL){
                 //	fprintf(stderr,"can't open logfile\n");
@@ -760,13 +761,12 @@ int QC_read_structure(struct parameters* param )
         struct read_structure* read_structure = param->read_structure;
         int i,g,f,min_error,errors;
         int last = -1;
-        int num_pairs = 0;
         for(i = 0; i < read_structure->num_segments;i++){
 
 
                 if(read_structure->sequence_matrix[i]){
                         if(last +1 != i){
-                                sprintf(param->buffer,"ERROR: a hmm building lock was skipped??\n");
+                                snprintf(param->buffer, MSG_BUFFER_SIZE,"ERROR: a hmm building lock was skipped??\n");
                                 param->messages = append_message(param->messages, param->buffer);
 
                                 return 1;
@@ -777,10 +777,10 @@ int QC_read_structure(struct parameters* param )
                                 for(f = g+1;f < read_structure->numseq_in_segment[i];f++){
                                         if(strlen(read_structure->sequence_matrix[i][g]) != strlen(read_structure->sequence_matrix[i][f])){
 
-                                                sprintf(param->buffer,"ERROR: the sequences in the same segment have to have the same length.\n");
+                                                snprintf(param->buffer, MSG_BUFFER_SIZE,"ERROR: the sequences in the same segment have to have the same length.\n");
                                                 param->messages = append_message(param->messages, param->buffer);
 
-                                                sprintf(param->buffer,"Segment %d\n%s	%d\n%s	%d\n",read_structure->numseq_in_segment[i], read_structure->sequence_matrix[i][g],g, read_structure->sequence_matrix[i][f],f );
+                                                snprintf(param->buffer, MSG_BUFFER_SIZE,"Segment %d\n%s	%d\n%s	%d\n",read_structure->numseq_in_segment[i], read_structure->sequence_matrix[i][g],g, read_structure->sequence_matrix[i][f],f );
                                                 param->messages = append_message(param->messages, param->buffer);
 
 
@@ -810,15 +810,13 @@ int QC_read_structure(struct parameters* param )
 
                                         if(errors < min_error){
                                                 min_error = errors;
-                                                num_pairs = 1;
                                                 //	fprintf(stderr,"%s\n%s\t%d\n",param->read_structure->sequence_matrix[i][j],param->read_structure->sequence_matrix[i][c] ,numseq);
                                         }else if(errors == min_error ){
-                                                num_pairs++;
                                         }
                                 }
                         }
                         //if(min_error != 1000){
-                        //sprintf(param->buffer,"Minumum edit distance among barcodes: %d, %d pairs\n", min_error,num_pairs);
+                        //snprintf(param->buffer, MSG_BUFFER_SIZE,"Minumum edit distance among barcodes: %d\n", min_error);
 
                         //param->messages = append_message(param->messages, param->buffer);
 

@@ -3,6 +3,7 @@
 #endif
 #include "kslib.h"
 
+#include "tagdust2.h"
 #include "interface.h"
 #include "nuc_code.h"
 #include "misc.h"
@@ -53,7 +54,6 @@ int main (int argc,char * argv[]) {
 	
 	char** barcode = 0;
 	
-	struct stat buf;
 		
 	if(param->infiles == 0){
 		exit(EXIT_FAILURE);
@@ -76,7 +76,7 @@ int main (int argc,char * argv[]) {
 		if(c){
 			MMALLOC(barcode[read_barcodes],sizeof(char) * 100);
 			j = 0;
-			for(i = c; i< strlen(line);i++){
+			for(i = c; i< (int)strlen(line);i++){
 				
 				switch(line[i]){
 					case 'A':
@@ -108,7 +108,7 @@ int main (int argc,char * argv[]) {
 	fclose(file);
 	
 	if(read_barcodes < param->sim_barnum){
-		sprintf(param->buffer,"File contains too few barcodes.\n");
+		snprintf(param->buffer, MSG_BUFFER_SIZE, "File contains too few barcodes.\n");
 		param->messages = append_message(param->messages, param->buffer);
 		free_param(param);
 		exit(EXIT_FAILURE);
@@ -147,22 +147,22 @@ int main (int argc,char * argv[]) {
 			read[j]  =0;
 		}
 		
+		tmp_str[0] = 0;
 		if(param->sim_5seq){
-			tmp_str[0] = 0;
-			strcat ( tmp_str,  param->sim_5seq);
+			SAFE_STRCAT(tmp_str, param->sim_5seq, 1000);
 		}
 		barcode_used = 0;
 		if(param->sim_barnum){
 			barcode_used = (int) (rand() % (int) (param->sim_barnum)) ;
 			
-			strcat ( tmp_str, barcode[barcode_used]);
+			SAFE_STRCAT(tmp_str, barcode[barcode_used], 1000);
 		}
 		
 		sequenced_read_mutated = mutate(param, tmp_str, sequenced_read_mutated, (int)strlen(tmp_str), my_rand_max);
 		//fprintf(stderr,"%s\n%s\n",sequenced_read,sequenced_read_mutated);
 		
 		
-		strcat ( sequenced_read, sequenced_read_mutated);
+		SAFE_STRCAT(sequenced_read, sequenced_read_mutated, 1000);
 
 		sequenced_read_mutated[0] = 0;
 		
@@ -188,17 +188,17 @@ int main (int argc,char * argv[]) {
 		}
 		read[c] = 0;
 		
-		strcat ( sequenced_read, read);
+		SAFE_STRCAT(sequenced_read, read, SEQUENCE_BUFFER_SIZE);
 		
 		
 		
 		if(param->sim_3seq){
 			tmp_str[0] = 0;
-			strcat ( tmp_str,  param->sim_3seq);
+			SAFE_STRCAT(tmp_str, param->sim_3seq, SEQUENCE_BUFFER_SIZE);
 			sequenced_read_mutated = mutate(param, tmp_str, sequenced_read_mutated, (int)strlen(tmp_str), my_rand_max);
 			//fprintf(stderr,"%s\n%s\n",read,sequenced_read_mutated);
 		}
-		strcat ( sequenced_read, sequenced_read_mutated);
+		SAFE_STRCAT(sequenced_read, sequenced_read_mutated, 1000);
 		
 		
 		if(param->sim_end_loss){
@@ -264,7 +264,7 @@ int main (int argc,char * argv[]) {
 	
 	for(i =  (int)((float) param->sim_numseq * (1.0-param->sim_random_frac)) ; i < param->sim_numseq   ;i++){
 		if(param->sim_5seq){
-			strcat ( sequenced_read,  param->sim_5seq);
+			SAFE_STRCAT(sequenced_read, param->sim_5seq, SEQUENCE_BUFFER_SIZE);
 		}
 		for(j = 0; j < c;j++){
 			r = (float)rand()/(float)my_rand_max;
@@ -324,22 +324,14 @@ int main (int argc,char * argv[]) {
 	
 	
 	param->buffer[0] = 0;
-	sprintf(param->buffer, "%s_tagdust_arch.txt",param->outfile );
+	snprintf(param->buffer, kslibMSGBUFSIZE, "%s_tagdust_arch.txt",param->outfile );
 	
 	
 	
 	
-	if(!stat ( param->buffer, &buf )){
-		if ((file = fopen(param->buffer, "a")) == NULL){
-			fprintf(stderr,"can't open output\n");
-			exit(-1);
-		}
-
-	}else {
-		if ((file = fopen(param->buffer, "w")) == NULL){
-			fprintf(stderr,"can't open output\n");
-			exit(-1);
-		}
+	if ((file = fopen(param->buffer, "w")) == NULL){
+		fprintf(stderr,"can't open output\n");
+		exit(-1);
 	}
 	
 	
@@ -394,7 +386,7 @@ int main (int argc,char * argv[]) {
 	
 	if(param->outfile){
 		param->buffer[0] = 0;
-		sprintf(param->buffer, "%s_btrim_pattern.txt",param->outfile );
+		snprintf(param->buffer, MSG_BUFFER_SIZE, "%s_btrim_pattern.txt",param->outfile );
 		if ((file = fopen(param->buffer, "w")) == NULL){
 			fprintf(stderr,"can't open barcode file. \n");
 			exit(-1);
@@ -446,7 +438,7 @@ int main (int argc,char * argv[]) {
 		
 		if(param->outfile){
 			param->buffer[0] = 0;
-			sprintf(param->buffer, "%s_fastxbarcodefile.txt",param->outfile );
+			snprintf(param->buffer, MSG_BUFFER_SIZE, "%s_fastxbarcodefile.txt",param->outfile );
 			if ((file = fopen(param->buffer, "w")) == NULL){
 				fprintf(stderr,"can't open barcode file. \n");
 				exit(-1);
@@ -487,6 +479,7 @@ ERROR:
 
 char* mutate(struct parameters* param, char* seq,char* seq_mutated,int len,unsigned int my_rand_max )
 {
+	(void)len; /* Unused parameter */
 	
 	int j;
 	float r = 0.0f;
@@ -495,7 +488,7 @@ char* mutate(struct parameters* param, char* seq,char* seq_mutated,int len,unsig
 	
 	float cutoff = 0.5;
 	
-	for(j = 0;j <  strlen(seq) ;j++){
+	for(j = 0;j <  (int)strlen(seq) ;j++){
 		r = (float)rand()/(float)my_rand_max;
 		if(r <= param->sim_error_rate){
 			//we have an error
@@ -506,7 +499,7 @@ char* mutate(struct parameters* param, char* seq,char* seq_mutated,int len,unsig
 				//indel++;
 				// we have an indel (only considering single nucleotide.....
 				r = (float)rand()/(float)my_rand_max;
-				if(j ==  strlen(seq)  -1){
+				if(j ==  (int)strlen(seq)  -1){
 					cutoff = 0.0;
 				}else{
 					cutoff = 0.5;

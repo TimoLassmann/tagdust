@@ -119,7 +119,7 @@ int hmm_controller_multiple(struct parameters* param)
 			if((status = assign_segment_sequences(param, "R:N" , 0 )) != kslOK) KSLIB_XEXCEPTION(kslFAIL,"Some problem with parsing an HMM segment: %s.\n",optarg);
 			//param->read_structure = assign_segment_sequences(param, "R:N" , 0 );
 			if(QC_read_structure(param)){
-				sprintf(param->buffer,"Something wrong with architecture....\n");
+				snprintf(param->buffer, MSG_BUFFER_SIZE,"Something wrong with architecture....\n");
 				param->messages = append_message(param->messages, param->buffer);
 				free_param(param);
 				exit(EXIT_FAILURE);
@@ -139,7 +139,7 @@ int hmm_controller_multiple(struct parameters* param)
 
 	// sanity check - barcode present in multiple reads? - Can't handle at the moment
 	if(bitcount64(barcode_present) > 1){
-		sprintf(param->buffer,"Barcodes seem to be in both architectures... \n");
+		snprintf(param->buffer, MSG_BUFFER_SIZE,"Barcodes seem to be in both architectures... \n");
 		param->messages = append_message(param->messages, param->buffer);
 		free_param(param);
 		exit(EXIT_FAILURE);
@@ -189,7 +189,7 @@ int hmm_controller_multiple(struct parameters* param)
 	
 	if(!param->confidence_threshold ){
 		for(i = 0; i < param->infiles;i++){
-			sprintf(param->buffer,"Determining threshold for read%d.\n",i);
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"Determining threshold for read%d.\n",i);
 			param->messages = append_message(param->messages, param->buffer);
 			
 			param->read_structure = param->read_structures[i];
@@ -259,7 +259,7 @@ int hmm_controller_multiple(struct parameters* param)
 		for(i = 0; i < param->infiles-1;i++){
 			for(j = i +1; j < param->infiles;j++){
 				if(numseqs[i] != numseqs[j]){
-					sprintf(param->buffer,"Input File:%s and %s differ in number of entries.\n", param->infile[i],param->infile[j]);
+					snprintf(param->buffer, MSG_BUFFER_SIZE,"Input File:%s and %s differ in number of entries.\n", param->infile[i],param->infile[j]);
 					param->messages = append_message(param->messages, param->buffer);
 					free_param(param);
 					exit(EXIT_FAILURE);
@@ -276,7 +276,7 @@ int hmm_controller_multiple(struct parameters* param)
 					for(c = 0;c < HMMER3_MIN(1000,numseqs[0] );c++){
 						//fprintf(stderr,"%s\n%s\n", read_info_container[i][c]->name,read_info_container[j][c]->name);
 						if(compare_read_names(param,read_info_container[i][c]->name,read_info_container[j][c]->name) ){
-							sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n", read_info_container[i][c]->name,read_info_container[j][c]->name);
+							snprintf(param->buffer, MSG_BUFFER_SIZE,"Files seem to contain reads in different order:\n%s\n%s\n", read_info_container[i][c]->name,read_info_container[j][c]->name);
 							param->messages = append_message(param->messages, param->buffer);
 							free_param(param);
 							exit(EXIT_FAILURE);
@@ -299,7 +299,7 @@ int hmm_controller_multiple(struct parameters* param)
 				}
 				if(c){
 					fprintf(stderr," %d %d\n", read_info_container[i][j]->len ,sequence_stats_info_container[i]->max_seq_len);
-					sprintf(param->buffer,"Long sequence found. Need to realloc model...\n");
+					snprintf(param->buffer, MSG_BUFFER_SIZE,"Long sequence found. Need to realloc model...\n");
 					param->messages = append_message(param->messages, param->buffer);
 					
 					free_model_bag(model_bag_container[i] );
@@ -384,46 +384,46 @@ int hmm_controller_multiple(struct parameters* param)
 		}
 	}
 	
-	sprintf(param->buffer,"Done.\n\n");
+	snprintf(param->buffer, MSG_BUFFER_SIZE,"Done.\n\n");
 	param->messages = append_message(param->messages, param->buffer);
 	
 	for(i =0; i < param->infiles;i++){
-		sprintf(param->buffer,"%s	Input file %d.\n",param->infile[i],i);
+		snprintf(param->buffer, MSG_BUFFER_SIZE,"%s	Input file %d.\n",param->infile[i],i);
 		param->messages = append_message(param->messages, param->buffer);
 	}
 	
 	
-	sprintf(param->buffer,"%d	total input reads\n", li->total_read);
+	snprintf(param->buffer, MSG_BUFFER_SIZE,"%d	total input reads\n", li->total_read);
 	param->messages = append_message(param->messages, param->buffer);
 	
-	sprintf(param->buffer,"%0.2f	selected threshold\n", param->confidence_threshold);
+	snprintf(param->buffer, MSG_BUFFER_SIZE,"%0.2f	selected threshold\n", param->confidence_threshold);
 	param->messages = append_message(param->messages, param->buffer);
 	
-	sprintf(param->buffer,"%d	successfully extracted\n" ,li->num_EXTRACT_SUCCESS);
+	snprintf(param->buffer, MSG_BUFFER_SIZE,"%d	successfully extracted\n" ,li->num_EXTRACT_SUCCESS);
 	param->messages = append_message(param->messages, param->buffer);
 	
-	sprintf(param->buffer,"%0.1f%%	extracted\n",  (float) li->num_EXTRACT_SUCCESS / (float) li->total_read  *100.0f);
+	snprintf(param->buffer, MSG_BUFFER_SIZE,"%0.1f%%	extracted\n",  (float) li->num_EXTRACT_SUCCESS / (float) li->total_read  *100.0f);
 	param->messages = append_message(param->messages, param->buffer);
 	
-	sprintf(param->buffer,"%d	problems with architecture\n" , li->num_EXTRACT_FAIL_ARCHITECTURE_MISMATCH);
+	snprintf(param->buffer, MSG_BUFFER_SIZE,"%d	problems with architecture\n" , li->num_EXTRACT_FAIL_ARCHITECTURE_MISMATCH);
 	param->messages = append_message(param->messages, param->buffer);
 	
-	sprintf(param->buffer,"%d	barcode / UMI not found\n" ,li->num_EXTRACT_FAIL_BAR_FINGER_NOT_FOUND);
+	snprintf(param->buffer, MSG_BUFFER_SIZE,"%d	barcode / UMI not found\n" ,li->num_EXTRACT_FAIL_BAR_FINGER_NOT_FOUND);
 	param->messages = append_message(param->messages, param->buffer);
 	
-	sprintf(param->buffer,"%d	too short\n" , li->num_EXTRACT_FAIL_READ_TOO_SHORT);
+	snprintf(param->buffer, MSG_BUFFER_SIZE,"%d	too short\n" , li->num_EXTRACT_FAIL_READ_TOO_SHORT);
 	param->messages = append_message(param->messages, param->buffer);
 	
-	sprintf(param->buffer,"%d	low complexity\n" , li->num_EXTRACT_FAIL_LOW_COMPLEXITY);
+	snprintf(param->buffer, MSG_BUFFER_SIZE,"%d	low complexity\n" , li->num_EXTRACT_FAIL_LOW_COMPLEXITY);
 	param->messages = append_message(param->messages, param->buffer);
 	
-	sprintf(param->buffer,"%d	match artifacts:\n" , li->num_EXTRACT_FAIL_MATCHES_ARTIFACTS);
+	snprintf(param->buffer, MSG_BUFFER_SIZE,"%d	match artifacts:\n" , li->num_EXTRACT_FAIL_MATCHES_ARTIFACTS);
 	param->messages = append_message(param->messages, param->buffer);
 	
 	if(reference_fasta){
 		for(i = 0; i < reference_fasta->numseq;i++){
 			if(reference_fasta->mer_hash[i]){
-				sprintf(param->buffer,"%d	%s\n" , reference_fasta->mer_hash[i], reference_fasta->sn[i]);
+				snprintf(param->buffer, MSG_BUFFER_SIZE,"%d	%s\n" , reference_fasta->mer_hash[i], reference_fasta->sn[i]);
 				param->messages = append_message(param->messages, param->buffer);
 			}
 			
@@ -500,7 +500,7 @@ void hmm_controller_pe(struct parameters* param)
 	
 	if(j == 3){
 		//param->read_structure = 0;
-		sprintf(param->buffer,"Barcodes seem to be in both architectures... \n");
+		snprintf(param->buffer, MSG_BUFFER_SIZE,"Barcodes seem to be in both architectures... \n");
 		param->messages = append_message(param->messages, param->buffer);
 		free_param(param);
 		exit(EXIT_FAILURE);
@@ -557,14 +557,14 @@ void hmm_controller_pe(struct parameters* param)
 	ssi_R2 = get_sequence_stats(param, r2, 1 );
 	
 	if(!param->confidence_threshold ){
-		sprintf(param->buffer,"Determining threshold for read1.\n");
+		snprintf(param->buffer, MSG_BUFFER_SIZE,"Determining threshold for read1.\n");
 		param->messages = append_message(param->messages, param->buffer);
 
 		param->read_structure = param->read_structure_R1;
 		param = estimateQthreshold(param,ssi_R1);
 		param->confidence_threshold_R1 = param->confidence_threshold;
 		
-		sprintf(param->buffer,"Determining threshold for read2.\n");
+		snprintf(param->buffer, MSG_BUFFER_SIZE,"Determining threshold for read2.\n");
 		param->messages = append_message(param->messages, param->buffer);
 		
 
@@ -633,7 +633,7 @@ void hmm_controller_pe(struct parameters* param)
 	while ((numseq1 = fp(r1, param,file1)) != 0){
 		numseq2 = fp(r2, param,file2);
 		if(numseq1 != numseq2){
-			sprintf(param->buffer,"Two files seem to be of different length.\n");
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"Two files seem to be of different length.\n");
 			param->messages = append_message(param->messages, param->buffer);
 			free_param(param);
 			exit(EXIT_FAILURE);
@@ -655,7 +655,7 @@ void hmm_controller_pe(struct parameters* param)
 		}
 		
 		if(j){
-			sprintf(param->buffer,"Long sequence found. Need to realloc model...\n");
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"Long sequence found. Need to realloc model...\n");
 			param->messages = append_message(param->messages, param->buffer);
 			
 			free_model_bag(mb_R1);
@@ -671,7 +671,7 @@ void hmm_controller_pe(struct parameters* param)
 		if(!param->sim_numseq){
 			for(i = 0; i < numseq1;i++){
 				if(compare_read_names(param,r1[i]->name,r2[i]->name) ){
-					sprintf(param->buffer,"Files seem to contain reads in different order:\n%s\n%s\n",r1[i]->name,r2[i]->name );
+					snprintf(param->buffer, MSG_BUFFER_SIZE,"Files seem to contain reads in different order:\n%s\n%s\n",r1[i]->name,r2[i]->name );
 					param->messages = append_message(param->messages, param->buffer);
 					free_param(param);
 					exit(EXIT_FAILURE);
@@ -758,7 +758,7 @@ void hmm_controller_pe(struct parameters* param)
 		
 		if(j == 3){
 			//param->read_structure = 0;
-			sprintf(param->buffer,"Barcodes seem to be in both architectures... \n");
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"Barcodes seem to be in both architectures... \n");
 			param->messages = append_message(param->messages, param->buffer);
 			free_param(param);
 			exit(EXIT_FAILURE);
@@ -812,46 +812,46 @@ void hmm_controller_pe(struct parameters* param)
 	}
 	
 	
-	sprintf(param->buffer,"Done.\n\n");
+	snprintf(param->buffer, MSG_BUFFER_SIZE,"Done.\n\n");
 	param->messages = append_message(param->messages, param->buffer);
 	
-	sprintf(param->buffer,"%s	Input file name 1.\n",param->infile[0]);
+	snprintf(param->buffer, MSG_BUFFER_SIZE,"%s	Input file name 1.\n",param->infile[0]);
 	param->messages = append_message(param->messages, param->buffer);
 	
-	sprintf(param->buffer,"%s	Input file name 2.\n",param->infile[1]);
+	snprintf(param->buffer, MSG_BUFFER_SIZE,"%s	Input file name 2.\n",param->infile[1]);
 	param->messages = append_message(param->messages, param->buffer);
 	
-	sprintf(param->buffer,"%d	total input reads\n", li->total_read);
+	snprintf(param->buffer, MSG_BUFFER_SIZE,"%d	total input reads\n", li->total_read);
 	param->messages = append_message(param->messages, param->buffer);
 	
-	sprintf(param->buffer,"%0.2f	selected threshold\n", param->confidence_threshold);
+	snprintf(param->buffer, MSG_BUFFER_SIZE,"%0.2f	selected threshold\n", param->confidence_threshold);
 	param->messages = append_message(param->messages, param->buffer);
 	
-	sprintf(param->buffer,"%d	successfully extracted\n" ,li->num_EXTRACT_SUCCESS);
+	snprintf(param->buffer, MSG_BUFFER_SIZE,"%d	successfully extracted\n" ,li->num_EXTRACT_SUCCESS);
 	param->messages = append_message(param->messages, param->buffer);
 	
-	sprintf(param->buffer,"%0.1f%%	extracted\n",  (float) li->num_EXTRACT_SUCCESS / (float) li->total_read  *100.0f);
+	snprintf(param->buffer, MSG_BUFFER_SIZE,"%0.1f%%	extracted\n",  (float) li->num_EXTRACT_SUCCESS / (float) li->total_read  *100.0f);
 	param->messages = append_message(param->messages, param->buffer);
 	
-	sprintf(param->buffer,"%d	problems with architecture\n" , li->num_EXTRACT_FAIL_ARCHITECTURE_MISMATCH);
+	snprintf(param->buffer, MSG_BUFFER_SIZE,"%d	problems with architecture\n" , li->num_EXTRACT_FAIL_ARCHITECTURE_MISMATCH);
 	param->messages = append_message(param->messages, param->buffer);
 	
-	sprintf(param->buffer,"%d	barcode / UMI not found\n" ,li->num_EXTRACT_FAIL_BAR_FINGER_NOT_FOUND);
+	snprintf(param->buffer, MSG_BUFFER_SIZE,"%d	barcode / UMI not found\n" ,li->num_EXTRACT_FAIL_BAR_FINGER_NOT_FOUND);
 	param->messages = append_message(param->messages, param->buffer);
 	
-	sprintf(param->buffer,"%d	too short\n" , li->num_EXTRACT_FAIL_READ_TOO_SHORT);
+	snprintf(param->buffer, MSG_BUFFER_SIZE,"%d	too short\n" , li->num_EXTRACT_FAIL_READ_TOO_SHORT);
 	param->messages = append_message(param->messages, param->buffer);
 	
-	sprintf(param->buffer,"%d	low complexity\n" , li->num_EXTRACT_FAIL_LOW_COMPLEXITY);
+	snprintf(param->buffer, MSG_BUFFER_SIZE,"%d	low complexity\n" , li->num_EXTRACT_FAIL_LOW_COMPLEXITY);
 	param->messages = append_message(param->messages, param->buffer);
 	
-	sprintf(param->buffer,"%d	match artifacts:\n" , li->num_EXTRACT_FAIL_MATCHES_ARTIFACTS);
+	snprintf(param->buffer, MSG_BUFFER_SIZE,"%d	match artifacts:\n" , li->num_EXTRACT_FAIL_MATCHES_ARTIFACTS);
 	param->messages = append_message(param->messages, param->buffer);
 	
 	if(reference_fasta){
 		for(i = 0; i < reference_fasta->numseq;i++){
 			if(reference_fasta->mer_hash[i]){
-				sprintf(param->buffer,"%d	%s\n" , reference_fasta->mer_hash[i], reference_fasta->sn[i]);
+				snprintf(param->buffer, MSG_BUFFER_SIZE,"%d	%s\n" , reference_fasta->mer_hash[i], reference_fasta->sn[i]);
 				param->messages = append_message(param->messages, param->buffer);
 			}
 			
@@ -954,7 +954,7 @@ void filter_controller(struct parameters* param, int file_num)
 	
 	if(param->outfile){
 		if ((outfile = fopen( param->outfile, "w")) == NULL){
-			sprintf(param->buffer,"can't open output file: %s\n",  param->outfile);
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"can't open output file: %s\n",  param->outfile);
 			param->messages = append_message(param->messages, param->buffer);
 			free_param(param);
 			exit(EXIT_FAILURE);
@@ -967,7 +967,7 @@ void filter_controller(struct parameters* param, int file_num)
 	if(param->print_artifact){
 		
 		if ((artifact_file = fopen( param->print_artifact, "w")) == NULL){
-			sprintf(param->buffer,"can't open artifact file: %s\n",  param->print_artifact);
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"can't open artifact file: %s\n",  param->print_artifact);
 			param->messages = append_message(param->messages, param->buffer);
 			free_param(param);
 			exit(EXIT_FAILURE);
@@ -1174,7 +1174,7 @@ void hmm_controller(struct parameters* param,int file_num)
 	struct sequence_stats_info* ssi = get_sequence_stats(param, ri, file_num );
 	
 	if(param->read_structure->num_segments == 1 && param->read_structure->type[0] == 'R'){
-		sprintf(param->buffer,"When using \" -1 R:N\" TagDust will echo reads and apply post fileting steps.\n");
+		snprintf(param->buffer, MSG_BUFFER_SIZE,"When using \" -1 R:N\" TagDust will echo reads and apply post fileting steps.\n");
 		param->messages = append_message(param->messages, param->buffer);
 	}else{
 	
@@ -1281,7 +1281,7 @@ void hmm_controller(struct parameters* param,int file_num)
 			}
 		}
 		if(j){
-			sprintf(param->buffer,"Long sequence found. Need to realloc model...\n");
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"Long sequence found. Need to realloc model...\n");
 			param->messages = append_message(param->messages, param->buffer);
 			
 			free_model_bag(mb);
@@ -1332,43 +1332,43 @@ void hmm_controller(struct parameters* param,int file_num)
 		}
 	}
 	
-	sprintf(param->buffer,"Done.\n\n");
+	snprintf(param->buffer, MSG_BUFFER_SIZE,"Done.\n\n");
 	param->messages = append_message(param->messages, param->buffer);
 	
-	sprintf(param->buffer,"%s	Input file name.\n",param->infile[file_num]);
+	snprintf(param->buffer, MSG_BUFFER_SIZE,"%s	Input file name.\n",param->infile[file_num]);
 	param->messages = append_message(param->messages, param->buffer);
 	
-	sprintf(param->buffer,"%d	total input reads\n", li->total_read);
+	snprintf(param->buffer, MSG_BUFFER_SIZE,"%d	total input reads\n", li->total_read);
 	param->messages = append_message(param->messages, param->buffer);
 	
-	sprintf(param->buffer,"%0.2f	selected threshold\n", param->confidence_threshold);
+	snprintf(param->buffer, MSG_BUFFER_SIZE,"%0.2f	selected threshold\n", param->confidence_threshold);
 	param->messages = append_message(param->messages, param->buffer);
 	
-	sprintf(param->buffer,"%d	successfully extracted\n" ,li->num_EXTRACT_SUCCESS);
+	snprintf(param->buffer, MSG_BUFFER_SIZE,"%d	successfully extracted\n" ,li->num_EXTRACT_SUCCESS);
 	param->messages = append_message(param->messages, param->buffer);
 
-	sprintf(param->buffer,"%0.1f%%	extracted\n",  (float) li->num_EXTRACT_SUCCESS / (float) li->total_read  *100.0f);
+	snprintf(param->buffer, MSG_BUFFER_SIZE,"%0.1f%%	extracted\n",  (float) li->num_EXTRACT_SUCCESS / (float) li->total_read  *100.0f);
 	param->messages = append_message(param->messages, param->buffer);
 	
-	sprintf(param->buffer,"%d	problems with architecture\n" , li->num_EXTRACT_FAIL_ARCHITECTURE_MISMATCH);
+	snprintf(param->buffer, MSG_BUFFER_SIZE,"%d	problems with architecture\n" , li->num_EXTRACT_FAIL_ARCHITECTURE_MISMATCH);
 	param->messages = append_message(param->messages, param->buffer);
 	
-	sprintf(param->buffer,"%d	barcode / UMI not found\n" ,li->num_EXTRACT_FAIL_BAR_FINGER_NOT_FOUND);
+	snprintf(param->buffer, MSG_BUFFER_SIZE,"%d	barcode / UMI not found\n" ,li->num_EXTRACT_FAIL_BAR_FINGER_NOT_FOUND);
 	param->messages = append_message(param->messages, param->buffer);
 	
-	sprintf(param->buffer,"%d	too short\n" , li->num_EXTRACT_FAIL_READ_TOO_SHORT);
+	snprintf(param->buffer, MSG_BUFFER_SIZE,"%d	too short\n" , li->num_EXTRACT_FAIL_READ_TOO_SHORT);
 	param->messages = append_message(param->messages, param->buffer);
 	
-	sprintf(param->buffer,"%d	low complexity\n" , li->num_EXTRACT_FAIL_LOW_COMPLEXITY);
+	snprintf(param->buffer, MSG_BUFFER_SIZE,"%d	low complexity\n" , li->num_EXTRACT_FAIL_LOW_COMPLEXITY);
 	param->messages = append_message(param->messages, param->buffer);
 	
-	sprintf(param->buffer,"%d	match artifacts:\n" , li->num_EXTRACT_FAIL_MATCHES_ARTIFACTS);
+	snprintf(param->buffer, MSG_BUFFER_SIZE,"%d	match artifacts:\n" , li->num_EXTRACT_FAIL_MATCHES_ARTIFACTS);
 	param->messages = append_message(param->messages, param->buffer);
 	
 	if(reference_fasta){
 		for(i = 0; i < reference_fasta->numseq;i++){
 			if(reference_fasta->mer_hash[i]){
-				sprintf(param->buffer,"%d	%s\n" , reference_fasta->mer_hash[i], reference_fasta->sn[i]);
+				snprintf(param->buffer, MSG_BUFFER_SIZE,"%d	%s\n" , reference_fasta->mer_hash[i], reference_fasta->sn[i]);
 				param->messages = append_message(param->messages, param->buffer);
 			}
 			
@@ -1504,7 +1504,7 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 		}
 		if(!s0){
 			//fprintf(stderr,"ERROR: there seems to e not a single read containing the 5' partial sequence.\n");
-			sprintf(param->buffer,"ERROR: there seems to e not a single read containing the 5' partial sequence.\n");
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"ERROR: there seems to e not a single read containing the 5' partial sequence.\n");
 			param->messages = append_message(param->messages, param->buffer);
 			free_param(param);
 			exit(EXIT_FAILURE);
@@ -1520,7 +1520,7 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 
 		if(mean <= 1){
 			//fprintf(stderr,"
-			sprintf(param->buffer,"WARNING: 5' partial segment seems not to be present in the data (length < 1).\n");
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"WARNING: 5' partial segment seems not to be present in the data (length < 1).\n");
 			param->messages = append_message(param->messages, param->buffer);
 			//free_param(param);
 			
@@ -1632,7 +1632,7 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 			}
 		}
 		if(!s0){
-			sprintf(param->buffer,"ERROR: there seems to e not a single read containing the 3' partial sequence.\n");
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"ERROR: there seems to e not a single read containing the 3' partial sequence.\n");
 			param->messages = append_message(param->messages, param->buffer);
 			free_param(param);
 			exit(EXIT_FAILURE);
@@ -1645,7 +1645,7 @@ struct model_bag* estimate_length_distribution_of_partial_segments(struct model_
 		
 		//fprintf(stderr,"3: %f %f\n", mean,  stdev);
 		if(mean <= 1){
-			sprintf(param->buffer,"WARNING: 3' partial segment seems not to be present in the data (length < 1).\n");
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"WARNING: 3' partial segment seems not to be present in the data (length < 1).\n");
 			param->messages = append_message(param->messages, param->buffer);
 
 		}
@@ -1939,7 +1939,7 @@ int run_pHMM(struct arch_bag* ab,struct model_bag* mb,struct read_info** ri,stru
 	
 	rc = pthread_attr_init(&attr);
 	if(rc){
-		sprintf(param->buffer,"ERROR; return code from pthread_attr_init() is %d\n", rc);
+		snprintf(param->buffer, MSG_BUFFER_SIZE,"ERROR; return code from pthread_attr_init() is %d\n", rc);
 		param->messages = append_message(param->messages, param->buffer);
 		
 		free_param(param);
@@ -1965,7 +1965,7 @@ int run_pHMM(struct arch_bag* ab,struct model_bag* mb,struct read_info** ri,stru
 		}
 		
 		if (rc) {
-			sprintf(param->buffer,"ERROR; return code from pthread_create() is %d\n", rc);
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"ERROR; return code from pthread_create() is %d\n", rc);
 			param->messages = append_message(param->messages, param->buffer);
 			free_param(param);
 			exit(EXIT_FAILURE );
@@ -1977,7 +1977,7 @@ int run_pHMM(struct arch_bag* ab,struct model_bag* mb,struct read_info** ri,stru
 	for (t = 0;t < param->num_threads;t++){
 		rc = pthread_join(threads[t], NULL);
 		if (rc){
-			sprintf(param->buffer,"ERROR; return code from pthread_join()is %d\n", rc);
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"ERROR; return code from pthread_join()is %d\n", rc);
 			param->messages = append_message(param->messages, param->buffer);
 			free_param(param);
 			exit(EXIT_FAILURE );
@@ -2070,7 +2070,7 @@ int run_rna_dust(struct read_info** ri,struct parameters* param,struct fasta* re
 	
 	rc = pthread_attr_init(&attr);
 	if(rc){
-		sprintf(param->buffer,"ERROR; return code from pthread_attr_init() is %d\n", rc);
+		snprintf(param->buffer, MSG_BUFFER_SIZE,"ERROR; return code from pthread_attr_init() is %d\n", rc);
 		param->messages = append_message(param->messages, param->buffer);
 		free_param(param);
 		exit(EXIT_FAILURE);
@@ -2081,7 +2081,7 @@ int run_rna_dust(struct read_info** ri,struct parameters* param,struct fasta* re
 		
 		rc = pthread_create(&threads[t], &attr, do_rna_dust, (void *) &thread_data[t]);
 		if (rc) {
-			sprintf(param->buffer,"ERROR; return code from pthread_create() is %d\n", rc);
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"ERROR; return code from pthread_create() is %d\n", rc);
 			param->messages = append_message(param->messages, param->buffer);
 			free_param(param);
 			exit(EXIT_FAILURE);
@@ -2093,7 +2093,7 @@ int run_rna_dust(struct read_info** ri,struct parameters* param,struct fasta* re
 	for (t = 0;t < param->num_threads;t++){
 		rc = pthread_join(threads[t], NULL);
 		if (rc){
-			sprintf(param->buffer,"ERROR; return code from pthread_join() is %d\n", rc);
+			snprintf(param->buffer, MSG_BUFFER_SIZE,"ERROR; return code from pthread_join() is %d\n", rc);
 			param->messages = append_message(param->messages, param->buffer);
 			free_param(param);
 			exit(EXIT_FAILURE);
@@ -2489,9 +2489,9 @@ Exhaustively compares reads to a fasta file of known artifact sequences. Uses a 
 	//int reverse = 0;
 	unsigned char* seq[4];
 	
-	int _MM_ALIGN16 lengths[4];
-	int _MM_ALIGN16 errors[4];
-	int _MM_ALIGN16 sequence_id[4];
+	int lengths[4];
+	int errors[4];
+	int sequence_id[4];
 	
 	for(i = start; i <= end-4;i+=4){
 		test = 1;
@@ -2598,6 +2598,7 @@ Exhaustively compares reads to a fasta file of known artifact sequences. Uses a 
 
 int  emit_random_sequence(struct model_bag* mb, struct read_info* ri,int average_length,unsigned int* seed )
 {
+	(void)seed; /* Unused parameter */
 #ifdef RTEST
 	unsigned int my_rand_max = 32768;
 #else
@@ -2694,6 +2695,7 @@ ERROR:
 
 int emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_length,unsigned int* seed )
 {
+	(void)seed; /* Unused parameter */
 	
 	int i,j,nuc;
 	int state = 0; //0 silent ; 1 M , 2 I , 3 D
@@ -3005,6 +3007,7 @@ int emit_read_sequence(struct model_bag* mb, struct read_info* ri,int average_le
 	}
 	//fprintf(stderr,"	%f\n", prob);
 	//fprintf(stderr,"%d len \n",current_length );
+	(void)prob; /* Accumulated but not used - may be for debugging */
 	
 	
 	MREALLOC(ri->seq, sizeof(char) * (current_length+1));
@@ -3828,11 +3831,10 @@ struct model_bag* forward(struct model_bag* mb, char* a, int len)
 
 struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, char* label, int len)
 {
+	(void)label; /* Unused parameter */
 	
 	int i,j,c;
 	int f,g;
-	
-	int hmm_counter = 0;
 	
 	struct hmm* hmm = 0;
 	struct hmm_column* c_hmm_column = 0;
@@ -4096,7 +4098,6 @@ struct model_bag* forward_extract_posteriors(struct model_bag* mb, char* a, char
 				//***************post
 				
 			}
-			hmm_counter++;
 		}
 	}
 	

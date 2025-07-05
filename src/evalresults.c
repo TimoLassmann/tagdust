@@ -36,7 +36,6 @@ int main (int argc,char * argv[])
 	
 	FILE* file = 0;
 	
-	struct stat buf;
 	
 	int i,j,c,g;
 	int numseq = 0;
@@ -285,21 +284,8 @@ int main (int argc,char * argv[])
 	
 	param->buffer[0] = 0;
 	sprintf(param->buffer, "%s_results.txt",param->outfile );
-	if(!stat ( param->buffer, &buf )){
-		if((file = fopen(param->buffer, "a")) == NULL) KSLIB_XEXCEPTION_SYS(kslEWRT,"Failed to open file:%s",param->buffer);
-		//if ((file = fopen(param->buffer, "a")) == NULL){
-		//	fprintf(stderr,"can't open output\n");
-		//	exit(-1);
-		//}
-		
-	}else {
-		if((file = fopen(param->buffer, "w")) == NULL) KSLIB_XEXCEPTION_SYS(kslEWRT,"Failed to open file:%s",param->buffer);
-		//if ((file = fopen(param->buffer, "w")) == NULL){
-		//	fprintf(stderr,"can't open output\n");
-		//	exit(-1);
-		//}
-		fprintf(file,"Program\tSensitivity\tSpecificity\tPrecision\tKappa\tAvgError\tTP\tFP\tFN\tTN\n");
-	}
+	if((file = fopen(param->buffer, "w")) == NULL) KSLIB_XEXCEPTION_SYS(kslEWRT,"Failed to open file:%s",param->buffer);
+	fprintf(file,"Program\tSensitivity\tSpecificity\tPrecision\tKappa\tAvgError\tTP\tFP\tFN\tTN\n");
 	
 	
 	
