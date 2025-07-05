@@ -1,3 +1,9 @@
+Version 2.33:
+- Added cmake
+- removed memory unsafe functions
+- generally modernised the code.
+- replaced SIMD code with simpler alternative.
+
 Version 2.32:
 - Added a program to merge overlapping paired end Illumina reads
 - Fixed bug: removed hard limit on seqeunce lengeth (was 500nt).
@@ -18,30 +24,28 @@ Version 2.2:
 - Tagdust can now be used on an arbitrary number of input files provided that only one (none) contains a barcode.
 
 Version 2.12:
-- Fixed help output. 
+- Fixed help output.
 
 Version 2.06:
-- TagDust now supports extracting multiple reads from single input sequences. 
-- fixed bug prining out two '@' signs for read names. 
-- fixed bug only partially printinting out sequence names. 
+- TagDust now supports extracting multiple reads from single input sequences.
+- fixed bug prining out two '@' signs for read names.
+- fixed bug only partially printinting out sequence names.
 
 Version 2.05:
-- added useability options. 
+- added useability options.
 - fixed some minor bugs.
 
 Version 2.04:
-- new random model: If the reads are expected to include barcodes, I simply add another N{x} barcode. Reads which do not have the barode will use this HMM.   
+- new random model: If the reads are expected to include barcodes, I simply add another N{x} barcode. Reads which do not have the barode will use this HMM.
 
 
 Version 2.03:
 - Several bugfixes:
-        - crashed when linkers were longer than 32 nucleotides. 
-        - nuc_code array was set to length 255 not 256 
+        - crashed when linkers were longer than 32 nucleotides.
+        - nuc_code array was set to length 255 not 256
 
 Version 2.01:
 
-- added simple read filtering by matching to a reference, 
+- added simple read filtering by matching to a reference,
 - added better support for partial segments ( 5' and 3' adapters)
 - more input checking...
-
-

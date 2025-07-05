@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.18)
 
-project(tagdust2 VERSION 2.32 LANGUAGES C)
+project(tagdust2 VERSION 2.33 LANGUAGES C)
 
 set(NAMESPACE_NAME "tagdust2")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -9,7 +9,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(PACKAGE_NAME "Tagdust")
 set(PACKAGE_BUGREPORT "timolassmann@gmail.com")
 
-# Set C standard 
+# Set C standard
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
@@ -38,11 +38,11 @@ option(BUILD_TESTS "Build test programs" ON)
 if(ENABLE_DEBUGGING OR DEBUG_LEVEL GREATER 0)
     add_compile_definitions(DEBUG=1)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ggdb -Wall -m64 -std=gnu99")
-    
+
     # Set debug level
     if(DEBUG_LEVEL STREQUAL "1")
         add_compile_definitions(kslDEBUGLEVEL=1)
-    elseif(DEBUG_LEVEL STREQUAL "2") 
+    elseif(DEBUG_LEVEL STREQUAL "2")
         add_compile_definitions(kslDEBUGLEVEL=2)
     elseif(DEBUG_LEVEL STREQUAL "3")
         add_compile_definitions(kslDEBUGLEVEL=3)
@@ -65,7 +65,7 @@ endif()
 
 # Header checks
 check_include_file("assert.h" HAVE_ASSERT_H)
-check_include_file("ctype.h" HAVE_CTYPE_H) 
+check_include_file("ctype.h" HAVE_CTYPE_H)
 check_include_file("float.h" HAVE_FLOAT_H)
 check_include_file("getopt.h" HAVE_GETOPT_H)
 check_include_file("inttypes.h" HAVE_INTTYPES_H)
@@ -148,7 +148,7 @@ if(BUILD_TESTS)
 endif()
 
 # Installation
-install(DIRECTORY doc/ DESTINATION ${CMAKE_INSTALL_DOCDIR} 
+install(DIRECTORY doc/ DESTINATION ${CMAKE_INSTALL_DOCDIR}
         FILES_MATCHING PATTERN "*.pdf" PATTERN "*.txt")
 
 # Summary
@@ -180,7 +180,7 @@ endif()
 set(CPACK_PACKAGE_VENDOR "Timo Lassmann")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "TagDust2 - Preprocessing of Raw Sequences")
 set(CPACK_PACKAGE_VERSION_MAJOR 2)
-set(CPACK_PACKAGE_VERSION_MINOR 32) 
+set(CPACK_PACKAGE_VERSION_MINOR 32)
 set(CPACK_PACKAGE_VERSION_PATCH 0)
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/COPYING")
 set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
