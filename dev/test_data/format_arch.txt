@@ -1,0 +1,2 @@
+tagdust -1 B:ATCGATCG,GCTAGCTA
+tagdust -1 R:N

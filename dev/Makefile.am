@@ -12,6 +12,12 @@ EDITTAG_6nt_ed_4.txt \
 bar_read_test.sh \
 sanity_test.sh \
 casava_test.sh \
+edge_case_test.sh \
+cli_test.sh \
+bmp_test.sh \
+arch_test.sh \
+format_test.sh \
+thread_test.sh \
 barread1_tagdust_results_gold.txt \
 barread2_tagdust_results_gold.txt \
 barread_paired_tagdust_results_gold.txt \
@@ -30,7 +36,7 @@ TESTS_ENVIRONMENT = \
 	valparam='$(VALGRIND)'; \
 	export valparam; 
 	
-TESTS=sanity_test.sh bar_read_test.sh casava_test.sh
+TESTS=sanity_test.sh bar_read_test.sh casava_test.sh edge_case_test.sh cli_test.sh bmp_test.sh arch_test.sh format_test.sh thread_test.sh
 TEST_EXTENSIONS= .sh
 SH_LOG_COMPILER= $(BASH)
 

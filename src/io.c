@@ -756,7 +756,7 @@ ERROR:
 
 int print_all(struct read_info*** read_info_container,struct parameters* param, int numseq, char*  read_present)
 {
-	int i,j,c,f,status;
+	int i,j,c,f,status = 0;
 	int barsegment = -1;
 	int num_outfiles = 0;
 	int num_alternatives = 0;
@@ -845,6 +845,14 @@ int print_all(struct read_info*** read_info_container,struct parameters* param, 
 	
 #endif
 	
+	// Validate that we have output files to create
+	if (num_outfiles == 0) {
+		fprintf(stderr, "ERROR: No output files to create. ");
+		fprintf(stderr, "Input sequences may not contain extractable reads or may not match the expected architecture.\n");
+		fprintf(stderr, "This can occur when sequences are too short, contain only barcodes, or don't match the specified pattern.\n");
+		status = 1;
+		goto ERROR;
+	}
 	
 	MMALLOC(file_container,sizeof(FILE*) * num_outfiles);
 	
